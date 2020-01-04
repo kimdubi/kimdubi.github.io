@@ -12,7 +12,7 @@
     
     
     <item>
-      <title>Docker Mysql Replication</title>
+      <title>Docker-compose로 Mysql Replication 자동 구성하기</title>
       <link>https://kimdubi.github.io/etc/docker-mysql-replication/</link>
       <pubDate>Sat, 04 Jan 2020 23:36:53 +0900</pubDate>
       

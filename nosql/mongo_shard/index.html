@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MongoDB Sharded Cluster</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: red;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MongoDB Sharded Cluster</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/about/">About</a></li>
+                            
+                                <li><a href="/post/">Posts</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:me@example.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://github.com/username/"><i class="fa fa-github"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://twitter.com/username/"><i class="fa fa-twitter"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/username/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.stackoverflow.com/username/"><i class="fa fa-stack-overflow"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MongoDB Sharded Cluster</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>sharding 은 데이터를 여러 서버에 분산해서 저장 및 처리할 수 있도록 하는 기술입니다.<br>
+replicaset이 MongoDB의 고가용성을 위한 솔루션이라면, sharding은 분산 처리를 위한 솔루션이라 할 수 있으며<br>
+Vertical, Horizontal 모두 적용 가능하나 일반적으로 하나의 Collection(table) 을 여러 샤드로 분산하는 Horizontal sharding 이 적용됩니다.</p>
+<p>이번 글에서는 MongoDB sharding 구성 방법을 살펴보고 다음 글에서 각각의 구성요소에 대해 좀 더 자세하게 살펴보도록 하겠습니다.</p>
+<h3 id="-">아키텍처 개념</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mongo_shard.png" alt=""></p>
+<p>(<a href="https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets">https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets</a>)</p>
+<pre><code>shard =&gt; 실제 데이터의 집합으로 샤드 키에 따라 shard1 / shard2 / shard3 에 데이터가 저장됨. 각각의 샤드 노드는 PSS (primary,secondary,secondary) / PSA (primary,secondary,arbiter) 형태의 replicaSet 으로 구성됨
+
+
+config  =&gt; 샤드 서버에 저장된 데이터가 어떻게 나뉘어 분산돼 있는지에 대한 메타정보 및 사용자 정보 저장, 샤드 클러스터 내 컨피그 서버는 무조건 하나의 레플리카셋으로 구성되어야 함
+
+
+mongos =&gt; 컨피그 서버의 메타정보를 읽어와 캐싱한 후 샤용자의 쿼리 요청을 어떤 샤드로 전달할지 정하고, 각 샤드로 부터 받은 쿼리 결과를 병합하여 리턴하는 역할
+</code></pre><h3 id="-1">구성 예제</h3>
+<ul>
+<li>Shard node</li>
+</ul>
+<pre><code>repl_shard1 =&gt; PSS 
+repl_shard2 =&gt; PSS
+</code></pre><ul>
+<li>Config </li>
+</ul>
+<pre><code>repl_conf =&gt; PSS
+</code></pre><ul>
+<li>Mongos</li>
+</ul>
+<pre><code>mongos 3대 
+</code></pre><ul>
+<li>config server 구성</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">docker run -d --name mongo_conf1 --network mongo-cluster mongo:4.1 mongod --replSet repl_conf --configsvr
+docker run -d --name mongo_conf2 --network mongo-cluster mongo:4.1 mongod --replSet repl_conf --configsvr
+docker run -d --name mongo_conf3 --network mongo-cluster mongo:4.1 mongod --replSet repl_conf --configsvr
+</code></pre></div><p>=&gt; shard cluster 내 config server 는 replSet 으로 이루어져야 하며 configsvr 옵션과 함께 기동되어야함</p>
+<pre><code>&gt; rs.initiate({
+... _id:&quot;repl_conf&quot;,
+... configsvr:true,
+... members:[{_id:0,host:&quot;mongo_conf1:27019&quot;},{_id:1,host:&quot;mongo_conf2:27019&quot;},{_id:2,host:&quot;mongo_conf3:27019&quot;}] });
+{
+&quot;ok&quot; : 1,
+&quot;$gleStats&quot; : {
+&quot;lastOpTime&quot; : Timestamp(1566725886, 1),
+&quot;electionId&quot; : ObjectId(&quot;000000000000000000000000&quot;)
+},
+&quot;lastCommittedOpTime&quot; : Timestamp(0, 0),
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1566725886, 1),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+},
+&quot;operationTime&quot; : Timestamp(1566725886, 1)
+}
+</code></pre><p>=&gt; config 서버 replSet 설정</p>
+<ul>
+<li>shard node #1 구성</li>
+</ul>
+<pre><code>dori:~ mac$ docker run -d  --net mongo-cluster --name mongo_shard1 mongo:4.1 mongod --replSet repl_shard1 --shardsvr
+dori:~ mac$ docker run -d  --net mongo-cluster --name mongo_shard2 mongo:4.1 mongod --replSet repl_shard1 --shardsvr
+dori:~ mac$ docker run -d  --net mongo-cluster --name mongo_shard3 mongo:4.1 mongod --replSet repl_shard1 --shardsvr
+</code></pre><p>=&gt; repl_shard1 라는 replSet으로 묶인 shard node 구성 </p>
+<pre><code>&gt; rs.initiate({ _id:&quot;repl_shard1&quot;, members:[ {_id:0,host:&quot;mongo_shard1:27018&quot;}, {_id:1,host:&quot;mongo_shard2:27018&quot;}, {_id:2,host:&quot;mongo_shard3:27018&quot;} ]} );
+{
+&quot;ok&quot; : 1,
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1566718019, 1),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+},
+&quot;operationTime&quot; : Timestamp(1566718019, 1)
+}
+</code></pre><ul>
+<li>shard node #2 구성</li>
+</ul>
+<pre><code>dori:~ mac$ docker run -d  --net mongo-cluster --name mongo_shard4 mongo:4.1 mongod --replSet repl_shard2 --shardsvr
+dori:~ mac$ docker run -d  --net mongo-cluster --name mongo_shard5 mongo:4.1 mongod --replSet repl_shard2 --shardsvr
+dori:~ mac$ docker run -d  --net mongo-cluster --name mongo_shard6 mongo:4.1 mongod --replSet repl_shard2 --shardsvr
+</code></pre><p>=&gt; repl_shard2 라는 replSet으로 묶인 shard node 구성 </p>
+<pre><code>&gt; rs.initiate( {_id:&quot;repl_shard2&quot;, members:[ {_id:0,host:&quot;mongo_shard4:27018&quot;}, {_id:1,host:&quot;mongo_shard5:27018&quot;}, {_id:2,host:&quot;mongo_shard6:27018&quot;}]} ) ;
+{
+&quot;ok&quot; : 1,
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1566719750, 1),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+},
+&quot;operationTime&quot; : Timestamp(1566719750, 1)
+}
+</code></pre><ul>
+<li>mongos 구성</li>
+</ul>
+<pre><code>docker run -d --network mongo-cluster --name mongos1 -p 27017:27017 mongo:4.1 mongos --configdb repl_conf/mongo_conf1:27019,mongo_conf2:27019,mongo_conf3:27019 --bind_ip_all
+
+docker run -d --network mongo-cluster --name mongos2 -p 27027:27017 mongo:4.1 mongos --configdb repl_conf/mongo_conf1:27019,mongo_conf2:27019,mongo_conf3:27019 --bind_ip_all
+
+docker run -d --network mongo-cluster --name mongos3 -p 27037:27017 mongo:4.1 mongos --configdb repl_conf/mongo_conf1:27019,mongo_conf2:27019,mongo_conf3:27019 --bind_ip_all
+</code></pre><p>=&gt; mongos 는 config server 의 메타 정보를 읽어와 client 의 request 를 처리할 shard 를 정하기 때문에 mongos 가 읽을 config server 를 정의해야함</p>
+<pre><code>sh.addShard(&quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&quot;)
+sh.addShard(&quot;repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018&quot;)
+</code></pre><p>=&gt; shard node #1 과 #2 를 추가함  </p>
+<pre><code>mongos&gt; sh.addShard(&quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&quot;)
+{
+&quot;shardAdded&quot; : &quot;repl_shard1&quot;,
+&quot;ok&quot; : 1,
+&quot;operationTime&quot; : Timestamp(1566738338, 4),
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1566738338, 4),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+}
+}
+
+mongos&gt; sh.addShard(&quot;repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018&quot;)
+{
+&quot;shardAdded&quot; : &quot;repl_shard2&quot;,
+&quot;ok&quot; : 1,
+&quot;operationTime&quot; : Timestamp(1566738339, 8),
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1566738339, 8),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+}
+}
+</code></pre><h3 id="shard--">shard 구성 확인</h3>
+<pre><code>mongos&gt; sh.status()
+--- Sharding Status ---
+  sharding version: {
+   &quot;_id&quot; : 1,
+   &quot;minCompatibleVersion&quot; : 5,
+   &quot;currentVersion&quot; : 6,
+   &quot;clusterId&quot; : ObjectId(&quot;5d62570b3ed72a6b6728f2f3&quot;)
+  }
+  shards:
+{  &quot;_id&quot; : &quot;repl_shard1&quot;,  &quot;host&quot; : &quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&quot;,  &quot;state&quot; : 1 }
+{  &quot;_id&quot; : &quot;repl_shard2&quot;,  &quot;host&quot; : &quot;repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018&quot;,  &quot;state&quot; : 1 }
+  active mongoses:
+&quot;4.1.13&quot; : 3
+  autosplit:
+Currently enabled: yes
+  balancer:
+Currently enabled:  yes
+Currently running:  no
+Failed balancer rounds in last 5 attempts:  0
+Migration Results for the last 24 hours:
+No recent migrations
+  databases:
+{  &quot;_id&quot; : &quot;config&quot;,  &quot;primary&quot; : &quot;config&quot;,  &quot;partitioned&quot; : true }
+</code></pre><p>=&gt; shard node : repl_shard1 , repl_shard2  mongos : 3대 기동중</p>
+<p>autosplit : mongodb에서는 sharding 의 기준인 collection 을 여러 조각으로 파티션하고 각 조각을 여러 샤드 서버에 분산해서 저장하는데 이 조각을 chunk 라고 함.</p>
+<p>chunk 는 default 64MB 까지 커질 수 있는데 이 때 이 chunk를 자동으로 split 하겠다는 의미</p>
+<p>balancer : chunk 의 split 이 빈번하면 하나의 shard node에만 chunk 수가 많아지고 밸런스가 깨질 수 있는데 밸런스를 맞추기 위해</p>
+<p>chunk를 다른 샤드 노드로 migration 하는 역할</p>
+</div>
+
+</main>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

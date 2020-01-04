@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MongoDB ReplicaSet</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: red;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MongoDB ReplicaSet</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/about/">About</a></li>
+                            
+                                <li><a href="/post/">Posts</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:me@example.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://github.com/username/"><i class="fa fa-github"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://twitter.com/username/"><i class="fa fa-twitter"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/username/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.stackoverflow.com/username/"><i class="fa fa-stack-overflow"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MongoDB ReplicaSet</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>mongo db에서도 mysql 처럼 M-S 구조로 replication 을 설정할 수 있습니다.<br>
+그 중에서도 자동 failover를 지원하고 master-slave cluster에서 새 node 를 추가하는 것이<br>
+쉬운  replica set 으로 replication 설정하는 방법을 소개하겠습니다.</p>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mongo_replica.png" alt="">     </p>
+<p>(출처 : mongodb.com)</p>
+<h3 id="replica-set--db-">replica set 설정할 DB 준비</h3>
+<pre><code>dori:bin mac$ docker run -d -p 30000:27017 --name mongo-1 mongo mongod --replSet repltest
+9cc3084a4779fce90b65ed7fde5b987ef882bda58230fd241168e05dc1f93127
+
+dori:bin mac$ docker run -d -p 30001:27017 --name mongo-2 mongo mongod --replSet repltest
+e70f38ab592739ceb33426b4b85af755e59be3ba139683fe599584900c19f360
+
+dori:bin mac$ docker run -d -p 30002:27017 --name mongo-3 mongo mongod --replSet repltest
+f3adc7ce039c63abb65166eb1874d5f2e1c19ca533ee63f0079c3caba44b6111
+
+dori:bin mac$ docker run -d -p 30003:27017 --name mongo-4 mongo mongod --replSet repltest
+948531ffb1d64a15bb1295329d49864b40352783e7266dab5e5635c695228d4c
+</code></pre><ul>
+<li>&ndash;replSet replicaSet이름 옵션으로 repltest 라는 replicaSet db 4대 기동</li>
+</ul>
+<h3 id="replica-set-">replica set 설정</h3>
+<pre><code>dori:bin mac$ mongo --port 30000
+MongoDB shell version v4.0.9
+
+&gt;
+&gt; repl_conf={
+... _id: &quot;repltest&quot;,
+... members: [{_id: 0, host: &quot;DB 노드 IP :30000&quot;}]
+... }
+
+{
+&quot;_id&quot; : &quot;repltest&quot;,
+&quot;members&quot; : [
+{
+&quot;_id&quot; : 0,
+&quot;host&quot; : &quot;DB 노드 IP:30000&quot;
+}
+]
+}
+
+&gt; rs.initiate(repl_conf)
+{
+&quot;ok&quot; : 1,
+&quot;operationTime&quot; : Timestamp(1558191512, 1),
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1558191512, 1),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+}
+}
+</code></pre><ul>
+<li>replica set 의 멤버로 우선 노드 한개만 설정 후 rs.add() 커맨드로 추가할 것임</li>
+<li>replica set 설정 후 rs.initate() 커맨드 실행</li>
+</ul>
+<h3 id="rsadd---">rs.add() 로 노드 추가</h3>
+<pre><code>repltest:PRIMARY&gt; rs.add(&quot;DB 노드 IP:30001&quot;)
+{
+&quot;ok&quot; : 1,
+&quot;operationTime&quot; : Timestamp(1558191605, 1),
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1558191605, 1),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+}
+}
+</code></pre><ul>
+<li>replica set 의 멤버에 rs.add() 로 노드 추가</li>
+</ul>
+<h3 id="rsstatus--replica-set---">rs.status() 로 replica set 현재 상태 확인</h3>
+<pre><code>repltest:PRIMARY&gt; rs.status()
+
+{
+&quot;set&quot; : &quot;repltest&quot;,
+&quot;date&quot; : ISODate(&quot;2019-05-18T15:02:50.744Z&quot;),
+&quot;myState&quot; : 1,
+&quot;term&quot; : NumberLong(1),
+&quot;syncingTo&quot; : &quot;&quot;,
+&quot;syncSourceHost&quot; : &quot;&quot;,
+&quot;syncSourceId&quot; : -1,
+&quot;heartbeatIntervalMillis&quot; : NumberLong(2000),
+&quot;optimes&quot; : {
+&quot;lastCommittedOpTime&quot; : {
+&quot;ts&quot; : Timestamp(1558191767, 1),
+&quot;t&quot; : NumberLong(1)
+},
+&quot;readConcernMajorityOpTime&quot; : {
+&quot;ts&quot; : Timestamp(1558191767, 1),
+&quot;t&quot; : NumberLong(1)
+},
+&quot;appliedOpTime&quot; : {
+&quot;ts&quot; : Timestamp(1558191767, 1),
+&quot;t&quot; : NumberLong(1)
+},
+&quot;durableOpTime&quot; : {
+&quot;ts&quot; : Timestamp(1558191767, 1),
+&quot;t&quot; : NumberLong(1)
+}
+},
+&quot;lastStableCheckpointTimestamp&quot; : Timestamp(1558191750, 1),
+
+&quot;members&quot; : [
+{
+&quot;_id&quot; : 0,
+&quot;name&quot; : &quot;DB 노드 IP:30000&quot;,
+&quot;health&quot; : 1,
+&quot;state&quot; : 1,
+&quot;stateStr&quot; : &quot;PRIMARY&quot;,
+&quot;uptime&quot; : 610,
+&quot;optime&quot; : {
+&quot;ts&quot; : Timestamp(1558191767, 1),
+&quot;t&quot; : NumberLong(1)
+},
+&quot;optimeDate&quot; : ISODate(&quot;2019-05-18T15:02:47Z&quot;),
+&quot;syncingTo&quot; : &quot;&quot;,
+&quot;syncSourceHost&quot; : &quot;&quot;,
+&quot;syncSourceId&quot; : -1,
+&quot;infoMessage&quot; : &quot;&quot;,
+&quot;electionTime&quot; : Timestamp(1558191512, 2),
+&quot;electionDate&quot; : ISODate(&quot;2019-05-18T14:58:32Z&quot;),
+&quot;configVersion&quot; : 6,
+&quot;self&quot; : true,
+&quot;lastHeartbeatMessage&quot; : &quot;&quot;
+},
+
+{
+&quot;_id&quot; : 1,
+&quot;name&quot; : &quot;DB 노드 IP:30001&quot;,
+&quot;health&quot; : 1,
+&quot;state&quot; : 2,
+&quot;stateStr&quot; : &quot;SECONDARY&quot;,
+&quot;uptime&quot; : 164,
+&quot;optime&quot; : {
+&quot;ts&quot; : Timestamp(1558191767, 1),
+&quot;t&quot; : NumberLong(1)
+},
+&quot;optimeDurable&quot; : {
+&quot;ts&quot; : Timestamp(1558191767, 1),
+&quot;t&quot; : NumberLong(1)
+},
+&quot;optimeDate&quot; : ISODate(&quot;2019-05-18T15:02:47Z&quot;),
+&quot;optimeDurableDate&quot; : ISODate(&quot;2019-05-18T15:02:47Z&quot;),
+&quot;lastHeartbeat&quot; : ISODate(&quot;2019-05-18T15:02:49.276Z&quot;),
+&quot;lastHeartbeatRecv&quot; : ISODate(&quot;2019-05-18T15:02:49.344Z&quot;),
+&quot;pingMs&quot; : NumberLong(7),
+&quot;lastHeartbeatMessage&quot; : &quot;&quot;,
+&quot;syncingTo&quot; : &quot;DB 노드 IP:30003&quot;,
+&quot;syncSourceHost&quot; : &quot;DB 노드 IP:30003&quot;,
+&quot;syncSourceId&quot; : 3,
+&quot;infoMessage&quot; : &quot;&quot;,
+&quot;configVersion&quot; : 6
+},
+
+{
+&quot;_id&quot; : 2,
+&quot;name&quot; : &quot;DB 노드 IP:30002&quot;,
+&quot;health&quot; : 1,
+&quot;state&quot; : 2,
+&quot;stateStr&quot; : &quot;SECONDARY&quot;,
+&quot;uptime&quot; : 19,
+&quot;optime&quot; : {
+
+&quot;ts&quot; : Timestamp(1558191767, 1),
+
+&quot;t&quot; : NumberLong(1)
+},
+&quot;optimeDurable&quot; : {
+&quot;ts&quot; : Timestamp(158191767, 1),
+&quot;t&quot; : NumberLong(1)
+},
+
+.
+
+.
+
+.
+
+.
+</code></pre><ul>
+<li>
+<p>Primary node 와 Secondary node 의 상태와 설정이 조회됨</p>
+<p> </p>
+</li>
+</ul>
+<h3 id="slave----">Slave 에서 읽기 에러가 나면?</h3>
+<pre><code>repltest:SECONDARY&gt; show dbs
+2019-05-19T00:35:27.090+0900 E QUERY    [js] Error: listDatabases failed:{
+&quot;operationTime&quot; : Timestamp(1558193724, 1),
+&quot;ok&quot; : 0,
+&quot;errmsg&quot; : &quot;not master and slaveOk=false&quot;,
+&quot;code&quot; : 13435,
+&quot;codeName&quot; : &quot;NotMasterNoSlaveOk&quot;,
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1558193724, 1),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+}
+} :
+
+_getErrorWithCode@src/mongo/shell/utils.js:25:13
+Mongo.prototype.getDBs@src/mongo/shell/mongo.js:139:1
+shellHelper.show@src/mongo/shell/utils.js:882:13
+shellHelper@src/mongo/shell/utils.js:766:15
+@(shellhelp2):1:1
+</code></pre><ul>
+<li>Secondary node 는 기본적으로 쿼리 수행이 잠겨있어 아래 커맨드로 풀어줘야함</li>
+</ul>
+<pre><code>repltest:SECONDARY&gt; rs.slaveOk()
+</code></pre></div>
+
+</main>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

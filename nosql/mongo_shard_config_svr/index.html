@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MongoDB Sharded Cluster - Config server</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: red;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MongoDB Sharded Cluster - Config server</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/about/">About</a></li>
+                            
+                                <li><a href="/post/">Posts</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:me@example.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://github.com/username/"><i class="fa fa-github"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://twitter.com/username/"><i class="fa fa-twitter"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/username/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.stackoverflow.com/username/"><i class="fa fa-stack-overflow"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MongoDB Sharded Cluster - Config server</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>지난 글에서 mongodb shard cluster 개념과 구성하는 방법에 대해 소개드렸고 
+이번 글에서는 구성요소 중 하나인 config server에 대해 다루겠습니다.</p>
+<h3 id="config-server-">Config server 란?</h3>
+<p>config server는 shard cluster에서 필요한 모든 메타 정보들을 저장함<br>
+메타정보에는 어느 chunk , 즉 어떤 data 가 어떤 shard 에 있는지, chunk 의 밸런싱 작업은 어떻게 해야할지 등의 메타정보와 사용자 인증 정보가 저장됨<br>
+이렇게 중요한 정보들을 담고 있어서 가용성을 위해 하나의 replSet 으로 구성되어야 함</p>
+<ul>
+<li>config server 정보</li>
+</ul>
+<pre><code>repl_conf:PRIMARY&gt; use config;
+switched to db config
+
+repl_conf:PRIMARY&gt; show collections;
+actionlog
+changelog
+chunks
+collections
+databases
+lockpings
+locks
+migrations
+mongos
+shards
+system.sessions
+tags
+transactions
+version 
+</code></pre><ul>
+<li>databases</li>
+</ul>
+<pre><code>repl_conf:PRIMARY&gt; db.databases.find()
+{ &quot;_id&quot; : &quot;shard_test&quot;, &quot;primary&quot; : &quot;repl_shard2&quot;, &quot;partitioned&quot; : false, &quot;version&quot; : { &quot;uuid&quot; : UUID(&quot;a2a1b712-6070-44c5-9370-ae711e9018bd&quot;), &quot;lastMod&quot; : 1 } }
+
+{ &quot;_id&quot; : &quot;test&quot;, &quot;primary&quot; : &quot;repl_shard2&quot;, &quot;partitioned&quot; : true, &quot;version&quot; : { &quot;uuid&quot; : UUID(&quot;5f6fa995-53c0-4677-a1ba-38aff579df77&quot;), &quot;lastMod&quot; : 1 } }
+</code></pre><p>=&gt; shard cluster 가 가지고 있는 데이터베이스의 목록<br>
+&ldquo;partitioned&rdquo; : 샤딩 활성화 여부 의미</p>
+<ul>
+<li>collections</li>
+</ul>
+<pre><code>repl_conf:PRIMARY&gt; db.collections.find()
+
+{ &quot;_id&quot; : &quot;test.testCollection2&quot;, &quot;lastmodEpoch&quot; : ObjectId(&quot;5d6288ab1a98ba4cb7e3aec2&quot;), &quot;lastmod&quot; : ISODate(&quot;1970-02-19T17:02:47.299Z&quot;), &quot;dropped&quot; : false, &quot;key&quot; : { &quot;_id&quot; : &quot;hashed&quot; }, &quot;unique&quot; : false, &quot;uuid&quot; : UUID(&quot;8cb727b3-81e2-4aff-a6a0-30b8f53240e4&quot;) }
+</code></pre><p>=&gt; sharding 된 collection 정보<br>
+&ldquo;_id&rdquo; : 데이터베이스 이름+컬렉션 이름<br>
+&ldquo;key&rdquo; : 컬렉션의 샤딩 키</p>
+<ul>
+<li>chunks</li>
+</ul>
+<pre><code>mongos&gt; db.chunks.find()
+
+{ &quot;_id&quot; : &quot;test.testCollection2-_id_4611686018427387902&quot;, &quot;ns&quot; : &quot;test.testCollection2&quot;, &quot;min&quot; : { &quot;_id&quot; : NumberLong(&quot;4611686018427387902&quot;) }, &quot;max&quot; : { &quot;_id&quot; : { &quot;$maxKey&quot; : 1 } }, &quot;shard&quot; : &quot;repl_shard2&quot;, &quot;lastmod&quot; : Timestamp(1, 3), &quot;lastmodEpoch&quot; : ObjectId(&quot;5d6288ab1a98ba4cb7e3aec2&quot;), &quot;history&quot; : [ { &quot;validAfter&quot; : Timestamp(1566738603, 6), &quot;shard&quot; : &quot;repl_shard2&quot; } ] }
+
+{ &quot;_id&quot; : &quot;test.testCollection2-_id_MinKey&quot;, &quot;ns&quot; : &quot;test.testCollection2&quot;, &quot;min&quot; : { &quot;_id&quot; : { &quot;$minKey&quot; : 1 } }, &quot;max&quot; : { &quot;_id&quot; : NumberLong(&quot;-4611686018427387902&quot;) }, &quot;shard&quot; : &quot;repl_shard1&quot;, &quot;lastmod&quot; : Timestamp(1, 0), &quot;lastmodEpoch&quot; : ObjectId(&quot;5d6288ab1a98ba4cb7e3aec2&quot;), &quot;history&quot; : [ { &quot;validAfter&quot; : Timestamp(1566738603, 6), &quot;shard&quot; : &quot;repl_shard1&quot; } ] }
+
+{ &quot;_id&quot; : &quot;test.testCollection2-_id_-4611686018427387902&quot;, &quot;ns&quot; : &quot;test.testCollection2&quot;, &quot;min&quot; : { &quot;_id&quot; : NumberLong(&quot;-4611686018427387902&quot;) }, &quot;max&quot; : { &quot;_id&quot; : NumberLong(0) }, &quot;shard&quot; : &quot;repl_shard1&quot;, &quot;lastmod&quot; : Timestamp(1, 1), &quot;lastmodEpoch&quot; : ObjectId(&quot;5d6288ab1a98ba4cb7e3aec2&quot;), &quot;history&quot; : [ { &quot;validAfter&quot; : Timestamp(1566738603, 6), &quot;shard&quot; : &quot;repl_shard1&quot; } ] }
+
+{ &quot;_id&quot; : &quot;test.testCollection2-_id_0&quot;, &quot;ns&quot; : &quot;test.testCollection2&quot;, &quot;min&quot; : { &quot;_id&quot; : NumberLong(0) }, &quot;max&quot; : { &quot;_id&quot; : NumberLong(&quot;4611686018427387902&quot;) }, &quot;shard&quot; : &quot;repl_shard2&quot;, &quot;lastmod&quot; : Timestamp(1, 2), &quot;lastmodEpoch&quot; : ObjectId(&quot;5d6288ab1a98ba4cb7e3aec2&quot;), &quot;history&quot; : [ { &quot;validAfter&quot; : Timestamp(1566738603, 6), &quot;shard&quot; : &quot;repl_shard2&quot; } ] }
+</code></pre><p>=&gt; sharding 된 컬렉션의 모든 chunk 정보<br>
+&ldquo;_id&rdquo; : database + collection + chunk가 갖는 값의 시작 값<br>
+&ldquo;shard&rdquo; : 해당 chunk 가 속한 shard , 현재 각각 샤드에 두개씩의 chunk 가 존재함</p>
+<ul>
+<li>shards</li>
+</ul>
+<pre><code>repl_conf:PRIMARY&gt; db.shards.find()
+
+{ &quot;_id&quot; : &quot;repl_shard1&quot;, &quot;host&quot; : &quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&quot;, &quot;state&quot; : 1 }
+{ &quot;_id&quot; : &quot;repl_shard2&quot;, &quot;host&quot; : &quot;repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018&quot;, &quot;state&quot; : 1 }
+</code></pre><p>=&gt; shard cluster 내 등록된 모든 샤드 서버의 정보</p>
+<ul>
+<li>settings</li>
+</ul>
+<pre><code>{ &quot;_id&quot; : &quot;chunksize&quot;, &quot;value&quot; : 64 }
+{ &quot;_id&quot; : &quot;balancer&quot;, &quot;stopped&quot; : false }
+{ &quot;_id&quot; : &quot;autosplit&quot;, &quot;enabled&quot; : true }
+</code></pre><p>=&gt; chunk size , 밸런싱 관련 설정<br>
+초기 환경에서 db.settings.find() 를 수행해도 조회되는 게 없는데 이는 관련 설정이 저장된게 없기 때문<br>
+아래와 같이 save command 수행 후엔 조회 가능</p>
+<pre><code>repl_conf:PRIMARY&gt; db.settings.save ( {_id:&quot;chunksize&quot;,value:64} )
+WriteResult({ &quot;nMatched&quot; : 0, &quot;nUpserted&quot; : 1, &quot;nModified&quot; : 0, &quot;_id&quot; : &quot;chunksize&quot; })
+
+repl_conf:PRIMARY&gt; db.settings.find()
+{ &quot;_id&quot; : &quot;chunksize&quot;, &quot;value&quot; : 64 }
+
+repl_conf:PRIMARY&gt; db.settings.save ( {_id:&quot;autosplit&quot;,&quot;enabled&quot;:false} )
+
+WriteResult({ &quot;nMatched&quot; : 0, &quot;nUpserted&quot; : 1, &quot;nModified&quot; : 0, &quot;_id&quot; : &quot;autosplit&quot; })
+</code></pre><p>=&gt; 위 설정은 mongos 의 sh.status() 와도 연동됨</p>
+<pre><code>mongos&gt; sh.status()
+
+  autosplit:
+
+Currently enabled: no
+</code></pre><ul>
+<li>chunk balancing 수행 시간 설정하기</li>
+</ul>
+<pre><code>repl_conf:PRIMARY&gt; db.settings.update (
+... {_id:&quot;balancer&quot;},
+... {$set : {activeWindow: {start: &quot;02:00&quot;, stop : &quot;06:00&quot; } } },
+... {upsert : true } )
+
+WriteResult({ &quot;nMatched&quot; : 0, &quot;nUpserted&quot; : 1, &quot;nModified&quot; : 0, &quot;_id&quot; : &quot;balanver&quot; })
+
+repl_conf:PRIMARY&gt; db.settings.find()
+{ &quot;_id&quot; : &quot;chunksize&quot;, &quot;value&quot; : 64 }
+{ &quot;_id&quot; : &quot;balancer&quot;, &quot;stopped&quot; : false }
+{ &quot;_id&quot; : &quot;autosplit&quot;, &quot;enabled&quot; : true }
+{ &quot;_id&quot; : &quot;balanver&quot;, &quot;activeWindow&quot; : { &quot;start&quot; : &quot;02:00&quot;, &quot;stop&quot; : &quot;06:00&quot; } }
+</code></pre><p>=&gt; balancing 작업이 02:00 자동으로 수행되도록 설정</p>
+<ul>
+<li>locks </li>
+</ul>
+<pre><code>repl_conf:PRIMARY&gt; db.locks.find()
+
+{ &quot;_id&quot; : &quot;config&quot;, &quot;state&quot; : 0, &quot;process&quot; : &quot;ConfigServer&quot;, &quot;ts&quot; : ObjectId(&quot;5d6b7f15a9f5ecd49052a36f&quot;), &quot;when&quot; : ISODate(&quot;2019-09-01T08:19:33.165Z&quot;), &quot;who&quot; : &quot;ConfigServer:conn164&quot;, &quot;why&quot; : &quot;createCollection&quot; }
+
+{ &quot;_id&quot; : &quot;config.system.sessions&quot;, &quot;state&quot; : 0, &quot;process&quot; : &quot;ConfigServer&quot;, &quot;ts&quot; : ObjectId(&quot;5d6b7f15a9f5ecd49052a376&quot;), &quot;when&quot; : ISODate(&quot;2019-09-01T08:19:33.172Z&quot;), &quot;who&quot; : &quot;ConfigServer:conn164&quot;, &quot;why&quot; : &quot;createCollection&quot; }
+
+{ &quot;_id&quot; : &quot;testdb&quot;, &quot;state&quot; : 0, &quot;process&quot; : &quot;ConfigServer&quot;, &quot;ts&quot; : ObjectId(&quot;5d62889d3ed72a6b6729a5ca&quot;), &quot;when&quot; : ISODate(&quot;2019-08-25T13:09:49.728Z&quot;), &quot;who&quot; : &quot;ConfigServer:conn24&quot;, &quot;why&quot; : &quot;shardCollection&quot; }
+
+{ &quot;_id&quot; : &quot;testdb.testCollection2&quot;, &quot;state&quot; : 0, &quot;process&quot; : &quot;ConfigServer&quot;, &quot;ts&quot; : ObjectId(&quot;5d62889d3ed72a6b6729a5d1&quot;), &quot;when&quot; : ISODate(&quot;2019-08-25T13:09:49.738Z&quot;), &quot;who&quot; : &quot;ConfigServer:conn24&quot;, &quot;why&quot; : &quot;shardCollection&quot; }
+
+{ &quot;_id&quot; : &quot;test.testCollection2&quot;, &quot;state&quot; : 0, &quot;process&quot; : &quot;ConfigServer&quot;, &quot;ts&quot; : ObjectId(&quot;5d6288ab3ed72a6b6729a65a&quot;), &quot;when&quot; : ISODate(&quot;2019-08-25T13:10:03.834Z&quot;), &quot;who&quot; : &quot;ConfigServer:conn24&quot;, &quot;why&quot; : &quot;shardCollection&quot; }
+</code></pre><p>=&gt; shard cluster 내 여러개의 mongos 가 동시에 동일한 chunk에 대한 작업을 시도하는 등의 이슈를 방지하기 위해<br>
+작업을 수행하기 전 config server 의 locks collection의 lock을 획득 후에만 작업할 수 있도록 함</p>
+<ul>
+<li>changelog</li>
+</ul>
+<pre><code>repl_conf:PRIMARY&gt; db.changelog.find()
+
+{ &quot;_id&quot; : &quot;69c6ea3e5527:27019-2019-09-01T08:43:10.827+0000-5d6b849ea9f5ecd49052d3ad&quot;, &quot;server&quot; : &quot;69c6ea3e5527:27019&quot;, &quot;shard&quot; : &quot;config&quot;, &quot;clientAddr&quot; : &quot;111.111.0.8:58938&quot;, &quot;time&quot; : ISODate(&quot;2019-09-01T08:43:10.827Z&quot;), 
+&quot;what&quot; : &quot;split&quot;, &quot;ns&quot; : &quot;test.testCollection2&quot;, 
+&quot;details&quot; : { &quot;before&quot; : { &quot;min&quot; : { &quot;_id&quot; : NumberLong(&quot;-4611686018427387902&quot;) }, &quot;max&quot; : { &quot;_id&quot; : NumberLong(0) }, &quot;lastmod&quot; : Timestamp(1, 3), &quot;lastmodEpoch&quot; : ObjectId(&quot;5d6288ab1a98ba4cb7e3aec2&quot;) }, &quot;left&quot; : { &quot;min&quot; : { &quot;_id&quot; : NumberLong(&quot;-4611686018427387902&quot;) }, &quot;max&quot; : { &quot;_id&quot; : NumberLong(&quot;-2315705090665887915&quot;) }, &quot;lastmod&quot; : Timestamp(1, 4), &quot;lastmodEpoch&quot; : ObjectId(&quot;5d6288ab1a98ba4cb7e3aec2&quot;) }, &quot;right&quot; : { &quot;min&quot; : { &quot;_id&quot; : NumberLong(&quot;-2315705090665887915&quot;) }, &quot;max&quot; : { &quot;_id&quot; : NumberLong(0) }, &quot;lastmod&quot; : Timestamp(1, 5), &quot;lastmodEpoch&quot; : ObjectId(&quot;5d6288ab1a98ba4cb7e3aec2&quot;) } } }
+</code></pre><p>=&gt; config 서버의 메타 정보 변경등이 기록됨<br>
+ex) db, collection 생성, chunk split , migration 등,  위는 split 로그</p>
+<ul>
+<li>changelog 에서 split 로그만 확인하는 법 </li>
+</ul>
+<pre><code>repl_conf:PRIMARY&gt; db.changelog.find( {&quot;what&quot;:{$in: [&quot;multi-split&quot;,&quot;split&quot;]}}, {_id:0,what:1,ns:1,time:1}).sort({$natural:-1}).limit(5).pretty()
+
+{
+
+&quot;time&quot; : ISODate(&quot;2019-09-01T08:43:10.827Z&quot;),
+
+&quot;what&quot; : &quot;split&quot;,
+
+&quot;ns&quot; : &quot;test.testCollection2&quot;
+
+}
+</code></pre></div>
+
+</main>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

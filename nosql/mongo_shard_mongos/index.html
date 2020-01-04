@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MongoDB Sharded Cluster - Mongos</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: red;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MongoDB Sharded Cluster - Mongos</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/about/">About</a></li>
+                            
+                                <li><a href="/post/">Posts</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:me@example.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://github.com/username/"><i class="fa fa-github"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://twitter.com/username/"><i class="fa fa-twitter"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/username/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.stackoverflow.com/username/"><i class="fa fa-stack-overflow"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MongoDB Sharded Cluster - Mongos</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><h3 id="mongos-">mongos 란?</h3>
+<p>mongos 는 mongodb shard cluster 내에서 router 역할을 하는 컴포넌트로 아래와 같은 역할 담당 및 특징이 있음</p>
+<ul>
+<li>쿼리 라우팅</li>
+<li>쿼리 결과 merge 후 client에게 return</li>
+<li>order by 같은 경우에는 샤드 서버 중 프라이머리 샤드를 정한 후<br>
+그 프라이머리 샤드가 다른 샤드로부터 쿼리 결과를 전달받고 order by 수행한 후에 최종 결과를 라우터로 반환함</li>
+<li>2.x 버전에선 chunk 리밸런싱, 스플릿 등 chunk 관련 역할도 했으나 3.4 버전부터는<br>
+해당 역할이 모두 config 서버에서 담당하게 되어 mongos 는 말그대로 router 역할만 하게됨</li>
+<li>줄어든 역할로 서버의 리소스를 매우 적게 사용하기 때문에 아래와 같이 mongos 를 다른 컴포넌트들과 같이 구성하기도 함
+<ul>
+<li>
+<p>어플리케이션 서버 n대 + mongos n대</p>
+</li>
+<li>
+<p>config + mongos</p>
+</li>
+<li>
+<p>mongos + shard 서버</p>
+</li>
+<li>
+<p>mongos 만 따로 구성</p>
+</li>
+<li>
+<p>mongodb 에서는 mongos down 시 mongos 를 바라보는 어플리케이션도 어차피 역할을 못하기 때문에 한 세트의 의미로 1번의 구조를 추천하지만 이슈가 발생했을 때 원인 분석, VM의 성능 향상과 관리상의 이유 등으로 mongos 를 따로 구성하기도 함</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="-">쿼리 라우팅</h3>
+<p>MongoDB sharded cluster 에서 collection은 shard key 를 기준으로 쪼개져서 여러 샤드에 분산되어 저장됨<br>
+이 단위를 chunk 라고 부르며 어느 shard에 어떤 chunk 가 있는지, chunk 의 max key , min key 범위 같은 메타정보를<br>
+config 서버에서 읽어오고 사용자의 쿼리 내 샤드 키에 따라 mongos 는<br>
+특정 샤드에만 쿼리를 전달하는 타겟 쿼리 / 전체 샤드에 쿼리를 전달하는 브로드캐스트 쿼리로 요청을 처리하게 됨</p>
+<ul>
+<li>테스트 데이터 준비</li>
+</ul>
+<pre><code>mongos&gt; use routing_test;
+switched to db routing_test
+
+mongos&gt; sh.enableSharding('routing_test');
+{
+&quot;ok&quot; : 1,
+&quot;operationTime&quot; : Timestamp(1567941332, 3),
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1567941332, 3),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+}
+}
+
+mongos&gt; sh.shardCollection('routing_test.employee',{id:1});
+{
+&quot;collectionsharded&quot; : &quot;routing_test.employee&quot;,
+&quot;collectionUUID&quot; : UUID(&quot;16ee8e2c-3b16-4ca2-879f-159cc45af712&quot;),
+&quot;ok&quot; : 1,
+&quot;operationTime&quot; : Timestamp(1567941591, 3),
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1567941591, 3),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+}
+}
+</code></pre><p>=&gt; routing_test database &amp; employee collection 생성 후 샤딩 설정</p>
+<pre><code>mongos&gt; for (var i=0; i&lt;200000; i++){
+... db.employee.save( {id:i, name:&quot;kim&quot;+i, dept: &quot;DB&quot;+i })};
+WriteResult({ &quot;nInserted&quot; : 1 })
+</code></pre><p>=&gt; 테스트 데이터 생성</p>
+<pre><code>mongos&gt; sh.splitAt(&quot;routing_test.employee&quot;,{id:50000})
+mongos&gt; sh.splitAt(&quot;routing_test.employee&quot;,{id:100000})
+mongos&gt; sh.splitAt(&quot;routing_test.employee&quot;,{id:150000})
+</code></pre><p>=&gt; sh.shardCollection(&lsquo;routing_test.employee&rsquo;,{id:1});<br>
+range sharding 으로 collection 생성 했기 때문에 chunk 를 범위 지정하여 split 수행</p>
+<pre><code>mongos&gt; use config;
+switched to db config
+
+mongos&gt; db.chunks.find()
+
+{ &quot;_id&quot; : &quot;routing_test.employee-id_MinKey&quot;, &quot;lastmod&quot; : Timestamp(2, 0), &quot;lastmodEpoch&quot; : ObjectId(&quot;5d74e3d606d6020a9ea17680&quot;), &quot;ns&quot; : &quot;routing_test.employee&quot;, &quot;min&quot; : { &quot;id&quot; : { &quot;$minKey&quot; : 1 } }, &quot;max&quot; : { &quot;id&quot; : 50000 }, &quot;shard&quot; : &quot;repl_shard1&quot;, &quot;history&quot; : [ { &quot;validAfter&quot; : Timestamp(1567943966, 26236), &quot;shard&quot; : &quot;repl_shard1&quot; } ] }
+
+{ &quot;_id&quot; : &quot;routing_test.employee-id_50000.0&quot;, &quot;lastmod&quot; : Timestamp(3, 0), &quot;lastmodEpoch&quot; : ObjectId(&quot;5d74e3d606d6020a9ea17680&quot;), &quot;ns&quot; : &quot;routing_test.employee&quot;, &quot;min&quot; : { &quot;id&quot; : 50000 }, &quot;max&quot; : { &quot;id&quot; : 100000 }, &quot;shard&quot; : &quot;repl_shard1&quot;, &quot;history&quot; : [ { &quot;validAfter&quot; : Timestamp(1567943973, 6739), &quot;shard&quot; : &quot;repl_shard1&quot; } ] }
+
+{ &quot;_id&quot; : &quot;routing_test.employee-id_100000.0&quot;, &quot;lastmod&quot; : Timestamp(3, 1), &quot;lastmodEpoch&quot; : ObjectId(&quot;5d74e3d606d6020a9ea17680&quot;), &quot;ns&quot; : &quot;routing_test.employee&quot;, &quot;min&quot; : { &quot;id&quot; : 100000 }, &quot;max&quot; : { &quot;id&quot; : 150000 }, &quot;shard&quot; : &quot;repl_shard2&quot;, &quot;history&quot; : [ { &quot;validAfter&quot; : Timestamp(1567941590, 6), &quot;shard&quot; : &quot;repl_shard2&quot; } ] }
+
+{ &quot;_id&quot; : &quot;routing_test.employee-id_150000.0&quot;, &quot;lastmod&quot; : Timestamp(2, 3), &quot;lastmodEpoch&quot; : ObjectId(&quot;5d74e3d606d6020a9ea17680&quot;), &quot;ns&quot; : &quot;routing_test.employee&quot;, &quot;min&quot; : { &quot;id&quot; : 150000 }, &quot;max&quot; : { &quot;id&quot; : { &quot;$maxKey&quot; : 1 } }, &quot;shard&quot; : &quot;repl_shard2&quot;, &quot;history&quot; : [ { &quot;validAfter&quot; : Timestamp(1567941590, 6), &quot;shard&quot; : &quot;repl_shard2&quot; } ] }
+</code></pre><ul>
+<li>routing_test.employee-id_MinKey</li>
+<li>routing_test.employee-id_50000.0</li>
+<li>routing_test.employee-id_100000.0</li>
+<li>routing_test.employee-id_150000.0</li>
+</ul>
+<p>총 4개의 chunk 가 생성되었으며 각각 min / max 값에 포함되는 데이터들이 해당 chunk 에 들어가게됨</p>
+<ul>
+<li>Target Query</li>
+</ul>
+<pre><code>mongos&gt; db.employee.find({id:1}).explain()
+{
+&quot;queryPlanner&quot; : {
+&quot;mongosPlannerVersion&quot; : 1,
+&quot;winningPlan&quot; : {
+&quot;stage&quot; : &quot;SINGLE_SHARD&quot;,
+&quot;shards&quot; : [
+{
+&quot;shardName&quot; : &quot;repl_shard1&quot;,
+&quot;connectionString&quot; : &quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&quot;,
+&quot;serverInfo&quot; : {
+&quot;host&quot; : &quot;7cd58cda5dcd&quot;,
+&quot;port&quot; : 27018,
+&quot;version&quot; : &quot;4.1.13&quot;,
+&quot;gitVersion&quot; : &quot;441714bc4c70699950f3ac51a5cac41dcd413eaa&quot;
+},
+.
+.
+.
+</code></pre><p>=&gt; query 에 shard key 인 id 값이 포함되어 있으며 해당 chunk 를 갖고 있는 shard 에만 쿼리를 전송한 것 확인</p>
+<ul>
+<li>Broadcast Query</li>
+</ul>
+<pre><code>mongos&gt; db.employee.find({name:&quot;kim1&quot;}).explain()
+
+{
+&quot;queryPlanner&quot; : {
+&quot;mongosPlannerVersion&quot; : 1,
+&quot;winningPlan&quot; : {
+&quot;stage&quot; : &quot;SHARD_MERGE&quot;,
+&quot;shards&quot; : [
+{
+&quot;shardName&quot; : &quot;repl_shard1&quot;,
+&quot;connectionString&quot; : &quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&quot;,
+&quot;serverInfo&quot; : {
+&quot;host&quot; : &quot;7cd58cda5dcd&quot;,
+&quot;port&quot; : 27018,
+&quot;version&quot; : &quot;4.1.13&quot;,
+&quot;gitVersion&quot; : &quot;441714bc4c70699950f3ac51a5cac41dcd413eaa&quot;
+},
+.
+.
+{
+&quot;shardName&quot; : &quot;repl_shard2&quot;,
+&quot;connectionString&quot; : &quot;repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018&quot;,
+&quot;serverInfo&quot; : {
+&quot;host&quot; : &quot;d5904a7bf11d&quot;,
+&quot;port&quot; : 27018,
+&quot;version&quot; : &quot;4.1.13&quot;,
+&quot;gitVersion&quot; : &quot;441714bc4c70699950f3ac51a5cac41dcd413eaa&quot;
+},
+</code></pre><p>=&gt; query 에 shard key 가 없는 경우 전체 샤드로 쿼리 전송하는 것 확인</p>
+</div>
+
+</main>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

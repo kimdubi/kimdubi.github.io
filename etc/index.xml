@@ -12,7 +12,7 @@
     
     
     <item>
-      <title>Docker Redis Replication</title>
+      <title>Docker-compose로 Redis Replication 자동 구성하</title>
       <link>https://kimdubi.github.io/etc/docker-redis-replication/</link>
       <pubDate>Sun, 05 Jan 2020 13:54:28 +0900</pubDate>
       

@@ -6,10 +6,22 @@
     <description>Recent content in Etcs on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 04 Jan 2020 23:36:53 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 05 Jan 2020 13:54:28 +0900</lastBuildDate>
     
 	<atom:link href="https://kimdubi.github.io/etc/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Docker Redis Replication</title>
+      <link>https://kimdubi.github.io/etc/docker-redis-replication/</link>
+      <pubDate>Sun, 05 Jan 2020 13:54:28 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/etc/docker-redis-replication/</guid>
+      <description>지난 글에서 docker-compose 를 통해 mysql replication 구성하는 방법을 공유했습니다.
+이번 글에서는 redis replication 구성하는 docker-compose.yml을 공유하겠습니다.
+본문에서 사용된 docker-compose.yml 이나 dockerfile의 옵션 등은 이전 글 참고 부탁드립니다. (https://kimdubi.github.io/etc/docker-mysql-replication/ )
+구성 * docker-compose.yml * redis1 * Dockerfile * docker-entrypoint.sh * redis2 * Dockerfile * docker-entrypoint.sh  총 두개의 컨테이너를 생성 각각의 컨테이너에서 M-S redis 한대씩 생성하는 구성 redis1 &amp;lt;-&amp;gt; redis2 replication 구성이 아니라 각각 별개의 노드임  docker-compose.yml version: &#39;3&#39; services: redis1: image: redis_image:latest build: context: .</description>
+    </item>
     
     <item>
       <title>Docker-compose로 Mysql Replication 자동 구성하기</title>

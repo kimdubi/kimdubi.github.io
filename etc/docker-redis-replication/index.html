@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Docker Redis Replication</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: red;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Docker Redis Replication</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/about/">About</a></li>
+                            
+                                <li><a href="/post/">Posts</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:me@example.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://github.com/username/"><i class="fa fa-github"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://twitter.com/username/"><i class="fa fa-twitter"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/username/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.stackoverflow.com/username/"><i class="fa fa-stack-overflow"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Docker Redis Replication</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>지난 글에서 docker-compose 를 통해 mysql replication 구성하는 방법을 공유했습니다.<br>
+이번 글에서는 redis replication 구성하는 docker-compose.yml을 공유하겠습니다.<br>
+본문에서 사용된 docker-compose.yml 이나 dockerfile의 옵션 등은 이전 글 참고 부탁드립니다.
+(<a href="https://kimdubi.github.io/etc/docker-mysql-replication/">https://kimdubi.github.io/etc/docker-mysql-replication/</a> )</p>
+<h3 id="heading">구성</h3>
+<pre><code>* docker-compose.yml
+    * redis1
+        * Dockerfile
+            * docker-entrypoint.sh
+    * redis2
+        * Dockerfile
+            * docker-entrypoint.sh
+</code></pre><ul>
+<li>총 두개의 컨테이너를 생성</li>
+<li>각각의 컨테이너에서 M-S redis 한대씩 생성하는 구성</li>
+<li>redis1 &lt;-&gt; redis2 replication 구성이 아니라 각각 별개의 노드임</li>
+</ul>
+<h3 id="dockercomposeyml">docker-compose.yml</h3>
+<pre><code>version: '3'
+services:
+  redis1:
+    image: redis_image:latest
+    build:
+      context: ./redis1
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=8001
+      - HOST=172.19.0.10
+    volumes:
+      - &quot;../redis-data/redis1:/data&quot;
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.10
+    restart: always
+    container_name: redis1
+
+  redis2:
+    image: redis_image:latest
+    build:
+      context: ./redis2
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=8001
+      - HOST=172.19.0.11
+    volumes:
+      - &quot;../redis-data/redis2:/data&quot;
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.11
+    restart: always
+    container_name: redis2
+
+networks:
+  redis_net:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 172.19.0.0/24
+</code></pre><h3 id="dockerfile">Dockerfile</h3>
+<pre><code>FROM redis_image:latest 
+
+MAINTAINER kimdubi 
+
+USER root
+
+ADD redis.conf /engn001/redis-stable/redis_8001.conf
+ADD redis.conf /engn001/redis-stable/redis_8002.conf
+ADD docker-entrypoint_1.sh /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT [&quot;/usr/local/bin/docker-entrypoint.sh&quot;]
+</code></pre><h3 id="dockerentrypointsh">docker-entrypoint.sh</h3>
+<pre><code>#!/bin/sh
+set -e
+
+
+# MASTER
+sed -i &quot;s/bind 127.0.0.1/bind 0.0.0.0/g&quot; /engn001/redis-stable/redis_8001.conf
+sed -i &quot;s/port 6379/port 8001/g&quot; /engn001/redis-stable/redis_8001.conf
+sed -i &quot;s/# requirepass foobared/requirepass $REQUIREPASS/g&quot; /engn001/redis-stable/redis_8001.conf
+sed -i &quot;s/# masterauth &lt;master-password&gt;/masterauth $REQUIREPASS/g&quot; /engn001/redis-stable/redis_8001.conf
+sed -i &quot;s/redis.log/redis_$PORT/g&quot; /engn001/redis-stable/redis_8001.conf
+sed -i &quot;s/redis.pid/redis_8001.pid/g&quot; /engn001/redis-stable/redis_8001.conf
+
+
+# SLAVE
+sed -i &quot;s/bind 127.0.0.1/bind 0.0.0.0/g&quot; /engn001/redis-stable/redis_8002.conf
+sed -i &quot;s/port 6379/port 8002/g&quot; /engn001/redis-stable/redis_8002.conf
+sed -i &quot;s/# requirepass foobared/requirepass $REQUIREPASS/g&quot; /engn001/redis-stable/redis_8002.conf
+sed -i &quot;s/# masterauth &lt;master-password&gt;/masterauth $REQUIREPASS/g&quot; /engn001/redis-stable/redis_8002.conf
+sed -i &quot;s/redis.log/redis_8002/g&quot; /engn001/redis-stable/redis_8002.conf
+sed -i &quot;s/redis.pid/redis_8002.pid/g&quot; /engn001/redis-stable/redis_8002.conf
+
+
+
+sed -i &quot;s/# replicaof &lt;masterip&gt; &lt;masterport&gt;/replicaof $HOST 8001/g&quot; /engn001/redis-stable/redis_8002.conf
+
+cp /engn001/redis-stable/redis_8002.conf /data
+cp /engn001/redis-stable/redis_8001.conf /data
+
+redis-server /engn001/redis-stable/redis_8001.conf &amp;
+sleep 10
+redis-server /engn001/redis-stable/redis_8002.conf &amp;
+sleep 5
+
+/bin/bash
+</code></pre><h3 id="heading1">실행</h3>
+<pre><code>AL01542225:conf nhn$ docker-compose -f ./docker-compose_cluster.yml up -d --build
+Building redis1
+Step 1/7 : FROM redis_image:latest
+ ---&gt; 12f2d1aceccf
+Step 2/7 : MAINTAINER kimdubi
+ ---&gt; Running in 267c9a7305db
+Removing intermediate container 267c9a7305db
+ ---&gt; 60c43e140621
+Step 3/7 : USER root
+ ---&gt; Running in f1551ca18771
+Removing intermediate container f1551ca18771
+ ---&gt; 5ea5e2f294bd
+Step 4/7 : ADD redis.conf /engn001/redis-stable/redis_8001.conf
+ ---&gt; 18c79109484c
+Step 5/7 : ADD redis.conf /engn001/redis-stable/redis_8002.conf
+ ---&gt; 315f0c1054b7
+Step 6/7 : ADD docker-entrypoint_1.sh /usr/local/bin/docker-entrypoint.sh
+ ---&gt; 61115547bfdc
+Step 7/7 : ENTRYPOINT [&quot;/usr/local/bin/docker-entrypoint.sh&quot;]
+ ---&gt; Running in 86ab83398a30
+Removing intermediate container 86ab83398a30
+ ---&gt; f787b6c79a50
+Successfully built f787b6c79a50
+Successfully tagged redis_image:latest
+Building redis2
+Step 1/7 : FROM redis_image:latest
+ ---&gt; f787b6c79a50
+Step 2/7 : MAINTAINER kimdubi
+ ---&gt; Running in 2a5b37bea615
+Removing intermediate container 2a5b37bea615
+ ---&gt; 29fe4d956d9f
+Step 3/7 : USER root
+ ---&gt; Running in 04028334d2dd
+Removing intermediate container 04028334d2dd
+ ---&gt; 4d2c2b07d2bb
+Step 4/7 : ADD redis.conf /engn001/redis-stable/redis_8001.conf
+ ---&gt; cedb87ac51dc
+Step 5/7 : ADD redis.conf /engn001/redis-stable/redis_8002.conf
+ ---&gt; b60e8de07c8e
+Step 6/7 : ADD docker-entrypoint_1.sh /usr/local/bin/docker-entrypoint.sh
+ ---&gt; 681340e9e4b3
+Step 7/7 : ENTRYPOINT [&quot;/usr/local/bin/docker-entrypoint.sh&quot;]
+ ---&gt; Running in 3b3ec419dec0
+Removing intermediate container 3b3ec419dec0
+ ---&gt; 8a52816eefd6
+Successfully built 8a52816eefd6
+Successfully tagged redis_image:latest
+Creating redis1 ... done
+Creating redis2 ... done
+</code></pre><h3 id="heading2">결과</h3>
+<pre><code>AL01542225:conf nhn$ de redis1 /bin/bash
+[root@0bf9cd2b4639 /]# ps -ef | grep redis
+root        23     1  0 05:12 ?        00:00:00 redis-server 0.0.0.0:8001
+root        29     1  0 05:13 ?        00:00:00 redis-server 0.0.0.0:8002
+root        62    45  0 05:13 pts/1    00:00:00 grep --color=auto redis
+
+[root@0bf9cd2b4639 /]# redis-cli -p 8002 -a qhdks123
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+127.0.0.1:8002&gt; info replication
+# Replication
+role:slave
+master_host:172.19.0.10
+master_port:8001
+master_link_status:up
+master_last_io_seconds_ago:5
+master_sync_in_progress:0
+slave_repl_offset:126
+slave_priority:100
+slave_read_only:1
+connected_slaves:0
+master_replid:75fba13c9d4ab5653fb1634aa7cd4dbcb5c4e5f9
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:126
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:126
+
+</code></pre></div>
+
+</main>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

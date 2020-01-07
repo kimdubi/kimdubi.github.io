@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Docker-compose로 Redis Sentinel 자동 구성하기</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Docker-compose로 Redis Sentinel 자동 구성하기</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/about/">About</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Docker-compose로 Redis Sentinel 자동 구성하기</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>이번 글에서는 redis sentinel을 docker-compose 를 통해 구성하는 방법을 공유하겠습니다.<br>
+여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에<br>
+이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.</p>
+<h3 id="heading">구성</h3>
+<pre><code>* docker-compose.yml
+    * redis_master
+        * Dockerfile
+            * docker-entrypoint.sh
+    * redis_slave1
+        * Dockerfile
+            * docker-entrypoint.sh
+    * redis_slave2
+        * Dockerfile
+            * docker-entrypoint.sh
+</code></pre><h3 id="dockercomposeyml">docker-compose.yml</h3>
+<pre><code>version: '3'
+services:
+  redis1:
+    image: redis_image:master
+    build:
+      context: ./redis1
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=6001
+      - HOST=172.19.0.20
+      - MASTER_HOST=172.19.0.20
+      - MASTER_PORT=6001
+      - SENTINEL_PORT=7001
+      - QUORUM=2
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.20
+    restart: always
+    container_name: redis_master
+  redis2:
+    image: redis_image:slave
+    build:
+      context: ./redis2
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=6001
+      - HOST=172.19.0.21
+      - MASTER_HOST=172.19.0.20
+      - MASTER_PORT=6001
+      - SENTINEL_PORT=7001
+      - QUORUM=2
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.21
+    depends_on:
+      - redis1
+    restart: always
+    container_name: redis_slave1
+  redis3:
+    image: redis_image:slave
+    build:
+      context: ./redis3
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty : true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=6001
+      - HOST=172.19.0.22
+      - MASTER_HOST=172.19.0.20
+      - MASTER_PORT=6001
+      - SENTINEL_PORT=7001
+      - QUORUM=2
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.22
+    depends_on:
+      - redis1
+    restart: always
+    container_name: redis_slave2
+
+networks:
+  redis_net:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 172.19.0.0/24
+</code></pre><h3 id="dockerfile">Dockerfile</h3>
+<pre><code>FROM redis_image:latest
+
+MAINTAINER kimdubi
+
+USER root
+
+ADD redis.conf /engn001/redis-stable/redis_6001.conf
+ADD sentinel.conf /engn001/redis-stable/sentinel_7001.conf
+ADD docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT [&quot;/usr/local/bin/docker-entrypoint.sh&quot;]
+</code></pre><h3 id="dockerentrypointsh---master">docker-entrypoint.sh  - Master</h3>
+<pre><code>#!/bin/sh
+set -e
+
+# MASTER
+#sed -i &quot;s/bind 127.0.0.1/bind 0.0.0.0/g&quot; /engn001/redis-stable/redis_6001.conf
+sed -i &quot;s/6379/$PORT/g&quot; /engn001/redis-stable/redis_6001.conf
+sed -i &quot;s/requirepass foobared/requirepass $REQUIREPASS/g&quot; /engn001/redis-stable/redis_6001.conf
+sed -i &quot;s/masterauth &lt;master-password&gt;/masterauth $REQUIREPASS/g&quot; /engn001/redis-stable/redis_6001.conf
+sed -i &quot;s/redis.log/redis_$PORT/g&quot; /engn001/redis-stable/redis_6001.conf
+sed -i &quot;s/redis.pid/redis_$PORT.pid/g&quot; /engn001/redis-stable/redis_6001.conf
+
+# SENTINEL
+
+sed -i &quot;s/26379/$SENTINEL_PORT/g&quot; /engn001/redis-stable/sentinel_7001.conf
+sed -i &quot;s/master_ip master_port quorum/$MASTER_HOST $MASTER_PORT $QUORUM/g&quot; /engn001/redis-stable/sentinel_7001.conf
+sed -i &quot;s/foobared/$REQUIREPASS/g&quot; /engn001/redis-stable/sentinel_7001.conf
+
+cp /engn001/redis-stable/redis_6001.conf /engn001/redis-stable/data
+cp /engn001/redis-stable/sentinel_7001.conf /engn001/redis-stable/data
+
+redis-server /engn001/redis-stable/redis_6001.conf &amp;
+sleep 10
+redis-sentinel /engn001/redis-stable/sentinel_7001.conf &amp;
+sleep 10
+
+
+/bin/bash
+</code></pre><h3 id="dockerentrypointsh---slave">docker-entrypoint.sh  - Slave</h3>
+<pre><code>#!/bin/sh
+set -e
+
+
+# SLAVE
+#sed -i &quot;s/bind 127.0.0.1/bind 0.0.0.0/g&quot; /engn001/redis-stable/redis_6001.conf
+sed -i &quot;s/6379/$PORT/g&quot; /engn001/redis-stable/redis_6001.conf
+sed -i &quot;s/requirepass foobared/requirepass $REQUIREPASS/g&quot; /engn001/redis-stable/redis_6001.conf
+sed -i &quot;s/masterauth &lt;master-password&gt;/masterauth $REQUIREPASS/g&quot; /engn001/redis-stable/redis_6001.conf
+sed -i &quot;s/redis.log/redis_$PORT/g&quot; /engn001/redis-stable/redis_6001.conf
+sed -i &quot;s/redis.pid/redis_$PORT.pid/g&quot; /engn001/redis-stable/redis_6001.conf
+
+sed -i &quot;s/# replicaof &lt;masterip&gt; &lt;masterport&gt;/replicaof $MASTER_HOST $MASTER_PORT/g&quot; /engn001/redis-stable/redis_6001.conf
+
+# SENTINEL
+
+sed -i &quot;s/26379/$SENTINEL_PORT/g&quot; /engn001/redis-stable/sentinel_7001.conf
+sed -i &quot;s/master_ip master_port quorum/$MASTER_HOST $MASTER_PORT $QUORUM/g&quot; /engn001/redis-stable/sentinel_7001.conf
+sed -i &quot;s/foobared/$REQUIREPASS/g&quot; /engn001/redis-stable/sentinel_7001.conf
+
+cp /engn001/redis-stable/redis_6001.conf /engn001/redis-stable/data
+cp /engn001/redis-stable/sentinel_7001.conf /engn001/redis-stable/data
+
+redis-server /engn001/redis-stable/redis_6001.conf &amp;
+sleep 10
+redis-sentinel /engn001/redis-stable/sentinel_7001.conf &amp;
+sleep 10
+
+/bin/bash
+</code></pre><h3 id="heading1">실행</h3>
+<pre><code>AL01542225:conf nhn$ docker-compose up -d --build
+Building redis1
+Step 1/7 : FROM redis_image:latest
+ ---&gt; a693415dce41
+Step 2/7 : MAINTAINER kimdubi
+ ---&gt; Running in bdecdbf2d6f7
+Removing intermediate container bdecdbf2d6f7
+ ---&gt; 5fc385f01aa0
+Step 3/7 : USER root
+ ---&gt; Running in 5eee44db05cb
+Removing intermediate container 5eee44db05cb
+ ---&gt; d4549d967334
+Step 4/7 : ADD redis.conf /engn001/redis-stable/redis_6001.conf
+ ---&gt; 2055f6e1ab67
+Step 5/7 : ADD sentinel.conf /engn001/redis-stable/sentinel_7001.conf
+ ---&gt; 2e87093ecc1b
+Step 6/7 : ADD docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ ---&gt; a3549a5d4b59
+Step 7/7 : ENTRYPOINT [&quot;/usr/local/bin/docker-entrypoint.sh&quot;]
+ ---&gt; Running in 55c565c617c6
+Removing intermediate container 55c565c617c6
+ ---&gt; 26542f033011
+Successfully built 26542f033011
+Successfully tagged redis_image:master
+Building redis2
+Step 1/7 : FROM redis_image:latest
+ ---&gt; a693415dce41
+Step 2/7 : MAINTAINER kimdubi
+ ---&gt; Using cache
+ ---&gt; 5fc385f01aa0
+Step 3/7 : USER root
+ ---&gt; Using cache
+ ---&gt; d4549d967334
+Step 4/7 : ADD redis.conf /engn001/redis-stable/redis_6001.conf
+ ---&gt; Using cache
+ ---&gt; 2055f6e1ab67
+Step 5/7 : ADD sentinel.conf /engn001/redis-stable/sentinel_7001.conf
+ ---&gt; Using cache
+ ---&gt; 2e87093ecc1b
+Step 6/7 : ADD docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ ---&gt; 45302d0322cd
+Step 7/7 : ENTRYPOINT [&quot;/usr/local/bin/docker-entrypoint.sh&quot;]
+ ---&gt; Running in d76dc4496a3a
+Removing intermediate container d76dc4496a3a
+ ---&gt; c21619894b01
+Successfully built c21619894b01
+Successfully tagged redis_image:slave
+Building redis3
+Step 1/7 : FROM redis_image:latest
+ ---&gt; a693415dce41
+Step 2/7 : MAINTAINER kimdubi
+ ---&gt; Using cache
+ ---&gt; 5fc385f01aa0
+Step 3/7 : USER root
+ ---&gt; Using cache
+ ---&gt; d4549d967334
+Step 4/7 : ADD redis.conf /engn001/redis-stable/redis_6001.conf
+ ---&gt; Using cache
+ ---&gt; 2055f6e1ab67
+Step 5/7 : ADD sentinel.conf /engn001/redis-stable/sentinel_7001.conf
+ ---&gt; Using cache
+ ---&gt; 2e87093ecc1b
+Step 6/7 : ADD docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ ---&gt; Using cache
+ ---&gt; 45302d0322cd
+Step 7/7 : ENTRYPOINT [&quot;/usr/local/bin/docker-entrypoint.sh&quot;]
+ ---&gt; Using cache
+ ---&gt; c21619894b01
+Successfully built c21619894b01
+Successfully tagged redis_image:slave
+Creating redis_master ... done
+Creating redis_slave2 ... done
+Creating redis_slave1 ... done
+</code></pre><h3 id="heading2">결과</h3>
+<ul>
+<li>replication</li>
+</ul>
+<pre><code>[root@4295e99809a9 /]# redis-cli -p 6001 -a qhdks123
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+127.0.0.1:6001&gt; info replication
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=172.19.0.22,port=6001,state=online,offset=731969,lag=1
+slave1:ip=172.19.0.21,port=6001,state=online,offset=731969,lag=1
+master_replid:1017909b02914bc2a85a92b766852f7ea057b261
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:732105
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:67108864
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:732105
+</code></pre><ul>
+<li>sentinel</li>
+</ul>
+<pre><code>[root@4295e99809a9 /]# redis-cli -p 7001 -a qhdks123
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+127.0.0.1:7001&gt; info sentinel
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=mymaster,status=ok,address=172.19.0.20:6001,slaves=2,sentinels=3
+</code></pre></div>
+
+</main>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

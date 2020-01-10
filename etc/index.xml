@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Etcs on kimDuBiA</title>
@@ -8,7 +7,7 @@
     <language>en-us</language>
     <lastBuildDate>Thu, 09 Jan 2020 11:25:53 +0900</lastBuildDate>
     
-	<atom:link href="https://kimdubi.github.io/etc/index.xml" rel="self" type="application/rss+xml" />
+        <atom:link href="https://kimdubi.github.io/etc/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -17,10 +16,214 @@
       <pubDate>Thu, 09 Jan 2020 11:25:53 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/etc/docker-redis-cluster/</guid>
-      <description>이번 글에서는 docker-compose 로 redis-cluster를 구성해보겠습니다. 여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에
-이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
-구성 * docker-compose.yml * redis_cluster_1a * Dockerfile * docker-entrypoint.sh * redis_cluster_2a * redis_cluster_3a * redis_cluster_1b * redis_cluster_2b * redis_cluster_3b =&amp;gt; Master 3ea , Slave 3ea 생성
-docker-compose.yml version: &#39;3&#39; services: redis_cluster_1a: image: redis_image:cluster build: context: ./redis1 dockerfile: Dockerfile stdin_open: true tty: true environment: - REQUIREPASS=qhdks123 - PORT=8001 - HOST=172.</description>
+      <description>&lt;p&gt;이번 글에서는 docker-compose 로 redis-cluster를 구성해보겠습니다.
+여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에&lt;br&gt;
+이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.&lt;/p&gt;
+&lt;h3 id=&#34;heading&#34;&gt;구성&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;* docker-compose.yml
+    *   redis_cluster_1a
+        * Dockerfile
+            * docker-entrypoint.sh
+    *   redis_cluster_2a
+    *   redis_cluster_3a
+    *   redis_cluster_1b
+    *   redis_cluster_2b
+    *   redis_cluster_3b
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; Master 3ea , Slave 3ea 생성&lt;/p&gt;
+&lt;h3 id=&#34;dockercomposeyml&#34;&gt;docker-compose.yml&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;version: &#39;3&#39;
+services:
+  redis_cluster_1a:
+    image: redis_image:cluster
+    build:
+      context: ./redis1
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=8001
+      - HOST=172.19.0.20
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.20
+    container_name: redis_cluster_1a
+  redis_cluster_2a:
+    image: redis_image:cluster
+    stdin_open: true
+    tty: true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=8001
+      - HOST=172.19.0.21
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.21
+    depends_on:
+      - redis_cluster_1a
+    container_name: redis_cluster_2a
+  redis_cluster_3a:
+    image: redis_image:cluster
+    stdin_open: true
+    tty : true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=8001
+      - HOST=172.19.0.22
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.22
+    depends_on:
+      - redis_cluster_2a
+    container_name: redis_cluster_3a
+  redis_cluster_1b:
+    image: redis_image:cluster
+    stdin_open: true
+    tty : true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=8001
+      - HOST=172.19.0.23
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.23
+    depends_on:
+      - redis_cluster_3a
+    container_name: redis_cluster_1b
+  redis_cluster_2b:
+    image: redis_image:cluster
+    stdin_open: true
+    tty : true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=8001
+      - HOST=172.19.0.24
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.24
+    depends_on:
+      - redis_cluster_1b
+    container_name: redis_cluster_2b
+  redis_cluster_3b:
+    image: redis_image:cluster
+    stdin_open: true
+    tty : true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=8001
+      - HOST=172.19.0.25
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.25
+    depends_on:
+      - redis_cluster_2b
+    container_name: redis_cluster_3b
+
+networks:
+  redis_net:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 172.19.0.0/24
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;dockerfile&#34;&gt;Dockerfile&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;FROM kimdubi/redis_image:latest
+
+MAINTAINER kimdubi
+
+USER root
+
+ADD redis.conf /engn001/redis-stable/redis_8001.conf
+ADD docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT [&amp;quot;/usr/local/bin/docker-entrypoint.sh&amp;quot;]
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;dockerentrypointsh&#34;&gt;docker-entrypoint.sh&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;#!/bin/sh
+set -e
+
+# MASTER
+#sed -i &amp;quot;s/bind 127.0.0.1/bind 0.0.0.0/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+sed -i &amp;quot;s/6379/$PORT/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+sed -i &amp;quot;s/requirepass foobared/requirepass $REQUIREPASS/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+sed -i &amp;quot;s/masterauth &amp;lt;master-password&amp;gt;/masterauth $REQUIREPASS/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+sed -i &amp;quot;s/redis.log/redis_$PORT/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+sed -i &amp;quot;s/redis.pid/redis_$PORT.pid/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+
+# CLUSTER
+sed -i &amp;quot;s/#cluster-enabled yes/cluster-enabled yes/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+sed -i &amp;quot;s/#cluster-config-file nodes-6379.conf/cluster-config-file nodes_$PORT.conf/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+sed -i &amp;quot;s/#cluster-node-timeout 15000/cluster-node-timeout 5000/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+
+cp /engn001/redis-stable/redis_8001.conf /engn001/redis-stable/data
+
+redis-server /engn001/redis-stable/redis_8001.conf &amp;amp;
+sleep 10
+
+printf &#39;yes\n&#39; | redis-cli -p 8001 -a qhdks123 --cluster create 172.19.0.20:8001 172.19.0.21:8001 172.19.0.22:8001 172.19.0.25:8001 172.19.0.23:8001 172.19.0.24:8001 --cluster-replicas 1 &amp;amp;
+sleep 10
+
+
+/bin/bash
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;heading1&#34;&gt;실행&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;docker-compose -f ./docker-compose.yml up -d --build
+
+Building redis_cluster_1a
+Step 1/6 : FROM kimdubi/redis_image:latest
+ ---&amp;gt; a693415dce41
+Step 2/6 : MAINTAINER kimdubi
+ ---&amp;gt; Using cache
+ ---&amp;gt; 824284b455ee
+Step 3/6 : USER root
+ ---&amp;gt; Using cache
+ ---&amp;gt; c8c490ffb70d
+Step 4/6 : ADD redis.conf /engn001/redis-stable/redis_8001.conf
+ ---&amp;gt; Using cache
+ ---&amp;gt; 1735069c6560
+Step 5/6 : ADD docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ ---&amp;gt; Using cache
+ ---&amp;gt; 7fb4293ba344
+Step 6/6 : ENTRYPOINT [&amp;quot;/usr/local/bin/docker-entrypoint.sh&amp;quot;]
+ ---&amp;gt; Using cache
+ ---&amp;gt; c9ee06aa66de
+Successfully built c9ee06aa66de
+Successfully tagged redis_image:cluster
+Creating redis_cluster_1a ... done
+Creating redis_cluster_2a ... done
+Creating redis_cluster_3a ... done
+Creating redis_cluster_1b ... done
+Creating redis_cluster_2b ... done
+Creating redis_cluster_3b ... done
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;heading2&#34;&gt;결과&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;[root@0b9693752f92 /]# redis-cli -p 8001 -a qhdks123 --cluster check 172.19.0.20:8001
+Warning: Using a password with &#39;-a&#39; or &#39;-u&#39; option on the command line interface may not be safe.
+172.19.0.20:8001 (9b7201f6...) -&amp;gt; 0 keys | 5461 slots | 1 slaves.
+172.19.0.21:8001 (289ed007...) -&amp;gt; 0 keys | 5462 slots | 1 slaves.
+172.19.0.22:8001 (c3186498...) -&amp;gt; 0 keys | 5461 slots | 1 slaves.
+[OK] 0 keys in 3 masters.
+0.00 keys per slot on average.
+&amp;gt;&amp;gt;&amp;gt; Performing Cluster Check (using node 172.19.0.20:8001)
+M: 9b7201f6325351aaba31890e818171aa913d9e30 172.19.0.20:8001
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+S: d1be9fc203d6a3a13841faf752831671ee9f623d 172.19.0.24:8001
+   slots: (0 slots) slave
+   replicates 289ed00739a84bb82bd55939e7fe3a064d8c9308
+S: 7e63452401b51be9722f4d4ae65aae7cb4b3f692 172.19.0.25:8001
+   slots: (0 slots) slave
+   replicates c3186498062e6d1f4d1615cd76b1f9e780b435de
+M: 289ed00739a84bb82bd55939e7fe3a064d8c9308 172.19.0.21:8001
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+S: 2fcc3aea104b1c95e278d26fa5dda043d8f1c5c7 172.19.0.23:8001
+   slots: (0 slots) slave
+   replicates 9b7201f6325351aaba31890e818171aa913d9e30
+M: c3186498062e6d1f4d1615cd76b1f9e780b435de 172.19.0.22:8001
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+&amp;gt;&amp;gt;&amp;gt; Check for open slots...
+&amp;gt;&amp;gt;&amp;gt; Check slots coverage...
+[OK] All 16384 slots covered.
+&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
     
     <item>
@@ -29,10 +232,272 @@ docker-compose.yml version: &#39;3&#39; services: redis_cluster_1a: image: redis
       <pubDate>Tue, 07 Jan 2020 09:35:43 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/etc/docker-redis-sentinel/</guid>
-      <description>이번 글에서는 redis sentinel을 docker-compose 를 통해 구성하는 방법을 공유하겠습니다.
-여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에
-이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
-구성 * docker-compose.yml * redis_master * Dockerfile * docker-entrypoint.sh * redis_slave1 * Dockerfile * docker-entrypoint.sh * redis_slave2 * Dockerfile * docker-entrypoint.sh docker-compose.yml version: &#39;3&#39; services: redis1: image: redis_image:master build: context: ./redis1 dockerfile: Dockerfile stdin_open: true tty: true environment: - REQUIREPASS=qhdks123 - PORT=6001 - HOST=172.</description>
+      <description>&lt;p&gt;이번 글에서는 redis sentinel을 docker-compose 를 통해 구성하는 방법을 공유하겠습니다.&lt;br&gt;
+여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에&lt;br&gt;
+이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.&lt;/p&gt;
+&lt;h3 id=&#34;heading&#34;&gt;구성&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;* docker-compose.yml
+    * redis_master
+        * Dockerfile
+            * docker-entrypoint.sh
+    * redis_slave1
+        * Dockerfile
+            * docker-entrypoint.sh
+    * redis_slave2
+        * Dockerfile
+            * docker-entrypoint.sh
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;dockercomposeyml&#34;&gt;docker-compose.yml&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;version: &#39;3&#39;
+services:
+  redis1:
+    image: redis_image:master
+    build:
+      context: ./redis1
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=6001
+      - HOST=172.19.0.20
+      - MASTER_HOST=172.19.0.20
+      - MASTER_PORT=6001
+      - SENTINEL_PORT=7001
+      - QUORUM=2
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.20
+    restart: always
+    container_name: redis_master
+  redis2:
+    image: redis_image:slave
+    build:
+      context: ./redis2
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=6001
+      - HOST=172.19.0.21
+      - MASTER_HOST=172.19.0.20
+      - MASTER_PORT=6001
+      - SENTINEL_PORT=7001
+      - QUORUM=2
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.21
+    depends_on:
+      - redis1
+    restart: always
+    container_name: redis_slave1
+  redis3:
+    image: redis_image:slave
+    build:
+      context: ./redis3
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty : true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=6001
+      - HOST=172.19.0.22
+      - MASTER_HOST=172.19.0.20
+      - MASTER_PORT=6001
+      - SENTINEL_PORT=7001
+      - QUORUM=2
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.22
+    depends_on:
+      - redis1
+    restart: always
+    container_name: redis_slave2
+
+networks:
+  redis_net:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 172.19.0.0/24
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;dockerfile&#34;&gt;Dockerfile&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;FROM redis_image:latest
+
+MAINTAINER kimdubi
+
+USER root
+
+ADD redis.conf /engn001/redis-stable/redis_6001.conf
+ADD sentinel.conf /engn001/redis-stable/sentinel_7001.conf
+ADD docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT [&amp;quot;/usr/local/bin/docker-entrypoint.sh&amp;quot;]
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;dockerentrypointsh---master&#34;&gt;docker-entrypoint.sh  - Master&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;#!/bin/sh
+set -e
+
+# MASTER
+#sed -i &amp;quot;s/bind 127.0.0.1/bind 0.0.0.0/g&amp;quot; /engn001/redis-stable/redis_6001.conf
+sed -i &amp;quot;s/6379/$PORT/g&amp;quot; /engn001/redis-stable/redis_6001.conf
+sed -i &amp;quot;s/requirepass foobared/requirepass $REQUIREPASS/g&amp;quot; /engn001/redis-stable/redis_6001.conf
+sed -i &amp;quot;s/masterauth &amp;lt;master-password&amp;gt;/masterauth $REQUIREPASS/g&amp;quot; /engn001/redis-stable/redis_6001.conf
+sed -i &amp;quot;s/redis.log/redis_$PORT/g&amp;quot; /engn001/redis-stable/redis_6001.conf
+sed -i &amp;quot;s/redis.pid/redis_$PORT.pid/g&amp;quot; /engn001/redis-stable/redis_6001.conf
+
+# SENTINEL
+
+sed -i &amp;quot;s/26379/$SENTINEL_PORT/g&amp;quot; /engn001/redis-stable/sentinel_7001.conf
+sed -i &amp;quot;s/master_ip master_port quorum/$MASTER_HOST $MASTER_PORT $QUORUM/g&amp;quot; /engn001/redis-stable/sentinel_7001.conf
+sed -i &amp;quot;s/foobared/$REQUIREPASS/g&amp;quot; /engn001/redis-stable/sentinel_7001.conf
+
+cp /engn001/redis-stable/redis_6001.conf /engn001/redis-stable/data
+cp /engn001/redis-stable/sentinel_7001.conf /engn001/redis-stable/data
+
+redis-server /engn001/redis-stable/redis_6001.conf &amp;amp;
+sleep 10
+redis-sentinel /engn001/redis-stable/sentinel_7001.conf &amp;amp;
+sleep 10
+
+
+/bin/bash
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;dockerentrypointsh---slave&#34;&gt;docker-entrypoint.sh  - Slave&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;#!/bin/sh
+set -e
+
+
+# SLAVE
+#sed -i &amp;quot;s/bind 127.0.0.1/bind 0.0.0.0/g&amp;quot; /engn001/redis-stable/redis_6001.conf
+sed -i &amp;quot;s/6379/$PORT/g&amp;quot; /engn001/redis-stable/redis_6001.conf
+sed -i &amp;quot;s/requirepass foobared/requirepass $REQUIREPASS/g&amp;quot; /engn001/redis-stable/redis_6001.conf
+sed -i &amp;quot;s/masterauth &amp;lt;master-password&amp;gt;/masterauth $REQUIREPASS/g&amp;quot; /engn001/redis-stable/redis_6001.conf
+sed -i &amp;quot;s/redis.log/redis_$PORT/g&amp;quot; /engn001/redis-stable/redis_6001.conf
+sed -i &amp;quot;s/redis.pid/redis_$PORT.pid/g&amp;quot; /engn001/redis-stable/redis_6001.conf
+
+sed -i &amp;quot;s/# replicaof &amp;lt;masterip&amp;gt; &amp;lt;masterport&amp;gt;/replicaof $MASTER_HOST $MASTER_PORT/g&amp;quot; /engn001/redis-stable/redis_6001.conf
+
+# SENTINEL
+
+sed -i &amp;quot;s/26379/$SENTINEL_PORT/g&amp;quot; /engn001/redis-stable/sentinel_7001.conf
+sed -i &amp;quot;s/master_ip master_port quorum/$MASTER_HOST $MASTER_PORT $QUORUM/g&amp;quot; /engn001/redis-stable/sentinel_7001.conf
+sed -i &amp;quot;s/foobared/$REQUIREPASS/g&amp;quot; /engn001/redis-stable/sentinel_7001.conf
+
+cp /engn001/redis-stable/redis_6001.conf /engn001/redis-stable/data
+cp /engn001/redis-stable/sentinel_7001.conf /engn001/redis-stable/data
+
+redis-server /engn001/redis-stable/redis_6001.conf &amp;amp;
+sleep 10
+redis-sentinel /engn001/redis-stable/sentinel_7001.conf &amp;amp;
+sleep 10
+
+/bin/bash
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;heading1&#34;&gt;실행&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;kimdubi:conf nhn$ docker-compose up -d --build
+Building redis1
+Step 1/7 : FROM redis_image:latest
+ ---&amp;gt; a693415dce41
+Step 2/7 : MAINTAINER kimdubi
+ ---&amp;gt; Running in bdecdbf2d6f7
+Removing intermediate container bdecdbf2d6f7
+ ---&amp;gt; 5fc385f01aa0
+Step 3/7 : USER root
+ ---&amp;gt; Running in 5eee44db05cb
+Removing intermediate container 5eee44db05cb
+ ---&amp;gt; d4549d967334
+Step 4/7 : ADD redis.conf /engn001/redis-stable/redis_6001.conf
+ ---&amp;gt; 2055f6e1ab67
+Step 5/7 : ADD sentinel.conf /engn001/redis-stable/sentinel_7001.conf
+ ---&amp;gt; 2e87093ecc1b
+Step 6/7 : ADD docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ ---&amp;gt; a3549a5d4b59
+Step 7/7 : ENTRYPOINT [&amp;quot;/usr/local/bin/docker-entrypoint.sh&amp;quot;]
+ ---&amp;gt; Running in 55c565c617c6
+Removing intermediate container 55c565c617c6
+ ---&amp;gt; 26542f033011
+Successfully built 26542f033011
+Successfully tagged redis_image:master
+Building redis2
+Step 1/7 : FROM redis_image:latest
+ ---&amp;gt; a693415dce41
+Step 2/7 : MAINTAINER kimdubi
+ ---&amp;gt; Using cache
+ ---&amp;gt; 5fc385f01aa0
+Step 3/7 : USER root
+ ---&amp;gt; Using cache
+ ---&amp;gt; d4549d967334
+Step 4/7 : ADD redis.conf /engn001/redis-stable/redis_6001.conf
+ ---&amp;gt; Using cache
+ ---&amp;gt; 2055f6e1ab67
+Step 5/7 : ADD sentinel.conf /engn001/redis-stable/sentinel_7001.conf
+ ---&amp;gt; Using cache
+ ---&amp;gt; 2e87093ecc1b
+Step 6/7 : ADD docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ ---&amp;gt; 45302d0322cd
+Step 7/7 : ENTRYPOINT [&amp;quot;/usr/local/bin/docker-entrypoint.sh&amp;quot;]
+ ---&amp;gt; Running in d76dc4496a3a
+Removing intermediate container d76dc4496a3a
+ ---&amp;gt; c21619894b01
+Successfully built c21619894b01
+Successfully tagged redis_image:slave
+Building redis3
+Step 1/7 : FROM redis_image:latest
+ ---&amp;gt; a693415dce41
+Step 2/7 : MAINTAINER kimdubi
+ ---&amp;gt; Using cache
+ ---&amp;gt; 5fc385f01aa0
+Step 3/7 : USER root
+ ---&amp;gt; Using cache
+ ---&amp;gt; d4549d967334
+Step 4/7 : ADD redis.conf /engn001/redis-stable/redis_6001.conf
+ ---&amp;gt; Using cache
+ ---&amp;gt; 2055f6e1ab67
+Step 5/7 : ADD sentinel.conf /engn001/redis-stable/sentinel_7001.conf
+ ---&amp;gt; Using cache
+ ---&amp;gt; 2e87093ecc1b
+Step 6/7 : ADD docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ ---&amp;gt; Using cache
+ ---&amp;gt; 45302d0322cd
+Step 7/7 : ENTRYPOINT [&amp;quot;/usr/local/bin/docker-entrypoint.sh&amp;quot;]
+ ---&amp;gt; Using cache
+ ---&amp;gt; c21619894b01
+Successfully built c21619894b01
+Successfully tagged redis_image:slave
+Creating redis_master ... done
+Creating redis_slave2 ... done
+Creating redis_slave1 ... done
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;heading2&#34;&gt;결과&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;replication&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[root@4295e99809a9 /]# redis-cli -p 6001 -a qhdks123
+Warning: Using a password with &#39;-a&#39; or &#39;-u&#39; option on the command line interface may not be safe.
+127.0.0.1:6001&amp;gt; info replication
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=172.19.0.22,port=6001,state=online,offset=731969,lag=1
+slave1:ip=172.19.0.21,port=6001,state=online,offset=731969,lag=1
+master_replid:1017909b02914bc2a85a92b766852f7ea057b261
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:732105
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:67108864
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:732105
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;sentinel&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[root@4295e99809a9 /]# redis-cli -p 7001 -a qhdks123
+Warning: Using a password with &#39;-a&#39; or &#39;-u&#39; option on the command line interface may not be safe.
+127.0.0.1:7001&amp;gt; info sentinel
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=mymaster,status=ok,address=172.19.0.20:6001,slaves=2,sentinels=3
+&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
     
     <item>
@@ -41,11 +506,199 @@ docker-compose.yml version: &#39;3&#39; services: redis_cluster_1a: image: redis
       <pubDate>Sun, 05 Jan 2020 13:54:28 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/etc/docker-redis-replication/</guid>
-      <description>지난 글에서 docker-compose 를 통해 mysql replication 구성하는 방법을 공유했습니다.
-이번 글에서는 redis replication 구성하는 docker-compose.yml을 공유하겠습니다.
-여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에 이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
-본문에서 사용된 docker-compose.yml 이나 dockerfile의 옵션 등은 이전 글 참고 부탁드립니다. (https://kimdubi.github.io/etc/docker-mysql-replication/ )
-구성 * docker-compose.yml * redis1 * Dockerfile * docker-entrypoint.sh * redis2 * Dockerfile * docker-entrypoint.</description>
+      <description>&lt;p&gt;지난 글에서 docker-compose 를 통해 mysql replication 구성하는 방법을 공유했습니다.&lt;br&gt;
+이번 글에서는 redis replication 구성하는 docker-compose.yml을 공유하겠습니다.&lt;br&gt;
+여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에 이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.&lt;br&gt;
+본문에서 사용된 docker-compose.yml 이나 dockerfile의 옵션 등은 이전 글 참고 부탁드립니다.
+(&lt;a href=&#34;https://kimdubi.github.io/etc/docker-mysql-replication/&#34;&gt;https://kimdubi.github.io/etc/docker-mysql-replication/&lt;/a&gt; )&lt;/p&gt;
+&lt;h3 id=&#34;heading&#34;&gt;구성&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;* docker-compose.yml
+    * redis1
+        * Dockerfile
+            * docker-entrypoint.sh
+    * redis2
+        * Dockerfile
+            * docker-entrypoint.sh
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;총 두개의 컨테이너를 생성&lt;/li&gt;
+&lt;li&gt;각각의 컨테이너에서 M-S redis 한대씩 생성하는 구성&lt;/li&gt;
+&lt;li&gt;redis1 &amp;lt;-&amp;gt; redis2 replication 구성이 아니라 각각 별개의 노드임&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;dockercomposeyml&#34;&gt;docker-compose.yml&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;version: &#39;3&#39;
+services:
+  redis1:
+    image: redis_image:latest
+    build:
+      context: ./redis1
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=8001
+      - HOST=172.19.0.10
+    volumes:
+      - &amp;quot;../redis-data/redis1:/data&amp;quot;
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.10
+    restart: always
+    container_name: redis1
+
+  redis2:
+    image: redis_image:latest
+    build:
+      context: ./redis2
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    environment:
+      - REQUIREPASS=qhdks123
+      - PORT=8001
+      - HOST=172.19.0.11
+    volumes:
+      - &amp;quot;../redis-data/redis2:/data&amp;quot;
+    networks:
+      redis_net:
+        ipv4_address: 172.19.0.11
+    restart: always
+    container_name: redis2
+
+networks:
+  redis_net:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 172.19.0.0/24
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;dockerfile&#34;&gt;Dockerfile&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;FROM redis_image:latest 
+
+MAINTAINER kimdubi 
+
+USER root
+
+ADD redis.conf /engn001/redis-stable/redis_8001.conf
+ADD redis.conf /engn001/redis-stable/redis_8002.conf
+ADD docker-entrypoint_1.sh /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT [&amp;quot;/usr/local/bin/docker-entrypoint.sh&amp;quot;]
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;dockerentrypointsh&#34;&gt;docker-entrypoint.sh&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;#!/bin/sh
+set -e
+
+
+# MASTER
+sed -i &amp;quot;s/bind 127.0.0.1/bind 0.0.0.0/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+sed -i &amp;quot;s/port 6379/port 8001/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+sed -i &amp;quot;s/# requirepass foobared/requirepass $REQUIREPASS/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+sed -i &amp;quot;s/# masterauth &amp;lt;master-password&amp;gt;/masterauth $REQUIREPASS/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+sed -i &amp;quot;s/redis.log/redis_$PORT/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+sed -i &amp;quot;s/redis.pid/redis_8001.pid/g&amp;quot; /engn001/redis-stable/redis_8001.conf
+
+
+# SLAVE
+sed -i &amp;quot;s/bind 127.0.0.1/bind 0.0.0.0/g&amp;quot; /engn001/redis-stable/redis_8002.conf
+sed -i &amp;quot;s/port 6379/port 8002/g&amp;quot; /engn001/redis-stable/redis_8002.conf
+sed -i &amp;quot;s/# requirepass foobared/requirepass $REQUIREPASS/g&amp;quot; /engn001/redis-stable/redis_8002.conf
+sed -i &amp;quot;s/# masterauth &amp;lt;master-password&amp;gt;/masterauth $REQUIREPASS/g&amp;quot; /engn001/redis-stable/redis_8002.conf
+sed -i &amp;quot;s/redis.log/redis_8002/g&amp;quot; /engn001/redis-stable/redis_8002.conf
+sed -i &amp;quot;s/redis.pid/redis_8002.pid/g&amp;quot; /engn001/redis-stable/redis_8002.conf
+
+
+
+sed -i &amp;quot;s/# replicaof &amp;lt;masterip&amp;gt; &amp;lt;masterport&amp;gt;/replicaof $HOST 8001/g&amp;quot; /engn001/redis-stable/redis_8002.conf
+
+cp /engn001/redis-stable/redis_8002.conf /data
+cp /engn001/redis-stable/redis_8001.conf /data
+
+redis-server /engn001/redis-stable/redis_8001.conf &amp;amp;
+sleep 10
+redis-server /engn001/redis-stable/redis_8002.conf &amp;amp;
+sleep 5
+
+/bin/bash
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;heading1&#34;&gt;실행&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;kimdubi:conf nhn$ docker-compose -f ./docker-compose_cluster.yml up -d --build
+Building redis1
+Step 1/7 : FROM redis_image:latest
+ ---&amp;gt; 12f2d1aceccf
+Step 2/7 : MAINTAINER kimdubi
+ ---&amp;gt; Running in 267c9a7305db
+Removing intermediate container 267c9a7305db
+ ---&amp;gt; 60c43e140621
+Step 3/7 : USER root
+ ---&amp;gt; Running in f1551ca18771
+Removing intermediate container f1551ca18771
+ ---&amp;gt; 5ea5e2f294bd
+Step 4/7 : ADD redis.conf /engn001/redis-stable/redis_8001.conf
+ ---&amp;gt; 18c79109484c
+Step 5/7 : ADD redis.conf /engn001/redis-stable/redis_8002.conf
+ ---&amp;gt; 315f0c1054b7
+Step 6/7 : ADD docker-entrypoint_1.sh /usr/local/bin/docker-entrypoint.sh
+ ---&amp;gt; 61115547bfdc
+Step 7/7 : ENTRYPOINT [&amp;quot;/usr/local/bin/docker-entrypoint.sh&amp;quot;]
+ ---&amp;gt; Running in 86ab83398a30
+Removing intermediate container 86ab83398a30
+ ---&amp;gt; f787b6c79a50
+Successfully built f787b6c79a50
+Successfully tagged redis_image:latest
+Building redis2
+Step 1/7 : FROM redis_image:latest
+ ---&amp;gt; f787b6c79a50
+Step 2/7 : MAINTAINER kimdubi
+ ---&amp;gt; Running in 2a5b37bea615
+Removing intermediate container 2a5b37bea615
+ ---&amp;gt; 29fe4d956d9f
+Step 3/7 : USER root
+ ---&amp;gt; Running in 04028334d2dd
+Removing intermediate container 04028334d2dd
+ ---&amp;gt; 4d2c2b07d2bb
+Step 4/7 : ADD redis.conf /engn001/redis-stable/redis_8001.conf
+ ---&amp;gt; cedb87ac51dc
+Step 5/7 : ADD redis.conf /engn001/redis-stable/redis_8002.conf
+ ---&amp;gt; b60e8de07c8e
+Step 6/7 : ADD docker-entrypoint_1.sh /usr/local/bin/docker-entrypoint.sh
+ ---&amp;gt; 681340e9e4b3
+Step 7/7 : ENTRYPOINT [&amp;quot;/usr/local/bin/docker-entrypoint.sh&amp;quot;]
+ ---&amp;gt; Running in 3b3ec419dec0
+Removing intermediate container 3b3ec419dec0
+ ---&amp;gt; 8a52816eefd6
+Successfully built 8a52816eefd6
+Successfully tagged redis_image:latest
+Creating redis1 ... done
+Creating redis2 ... done
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;heading2&#34;&gt;결과&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;kimdubi:conf nhn$ de redis1 /bin/bash
+[root@0bf9cd2b4639 /]# ps -ef | grep redis
+root        23     1  0 05:12 ?        00:00:00 redis-server 0.0.0.0:8001
+root        29     1  0 05:13 ?        00:00:00 redis-server 0.0.0.0:8002
+root        62    45  0 05:13 pts/1    00:00:00 grep --color=auto redis
+
+[root@0bf9cd2b4639 /]# redis-cli -p 8002 -a qhdks123
+Warning: Using a password with &#39;-a&#39; or &#39;-u&#39; option on the command line interface may not be safe.
+127.0.0.1:8002&amp;gt; info replication
+# Replication
+role:slave
+master_host:172.19.0.10
+master_port:8001
+master_link_status:up
+master_last_io_seconds_ago:5
+master_sync_in_progress:0
+slave_repl_offset:126
+slave_priority:100
+slave_read_only:1
+connected_slaves:0
+master_replid:75fba13c9d4ab5653fb1634aa7cd4dbcb5c4e5f9
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:126
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:126
+
+&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
     
     <item>
@@ -54,10 +707,266 @@ docker-compose.yml version: &#39;3&#39; services: redis_cluster_1a: image: redis
       <pubDate>Sat, 04 Jan 2020 23:36:53 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/etc/docker-mysql-replication/</guid>
-      <description>docker-compose 는 docker container를 생성하기 위한 명령어들을 미리 적어놓은 문서라고 할 수 있습니다.
-이번 글에서는 docker-compose 를 활용하여 mysql master - slave replication 구성된 container들을 올리는 방법을 공유하겠습니다.
-본문에서 사용하는 mysql image 는 개인적으로 생성하여 사용하는 이미지이기 때문에 다른 이미지를 사용하는 경우엔 그에 맞게 설정 확인이 필요합니다.
-구성  docker-compose  mysql_master  Dockerfile  docker-entrypoint.sh     mysql_slave  Dockerfile  docker-entrypoint.sh        docker-compose.</description>
+      <description>&lt;p&gt;docker-compose 는 docker container를 생성하기 위한 명령어들을 미리 적어놓은 문서라고 할 수 있습니다.&lt;br&gt;
+이번 글에서는 docker-compose 를 활용하여 mysql master - slave replication 구성된 container들을 올리는 방법을 공유하겠습니다.&lt;br&gt;
+본문에서 사용하는 mysql image 는 개인적으로 생성하여 사용하는 이미지이기 때문에 다른 이미지를 사용하는 경우엔 그에 맞게 설정 확인이 필요합니다.&lt;/p&gt;
+&lt;h3 id=&#34;heading&#34;&gt;구성&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;docker-compose
+&lt;ul&gt;
+&lt;li&gt;mysql_master
+&lt;ul&gt;
+&lt;li&gt;Dockerfile
+&lt;ul&gt;
+&lt;li&gt;docker-entrypoint.sh&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;mysql_slave
+&lt;ul&gt;
+&lt;li&gt;Dockerfile
+&lt;ul&gt;
+&lt;li&gt;docker-entrypoint.sh&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;dockercomposeyml&#34;&gt;docker-compose.yml&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;version: &#39;3&#39;
+services:
+  mysql_master:
+    image: mysql_image:master
+    user: root
+    build:
+      context: ./master
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    ports:
+      - 13306:3306
+    networks:
+      dock_net:
+        ipv4_address: 172.16.0.10
+    container_name: mysql_master
+    restart: always
+
+  mysql_slave:
+    image: mysql_image:slave
+    build:
+      context: ./slave
+      dockerfile: Dockerfile
+    user: root
+    stdin_open: true
+    tty: true
+    ports:
+      - 13307:3306
+    networks:
+      dock_net:
+        ipv4_address: 172.16.0.11
+    depends_on:
+      - mysql_master
+    container_name: mysql_slave
+
+
+networks:
+  dock_net:
+networks:
+  dock_net:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 172.16.0.0/16
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;services: 아래로는 이 docker-compose.yml file을 통해 실행하려는 container를 정의함&lt;/li&gt;
+&lt;li&gt;mysql_master: 정의하려는 container 서비스의 이름을 mysql_master로 설정&lt;/li&gt;
+&lt;li&gt;image: mysql_image:master : container를 띄울 때 사용할 image&lt;/li&gt;
+&lt;li&gt;build: image를 build 할 때 Dockerfile을 사용하는 경우 Dockerfile의 위치와 파일명을 기재함&lt;/li&gt;
+&lt;li&gt;stdin_open: 사용하는 이미지가 OS 이미지 위에 올린 이미지인 경우 입출력 옵션을 켜줌&lt;/li&gt;
+&lt;li&gt;tty: 위와 동일&lt;/li&gt;
+&lt;li&gt;port: 외부에 노출할 포트, 여기서 13306 은 호스트의 포트, 3306은 컨테이너의 포트&lt;/li&gt;
+&lt;li&gt;netowrks: container 들이 사용할 network 대역을 설정함  ipv4_address를 옵션을 사용하는 경우 container 의 ip를 고정시킬 수 있음&lt;/li&gt;
+&lt;li&gt;container_name: container의 이름 설정&lt;/li&gt;
+&lt;li&gt;restart: container stop 되면 자동 재기동하도록 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;dockerfile&#34;&gt;Dockerfile&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;FROM mysql_image:master
+MAINTAINER kimdubi
+
+USER root
+RUN echo &amp;quot;master&amp;quot; &amp;gt; master.txt
+
+ADD my.cnf /engn001/mysql/
+ADD docker-entrypoint.sh /usr/local/bin
+RUN chmod 640 /engn001/mysql/my.cnf
+RUN chmod 755 /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT [&amp;quot;/usr/local/bin/docker-entrypoint.sh&amp;quot;]
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;FROM : build 할 이미지&lt;/li&gt;
+&lt;li&gt;USER : 아래 커맨드를 수행할 os user&lt;/li&gt;
+&lt;li&gt;ADD : host의 파일이나 디렉토리를 container로 복사&lt;/li&gt;
+&lt;li&gt;RUN : container에서 수행할 커맨드&lt;/li&gt;
+&lt;li&gt;ENTRYPOINT : container가 생성될 때 처음 수행할 명령어나 스크립트 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;dockerentrypointsh--master&#34;&gt;docker-entrypoint.sh - master&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;#!/bin/bash
+set -e
+
+/engn001/mysql/bin/mysqld --defaults-file=/engn001/mysql/my.cnf &amp;amp;
+## create user
+sleep 20
+
+/engn001/mysql/bin/mysql -uroot -p&#39;qhdks123&#39; -S /engn001/mysql/data/mysql.sock -e &amp;quot;create user &#39;replUser&#39;@&#39;172.16.0.%&#39; identified with mysql_native_password&amp;quot;
+/engn001/mysql/bin/mysql -uroot -p&#39;qhdks123&#39; -S /engn001/mysql/data/mysql.sock -e &amp;quot;alter user &#39;replUser&#39;@&#39;172.16.0.%&#39; identified by &#39;qhdks123&#39;&amp;quot;
+/engn001/mysql/bin/mysql -uroot -p&#39;qhdks123&#39; -S /engn001/mysql/data/mysql.sock -e &amp;quot;grant replication slave on *.* to &#39;replUser&#39;@&#39;172.16.0.%&#39;&amp;quot;
+
+/engn001/mysql/bin/mysql -uroot -p&#39;qhdks123&#39; -S /engn001/mysql/data/mysql.sock -e &amp;quot;flush privileges&amp;quot;
+/bin/bash
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;dockerentrypointsh--slave&#34;&gt;docker-entrypoint.sh - slave&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;#!/bin/bash
+set -e
+rm -rf /engn001/mysql/data/auto.cnf
+/engn001/mysql/bin/mysqld --defaults-file=/engn001/mysql/my.cnf &amp;amp;
+
+sleep 30
+## create user
+/engn001/mysql/bin/mysql -uroot -p&#39;qhdks123&#39; -S /engn001/mysql/data/mysql.sock -e &amp;quot;create user &#39;replUser&#39;@&#39;172.16.0.%&#39; identified with mysql_native_password&amp;quot;
+/engn001/mysql/bin/mysql -uroot -p&#39;qhdks123&#39; -S /engn001/mysql/data/mysql.sock -e &amp;quot;alter user &#39;replUser&#39;@&#39;172.16.0.%&#39; identified by &#39;qhdks123&#39;&amp;quot;
+/engn001/mysql/bin/mysql -uroot -p&#39;qhdks123&#39; -S /engn001/mysql/data/mysql.sock -e &amp;quot;grant replication slave on *.* to &#39;replUser&#39;@&#39;172.16.0.%&#39;&amp;quot;
+
+
+
+## get  status
+
+master_log_file=`/engn001/mysql/bin/mysql -uroot -p&#39;qhdks123&#39; -h 172.16.0.10 -S /engn001/mysql/data/mysql.sock -e&amp;quot;show master status\G&amp;quot; | grep mysql-bin`
+re=&amp;quot;[a-z]*-bin.[0-9]*&amp;quot;
+
+if [[ ${master_log_file} =~ $re ]];then
+    master_log_file=${BASH_REMATCH[0]}
+fi
+
+master_log_pos=`/engn001/mysql/bin/mysql -uroot -p&#39;qhdks123&#39; -h 172.16.0.10 -S /engn001/mysql/data/mysql.sock -e&amp;quot;show master  status\G&amp;quot; | grep Position`
+
+re=&amp;quot;[0-9]+&amp;quot;
+
+if [[ ${master_log_pos} =~ $re ]];then
+    master_log_pos=${BASH_REMATCH[0]}
+fi
+
+query=&amp;quot;change master to master_host=&#39;172.16.0.10&#39;, master_user=&#39;replUser&#39;, master_password=&#39;qhdks123&#39;, master_log_file=&#39;${master_log_file}&#39;, master_log_pos=${master_log_pos}, master_port=3306&amp;quot;
+
+mysql -uroot -p&#39;qhdks123&#39; -S /engn001/mysql/data/mysql.sock -e &amp;quot;${query}&amp;quot;
+mysql -uroot -p&#39;qhdks123&#39; -S /engn001/mysql/data/mysql.sock -e &amp;quot;start slave&amp;quot;
+/bin/bash
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;heading1&#34;&gt;실행&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;docker-compose 수행 시의 로그&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;kimdubi:mysql_docker nhn$ ls
+clean.sh		docker-compose.yml	master			slave
+kimdubi:mysql_docker nhn$ docker-compose -f ./docker-compose.yml up -d --build
+Building mysql_master
+Step 1/9 : FROM mysql_image:master
+ ---&amp;gt; 0a6c038fd48c
+Step 2/9 : MAINTAINER kimdubi
+ ---&amp;gt; Running in 2f7f90ab2a38
+Removing intermediate container 2f7f90ab2a38
+ ---&amp;gt; 906a816a4af1
+Step 3/9 : USER root
+ ---&amp;gt; Running in f674d01b67b9
+Removing intermediate container f674d01b67b9
+ ---&amp;gt; 28837372b10e
+Step 4/9 : RUN echo &amp;quot;master&amp;quot; &amp;gt; master.txt
+ ---&amp;gt; Running in ea82391d1d95
+Removing intermediate container ea82391d1d95
+ ---&amp;gt; 9cb24b538774
+Step 5/9 : ADD my.cnf /engn001/mysql/
+ ---&amp;gt; 3eeebb30422f
+Step 6/9 : ADD docker-entrypoint.sh /usr/local/bin
+ ---&amp;gt; 18c0520d5084
+Step 7/9 : RUN chmod 640 /engn001/mysql/my.cnf
+ ---&amp;gt; Running in 6c968200e8f3
+Removing intermediate container 6c968200e8f3
+ ---&amp;gt; 4c6bfc727322
+Step 8/9 : RUN chmod 755 /usr/local/bin/docker-entrypoint.sh
+ ---&amp;gt; Running in 8ac72794f96a
+Removing intermediate container 8ac72794f96a
+ ---&amp;gt; 2a37ab0055e4
+Step 9/9 : ENTRYPOINT [&amp;quot;/usr/local/bin/docker-entrypoint.sh&amp;quot;]
+ ---&amp;gt; Running in 35ece071e51d
+Removing intermediate container 35ece071e51d
+ ---&amp;gt; bcbb9b452b74
+Successfully built bcbb9b452b74
+Successfully tagged mysql_image:master
+Building mysql_slave
+Step 1/8 : FROM mysql_image:slave
+ ---&amp;gt; b8eed6c4ccd7
+Step 2/8 : MAINTAINER kimdubi
+ ---&amp;gt; Running in a59a8a4dccb3
+Removing intermediate container a59a8a4dccb3
+ ---&amp;gt; fb088cfa9516
+Step 3/8 : USER root
+ ---&amp;gt; Running in 3405bd1bbaba
+Removing intermediate container 3405bd1bbaba
+ ---&amp;gt; 2587b0fbbfc0
+Step 4/8 : RUN echo &amp;quot;slave&amp;quot; &amp;gt; slave.txt
+ ---&amp;gt; Running in ca9ad91a7f2d
+Removing intermediate container ca9ad91a7f2d
+ ---&amp;gt; e3b52b559e58
+Step 5/8 : ADD my.cnf /engn001/mysql/
+ ---&amp;gt; f6a9c3883d80
+Step 6/8 : ADD docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ ---&amp;gt; e84c90cf387b
+Step 7/8 : RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+ ---&amp;gt; Running in b2582b17136c
+Removing intermediate container b2582b17136c
+ ---&amp;gt; 89fd212c6919
+Step 8/8 : ENTRYPOINT [&amp;quot;/usr/local/bin/docker-entrypoint.sh&amp;quot;]
+ ---&amp;gt; Running in add9a60b740f
+Removing intermediate container add9a60b740f
+ ---&amp;gt; 97f13bbfae1e
+Successfully built 97f13bbfae1e
+Successfully tagged mysql_image:slave
+Creating mysql_master ... done
+Creating mysql_slave  ... done
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;결과&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;kimdubi:mysql_docker nhn$ docker ps
+CONTAINER ID        IMAGE                COMMAND                  CREATED             STATUS              PORTS                     NAMES
+7f5f62616ef3        mysql_image:slave    &amp;quot;/usr/local/bin/dock…&amp;quot;   25 seconds ago      Up 24 seconds       0.0.0.0:13307-&amp;gt;3306/tcp   mysql_slave
+243fc530c1e2        mysql_image:master   &amp;quot;/usr/local/bin/dock…&amp;quot;   26 seconds ago      Up 25 seconds       0.0.0.0:13306-&amp;gt;3306/tcp   mysql_master
+&lt;/code&gt;&lt;/pre&gt;&lt;pre&gt;&lt;code&gt;kimdubi:engn001 nhn$ de mysql_slave /bin/bash
+[root@7f5f62616ef3 /]# mysql -uroot -p
+Enter password:
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MySQL connection id is 15
+Server version: 8.0.17 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type &#39;help;&#39; or &#39;\h&#39; for help. Type &#39;\c&#39; to clear the current input statement.
+
+MySQL [(none)]&amp;gt;
+MySQL [(none)]&amp;gt; show slave status\G;
+*************************** 1. row ***************************
+               Slave_IO_State: Waiting for master to send event
+                  Master_Host: 172.16.0.10
+                  Master_User: replUser
+                  Master_Port: 3306
+                Connect_Retry: 60
+              Master_Log_File: mysql-bin.000008
+          Read_Master_Log_Pos: 1085
+               Relay_Log_File: relay-bin.000002
+                Relay_Log_Pos: 322
+        Relay_Master_Log_File: mysql-bin.000008
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
     
   </channel>

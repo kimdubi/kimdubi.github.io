@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Nosqls on kimDuBiA</title>
@@ -8,7 +7,7 @@
     <language>en-us</language>
     <lastBuildDate>Thu, 12 Dec 2019 18:19:27 +0900</lastBuildDate>
     
-	<atom:link href="https://kimdubi.github.io/nosql/index.xml" rel="self" type="application/rss+xml" />
+        <atom:link href="https://kimdubi.github.io/nosql/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -17,8 +16,284 @@
       <pubDate>Thu, 12 Dec 2019 18:19:27 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/nosql/mongo_replicaset_reconfig/</guid>
-      <description>이번 글에서는 mongodb replica Set (이하 RS) 의 Primary 선출 방식과 RS 멤버가 이상할 때 해당 멤버를 제외하고 재설정 하는 방법에 대해서 알아보겠습니다.
- RS member 간 hearbeat 실패 감지   I REPL_HB [replexec-11] Heartbeat to mongo_shard1:27018 failed after 2 retries, response status: InvalidReplicaSetConfig: Our replica set con figuration is invalid or does not include us I REPL [replexec-11] Member mongo_shard1:27018 is now in state RS_DOWN - Our replica set configuration is invalid or does not include us I REPL_HB [replexec-11] Heartbeat to 85604da3dcb0:27018 failed after 2 retries, response status: InvalidReplicaSetConfig: Our replica set con figuration is invalid or does not include us I REPL [replexec-11] Member 85604da3dcb0:27018 is now in state RS_DOWN - Our replica set configuration is invalid or does not include us I REPL [replexec-15] can&#39;t see a majority of the set, relinquishing primary I REPL [replexec-15] Stepping down from primary in response to heartbeat I REPL [replexec-18] can&#39;t see a majority of the set, relinquishing primary I REPL [RstlKillOpThread] Starting to kill user operations I REPL [RstlKillOpThread] Stopped killing user operations I REPL [replexec-15] Stepping down from primary, stats: { userOpsKilled: 0, userOpsRunning: 0 } I REPL [replexec-15] transition to SECONDARY from PRIMARY =&amp;gt; repliSet member 중 85604da3dcb0:27018, mongo_shard1 로 heart beat 통신이 실패함</description>
+      <description>&lt;p&gt;이번 글에서는 mongodb replica Set (이하 RS) 의 Primary 선출 방식과
+RS 멤버가 이상할 때 해당 멤버를 제외하고 재설정 하는 방법에 대해서 알아보겠습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;RS member 간 hearbeat 실패 감지&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt; I  REPL_HB  [replexec-11] Heartbeat to mongo_shard1:27018 failed after 2 retries, response status: InvalidReplicaSetConfig: Our replica set con  figuration is invalid or does not include us
+ I  REPL [replexec-11] Member mongo_shard1:27018 is now in state RS_DOWN - Our replica set configuration is invalid or does not include us
+ I  REPL_HB  [replexec-11] Heartbeat to 85604da3dcb0:27018 failed after 2 retries, response status: InvalidReplicaSetConfig: Our replica set con  figuration is invalid or does not include us
+ I  REPL [replexec-11] Member 85604da3dcb0:27018 is now in state RS_DOWN - Our replica set configuration is invalid or does not include us
+
+ I  REPL [replexec-15] can&#39;t see a majority of the set, relinquishing primary
+ I  REPL [replexec-15] Stepping down from primary in response to heartbeat
+ I  REPL [replexec-18] can&#39;t see a majority of the set, relinquishing primary
+ I  REPL [RstlKillOpThread] Starting to kill user operations
+ I  REPL [RstlKillOpThread] Stopped killing user operations
+ I  REPL [replexec-15] Stepping down from primary, stats: { userOpsKilled: 0, userOpsRunning: 0 }
+ I  REPL [replexec-15] transition to SECONDARY from PRIMARY
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; repliSet member 중 85604da3dcb0:27018, mongo_shard1 로 heart beat 통신이 실패함&lt;br&gt;
+기존 PRIMARY 였던 mongo_shard1 down 되면서 새로 PRIMARY 선출하기 위해 ELECTION 을 진행하나 아래와 같은 로그와 함께 ELECTION 실패&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;PRIMARY 선출을 위한 ELECTION 실패&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;I  ELECTION [replexec-0] Not starting an election, since we are not electable due to: Not standing for election because I cannot see a majority   (mask 0x1)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; MongoDB에선 ELECTION 을 위해 총 투표권 개수의 과반수가 넘는 NODE들의 투표가 필요한데
+현 상황에서는 투표권을 갖고 있는 4개 노드 중 2개 노드가 다운되어 투표 불가능&lt;br&gt;
+과반수인 3 노드 이상이 투표가 가능한 상태여야함&lt;/p&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;RS 상태 체크&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repl_shard1:SECONDARY&amp;gt; rs.status()
+{
+&amp;quot;members&amp;quot; : [
+{
+&amp;quot;_id&amp;quot; : 0,
+&amp;quot;name&amp;quot; : &amp;quot;85604da3dcb0:27018&amp;quot;,
+&amp;quot;stateStr&amp;quot; : &amp;quot;(not reachable/healthy)&amp;quot;,
+&amp;quot;lastHeartbeatMessage&amp;quot; : &amp;quot;Our replica set configuration is invalid or does not include us&amp;quot;,
+},
+{
+&amp;quot;_id&amp;quot; : 1,
+&amp;quot;name&amp;quot; : &amp;quot;mongo_shard2:27018&amp;quot;,
+&amp;quot;stateStr&amp;quot; : &amp;quot;SECONDARY&amp;quot;,
+},
+
+{
+&amp;quot;_id&amp;quot; : 2,
+&amp;quot;name&amp;quot; : &amp;quot;mongo_shard3:27018&amp;quot;,
+&amp;quot;stateStr&amp;quot; : &amp;quot;SECONDARY&amp;quot;,
+},
+
+{
+&amp;quot;_id&amp;quot; : 3,
+&amp;quot;name&amp;quot; : &amp;quot;mongo_shard1:27018&amp;quot;,
+&amp;quot;stateStr&amp;quot; : &amp;quot;(not reachable/healthy)&amp;quot;,
+&amp;quot;lastHeartbeatMessage&amp;quot; : &amp;quot;Our replica set configuration is invalid or does not include us&amp;quot;,
+}
+],}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; mongo_shard1 / 85604da3dcb0 의 heartbeat 상태가&lt;br&gt;
+&amp;ldquo;Our replica set configuration is invalid or does not include us&amp;rdquo; 이며 heartbeat 체크가 안됨
+PRIMARY 또한 없는 상태로 repliSet member 재설정이 필요함&lt;/p&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;RS reconfig&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;rs.remove() 라는 replica set에서 특정 멤버 제거하는 커맨드도 제공되지만 PRIMARY 에서만 실행가능함&lt;br&gt;
+현재와 같이 PRIMARY 가 없는 상황에서는 rs.reconfig() 방법을 통해 재설정하게 됨&lt;/p&gt;
+&lt;p&gt;ex)&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;repl_shard1:SECONDARY&amp;gt; rs.remove(&amp;quot;mongo_shard1:27018&amp;quot;, {force:true});
+{
+&amp;quot;ok&amp;quot; : 0,
+&amp;quot;errmsg&amp;quot; : &amp;quot;replSetReconfig should only be run on PRIMARY, but my state is SECONDARY; use the \&amp;quot;force\&amp;quot; argument to override&amp;quot;,
+&amp;quot;code&amp;quot; : 10107,
+&amp;quot;codeName&amp;quot; : &amp;quot;NotMaster&amp;quot;
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; force 옵션으로 실행해도 실패&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;repl_shard1:SECONDARY&amp;gt; config=rs.conf()
+{
+&amp;quot;_id&amp;quot; : &amp;quot;repl_shard1&amp;quot;,
+&amp;quot;members&amp;quot; : [
+{
+&amp;quot;_id&amp;quot; : 0,
+&amp;quot;host&amp;quot; : &amp;quot;85604da3dcb0:27018&amp;quot;,
+&amp;quot;arbiterOnly&amp;quot; : false,
+&amp;quot;buildIndexes&amp;quot; : true,
+&amp;quot;hidden&amp;quot; : false,
+&amp;quot;priority&amp;quot; : 1,
+&amp;quot;votes&amp;quot; : 1
+},
+
+{
+&amp;quot;_id&amp;quot; : 1,
+&amp;quot;host&amp;quot; : &amp;quot;mongo_shard2:27018&amp;quot;,
+&amp;quot;arbiterOnly&amp;quot; : false,
+&amp;quot;buildIndexes&amp;quot; : true,
+&amp;quot;hidden&amp;quot; : false,
+&amp;quot;priority&amp;quot; : 1,
+&amp;quot;votes&amp;quot; : 1
+},
+
+{
+&amp;quot;_id&amp;quot; : 2,
+&amp;quot;host&amp;quot; : &amp;quot;mongo_shard3:27018&amp;quot;,
+&amp;quot;arbiterOnly&amp;quot; : false,
+&amp;quot;buildIndexes&amp;quot; : true,
+&amp;quot;hidden&amp;quot; : false,
+&amp;quot;priority&amp;quot; : 1,
+&amp;quot;votes&amp;quot; : 1
+},
+
+{
+&amp;quot;_id&amp;quot; : 3,
+&amp;quot;host&amp;quot; : &amp;quot;mongo_shard1:27018&amp;quot;,
+&amp;quot;arbiterOnly&amp;quot; : false,
+&amp;quot;buildIndexes&amp;quot; : true,
+&amp;quot;hidden&amp;quot; : false,
+&amp;quot;priority&amp;quot; : 1,
+&amp;quot;votes&amp;quot; : 1
+}],
+&amp;quot;replicaSetId&amp;quot; : ObjectId(&amp;quot;5d881a1aa12189b6f295164d&amp;quot;)}}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; config 변수 선언 후 rs.config() 내용 저장&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;repl_shard1:SECONDARY&amp;gt; config.members=[config.members[1],config.members[2]]
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; heartbeat 실패한 노드 제외하여 members 재설정 &lt;/p&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;repl_shard1:SECONDARY&amp;gt; rs.reconfig(config)
+{
+&amp;quot;errmsg&amp;quot; : &amp;quot;replSetReconfig should only be run on PRIMARY, but my state is SECONDARY; use the \&amp;quot;force\&amp;quot; argument to override&amp;quot;,
+&amp;quot;code&amp;quot; : 10107,
+&amp;quot;codeName&amp;quot; : &amp;quot;NotMaster&amp;quot;,
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; secondary 에서 작업시 force 옵션 필요하다는 에러&lt;/p&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;pre&gt;&lt;code class=&#34;language- &#34; data-lang=&#34; &#34;&gt;repl_shard1:SECONDARY&amp;gt; rs.reconfig(config , {force:true})
+{
+&amp;quot;ok&amp;quot; : 1,
+&amp;quot;$clusterTime&amp;quot; : {
+&amp;quot;clusterTime&amp;quot; : Timestamp(1569202449, 1),
+&amp;quot;signature&amp;quot; : {
+&amp;quot;hash&amp;quot; : BinData(0,&amp;quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&amp;quot;),
+&amp;quot;keyId&amp;quot; : NumberLong(0)
+}
+},
+&amp;quot;operationTime&amp;quot; : Timestamp(1569202449, 1)
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; force 옵션과 재수행
+ &lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;repl_shard1:SECONDARY&amp;gt; rs.status()
+{
+&amp;quot;set&amp;quot; : &amp;quot;repl_shard1&amp;quot;,
+&amp;quot;members&amp;quot; : [
+{
+&amp;quot;_id&amp;quot; : 1,
+&amp;quot;name&amp;quot; : &amp;quot;mongo_shard2:27018&amp;quot;,
+&amp;quot;stateStr&amp;quot; : &amp;quot;SECONDARY&amp;quot;,
+},
+
+{
+&amp;quot;_id&amp;quot; : 2,
+&amp;quot;name&amp;quot; : &amp;quot;mongo_shard3:27018&amp;quot;,
+&amp;quot;stateStr&amp;quot; : &amp;quot;SECONDARY&amp;quot;,
+}],}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; RS 재설정 및 정상 확인&lt;/p&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;RS 재설정 후 PRIMARY 선출 정상 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;I  REPL [conn36] replSetReconfig admin command received from client; new config: { _id: &amp;quot;repl_shard1&amp;quot;, version: 5, protocolVersion: 1, writ  eConcernMajorityJournalDefault: true, members: [ { _id: 1, host: &amp;quot;mongo_shard2:27018&amp;quot;, arbiterOnly: false, buildIndexes: true, hidden: false, priority: 1.0, tags: {}, slave  Delay: 0, votes: 1 }, { _id: 2, host: &amp;quot;mongo_shard3:27018&amp;quot;, arbiterOnly: false, buildIndexes: true, hidden: false, priority: 1.0, tags: {}, slaveDelay: 0, votes: 1 } ], set  tings: { chainingAllowed: true, heartbeatIntervalMillis: 2000, heartbeatTimeoutSecs: 10, electionTimeoutMillis: 10000, catchUpTimeoutMillis: -1, catchUpTakeoverDelayMillis:   30000, getLastErrorModes: {}, getLastErrorDefaults: { w: 1, wtimeout: 0 }, replicaSetId: ObjectId(&#39;5d881a1aa12189b6f295164d&#39;) } }
+
+I  REPL [conn36] replSetReconfig config object with 2 members parses ok
+I  REPL [conn36] New replica set config in use: { _id: &amp;quot;repl_shard1&amp;quot;, version: 24459, protocolVersion: 1, writeConcernMajorityJournalDefaul  t: true, members: [ { _id: 1, host: &amp;quot;mongo_shard2:27018&amp;quot;, arbiterOnly: false, buildIndexes: true, hidden: false, priority: 1.0, tags: {}, slaveDelay: 0, votes: 1 }, { _id:   2, host: &amp;quot;mongo_shard3:27018&amp;quot;, arbiterOnly: false, buildIndexes: true, hidden: false, priority: 1.0, tags: {}, slaveDelay: 0, votes: 1 } ], settings: { chainingAllowed: tru  e, heartbeatIntervalMillis: 2000, heartbeatTimeoutSecs: 10, electionTimeoutMillis: 10000, catchUpTimeoutMillis: -1, catchUpTakeoverDelayMillis: 30000, getLastErrorModes: {}  , getLastErrorDefaults: { w: 1, wtimeout: 0 }, replicaSetId: ObjectId(&#39;5d881a1aa12189b6f295164d&#39;) } }
+
+I  ELECTION [replexec-35] Starting an election, since we&#39;ve seen no PRIMARY in the past 10000ms
+I  ELECTION [replexec-35] conducting a dry run election to see if we could be elected. current term: 2
+I  REPL [replexec-35] Scheduling remote command request for vote request: RemoteCommand 47174 -- target:mongo_shard3:27018 db:admin cmd:{ r  eplSetRequestVotes: 1, setName: &amp;quot;repl_shard1&amp;quot;, dryRun: true, term: 2, candidateIndex: 0, configVersion: 24459, lastCommittedOp: { ts: Timestamp(1569202449, 1), t: 2 } }
+I  ELECTION [replexec-36] VoteRequester(term 2 dry run) received a yes vote from mongo_shard3:27018; response message: { term: 2, voteGranted:   true, reason: &amp;quot;&amp;quot;, ok: 1.0, $clusterTime: { clusterTime: Timestamp(1569202449, 1), signature: { hash: BinData(0, 0000000000000000000000000000000000000000), keyId: 0 } }, ope  rationTime: Timestamp(1569202449, 1) }
+
+I  ELECTION [replexec-36] dry election run succeeded, running for election in term 3
+
+I  REPL [replexec-36] Scheduling remote command request for vote request: RemoteCommand 47175 -- target:mongo_shard3:27018 db:admin cmd:{ r  eplSetRequestVotes: 1, setName: &amp;quot;repl_shard1&amp;quot;, dryRun: false, term: 3, candidateIndex: 0, configVersion: 24459, lastCommittedOp: { ts: Timestamp(1569202449, 1), t: 2 } }
+
+I  ELECTION [replexec-32] VoteRequester(term 3) received a yes vote from mongo_shard3:27018; response message: { term: 3, voteGranted: true, re  ason: &amp;quot;&amp;quot;, ok: 1.0, $clusterTime: { clusterTime: Timestamp(1569202449, 1), signature: { hash: BinData(0, 0000000000000000000000000000000000000000), keyId: 0 } }, operationTi  me: Timestamp(1569202449, 1) }
+
+I  ELECTION [replexec-32] election succeeded, assuming primary role in term 3
+I  REPL [replexec-32] transition to PRIMARY from SECONDARY
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 재설정 된 RS 에서는 투표권을 가진 2개의 노드 모두 살아있으므로 PRIMARY 선출가능&lt;/p&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;I  ELECTION [replexec-35] Starting an election, since we&#39;ve seen no PRIMARY in the past 10000ms
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 기존 PRIMARY 노드를 10초 이내 재기동하면 기존 노드로 PRIMARY 설정하게됨&lt;/p&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;repl_shard1:PRIMARY&amp;gt; rs.isMaster()
+{
+&amp;quot;hosts&amp;quot; : [
+&amp;quot;mongo_shard2:27018&amp;quot;,
+&amp;quot;mongo_shard3:27018&amp;quot;
+],
+&amp;quot;setName&amp;quot; : &amp;quot;repl_shard1&amp;quot;,
+&amp;quot;ismaster&amp;quot; : true,
+&amp;quot;secondary&amp;quot; : false,
+&amp;quot;primary&amp;quot; : &amp;quot;mongo_shard2:27018&amp;quot;,
+&amp;quot;me&amp;quot; : &amp;quot;mongo_shard2:27018&amp;quot;,
+&amp;quot;electionId&amp;quot; : ObjectId(&amp;quot;7fffffff0000000000000007&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt; =&amp;gt; election 결과 mongo_shard2 가 PRIMARY로 선출됨&lt;/p&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;h4 id=&#34;primary----&#34;&gt;PRIMARY 가 되기 위한 조건&lt;/h4&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;ReplicaSet 에서 과반수 이상이 election 에 참여할 수 있는 상태여야함&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;해당 노드의 priority 가 0보다 커야함  ( arbiter 제외 )&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;서버에 저장된 해당 ReplicaSet 의 optime 과 후보 노드의 optime 간 차이가 10초이내여야함&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;ul&gt;
+&lt;li&gt;서버 내 저장 된 replica set 의 optime&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repl_shard1:PRIMARY&amp;gt; rs.status()
+
+{
+&amp;quot;set&amp;quot; : &amp;quot;repl_shard1&amp;quot;,
+&amp;quot;optimes&amp;quot; : {
+&amp;quot;lastCommittedOpTime&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(1569225086, 1),
+&amp;quot;t&amp;quot; : NumberLong(7)
+},
+&amp;quot;lastCommittedWallTime&amp;quot; : ISODate(&amp;quot;2019-09-23T07:51:26.608Z&amp;quot;),
+&amp;quot;readConcernMajorityOpTime&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(1569225086, 1),
+},
+&amp;quot;readConcernMajorityWallTime&amp;quot; : ISODate(&amp;quot;2019-09-23T07:51:26.608Z&amp;quot;),
+&amp;quot;appliedOpTime&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(1569225086, 1),
+},
+&amp;quot;durableOpTime&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(1569225086, 1),
+},
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;각 노드들의 optime&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;&amp;quot;members&amp;quot; : [
+{
+&amp;quot;_id&amp;quot; : 1,
+&amp;quot;name&amp;quot; : &amp;quot;mongo_shard2:27018&amp;quot;,
+&amp;quot;stateStr&amp;quot; : &amp;quot;PRIMARY&amp;quot;,
+&amp;quot;optime&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(1569225086, 1),
+},
+
+{
+&amp;quot;_id&amp;quot; : 2,
+&amp;quot;name&amp;quot; : &amp;quot;mongo_shard3:27018&amp;quot;,
+&amp;quot;stateStr&amp;quot; : &amp;quot;SECONDARY&amp;quot;,
+&amp;quot;optime&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(1569225086, 1),
+},
+&amp;quot;operationTime&amp;quot; : Timestamp(1569225086, 1)
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;priority 확인 방법&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repl_shard1:PRIMARY&amp;gt; rs.config()
+{
+&amp;quot;_id&amp;quot; : &amp;quot;repl_shard1&amp;quot;,
+&amp;quot;members&amp;quot; : [
+{
+&amp;quot;_id&amp;quot; : 1,
+&amp;quot;host&amp;quot; : &amp;quot;mongo_shard2:27018&amp;quot;,
+&amp;quot;priority&amp;quot; : 1,
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; rs.config() 커맨드로 멤버의 priority 확인 가능하며
+priority 설정도 위에서 member 재설정한것과 마찬가지로 rs.reconfig(config) 를 통해 설정가능&lt;/p&gt;
+&lt;p&gt;ex)&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;config=rs.conf()
+config.members[0].priority=2
+rs.reconfig(config)
+&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
     
     <item>
@@ -27,10 +302,158 @@
       <pubDate>Thu, 12 Dec 2019 17:53:15 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/nosql/mongo_shard_mongos/</guid>
-      <description>mongos 란? mongos 는 mongodb shard cluster 내에서 router 역할을 하는 컴포넌트로 아래와 같은 역할 담당 및 특징이 있음
- 쿼리 라우팅 쿼리 결과 merge 후 client에게 return order by 같은 경우에는 샤드 서버 중 프라이머리 샤드를 정한 후
-그 프라이머리 샤드가 다른 샤드로부터 쿼리 결과를 전달받고 order by 수행한 후에 최종 결과를 라우터로 반환함 2.x 버전에선 chunk 리밸런싱, 스플릿 등 chunk 관련 역할도 했으나 3.4 버전부터는
-해당 역할이 모두 config 서버에서 담당하게 되어 mongos 는 말그대로 router 역할만 하게됨 줄어든 역할로 서버의 리소스를 매우 적게 사용하기 때문에 아래와 같이 mongos 를 다른 컴포넌트들과 같이 구성하기도 함   어플리케이션 서버 n대 + mongos n대</description>
+      <description>&lt;h3 id=&#34;mongos-&#34;&gt;mongos 란?&lt;/h3&gt;
+&lt;p&gt;mongos 는 mongodb shard cluster 내에서 router 역할을 하는 컴포넌트로 아래와 같은 역할 담당 및 특징이 있음&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;쿼리 라우팅&lt;/li&gt;
+&lt;li&gt;쿼리 결과 merge 후 client에게 return&lt;/li&gt;
+&lt;li&gt;order by 같은 경우에는 샤드 서버 중 프라이머리 샤드를 정한 후&lt;br&gt;
+그 프라이머리 샤드가 다른 샤드로부터 쿼리 결과를 전달받고 order by 수행한 후에 최종 결과를 라우터로 반환함&lt;/li&gt;
+&lt;li&gt;2.x 버전에선 chunk 리밸런싱, 스플릿 등 chunk 관련 역할도 했으나 3.4 버전부터는&lt;br&gt;
+해당 역할이 모두 config 서버에서 담당하게 되어 mongos 는 말그대로 router 역할만 하게됨&lt;/li&gt;
+&lt;li&gt;줄어든 역할로 서버의 리소스를 매우 적게 사용하기 때문에 아래와 같이 mongos 를 다른 컴포넌트들과 같이 구성하기도 함
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;어플리케이션 서버 n대 + mongos n대&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;config + mongos&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;mongos + shard 서버&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;mongos 만 따로 구성&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;mongodb 에서는 mongos down 시 mongos 를 바라보는 어플리케이션도 어차피 역할을 못하기 때문에 한 세트의 의미로 1번의 구조를 추천하지만 이슈가 발생했을 때 원인 분석, VM의 성능 향상과 관리상의 이유 등으로 mongos 를 따로 구성하기도 함&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-&#34;&gt;쿼리 라우팅&lt;/h3&gt;
+&lt;p&gt;MongoDB sharded cluster 에서 collection은 shard key 를 기준으로 쪼개져서 여러 샤드에 분산되어 저장됨&lt;br&gt;
+이 단위를 chunk 라고 부르며 어느 shard에 어떤 chunk 가 있는지, chunk 의 max key , min key 범위 같은 메타정보를&lt;br&gt;
+config 서버에서 읽어오고 사용자의 쿼리 내 샤드 키에 따라 mongos 는&lt;br&gt;
+특정 샤드에만 쿼리를 전달하는 타겟 쿼리 / 전체 샤드에 쿼리를 전달하는 브로드캐스트 쿼리로 요청을 처리하게 됨&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;테스트 데이터 준비&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mongos&amp;gt; use routing_test;
+switched to db routing_test
+
+mongos&amp;gt; sh.enableSharding(&#39;routing_test&#39;);
+{
+&amp;quot;ok&amp;quot; : 1,
+&amp;quot;operationTime&amp;quot; : Timestamp(1567941332, 3),
+&amp;quot;$clusterTime&amp;quot; : {
+&amp;quot;clusterTime&amp;quot; : Timestamp(1567941332, 3),
+&amp;quot;signature&amp;quot; : {
+&amp;quot;hash&amp;quot; : BinData(0,&amp;quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&amp;quot;),
+&amp;quot;keyId&amp;quot; : NumberLong(0)
+}
+}
+}
+
+mongos&amp;gt; sh.shardCollection(&#39;routing_test.employee&#39;,{id:1});
+{
+&amp;quot;collectionsharded&amp;quot; : &amp;quot;routing_test.employee&amp;quot;,
+&amp;quot;collectionUUID&amp;quot; : UUID(&amp;quot;16ee8e2c-3b16-4ca2-879f-159cc45af712&amp;quot;),
+&amp;quot;ok&amp;quot; : 1,
+&amp;quot;operationTime&amp;quot; : Timestamp(1567941591, 3),
+&amp;quot;$clusterTime&amp;quot; : {
+&amp;quot;clusterTime&amp;quot; : Timestamp(1567941591, 3),
+&amp;quot;signature&amp;quot; : {
+&amp;quot;hash&amp;quot; : BinData(0,&amp;quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&amp;quot;),
+&amp;quot;keyId&amp;quot; : NumberLong(0)
+}
+}
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; routing_test database &amp;amp; employee collection 생성 후 샤딩 설정&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mongos&amp;gt; for (var i=0; i&amp;lt;200000; i++){
+... db.employee.save( {id:i, name:&amp;quot;kim&amp;quot;+i, dept: &amp;quot;DB&amp;quot;+i })};
+WriteResult({ &amp;quot;nInserted&amp;quot; : 1 })
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 테스트 데이터 생성&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mongos&amp;gt; sh.splitAt(&amp;quot;routing_test.employee&amp;quot;,{id:50000})
+mongos&amp;gt; sh.splitAt(&amp;quot;routing_test.employee&amp;quot;,{id:100000})
+mongos&amp;gt; sh.splitAt(&amp;quot;routing_test.employee&amp;quot;,{id:150000})
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; sh.shardCollection(&amp;lsquo;routing_test.employee&amp;rsquo;,{id:1});&lt;br&gt;
+range sharding 으로 collection 생성 했기 때문에 chunk 를 범위 지정하여 split 수행&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mongos&amp;gt; use config;
+switched to db config
+
+mongos&amp;gt; db.chunks.find()
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;routing_test.employee-id_MinKey&amp;quot;, &amp;quot;lastmod&amp;quot; : Timestamp(2, 0), &amp;quot;lastmodEpoch&amp;quot; : ObjectId(&amp;quot;5d74e3d606d6020a9ea17680&amp;quot;), &amp;quot;ns&amp;quot; : &amp;quot;routing_test.employee&amp;quot;, &amp;quot;min&amp;quot; : { &amp;quot;id&amp;quot; : { &amp;quot;$minKey&amp;quot; : 1 } }, &amp;quot;max&amp;quot; : { &amp;quot;id&amp;quot; : 50000 }, &amp;quot;shard&amp;quot; : &amp;quot;repl_shard1&amp;quot;, &amp;quot;history&amp;quot; : [ { &amp;quot;validAfter&amp;quot; : Timestamp(1567943966, 26236), &amp;quot;shard&amp;quot; : &amp;quot;repl_shard1&amp;quot; } ] }
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;routing_test.employee-id_50000.0&amp;quot;, &amp;quot;lastmod&amp;quot; : Timestamp(3, 0), &amp;quot;lastmodEpoch&amp;quot; : ObjectId(&amp;quot;5d74e3d606d6020a9ea17680&amp;quot;), &amp;quot;ns&amp;quot; : &amp;quot;routing_test.employee&amp;quot;, &amp;quot;min&amp;quot; : { &amp;quot;id&amp;quot; : 50000 }, &amp;quot;max&amp;quot; : { &amp;quot;id&amp;quot; : 100000 }, &amp;quot;shard&amp;quot; : &amp;quot;repl_shard1&amp;quot;, &amp;quot;history&amp;quot; : [ { &amp;quot;validAfter&amp;quot; : Timestamp(1567943973, 6739), &amp;quot;shard&amp;quot; : &amp;quot;repl_shard1&amp;quot; } ] }
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;routing_test.employee-id_100000.0&amp;quot;, &amp;quot;lastmod&amp;quot; : Timestamp(3, 1), &amp;quot;lastmodEpoch&amp;quot; : ObjectId(&amp;quot;5d74e3d606d6020a9ea17680&amp;quot;), &amp;quot;ns&amp;quot; : &amp;quot;routing_test.employee&amp;quot;, &amp;quot;min&amp;quot; : { &amp;quot;id&amp;quot; : 100000 }, &amp;quot;max&amp;quot; : { &amp;quot;id&amp;quot; : 150000 }, &amp;quot;shard&amp;quot; : &amp;quot;repl_shard2&amp;quot;, &amp;quot;history&amp;quot; : [ { &amp;quot;validAfter&amp;quot; : Timestamp(1567941590, 6), &amp;quot;shard&amp;quot; : &amp;quot;repl_shard2&amp;quot; } ] }
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;routing_test.employee-id_150000.0&amp;quot;, &amp;quot;lastmod&amp;quot; : Timestamp(2, 3), &amp;quot;lastmodEpoch&amp;quot; : ObjectId(&amp;quot;5d74e3d606d6020a9ea17680&amp;quot;), &amp;quot;ns&amp;quot; : &amp;quot;routing_test.employee&amp;quot;, &amp;quot;min&amp;quot; : { &amp;quot;id&amp;quot; : 150000 }, &amp;quot;max&amp;quot; : { &amp;quot;id&amp;quot; : { &amp;quot;$maxKey&amp;quot; : 1 } }, &amp;quot;shard&amp;quot; : &amp;quot;repl_shard2&amp;quot;, &amp;quot;history&amp;quot; : [ { &amp;quot;validAfter&amp;quot; : Timestamp(1567941590, 6), &amp;quot;shard&amp;quot; : &amp;quot;repl_shard2&amp;quot; } ] }
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;routing_test.employee-id_MinKey&lt;/li&gt;
+&lt;li&gt;routing_test.employee-id_50000.0&lt;/li&gt;
+&lt;li&gt;routing_test.employee-id_100000.0&lt;/li&gt;
+&lt;li&gt;routing_test.employee-id_150000.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;총 4개의 chunk 가 생성되었으며 각각 min / max 값에 포함되는 데이터들이 해당 chunk 에 들어가게됨&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Target Query&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mongos&amp;gt; db.employee.find({id:1}).explain()
+{
+&amp;quot;queryPlanner&amp;quot; : {
+&amp;quot;mongosPlannerVersion&amp;quot; : 1,
+&amp;quot;winningPlan&amp;quot; : {
+&amp;quot;stage&amp;quot; : &amp;quot;SINGLE_SHARD&amp;quot;,
+&amp;quot;shards&amp;quot; : [
+{
+&amp;quot;shardName&amp;quot; : &amp;quot;repl_shard1&amp;quot;,
+&amp;quot;connectionString&amp;quot; : &amp;quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&amp;quot;,
+&amp;quot;serverInfo&amp;quot; : {
+&amp;quot;host&amp;quot; : &amp;quot;7cd58cda5dcd&amp;quot;,
+&amp;quot;port&amp;quot; : 27018,
+&amp;quot;version&amp;quot; : &amp;quot;4.1.13&amp;quot;,
+&amp;quot;gitVersion&amp;quot; : &amp;quot;441714bc4c70699950f3ac51a5cac41dcd413eaa&amp;quot;
+},
+.
+.
+.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; query 에 shard key 인 id 값이 포함되어 있으며 해당 chunk 를 갖고 있는 shard 에만 쿼리를 전송한 것 확인&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Broadcast Query&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mongos&amp;gt; db.employee.find({name:&amp;quot;kim1&amp;quot;}).explain()
+
+{
+&amp;quot;queryPlanner&amp;quot; : {
+&amp;quot;mongosPlannerVersion&amp;quot; : 1,
+&amp;quot;winningPlan&amp;quot; : {
+&amp;quot;stage&amp;quot; : &amp;quot;SHARD_MERGE&amp;quot;,
+&amp;quot;shards&amp;quot; : [
+{
+&amp;quot;shardName&amp;quot; : &amp;quot;repl_shard1&amp;quot;,
+&amp;quot;connectionString&amp;quot; : &amp;quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&amp;quot;,
+&amp;quot;serverInfo&amp;quot; : {
+&amp;quot;host&amp;quot; : &amp;quot;7cd58cda5dcd&amp;quot;,
+&amp;quot;port&amp;quot; : 27018,
+&amp;quot;version&amp;quot; : &amp;quot;4.1.13&amp;quot;,
+&amp;quot;gitVersion&amp;quot; : &amp;quot;441714bc4c70699950f3ac51a5cac41dcd413eaa&amp;quot;
+},
+.
+.
+{
+&amp;quot;shardName&amp;quot; : &amp;quot;repl_shard2&amp;quot;,
+&amp;quot;connectionString&amp;quot; : &amp;quot;repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018&amp;quot;,
+&amp;quot;serverInfo&amp;quot; : {
+&amp;quot;host&amp;quot; : &amp;quot;d5904a7bf11d&amp;quot;,
+&amp;quot;port&amp;quot; : 27018,
+&amp;quot;version&amp;quot; : &amp;quot;4.1.13&amp;quot;,
+&amp;quot;gitVersion&amp;quot; : &amp;quot;441714bc4c70699950f3ac51a5cac41dcd413eaa&amp;quot;
+},
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; query 에 shard key 가 없는 경우 전체 샤드로 쿼리 전송하는 것 확인&lt;/p&gt;
+</description>
     </item>
     
     <item>
@@ -39,11 +462,155 @@
       <pubDate>Thu, 12 Dec 2019 17:24:51 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/nosql/mongo_shard_config_svr/</guid>
-      <description>지난 글에서 mongodb shard cluster 개념과 구성하는 방법에 대해 소개드렸고 이번 글에서는 구성요소 중 하나인 config server에 대해 다루겠습니다.
-Config server 란? config server는 shard cluster에서 필요한 모든 메타 정보들을 저장함
-메타정보에는 어느 chunk , 즉 어떤 data 가 어떤 shard 에 있는지, chunk 의 밸런싱 작업은 어떻게 해야할지 등의 메타정보와 사용자 인증 정보가 저장됨
-이렇게 중요한 정보들을 담고 있어서 가용성을 위해 하나의 replSet 으로 구성되어야 함
- config server 정보  repl_conf:PRIMARY&amp;gt; use config; switched to db config repl_conf:PRIMARY&amp;gt; show collections; actionlog changelog chunks collections databases lockpings locks migrations mongos shards system.</description>
+      <description>&lt;p&gt;지난 글에서 mongodb shard cluster 개념과 구성하는 방법에 대해 소개드렸고 
+이번 글에서는 구성요소 중 하나인 config server에 대해 다루겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;config-server-&#34;&gt;Config server 란?&lt;/h3&gt;
+&lt;p&gt;config server는 shard cluster에서 필요한 모든 메타 정보들을 저장함&lt;br&gt;
+메타정보에는 어느 chunk , 즉 어떤 data 가 어떤 shard 에 있는지, chunk 의 밸런싱 작업은 어떻게 해야할지 등의 메타정보와 사용자 인증 정보가 저장됨&lt;br&gt;
+이렇게 중요한 정보들을 담고 있어서 가용성을 위해 하나의 replSet 으로 구성되어야 함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;config server 정보&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repl_conf:PRIMARY&amp;gt; use config;
+switched to db config
+
+repl_conf:PRIMARY&amp;gt; show collections;
+actionlog
+changelog
+chunks
+collections
+databases
+lockpings
+locks
+migrations
+mongos
+shards
+system.sessions
+tags
+transactions
+version 
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;databases&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repl_conf:PRIMARY&amp;gt; db.databases.find()
+{ &amp;quot;_id&amp;quot; : &amp;quot;shard_test&amp;quot;, &amp;quot;primary&amp;quot; : &amp;quot;repl_shard2&amp;quot;, &amp;quot;partitioned&amp;quot; : false, &amp;quot;version&amp;quot; : { &amp;quot;uuid&amp;quot; : UUID(&amp;quot;a2a1b712-6070-44c5-9370-ae711e9018bd&amp;quot;), &amp;quot;lastMod&amp;quot; : 1 } }
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;test&amp;quot;, &amp;quot;primary&amp;quot; : &amp;quot;repl_shard2&amp;quot;, &amp;quot;partitioned&amp;quot; : true, &amp;quot;version&amp;quot; : { &amp;quot;uuid&amp;quot; : UUID(&amp;quot;5f6fa995-53c0-4677-a1ba-38aff579df77&amp;quot;), &amp;quot;lastMod&amp;quot; : 1 } }
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; shard cluster 가 가지고 있는 데이터베이스의 목록&lt;br&gt;
+&amp;ldquo;partitioned&amp;rdquo; : 샤딩 활성화 여부 의미&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;collections&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repl_conf:PRIMARY&amp;gt; db.collections.find()
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;test.testCollection2&amp;quot;, &amp;quot;lastmodEpoch&amp;quot; : ObjectId(&amp;quot;5d6288ab1a98ba4cb7e3aec2&amp;quot;), &amp;quot;lastmod&amp;quot; : ISODate(&amp;quot;1970-02-19T17:02:47.299Z&amp;quot;), &amp;quot;dropped&amp;quot; : false, &amp;quot;key&amp;quot; : { &amp;quot;_id&amp;quot; : &amp;quot;hashed&amp;quot; }, &amp;quot;unique&amp;quot; : false, &amp;quot;uuid&amp;quot; : UUID(&amp;quot;8cb727b3-81e2-4aff-a6a0-30b8f53240e4&amp;quot;) }
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; sharding 된 collection 정보&lt;br&gt;
+&amp;ldquo;_id&amp;rdquo; : 데이터베이스 이름+컬렉션 이름&lt;br&gt;
+&amp;ldquo;key&amp;rdquo; : 컬렉션의 샤딩 키&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;chunks&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mongos&amp;gt; db.chunks.find()
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;test.testCollection2-_id_4611686018427387902&amp;quot;, &amp;quot;ns&amp;quot; : &amp;quot;test.testCollection2&amp;quot;, &amp;quot;min&amp;quot; : { &amp;quot;_id&amp;quot; : NumberLong(&amp;quot;4611686018427387902&amp;quot;) }, &amp;quot;max&amp;quot; : { &amp;quot;_id&amp;quot; : { &amp;quot;$maxKey&amp;quot; : 1 } }, &amp;quot;shard&amp;quot; : &amp;quot;repl_shard2&amp;quot;, &amp;quot;lastmod&amp;quot; : Timestamp(1, 3), &amp;quot;lastmodEpoch&amp;quot; : ObjectId(&amp;quot;5d6288ab1a98ba4cb7e3aec2&amp;quot;), &amp;quot;history&amp;quot; : [ { &amp;quot;validAfter&amp;quot; : Timestamp(1566738603, 6), &amp;quot;shard&amp;quot; : &amp;quot;repl_shard2&amp;quot; } ] }
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;test.testCollection2-_id_MinKey&amp;quot;, &amp;quot;ns&amp;quot; : &amp;quot;test.testCollection2&amp;quot;, &amp;quot;min&amp;quot; : { &amp;quot;_id&amp;quot; : { &amp;quot;$minKey&amp;quot; : 1 } }, &amp;quot;max&amp;quot; : { &amp;quot;_id&amp;quot; : NumberLong(&amp;quot;-4611686018427387902&amp;quot;) }, &amp;quot;shard&amp;quot; : &amp;quot;repl_shard1&amp;quot;, &amp;quot;lastmod&amp;quot; : Timestamp(1, 0), &amp;quot;lastmodEpoch&amp;quot; : ObjectId(&amp;quot;5d6288ab1a98ba4cb7e3aec2&amp;quot;), &amp;quot;history&amp;quot; : [ { &amp;quot;validAfter&amp;quot; : Timestamp(1566738603, 6), &amp;quot;shard&amp;quot; : &amp;quot;repl_shard1&amp;quot; } ] }
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;test.testCollection2-_id_-4611686018427387902&amp;quot;, &amp;quot;ns&amp;quot; : &amp;quot;test.testCollection2&amp;quot;, &amp;quot;min&amp;quot; : { &amp;quot;_id&amp;quot; : NumberLong(&amp;quot;-4611686018427387902&amp;quot;) }, &amp;quot;max&amp;quot; : { &amp;quot;_id&amp;quot; : NumberLong(0) }, &amp;quot;shard&amp;quot; : &amp;quot;repl_shard1&amp;quot;, &amp;quot;lastmod&amp;quot; : Timestamp(1, 1), &amp;quot;lastmodEpoch&amp;quot; : ObjectId(&amp;quot;5d6288ab1a98ba4cb7e3aec2&amp;quot;), &amp;quot;history&amp;quot; : [ { &amp;quot;validAfter&amp;quot; : Timestamp(1566738603, 6), &amp;quot;shard&amp;quot; : &amp;quot;repl_shard1&amp;quot; } ] }
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;test.testCollection2-_id_0&amp;quot;, &amp;quot;ns&amp;quot; : &amp;quot;test.testCollection2&amp;quot;, &amp;quot;min&amp;quot; : { &amp;quot;_id&amp;quot; : NumberLong(0) }, &amp;quot;max&amp;quot; : { &amp;quot;_id&amp;quot; : NumberLong(&amp;quot;4611686018427387902&amp;quot;) }, &amp;quot;shard&amp;quot; : &amp;quot;repl_shard2&amp;quot;, &amp;quot;lastmod&amp;quot; : Timestamp(1, 2), &amp;quot;lastmodEpoch&amp;quot; : ObjectId(&amp;quot;5d6288ab1a98ba4cb7e3aec2&amp;quot;), &amp;quot;history&amp;quot; : [ { &amp;quot;validAfter&amp;quot; : Timestamp(1566738603, 6), &amp;quot;shard&amp;quot; : &amp;quot;repl_shard2&amp;quot; } ] }
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; sharding 된 컬렉션의 모든 chunk 정보&lt;br&gt;
+&amp;ldquo;_id&amp;rdquo; : database + collection + chunk가 갖는 값의 시작 값&lt;br&gt;
+&amp;ldquo;shard&amp;rdquo; : 해당 chunk 가 속한 shard , 현재 각각 샤드에 두개씩의 chunk 가 존재함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;shards&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repl_conf:PRIMARY&amp;gt; db.shards.find()
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;repl_shard1&amp;quot;, &amp;quot;host&amp;quot; : &amp;quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&amp;quot;, &amp;quot;state&amp;quot; : 1 }
+{ &amp;quot;_id&amp;quot; : &amp;quot;repl_shard2&amp;quot;, &amp;quot;host&amp;quot; : &amp;quot;repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018&amp;quot;, &amp;quot;state&amp;quot; : 1 }
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; shard cluster 내 등록된 모든 샤드 서버의 정보&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;settings&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;{ &amp;quot;_id&amp;quot; : &amp;quot;chunksize&amp;quot;, &amp;quot;value&amp;quot; : 64 }
+{ &amp;quot;_id&amp;quot; : &amp;quot;balancer&amp;quot;, &amp;quot;stopped&amp;quot; : false }
+{ &amp;quot;_id&amp;quot; : &amp;quot;autosplit&amp;quot;, &amp;quot;enabled&amp;quot; : true }
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; chunk size , 밸런싱 관련 설정&lt;br&gt;
+초기 환경에서 db.settings.find() 를 수행해도 조회되는 게 없는데 이는 관련 설정이 저장된게 없기 때문&lt;br&gt;
+아래와 같이 save command 수행 후엔 조회 가능&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;repl_conf:PRIMARY&amp;gt; db.settings.save ( {_id:&amp;quot;chunksize&amp;quot;,value:64} )
+WriteResult({ &amp;quot;nMatched&amp;quot; : 0, &amp;quot;nUpserted&amp;quot; : 1, &amp;quot;nModified&amp;quot; : 0, &amp;quot;_id&amp;quot; : &amp;quot;chunksize&amp;quot; })
+
+repl_conf:PRIMARY&amp;gt; db.settings.find()
+{ &amp;quot;_id&amp;quot; : &amp;quot;chunksize&amp;quot;, &amp;quot;value&amp;quot; : 64 }
+
+repl_conf:PRIMARY&amp;gt; db.settings.save ( {_id:&amp;quot;autosplit&amp;quot;,&amp;quot;enabled&amp;quot;:false} )
+
+WriteResult({ &amp;quot;nMatched&amp;quot; : 0, &amp;quot;nUpserted&amp;quot; : 1, &amp;quot;nModified&amp;quot; : 0, &amp;quot;_id&amp;quot; : &amp;quot;autosplit&amp;quot; })
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 위 설정은 mongos 의 sh.status() 와도 연동됨&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mongos&amp;gt; sh.status()
+
+  autosplit:
+
+Currently enabled: no
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;chunk balancing 수행 시간 설정하기&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repl_conf:PRIMARY&amp;gt; db.settings.update (
+... {_id:&amp;quot;balancer&amp;quot;},
+... {$set : {activeWindow: {start: &amp;quot;02:00&amp;quot;, stop : &amp;quot;06:00&amp;quot; } } },
+... {upsert : true } )
+
+WriteResult({ &amp;quot;nMatched&amp;quot; : 0, &amp;quot;nUpserted&amp;quot; : 1, &amp;quot;nModified&amp;quot; : 0, &amp;quot;_id&amp;quot; : &amp;quot;balanver&amp;quot; })
+
+repl_conf:PRIMARY&amp;gt; db.settings.find()
+{ &amp;quot;_id&amp;quot; : &amp;quot;chunksize&amp;quot;, &amp;quot;value&amp;quot; : 64 }
+{ &amp;quot;_id&amp;quot; : &amp;quot;balancer&amp;quot;, &amp;quot;stopped&amp;quot; : false }
+{ &amp;quot;_id&amp;quot; : &amp;quot;autosplit&amp;quot;, &amp;quot;enabled&amp;quot; : true }
+{ &amp;quot;_id&amp;quot; : &amp;quot;balanver&amp;quot;, &amp;quot;activeWindow&amp;quot; : { &amp;quot;start&amp;quot; : &amp;quot;02:00&amp;quot;, &amp;quot;stop&amp;quot; : &amp;quot;06:00&amp;quot; } }
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; balancing 작업이 02:00 자동으로 수행되도록 설정&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;locks &lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repl_conf:PRIMARY&amp;gt; db.locks.find()
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;config&amp;quot;, &amp;quot;state&amp;quot; : 0, &amp;quot;process&amp;quot; : &amp;quot;ConfigServer&amp;quot;, &amp;quot;ts&amp;quot; : ObjectId(&amp;quot;5d6b7f15a9f5ecd49052a36f&amp;quot;), &amp;quot;when&amp;quot; : ISODate(&amp;quot;2019-09-01T08:19:33.165Z&amp;quot;), &amp;quot;who&amp;quot; : &amp;quot;ConfigServer:conn164&amp;quot;, &amp;quot;why&amp;quot; : &amp;quot;createCollection&amp;quot; }
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;config.system.sessions&amp;quot;, &amp;quot;state&amp;quot; : 0, &amp;quot;process&amp;quot; : &amp;quot;ConfigServer&amp;quot;, &amp;quot;ts&amp;quot; : ObjectId(&amp;quot;5d6b7f15a9f5ecd49052a376&amp;quot;), &amp;quot;when&amp;quot; : ISODate(&amp;quot;2019-09-01T08:19:33.172Z&amp;quot;), &amp;quot;who&amp;quot; : &amp;quot;ConfigServer:conn164&amp;quot;, &amp;quot;why&amp;quot; : &amp;quot;createCollection&amp;quot; }
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;testdb&amp;quot;, &amp;quot;state&amp;quot; : 0, &amp;quot;process&amp;quot; : &amp;quot;ConfigServer&amp;quot;, &amp;quot;ts&amp;quot; : ObjectId(&amp;quot;5d62889d3ed72a6b6729a5ca&amp;quot;), &amp;quot;when&amp;quot; : ISODate(&amp;quot;2019-08-25T13:09:49.728Z&amp;quot;), &amp;quot;who&amp;quot; : &amp;quot;ConfigServer:conn24&amp;quot;, &amp;quot;why&amp;quot; : &amp;quot;shardCollection&amp;quot; }
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;testdb.testCollection2&amp;quot;, &amp;quot;state&amp;quot; : 0, &amp;quot;process&amp;quot; : &amp;quot;ConfigServer&amp;quot;, &amp;quot;ts&amp;quot; : ObjectId(&amp;quot;5d62889d3ed72a6b6729a5d1&amp;quot;), &amp;quot;when&amp;quot; : ISODate(&amp;quot;2019-08-25T13:09:49.738Z&amp;quot;), &amp;quot;who&amp;quot; : &amp;quot;ConfigServer:conn24&amp;quot;, &amp;quot;why&amp;quot; : &amp;quot;shardCollection&amp;quot; }
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;test.testCollection2&amp;quot;, &amp;quot;state&amp;quot; : 0, &amp;quot;process&amp;quot; : &amp;quot;ConfigServer&amp;quot;, &amp;quot;ts&amp;quot; : ObjectId(&amp;quot;5d6288ab3ed72a6b6729a65a&amp;quot;), &amp;quot;when&amp;quot; : ISODate(&amp;quot;2019-08-25T13:10:03.834Z&amp;quot;), &amp;quot;who&amp;quot; : &amp;quot;ConfigServer:conn24&amp;quot;, &amp;quot;why&amp;quot; : &amp;quot;shardCollection&amp;quot; }
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; shard cluster 내 여러개의 mongos 가 동시에 동일한 chunk에 대한 작업을 시도하는 등의 이슈를 방지하기 위해&lt;br&gt;
+작업을 수행하기 전 config server 의 locks collection의 lock을 획득 후에만 작업할 수 있도록 함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;changelog&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repl_conf:PRIMARY&amp;gt; db.changelog.find()
+
+{ &amp;quot;_id&amp;quot; : &amp;quot;69c6ea3e5527:27019-2019-09-01T08:43:10.827+0000-5d6b849ea9f5ecd49052d3ad&amp;quot;, &amp;quot;server&amp;quot; : &amp;quot;69c6ea3e5527:27019&amp;quot;, &amp;quot;shard&amp;quot; : &amp;quot;config&amp;quot;, &amp;quot;clientAddr&amp;quot; : &amp;quot;111.111.0.8:58938&amp;quot;, &amp;quot;time&amp;quot; : ISODate(&amp;quot;2019-09-01T08:43:10.827Z&amp;quot;), 
+&amp;quot;what&amp;quot; : &amp;quot;split&amp;quot;, &amp;quot;ns&amp;quot; : &amp;quot;test.testCollection2&amp;quot;, 
+&amp;quot;details&amp;quot; : { &amp;quot;before&amp;quot; : { &amp;quot;min&amp;quot; : { &amp;quot;_id&amp;quot; : NumberLong(&amp;quot;-4611686018427387902&amp;quot;) }, &amp;quot;max&amp;quot; : { &amp;quot;_id&amp;quot; : NumberLong(0) }, &amp;quot;lastmod&amp;quot; : Timestamp(1, 3), &amp;quot;lastmodEpoch&amp;quot; : ObjectId(&amp;quot;5d6288ab1a98ba4cb7e3aec2&amp;quot;) }, &amp;quot;left&amp;quot; : { &amp;quot;min&amp;quot; : { &amp;quot;_id&amp;quot; : NumberLong(&amp;quot;-4611686018427387902&amp;quot;) }, &amp;quot;max&amp;quot; : { &amp;quot;_id&amp;quot; : NumberLong(&amp;quot;-2315705090665887915&amp;quot;) }, &amp;quot;lastmod&amp;quot; : Timestamp(1, 4), &amp;quot;lastmodEpoch&amp;quot; : ObjectId(&amp;quot;5d6288ab1a98ba4cb7e3aec2&amp;quot;) }, &amp;quot;right&amp;quot; : { &amp;quot;min&amp;quot; : { &amp;quot;_id&amp;quot; : NumberLong(&amp;quot;-2315705090665887915&amp;quot;) }, &amp;quot;max&amp;quot; : { &amp;quot;_id&amp;quot; : NumberLong(0) }, &amp;quot;lastmod&amp;quot; : Timestamp(1, 5), &amp;quot;lastmodEpoch&amp;quot; : ObjectId(&amp;quot;5d6288ab1a98ba4cb7e3aec2&amp;quot;) } } }
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; config 서버의 메타 정보 변경등이 기록됨&lt;br&gt;
+ex) db, collection 생성, chunk split , migration 등,  위는 split 로그&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;changelog 에서 split 로그만 확인하는 법 &lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repl_conf:PRIMARY&amp;gt; db.changelog.find( {&amp;quot;what&amp;quot;:{$in: [&amp;quot;multi-split&amp;quot;,&amp;quot;split&amp;quot;]}}, {_id:0,what:1,ns:1,time:1}).sort({$natural:-1}).limit(5).pretty()
+
+{
+
+&amp;quot;time&amp;quot; : ISODate(&amp;quot;2019-09-01T08:43:10.827Z&amp;quot;),
+
+&amp;quot;what&amp;quot; : &amp;quot;split&amp;quot;,
+
+&amp;quot;ns&amp;quot; : &amp;quot;test.testCollection2&amp;quot;
+
+}
+&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
     
     <item>
@@ -52,12 +619,169 @@ Config server 란? config server는 shard cluster에서 필요한 모든 메타 
       <pubDate>Wed, 11 Dec 2019 18:21:34 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/nosql/mongo_shard/</guid>
-      <description>sharding 은 데이터를 여러 서버에 분산해서 저장 및 처리할 수 있도록 하는 기술입니다.
-replicaset이 MongoDB의 고가용성을 위한 솔루션이라면, sharding은 분산 처리를 위한 솔루션이라 할 수 있으며
-Vertical, Horizontal 모두 적용 가능하나 일반적으로 하나의 Collection(table) 을 여러 샤드로 분산하는 Horizontal sharding 이 적용됩니다.
-이번 글에서는 MongoDB sharding 구성 방법을 살펴보고 다음 글에서 각각의 구성요소에 대해 좀 더 자세하게 살펴보도록 하겠습니다.
-아키텍처 개념 (https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets)
-shard =&amp;gt; 실제 데이터의 집합으로 샤드 키에 따라 shard1 / shard2 / shard3 에 데이터가 저장됨.</description>
+      <description>&lt;p&gt;sharding 은 데이터를 여러 서버에 분산해서 저장 및 처리할 수 있도록 하는 기술입니다.&lt;br&gt;
+replicaset이 MongoDB의 고가용성을 위한 솔루션이라면, sharding은 분산 처리를 위한 솔루션이라 할 수 있으며&lt;br&gt;
+Vertical, Horizontal 모두 적용 가능하나 일반적으로 하나의 Collection(table) 을 여러 샤드로 분산하는 Horizontal sharding 이 적용됩니다.&lt;/p&gt;
+&lt;p&gt;이번 글에서는 MongoDB sharding 구성 방법을 살펴보고 다음 글에서 각각의 구성요소에 대해 좀 더 자세하게 살펴보도록 하겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;-&#34;&gt;아키텍처 개념&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mongo_shard.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;(&lt;a href=&#34;https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets&#34;&gt;https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets&lt;/a&gt;)&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;shard =&amp;gt; 실제 데이터의 집합으로 샤드 키에 따라 shard1 / shard2 / shard3 에 데이터가 저장됨. 각각의 샤드 노드는 PSS (primary,secondary,secondary) / PSA (primary,secondary,arbiter) 형태의 replicaSet 으로 구성됨
+
+
+config  =&amp;gt; 샤드 서버에 저장된 데이터가 어떻게 나뉘어 분산돼 있는지에 대한 메타정보 및 사용자 정보 저장, 샤드 클러스터 내 컨피그 서버는 무조건 하나의 레플리카셋으로 구성되어야 함
+
+
+mongos =&amp;gt; 컨피그 서버의 메타정보를 읽어와 캐싱한 후 샤용자의 쿼리 요청을 어떤 샤드로 전달할지 정하고, 각 샤드로 부터 받은 쿼리 결과를 병합하여 리턴하는 역할
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;-1&#34;&gt;구성 예제&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Shard node&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repl_shard1 =&amp;gt; PSS 
+repl_shard2 =&amp;gt; PSS
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;Config &lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repl_conf =&amp;gt; PSS
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;Mongos&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mongos 3대 
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;config server 구성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;docker run -d --name mongo_conf1 --network mongo-cluster mongo:4.1 mongod --replSet repl_conf --configsvr
+docker run -d --name mongo_conf2 --network mongo-cluster mongo:4.1 mongod --replSet repl_conf --configsvr
+docker run -d --name mongo_conf3 --network mongo-cluster mongo:4.1 mongod --replSet repl_conf --configsvr
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;=&amp;gt; shard cluster 내 config server 는 replSet 으로 이루어져야 하며 configsvr 옵션과 함께 기동되어야함&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;&amp;gt; rs.initiate({
+... _id:&amp;quot;repl_conf&amp;quot;,
+... configsvr:true,
+... members:[{_id:0,host:&amp;quot;mongo_conf1:27019&amp;quot;},{_id:1,host:&amp;quot;mongo_conf2:27019&amp;quot;},{_id:2,host:&amp;quot;mongo_conf3:27019&amp;quot;}] });
+{
+&amp;quot;ok&amp;quot; : 1,
+&amp;quot;$gleStats&amp;quot; : {
+&amp;quot;lastOpTime&amp;quot; : Timestamp(1566725886, 1),
+&amp;quot;electionId&amp;quot; : ObjectId(&amp;quot;000000000000000000000000&amp;quot;)
+},
+&amp;quot;lastCommittedOpTime&amp;quot; : Timestamp(0, 0),
+&amp;quot;$clusterTime&amp;quot; : {
+&amp;quot;clusterTime&amp;quot; : Timestamp(1566725886, 1),
+&amp;quot;signature&amp;quot; : {
+&amp;quot;hash&amp;quot; : BinData(0,&amp;quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&amp;quot;),
+&amp;quot;keyId&amp;quot; : NumberLong(0)
+}
+},
+&amp;quot;operationTime&amp;quot; : Timestamp(1566725886, 1)
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; config 서버 replSet 설정&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;shard node #1 구성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;dori:~ mac$ docker run -d  --net mongo-cluster --name mongo_shard1 mongo:4.1 mongod --replSet repl_shard1 --shardsvr
+dori:~ mac$ docker run -d  --net mongo-cluster --name mongo_shard2 mongo:4.1 mongod --replSet repl_shard1 --shardsvr
+dori:~ mac$ docker run -d  --net mongo-cluster --name mongo_shard3 mongo:4.1 mongod --replSet repl_shard1 --shardsvr
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; repl_shard1 라는 replSet으로 묶인 shard node 구성 &lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;&amp;gt; rs.initiate({ _id:&amp;quot;repl_shard1&amp;quot;, members:[ {_id:0,host:&amp;quot;mongo_shard1:27018&amp;quot;}, {_id:1,host:&amp;quot;mongo_shard2:27018&amp;quot;}, {_id:2,host:&amp;quot;mongo_shard3:27018&amp;quot;} ]} );
+{
+&amp;quot;ok&amp;quot; : 1,
+&amp;quot;$clusterTime&amp;quot; : {
+&amp;quot;clusterTime&amp;quot; : Timestamp(1566718019, 1),
+&amp;quot;signature&amp;quot; : {
+&amp;quot;hash&amp;quot; : BinData(0,&amp;quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&amp;quot;),
+&amp;quot;keyId&amp;quot; : NumberLong(0)
+}
+},
+&amp;quot;operationTime&amp;quot; : Timestamp(1566718019, 1)
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;shard node #2 구성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;dori:~ mac$ docker run -d  --net mongo-cluster --name mongo_shard4 mongo:4.1 mongod --replSet repl_shard2 --shardsvr
+dori:~ mac$ docker run -d  --net mongo-cluster --name mongo_shard5 mongo:4.1 mongod --replSet repl_shard2 --shardsvr
+dori:~ mac$ docker run -d  --net mongo-cluster --name mongo_shard6 mongo:4.1 mongod --replSet repl_shard2 --shardsvr
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; repl_shard2 라는 replSet으로 묶인 shard node 구성 &lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;&amp;gt; rs.initiate( {_id:&amp;quot;repl_shard2&amp;quot;, members:[ {_id:0,host:&amp;quot;mongo_shard4:27018&amp;quot;}, {_id:1,host:&amp;quot;mongo_shard5:27018&amp;quot;}, {_id:2,host:&amp;quot;mongo_shard6:27018&amp;quot;}]} ) ;
+{
+&amp;quot;ok&amp;quot; : 1,
+&amp;quot;$clusterTime&amp;quot; : {
+&amp;quot;clusterTime&amp;quot; : Timestamp(1566719750, 1),
+&amp;quot;signature&amp;quot; : {
+&amp;quot;hash&amp;quot; : BinData(0,&amp;quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&amp;quot;),
+&amp;quot;keyId&amp;quot; : NumberLong(0)
+}
+},
+&amp;quot;operationTime&amp;quot; : Timestamp(1566719750, 1)
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;mongos 구성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;docker run -d --network mongo-cluster --name mongos1 -p 27017:27017 mongo:4.1 mongos --configdb repl_conf/mongo_conf1:27019,mongo_conf2:27019,mongo_conf3:27019 --bind_ip_all
+
+docker run -d --network mongo-cluster --name mongos2 -p 27027:27017 mongo:4.1 mongos --configdb repl_conf/mongo_conf1:27019,mongo_conf2:27019,mongo_conf3:27019 --bind_ip_all
+
+docker run -d --network mongo-cluster --name mongos3 -p 27037:27017 mongo:4.1 mongos --configdb repl_conf/mongo_conf1:27019,mongo_conf2:27019,mongo_conf3:27019 --bind_ip_all
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; mongos 는 config server 의 메타 정보를 읽어와 client 의 request 를 처리할 shard 를 정하기 때문에 mongos 가 읽을 config server 를 정의해야함&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;sh.addShard(&amp;quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&amp;quot;)
+sh.addShard(&amp;quot;repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; shard node #1 과 #2 를 추가함  &lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mongos&amp;gt; sh.addShard(&amp;quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&amp;quot;)
+{
+&amp;quot;shardAdded&amp;quot; : &amp;quot;repl_shard1&amp;quot;,
+&amp;quot;ok&amp;quot; : 1,
+&amp;quot;operationTime&amp;quot; : Timestamp(1566738338, 4),
+&amp;quot;$clusterTime&amp;quot; : {
+&amp;quot;clusterTime&amp;quot; : Timestamp(1566738338, 4),
+&amp;quot;signature&amp;quot; : {
+&amp;quot;hash&amp;quot; : BinData(0,&amp;quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&amp;quot;),
+&amp;quot;keyId&amp;quot; : NumberLong(0)
+}
+}
+}
+
+mongos&amp;gt; sh.addShard(&amp;quot;repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018&amp;quot;)
+{
+&amp;quot;shardAdded&amp;quot; : &amp;quot;repl_shard2&amp;quot;,
+&amp;quot;ok&amp;quot; : 1,
+&amp;quot;operationTime&amp;quot; : Timestamp(1566738339, 8),
+&amp;quot;$clusterTime&amp;quot; : {
+&amp;quot;clusterTime&amp;quot; : Timestamp(1566738339, 8),
+&amp;quot;signature&amp;quot; : {
+&amp;quot;hash&amp;quot; : BinData(0,&amp;quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&amp;quot;),
+&amp;quot;keyId&amp;quot; : NumberLong(0)
+}
+}
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;shard--&#34;&gt;shard 구성 확인&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;mongos&amp;gt; sh.status()
+--- Sharding Status ---
+  sharding version: {
+   &amp;quot;_id&amp;quot; : 1,
+   &amp;quot;minCompatibleVersion&amp;quot; : 5,
+   &amp;quot;currentVersion&amp;quot; : 6,
+   &amp;quot;clusterId&amp;quot; : ObjectId(&amp;quot;5d62570b3ed72a6b6728f2f3&amp;quot;)
+  }
+  shards:
+{  &amp;quot;_id&amp;quot; : &amp;quot;repl_shard1&amp;quot;,  &amp;quot;host&amp;quot; : &amp;quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&amp;quot;,  &amp;quot;state&amp;quot; : 1 }
+{  &amp;quot;_id&amp;quot; : &amp;quot;repl_shard2&amp;quot;,  &amp;quot;host&amp;quot; : &amp;quot;repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018&amp;quot;,  &amp;quot;state&amp;quot; : 1 }
+  active mongoses:
+&amp;quot;4.1.13&amp;quot; : 3
+  autosplit:
+Currently enabled: yes
+  balancer:
+Currently enabled:  yes
+Currently running:  no
+Failed balancer rounds in last 5 attempts:  0
+Migration Results for the last 24 hours:
+No recent migrations
+  databases:
+{  &amp;quot;_id&amp;quot; : &amp;quot;config&amp;quot;,  &amp;quot;primary&amp;quot; : &amp;quot;config&amp;quot;,  &amp;quot;partitioned&amp;quot; : true }
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; shard node : repl_shard1 , repl_shard2  mongos : 3대 기동중&lt;/p&gt;
+&lt;p&gt;autosplit : mongodb에서는 sharding 의 기준인 collection 을 여러 조각으로 파티션하고 각 조각을 여러 샤드 서버에 분산해서 저장하는데 이 조각을 chunk 라고 함.&lt;/p&gt;
+&lt;p&gt;chunk 는 default 64MB 까지 커질 수 있는데 이 때 이 chunk를 자동으로 split 하겠다는 의미&lt;/p&gt;
+&lt;p&gt;balancer : chunk 의 split 이 빈번하면 하나의 shard node에만 chunk 수가 많아지고 밸런스가 깨질 수 있는데 밸런스를 맞추기 위해&lt;/p&gt;
+&lt;p&gt;chunk를 다른 샤드 노드로 migration 하는 역할&lt;/p&gt;
+</description>
     </item>
     
     <item>
@@ -66,11 +790,220 @@ shard =&amp;gt; 실제 데이터의 집합으로 샤드 키에 따라 shard1 / s
       <pubDate>Sat, 07 Dec 2019 19:22:51 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/nosql/mongo_replicaset/</guid>
-      <description>mongo db에서도 mysql 처럼 M-S 구조로 replication 을 설정할 수 있습니다.
-그 중에서도 자동 failover를 지원하고 master-slave cluster에서 새 node 를 추가하는 것이
-쉬운 replica set 으로 replication 설정하는 방법을 소개하겠습니다.
-(출처 : mongodb.com)
-replica set 설정할 DB 준비 dori:bin mac$ docker run -d -p 30000:27017 --name mongo-1 mongo mongod --replSet repltest 9cc3084a4779fce90b65ed7fde5b987ef882bda58230fd241168e05dc1f93127 dori:bin mac$ docker run -d -p 30001:27017 --name mongo-2 mongo mongod --replSet repltest e70f38ab592739ceb33426b4b85af755e59be3ba139683fe599584900c19f360 dori:bin mac$ docker run -d -p 30002:27017 --name mongo-3 mongo mongod --replSet repltest f3adc7ce039c63abb65166eb1874d5f2e1c19ca533ee63f0079c3caba44b6111 dori:bin mac$ docker run -d -p 30003:27017 --name mongo-4 mongo mongod --replSet repltest 948531ffb1d64a15bb1295329d49864b40352783e7266dab5e5635c695228d4c  &amp;ndash;replSet replicaSet이름 옵션으로 repltest 라는 replicaSet db 4대 기동  replica set 설정 dori:bin mac$ mongo --port 30000 MongoDB shell version v4.</description>
+      <description>&lt;p&gt;mongo db에서도 mysql 처럼 M-S 구조로 replication 을 설정할 수 있습니다.&lt;br&gt;
+그 중에서도 자동 failover를 지원하고 master-slave cluster에서 새 node 를 추가하는 것이&lt;br&gt;
+쉬운  replica set 으로 replication 설정하는 방법을 소개하겠습니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mongo_replica.png&#34; alt=&#34;&#34;&gt;     &lt;/p&gt;
+&lt;p&gt;(출처 : mongodb.com)&lt;/p&gt;
+&lt;h3 id=&#34;replica-set--db-&#34;&gt;replica set 설정할 DB 준비&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;dori:bin mac$ docker run -d -p 30000:27017 --name mongo-1 mongo mongod --replSet repltest
+9cc3084a4779fce90b65ed7fde5b987ef882bda58230fd241168e05dc1f93127
+
+dori:bin mac$ docker run -d -p 30001:27017 --name mongo-2 mongo mongod --replSet repltest
+e70f38ab592739ceb33426b4b85af755e59be3ba139683fe599584900c19f360
+
+dori:bin mac$ docker run -d -p 30002:27017 --name mongo-3 mongo mongod --replSet repltest
+f3adc7ce039c63abb65166eb1874d5f2e1c19ca533ee63f0079c3caba44b6111
+
+dori:bin mac$ docker run -d -p 30003:27017 --name mongo-4 mongo mongod --replSet repltest
+948531ffb1d64a15bb1295329d49864b40352783e7266dab5e5635c695228d4c
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;&amp;ndash;replSet replicaSet이름 옵션으로 repltest 라는 replicaSet db 4대 기동&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;replica-set-&#34;&gt;replica set 설정&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;dori:bin mac$ mongo --port 30000
+MongoDB shell version v4.0.9
+
+&amp;gt;
+&amp;gt; repl_conf={
+... _id: &amp;quot;repltest&amp;quot;,
+... members: [{_id: 0, host: &amp;quot;DB 노드 IP :30000&amp;quot;}]
+... }
+
+{
+&amp;quot;_id&amp;quot; : &amp;quot;repltest&amp;quot;,
+&amp;quot;members&amp;quot; : [
+{
+&amp;quot;_id&amp;quot; : 0,
+&amp;quot;host&amp;quot; : &amp;quot;DB 노드 IP:30000&amp;quot;
+}
+]
+}
+
+&amp;gt; rs.initiate(repl_conf)
+{
+&amp;quot;ok&amp;quot; : 1,
+&amp;quot;operationTime&amp;quot; : Timestamp(1558191512, 1),
+&amp;quot;$clusterTime&amp;quot; : {
+&amp;quot;clusterTime&amp;quot; : Timestamp(1558191512, 1),
+&amp;quot;signature&amp;quot; : {
+&amp;quot;hash&amp;quot; : BinData(0,&amp;quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&amp;quot;),
+&amp;quot;keyId&amp;quot; : NumberLong(0)
+}
+}
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;replica set 의 멤버로 우선 노드 한개만 설정 후 rs.add() 커맨드로 추가할 것임&lt;/li&gt;
+&lt;li&gt;replica set 설정 후 rs.initate() 커맨드 실행&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;rsadd---&#34;&gt;rs.add() 로 노드 추가&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;repltest:PRIMARY&amp;gt; rs.add(&amp;quot;DB 노드 IP:30001&amp;quot;)
+{
+&amp;quot;ok&amp;quot; : 1,
+&amp;quot;operationTime&amp;quot; : Timestamp(1558191605, 1),
+&amp;quot;$clusterTime&amp;quot; : {
+&amp;quot;clusterTime&amp;quot; : Timestamp(1558191605, 1),
+&amp;quot;signature&amp;quot; : {
+&amp;quot;hash&amp;quot; : BinData(0,&amp;quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&amp;quot;),
+&amp;quot;keyId&amp;quot; : NumberLong(0)
+}
+}
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;replica set 의 멤버에 rs.add() 로 노드 추가&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;rsstatus--replica-set---&#34;&gt;rs.status() 로 replica set 현재 상태 확인&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;repltest:PRIMARY&amp;gt; rs.status()
+
+{
+&amp;quot;set&amp;quot; : &amp;quot;repltest&amp;quot;,
+&amp;quot;date&amp;quot; : ISODate(&amp;quot;2019-05-18T15:02:50.744Z&amp;quot;),
+&amp;quot;myState&amp;quot; : 1,
+&amp;quot;term&amp;quot; : NumberLong(1),
+&amp;quot;syncingTo&amp;quot; : &amp;quot;&amp;quot;,
+&amp;quot;syncSourceHost&amp;quot; : &amp;quot;&amp;quot;,
+&amp;quot;syncSourceId&amp;quot; : -1,
+&amp;quot;heartbeatIntervalMillis&amp;quot; : NumberLong(2000),
+&amp;quot;optimes&amp;quot; : {
+&amp;quot;lastCommittedOpTime&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(1558191767, 1),
+&amp;quot;t&amp;quot; : NumberLong(1)
+},
+&amp;quot;readConcernMajorityOpTime&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(1558191767, 1),
+&amp;quot;t&amp;quot; : NumberLong(1)
+},
+&amp;quot;appliedOpTime&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(1558191767, 1),
+&amp;quot;t&amp;quot; : NumberLong(1)
+},
+&amp;quot;durableOpTime&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(1558191767, 1),
+&amp;quot;t&amp;quot; : NumberLong(1)
+}
+},
+&amp;quot;lastStableCheckpointTimestamp&amp;quot; : Timestamp(1558191750, 1),
+
+&amp;quot;members&amp;quot; : [
+{
+&amp;quot;_id&amp;quot; : 0,
+&amp;quot;name&amp;quot; : &amp;quot;DB 노드 IP:30000&amp;quot;,
+&amp;quot;health&amp;quot; : 1,
+&amp;quot;state&amp;quot; : 1,
+&amp;quot;stateStr&amp;quot; : &amp;quot;PRIMARY&amp;quot;,
+&amp;quot;uptime&amp;quot; : 610,
+&amp;quot;optime&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(1558191767, 1),
+&amp;quot;t&amp;quot; : NumberLong(1)
+},
+&amp;quot;optimeDate&amp;quot; : ISODate(&amp;quot;2019-05-18T15:02:47Z&amp;quot;),
+&amp;quot;syncingTo&amp;quot; : &amp;quot;&amp;quot;,
+&amp;quot;syncSourceHost&amp;quot; : &amp;quot;&amp;quot;,
+&amp;quot;syncSourceId&amp;quot; : -1,
+&amp;quot;infoMessage&amp;quot; : &amp;quot;&amp;quot;,
+&amp;quot;electionTime&amp;quot; : Timestamp(1558191512, 2),
+&amp;quot;electionDate&amp;quot; : ISODate(&amp;quot;2019-05-18T14:58:32Z&amp;quot;),
+&amp;quot;configVersion&amp;quot; : 6,
+&amp;quot;self&amp;quot; : true,
+&amp;quot;lastHeartbeatMessage&amp;quot; : &amp;quot;&amp;quot;
+},
+
+{
+&amp;quot;_id&amp;quot; : 1,
+&amp;quot;name&amp;quot; : &amp;quot;DB 노드 IP:30001&amp;quot;,
+&amp;quot;health&amp;quot; : 1,
+&amp;quot;state&amp;quot; : 2,
+&amp;quot;stateStr&amp;quot; : &amp;quot;SECONDARY&amp;quot;,
+&amp;quot;uptime&amp;quot; : 164,
+&amp;quot;optime&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(1558191767, 1),
+&amp;quot;t&amp;quot; : NumberLong(1)
+},
+&amp;quot;optimeDurable&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(1558191767, 1),
+&amp;quot;t&amp;quot; : NumberLong(1)
+},
+&amp;quot;optimeDate&amp;quot; : ISODate(&amp;quot;2019-05-18T15:02:47Z&amp;quot;),
+&amp;quot;optimeDurableDate&amp;quot; : ISODate(&amp;quot;2019-05-18T15:02:47Z&amp;quot;),
+&amp;quot;lastHeartbeat&amp;quot; : ISODate(&amp;quot;2019-05-18T15:02:49.276Z&amp;quot;),
+&amp;quot;lastHeartbeatRecv&amp;quot; : ISODate(&amp;quot;2019-05-18T15:02:49.344Z&amp;quot;),
+&amp;quot;pingMs&amp;quot; : NumberLong(7),
+&amp;quot;lastHeartbeatMessage&amp;quot; : &amp;quot;&amp;quot;,
+&amp;quot;syncingTo&amp;quot; : &amp;quot;DB 노드 IP:30003&amp;quot;,
+&amp;quot;syncSourceHost&amp;quot; : &amp;quot;DB 노드 IP:30003&amp;quot;,
+&amp;quot;syncSourceId&amp;quot; : 3,
+&amp;quot;infoMessage&amp;quot; : &amp;quot;&amp;quot;,
+&amp;quot;configVersion&amp;quot; : 6
+},
+
+{
+&amp;quot;_id&amp;quot; : 2,
+&amp;quot;name&amp;quot; : &amp;quot;DB 노드 IP:30002&amp;quot;,
+&amp;quot;health&amp;quot; : 1,
+&amp;quot;state&amp;quot; : 2,
+&amp;quot;stateStr&amp;quot; : &amp;quot;SECONDARY&amp;quot;,
+&amp;quot;uptime&amp;quot; : 19,
+&amp;quot;optime&amp;quot; : {
+
+&amp;quot;ts&amp;quot; : Timestamp(1558191767, 1),
+
+&amp;quot;t&amp;quot; : NumberLong(1)
+},
+&amp;quot;optimeDurable&amp;quot; : {
+&amp;quot;ts&amp;quot; : Timestamp(158191767, 1),
+&amp;quot;t&amp;quot; : NumberLong(1)
+},
+
+.
+
+.
+
+.
+
+.
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Primary node 와 Secondary node 의 상태와 설정이 조회됨&lt;/p&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;slave----&#34;&gt;Slave 에서 읽기 에러가 나면?&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;repltest:SECONDARY&amp;gt; show dbs
+2019-05-19T00:35:27.090+0900 E QUERY    [js] Error: listDatabases failed:{
+&amp;quot;operationTime&amp;quot; : Timestamp(1558193724, 1),
+&amp;quot;ok&amp;quot; : 0,
+&amp;quot;errmsg&amp;quot; : &amp;quot;not master and slaveOk=false&amp;quot;,
+&amp;quot;code&amp;quot; : 13435,
+&amp;quot;codeName&amp;quot; : &amp;quot;NotMasterNoSlaveOk&amp;quot;,
+&amp;quot;$clusterTime&amp;quot; : {
+&amp;quot;clusterTime&amp;quot; : Timestamp(1558193724, 1),
+&amp;quot;signature&amp;quot; : {
+&amp;quot;hash&amp;quot; : BinData(0,&amp;quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&amp;quot;),
+&amp;quot;keyId&amp;quot; : NumberLong(0)
+}
+}
+} :
+
+_getErrorWithCode@src/mongo/shell/utils.js:25:13
+Mongo.prototype.getDBs@src/mongo/shell/mongo.js:139:1
+shellHelper.show@src/mongo/shell/utils.js:882:13
+shellHelper@src/mongo/shell/utils.js:766:15
+@(shellhelp2):1:1
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;Secondary node 는 기본적으로 쿼리 수행이 잠겨있어 아래 커맨드로 풀어줘야함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;repltest:SECONDARY&amp;gt; rs.slaveOk()
+&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
     
     <item>
@@ -79,7 +1012,259 @@ replica set 설정할 DB 준비 dori:bin mac$ docker run -d -p 30000:27017 --nam
       <pubDate>Sat, 07 Dec 2019 17:19:56 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/nosql/mongo_simple_command/</guid>
-      <description>Mongo DB 접속  dori:bin mac$ mongo MongoDB shell version v4.0.9 connecting to: mongodb://127.0.0.1:27017/?gssapiServiceName=mongodb Implicit session: session { &amp;quot;id&amp;quot; : UUID(&amp;quot;97c63b7c-e54a-447f-9507-c775b4986954&amp;quot;) } MongoDB server version: 4.0.9 Server has startup warnings: 2019-05-11T16:07:53.047+0900 I CONTROL [initandlisten] 2019-05-11T16:07:53.047+0900 I CONTROL [initandlisten] ** WARNING: Access control is not enabled for the database. 2019-05-11T16:07:53.048+0900 I CONTROL [initandlisten] ** Read and write access to data and configuration is unrestricted. 2019-05-11T16:07:53.049+0900 I CONTROL [initandlisten] --- Enable MongoDB&#39;s free cloud-based monitoring service, which will then receive and display metrics about your deployment (disk utilization, CPU, operation statistics, etc).</description>
+      <description>&lt;h3 id=&#34;mongo-db------&#34;&gt;Mongo DB 접속      &lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;dori:bin mac$ mongo
+
+MongoDB shell version v4.0.9
+connecting to: mongodb://127.0.0.1:27017/?gssapiServiceName=mongodb
+Implicit session: session { &amp;quot;id&amp;quot; : UUID(&amp;quot;97c63b7c-e54a-447f-9507-c775b4986954&amp;quot;) }
+MongoDB server version: 4.0.9
+Server has startup warnings:
+2019-05-11T16:07:53.047+0900 I CONTROL  [initandlisten]
+2019-05-11T16:07:53.047+0900 I CONTROL  [initandlisten] ** WARNING: Access control is not enabled for the database.
+2019-05-11T16:07:53.048+0900 I CONTROL  [initandlisten] **          Read and write access to data and configuration is unrestricted.
+2019-05-11T16:07:53.049+0900 I CONTROL  [initandlisten]
+---
+Enable MongoDB&#39;s free cloud-based monitoring service, which will then receive and display
+metrics about your deployment (disk utilization, CPU, operation statistics, etc).
+The monitoring data will be available on a MongoDB website with a unique URL accessible to you
+and anyone you share the URL with. MongoDB may use this information to make product
+improvements and to suggest MongoDB products and deployment options to you.
+
+To enable free monitoring, run the following command: db.enableFreeMonitoring()
+To permanently disable this reminder, run the following command: db.disableFreeMonitoring()
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;create-database&#34;&gt;create database&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;&amp;gt; show dbs;
+admin   0.000GB
+config  0.000GB
+local   0.000GB
+
+&amp;gt; use test;
+switched to db test
+
+&amp;gt; show dbs;
+admin   0.000GB
+config  0.000GB
+local   0.000GB
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;test db가 안보이는 이유는 test db 에 아무런 collection 이 없기 때문 collection 이 있는 db만 조회됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;create-collection&#34;&gt;create collection&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;&amp;gt; db
+test
+
+&amp;gt; test.TestCollection.insertOne(
+... {name:&amp;quot;kimdubi&amp;quot;, age:29, interest: [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;]})
+
+2019-05-11T16:36:13.481+0900 E QUERY    [js] ReferenceError: test is not defined :
+@(shell):1:1
+
+&amp;gt;
+&amp;gt; db.TestCollection.insertOne(
+... {name:&amp;quot;kimdubi&amp;quot;, age:29, interest: [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;]})
+{
+&amp;quot;acknowledged&amp;quot; : true,
+&amp;quot;insertedId&amp;quot; : ObjectId(&amp;quot;5cd67b82d7c83919d5d619fa&amp;quot;)
+}
+
+&amp;gt; show collections
+TestCollection
+
+&amp;gt; db.createCollection(&amp;quot;TestCollection_2&amp;quot;)
+{ &amp;quot;ok&amp;quot; : 1 }
+
+&amp;gt; show collections;
+TestCollection
+TestCollection_2
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;db 커맨드는 현재 사용중인 database 확인용&lt;br&gt;
+dml 커맨드는 db.컬렉션네임.커맨드 로 수행됨&lt;/li&gt;
+&lt;li&gt;데이터를 넣으며 테이블 생성하는 방법과 넣지 않고 명시적으로 테이블 create 할 수 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;insert&#34;&gt;insert&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;한 건 씩 혹은 여러건씩 insert 가능&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;&amp;gt; db.TestCollection.insertOne(
+{name:&amp;quot;kimdubi&amp;quot;,age:29,interset: [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;]})
+
+&amp;gt; db.TestCollection.insertMany([
+... {name:&amp;quot;kimdubi&amp;quot;,age:29,interset: [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;]},
+... {name:&amp;quot;kimdubi&amp;quot;,age:29,interset: [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;]},
+... {name:&amp;quot;kimdubi&amp;quot;,age:29,interset: [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;]},
+... {name:&amp;quot;kimdubi&amp;quot;,age:29,interset: [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;]},
+... {name:&amp;quot;kimdubi2&amp;quot;,age:39,interset: [&amp;quot;Infra&amp;quot;,&amp;quot;Cloud&amp;quot;,&amp;quot;AWS&amp;quot;]},
+... {name:&amp;quot;kimdubi3&amp;quot;,age:49,interset: [&amp;quot;Programming&amp;quot;,&amp;quot;Frontend&amp;quot;,&amp;quot;nodejs&amp;quot;]}
+... ])
+{
+&amp;quot;acknowledged&amp;quot; : true,
+&amp;quot;insertedIds&amp;quot; : [
+ObjectId(&amp;quot;5cd68b1ed7c83919d5d61a02&amp;quot;),
+ObjectId(&amp;quot;5cd68b1ed7c83919d5d61a03&amp;quot;),
+ObjectId(&amp;quot;5cd68b1ed7c83919d5d61a04&amp;quot;),
+ObjectId(&amp;quot;5cd68b1ed7c83919d5d61a05&amp;quot;),
+ObjectId(&amp;quot;5cd68b1ed7c83919d5d61a06&amp;quot;),
+ObjectId(&amp;quot;5cd68b1ed7c83919d5d61a07&amp;quot;)
+]
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;bulk 로 많은 dml 커맨드를 한번에 수행 할 수 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code class=&#34;language- &#34; data-lang=&#34; &#34;&gt;&amp;gt; var users=
+... [
+... {name:&amp;quot;kimdubi&amp;quot;,age:29,interset: [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;]},
+... {name:&amp;quot;kimdubi&amp;quot;,age:29,interset: [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;]},
+... {name:&amp;quot;kimdubi&amp;quot;,age:29,interset: [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;]},
+... {name:&amp;quot;kimdubi&amp;quot;,age:29,interset: [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;]},
+... {name:&amp;quot;kimdubi2&amp;quot;,age:39,interset: [&amp;quot;Infra&amp;quot;,&amp;quot;Cloud&amp;quot;,&amp;quot;AWS&amp;quot;]},
+... {name:&amp;quot;kimdubi3&amp;quot;,age:49,interset: [&amp;quot;Programming&amp;quot;,&amp;quot;Frontend&amp;quot;,&amp;quot;nodejs&amp;quot;]}
+... ];
+&amp;gt;
+&amp;gt;
+&amp;gt; db.TestCollection.insert(users);
+BulkWriteResult({
+&amp;quot;writeErrors&amp;quot; : [ ],
+&amp;quot;writeConcernErrors&amp;quot; : [ ],
+&amp;quot;nInserted&amp;quot; : 6,
+&amp;quot;nUpserted&amp;quot; : 0,
+&amp;quot;nMatched&amp;quot; : 0,
+&amp;quot;nModified&amp;quot; : 0,
+&amp;quot;nRemoved&amp;quot; : 0,
+&amp;quot;upserted&amp;quot; : [ ]
+})
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;select&#34;&gt;select&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;forEach(printjson)  / pretty() 로 보기 좋게 출력&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code class=&#34;language- &#34; data-lang=&#34; &#34;&gt;&amp;gt; db.TestCollection.find()
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd67b82d7c83919d5d619fa&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot;, &amp;quot;age&amp;quot; : 29, &amp;quot;interest&amp;quot; : [ &amp;quot;Infra&amp;quot;, &amp;quot;DB&amp;quot;, &amp;quot;NoSQL&amp;quot; ] } .....
+
+     
+&amp;gt; db.TestCollection.find().forEach(printjson);
+{
+&amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd67b82d7c83919d5d619fa&amp;quot;),
+&amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot;,
+&amp;quot;age&amp;quot; : 29,
+&amp;quot;interest&amp;quot; : [
+&amp;quot;Infra&amp;quot;,
+&amp;quot;DB&amp;quot;,
+&amp;quot;NoSQL&amp;quot;
+]
+}
+{
+&amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd68655d7c83919d5d619fb&amp;quot;),
+&amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot;,
+&amp;quot;age&amp;quot; : 29,
+&amp;quot;interset&amp;quot; : [
+&amp;quot;Infra&amp;quot;,
+&amp;quot;DB&amp;quot;,
+&amp;quot;NoSQL&amp;quot;
+]
+}
+.
+.
+
+&amp;gt; db.TestCollection.find().pretty();
+{
+&amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd67b82d7c83919d5d619fa&amp;quot;),
+&amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot;,
+&amp;quot;age&amp;quot; : 29,
+&amp;quot;interest&amp;quot; : [
+&amp;quot;Infra&amp;quot;,
+&amp;quot;DB&amp;quot;,
+&amp;quot;NoSQL&amp;quot;
+]
+}
+
+&amp;gt; db.TestCollection.find( {name: &amp;quot;kimdubi3&amp;quot;}).pretty()
+{
+&amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd6895dd7c83919d5d61a01&amp;quot;),
+&amp;quot;name&amp;quot; : &amp;quot;kimdubi3&amp;quot;,
+&amp;quot;age&amp;quot; : 49,
+&amp;quot;interset&amp;quot; : [
+&amp;quot;Programming&amp;quot;,
+&amp;quot;Frontend&amp;quot;,
+&amp;quot;nodejs&amp;quot;
+]
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;where 조건&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;&amp;gt; db.TestCollection.find( { &amp;quot;age&amp;quot;: {$gt:32}} ).pretty()
+
+{
+&amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd6895dd7c83919d5d61a00&amp;quot;),
+&amp;quot;name&amp;quot; : &amp;quot;kimdubi2&amp;quot;,
+&amp;quot;age&amp;quot; : 39,
+&amp;quot;interset&amp;quot; : [
+&amp;quot;Infra&amp;quot;,
+&amp;quot;Cloud&amp;quot;,
+&amp;quot;AWS&amp;quot;
+]
+}
+{
+&amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd6895dd7c83919d5d61a01&amp;quot;),
+&amp;quot;name&amp;quot; : &amp;quot;kimdubi3&amp;quot;,
+&amp;quot;age&amp;quot; : 49,
+&amp;quot;interset&amp;quot; : [
+&amp;quot;Programming&amp;quot;,
+&amp;quot;Frontend&amp;quot;,
+&amp;quot;nodejs&amp;quot;
+]
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;특정 필드만 조회 및 정렬&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;&amp;gt; db.TestCollection.find( {} , { &amp;quot;name&amp;quot;:1}).sort({&amp;quot;age&amp;quot;:1})
+
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd67b82d7c83919d5d619fa&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot; }
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd68655d7c83919d5d619fb&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot; }
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd6895dd7c83919d5d619fc&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot; }
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd6895dd7c83919d5d619fd&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot; }
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd6895dd7c83919d5d619fe&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot; }
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd6895dd7c83919d5d619ff&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot; }
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd6895dd7c83919d5d61a00&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;kimdubi2&amp;quot; }
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd6895dd7c83919d5d61a01&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;kimdubi3&amp;quot; }
+&lt;/code&gt;&lt;/pre&gt;&lt;pre&gt;&lt;code&gt;&amp;gt; db.TestCollection.find({}, {&amp;quot;name&amp;quot;:1,&amp;quot;interset&amp;quot;:1} )
+
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd67b82d7c83919d5d619fa&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot; }
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd68655d7c83919d5d619fb&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot;, &amp;quot;interset&amp;quot; : [ &amp;quot;Infra&amp;quot;, &amp;quot;DB&amp;quot;, &amp;quot;NoSQL&amp;quot; ] }
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd6895dd7c83919d5d619fc&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot;, &amp;quot;interset&amp;quot; : [ &amp;quot;Infra&amp;quot;, &amp;quot;DB&amp;quot;, &amp;quot;NoSQL&amp;quot; ] }
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd6895dd7c83919d5d619fd&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;kimdubi&amp;quot;, &amp;quot;interset&amp;quot; : [ &amp;quot;Infra&amp;quot;, &amp;quot;DB&amp;quot;, &amp;quot;NoSQL&amp;quot; ] }
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;컬럼명:0 (default) =&amp;gt; 조회안함 / 컬럼명:1 =&amp;gt;조회&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;update&#34;&gt;update&lt;/h3&gt;
+&lt;pre&gt;&lt;code class=&#34;language- &#34; data-lang=&#34; &#34;&gt;&amp;gt; db.TestCollection.update( {&amp;quot;name&amp;quot;:&amp;quot;kimdubi&amp;quot;}, {$set:{&amp;quot;name&amp;quot;:&amp;quot;super kimdubi&amp;quot;}}, {multi:true} )
+WriteResult({ &amp;quot;nMatched&amp;quot; : 10, &amp;quot;nUpserted&amp;quot; : 0, &amp;quot;nModified&amp;quot; : 10 })
+
+     
+&amp;gt;
+&amp;gt; db.TestCollection.find()
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd67b82d7c83919d5d619fa&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;super kimdubi&amp;quot;, &amp;quot;age&amp;quot; : 29, &amp;quot;interest&amp;quot; : [ &amp;quot;Infra&amp;quot;, &amp;quot;DB&amp;quot;, &amp;quot;NoSQL&amp;quot; ] }
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd68655d7c83919d5d619fb&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;super kimdubi&amp;quot;, &amp;quot;age&amp;quot; : 29, &amp;quot;interset&amp;quot; : [ &amp;quot;Infra&amp;quot;, &amp;quot;DB&amp;quot;, &amp;quot;NoSQL&amp;quot; ] }
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd6895dd7c83919d5d619fc&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;super kimdubi&amp;quot;, &amp;quot;age&amp;quot; : 29, &amp;quot;interset&amp;quot; : [ &amp;quot;Infra&amp;quot;, &amp;quot;DB&amp;quot;, &amp;quot;NoSQL&amp;quot; ] }
+{ &amp;quot;_id&amp;quot; : ObjectId(&amp;quot;5cd6895dd7c83919d5d619fd&amp;quot;), &amp;quot;name&amp;quot; : &amp;quot;super kimdubi&amp;quot;, &amp;quot;age&amp;quot; : 29, &amp;quot;interset&amp;quot; : [ &amp;quot;Infra&amp;quot;, &amp;quot;DB&amp;quot;, &amp;quot;NoSQL&amp;quot; ] }
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;기본적으로 MongoDB에서는 한건씩 업데이트를 하는데 {multi:true} 옵션을 명시하면 여러건 동시에 업데이트 가능&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;delete&#34;&gt;delete&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;조건에 맞는 다큐먼트 1건 지우기&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code class=&#34;language- &#34; data-lang=&#34; &#34;&gt;&amp;gt; db.TestCollection.remove({ &amp;quot;name&amp;quot;: &amp;quot;super kimdubi&amp;quot;} )
+WriteResult({ &amp;quot;nRemoved&amp;quot; : 10 })
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;여러건 지우기&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;&amp;gt; db.TestCollection.remove ({ &amp;quot;name&amp;quot;:&amp;quot;kimdubi&amp;quot;}, 2 )
+WriteResult({ &amp;quot;nRemoved&amp;quot; : 0 })
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;전부 지우기&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;&amp;gt; db.TestCollection.remove( {} )
+WriteResult({ &amp;quot;nRemoved&amp;quot; : 4 })
+&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
     
     <item>
@@ -88,9 +1273,214 @@ replica set 설정할 DB 준비 dori:bin mac$ docker run -d -p 30000:27017 --nam
       <pubDate>Sat, 07 Dec 2019 14:58:36 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/nosql/mongodb-installation/</guid>
-      <description>MongoDB MongoDB는 document-oriented NoSQL 계열 오픈소스 데이터베이스로 아래와 같은 구조로 구성됨
-(출처: https://beginnersbook.com/2017/09/mapping-relational-databases-to-mongodb/)
-  Document  Document는 기존 RDBMS 의 record 와 같은 개념으로 MongoDB에서 실제 데이터가 저장되는 방식 JSON 형태의 key-value 쌍으로 이루어져 있음 value에는 array, string, int 등 다양한 type 이 올 수 있음   { name : &amp;quot;kimdubi&amp;quot;, age : 29, interests : [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;] } Collection  RDBMS 의 테이블과 같은 개념  Database    mysql 의 스키마와 같은 개념으로 MongoDB 서버는 여러개의 database로 이루어 질 수 있으며</description>
+      <description>&lt;h3 id=&#34;mongodb&#34;&gt;MongoDB&lt;/h3&gt;
+&lt;p&gt;MongoDB는 document-oriented NoSQL 계열 오픈소스 데이터베이스로 아래와 같은 구조로 구성됨&lt;br&gt;
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mongo_install_1.jpg&#34; alt=&#34;mongodb_architecture&#34;&gt;&lt;br&gt;
+(출처: https://beginnersbook.com/2017/09/mapping-relational-databases-to-mongodb/)&lt;/p&gt;
+&lt;h1 id=&#34;heading&#34;&gt;&lt;/h1&gt;
+&lt;h1 id=&#34;heading1&#34;&gt;&lt;/h1&gt;
+&lt;h4 id=&#34;document&#34;&gt;Document&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;Document는 기존 RDBMS 의 record 와 같은 개념으로 MongoDB에서 실제 데이터가 저장되는 방식&lt;/li&gt;
+&lt;li&gt;JSON 형태의 key-value 쌍으로 이루어져 있음&lt;/li&gt;
+&lt;li&gt;value에는 array, string, int 등 다양한 type 이 올 수 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;    {
+    name : &amp;quot;kimdubi&amp;quot;,
+    age : 29,
+    interests : [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;]
+    }
+&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&#34;collection&#34;&gt;Collection&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;RDBMS 의 테이블과 같은 개념&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;database&#34;&gt;Database &lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;mysql 의 스키마와 같은 개념으로 MongoDB 서버는 여러개의 database로 이루어 질 수 있으며&lt;br&gt;
+database 안에는 여러개의 Collection들이 있음&lt;/p&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;installation&#34;&gt;Installation&lt;/h3&gt;
+&lt;h4 id=&#34;--&#34;&gt;사용할 디렉토리 생성&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;    /engn001/mongo =&amp;gt; mongodb 엔진영역
+    /data001/mongo =&amp;gt; mongodb data 영역
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt; &lt;/p&gt;
+&lt;h4 id=&#34;-profile-&#34;&gt;계정 profile 수정&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;    export MONGO_PATH=/engn001/mongo/
+    export PATH=$PATH:$MONGO_PATH/bin
+&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&#34;mongodb-tar---&#34;&gt;mongodb tar 압축해제 및 설치&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;    dori:mongo mac$ pwd
+    /engn001/mongo
+    dori:mongo mac$ ls
+    mongodb-osx-ssl-x86_64-4.0.9.tar
+&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&#34;mongodb-conf--&#34;&gt;mongodb conf 파일 생성&lt;/h4&gt;
+&lt;p&gt;vi mongod.conf&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&#34;language- &#34; data-lang=&#34; &#34;&gt;
+systemLog:    ## db log 관련설정
+
+  destination: file
+
+  path: &amp;quot;/engn001/mongo/logs&amp;quot;
+
+  logAppend: true   ## 새로운 로그를 기존 로그파일에 추가하는 방식
+
+  verbosity: 0  ## 로깅 레벨로 0~5. 이슈 발생 시 디버깅 하려면 레벨을 높게 설정하는 게 좋음
+
+storage:
+  dbPath:   ## db data가 저장될 위치 지정
+    &amp;quot;/data001/mongo&amp;quot;
+
+  journal:   ## transaction log 사용 유무 = mysql log-bin 옵션
+
+    enabled: true
+
+    commitIntervalMs: 100   ## 커밋 인터발
+
+  directoryPerDB: true  ## database 별로 디렉토리 별도로 사용
+
+  wiredTiger:   ## mongodb 에서 사용할 엔진 설정 wiredTiger 외 mmapv1 / inMemory 엔진 이 있음
+
+    engineConfig:
+
+      cacheSizeGB: 2  ## buffer pool 사이즈
+
+      journalCompressor: snappy  ## journal data 압축 방식 ( none / snappy - default / zlib )
+
+      directoryForIndexes: false  ## true 설정 시 storage.dbPath 아래 index / collection 디렉토리에 각각 인덱스와 컬렉션을 저장함
+
+    collectionConfig:
+
+      blockCompressor: snappy
+
+    indexConfig:
+
+      prefixCompression: true
+
+processManagement:
+
+  fork: true  ## mongodb를 데몬형태로 띄움
+
+net:
+
+  bindIp: 127.0.0.1
+
+  port: 27017
+&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&#34;mongodb-&#34;&gt;mongodb 기동&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;dori:mongo mac$ vi mongod.cfg
+dori:mongo mac$ mongod --config=/engn001/mongo/mongod.cfg
+about to fork child process, waiting until server is ready for connections.
+forked process: 24596
+child process started successfully, parent exiting
+
+dori:mongo mac$
+&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&#34;log-&#34;&gt;log 확인&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;    2019-05-11T16:07:52.231+0900 I CONTROL  [main] Automatically disabling TLS 1.0, to force-enable TLS 1.0 specify --sslDisabledProtocols &#39;none&#39;
+
+2019-05-11T16:07:52.242+0900 I CONTROL  [initandlisten] MongoDB starting : pid=24596 port=27017 dbpath=/data001/mongo 64-bit host=dori.local
+
+    2019-05-11T16:07:52.242+0900 I CONTROL  [initandlisten] db version v4.0.9
+
+    2019-05-11T16:07:52.243+0900 I CONTROL  [initandlisten] git version: fc525e2d9b0e4bceff5c2201457e564362909765
+
+    2019-05-11T16:07:52.243+0900 I CONTROL  [initandlisten] allocator: system
+
+    2019-05-11T16:07:52.244+0900 I CONTROL  [initandlisten] modules: none
+
+    2019-05-11T16:07:52.245+0900 I CONTROL  [initandlisten] build environment:
+
+    2019-05-11T16:07:52.246+0900 I CONTROL  [initandlisten]     distarch: x86_64
+
+    2019-05-11T16:07:52.246+0900 I CONTROL  [initandlisten]     target_arch: x86_64
+
+2019-05-11T16:07:52.247+0900 I CONTROL  [initandlisten] options: { config: &amp;quot;/engn001/mongo/mongod.cfg&amp;quot;, net: { bindIp: &amp;quot;127.0.0.1&amp;quot;, port: 27017 }, processManagement: { fork: true }, storage: { dbPath: &amp;quot;/data001/mongo&amp;quot;, directoryPerDB: true, journal: { commitIntervalMs: 100, enabled: true }, wiredTiger: { collectionConfig: { blockCompressor: &amp;quot;snappy&amp;quot; }, engineConfig: { cacheSizeGB: 2.0, directoryForIndexes: false, journalCompressor: &amp;quot;snappy&amp;quot; }, indexConfig: { prefixCompression: true } } }, systemLog: { destination: &amp;quot;file&amp;quot;, logAppend: true, path: &amp;quot;/engn001/mongo/logs&amp;quot;, verbosity: 0 } }
+
+    2019-05-11T16:07:52.248+0900 I STORAGE  [initandlisten] Detected data files in /data001/mongo created by the &#39;wiredTiger&#39; storage engine, so setting the active storage engine to &#39;wiredTiger&#39;.
+
+    2019-05-11T16:07:52.248+0900 I STORAGE  [initandlisten] wiredtiger_open config: create,cache_size=2048M,session_max=20000,eviction=(threads_min=4,threads_max=4),config_base=false,statistics=(fast),log=(enabled=true,archive=true,path=journal,compressor=snappy),file_manager=(close_idle_time=100000),statistics_log=(wait=0),verbose=(recovery_progress),
+
+    2019-05-11T16:07:52.835+0900 I STORAGE  [initandlisten] WiredTiger message [1557558472:835376][24596:0x1131885c0], txn-recover: Main recovery loop: starting at 1/22784 to 2/256
+
+    2019-05-11T16:07:52.904+0900 I STORAGE  [initandlisten] WiredTiger message [1557558472:904075][24596:0x1131885c0], txn-recover: Recovering log 1 through 2
+
+    2019-05-11T16:07:52.948+0900 I STORAGE  [initandlisten] WiredTiger message [1557558472:948240][24596:0x1131885c0], txn-recover: Recovering log 2 through 2
+
+    2019-05-11T16:07:52.987+0900 I STORAGE  [initandlisten] WiredTiger message [1557558472:987223][24596:0x1131885c0], txn-recover: Set global recovery timestamp: 0
+
+    2019-05-11T16:07:53.038+0900 I RECOVERY [initandlisten] WiredTiger recoveryTimestamp. Ts: Timestamp(0, 0)
+
+    2019-05-11T16:07:53.047+0900 I CONTROL  [initandlisten]
+
+    2019-05-11T16:07:53.047+0900 I CONTROL  [initandlisten] ** WARNING: Access control is not enabled for the database.
+
+    2019-05-11T16:07:53.048+0900 I CONTROL  [initandlisten] **          Read and write access to data and configuration is unrestricted.
+
+    2019-05-11T16:07:53.049+0900 I CONTROL  [initandlisten]
+
+    2019-05-11T16:07:53.058+0900 I FTDC     [initandlisten] Initializing full-time diagnostic data capture with directory &#39;/data001/mongo/diagnostic.data&#39;
+
+    2019-05-11T16:07:53.060+0900 I NETWORK  [initandlisten] waiting for connections on port 27017
+
+    2019-05-11T16:08:01.289+0900 I NETWORK  [listener] connection accepted from 127.0.0.1:53710 #1 (1 connection now open)
+
+    2019-05-11T16:08:01.289+0900 I NETWORK  [conn1] received client metadata from 127.0.0.1:53710 conn1: { application: { name: &amp;quot;MongoDB Shell&amp;quot; }, driver: { name: &amp;quot;MongoDB Internal Client&amp;quot;, version: &amp;quot;4.0.9&amp;quot; }, os: { type: &amp;quot;Darwin&amp;quot;, name: &amp;quot;Mac OS X&amp;quot;, architecture: &amp;quot;x86_64&amp;quot;, version: &amp;quot;18.5.0&amp;quot; } }
+&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&#34;-&#34;&gt;구성 파일&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;basedir &amp;amp; utility&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code class=&#34;language- &#34; data-lang=&#34; &#34;&gt;dori:mongo mac$ pwd
+/engn001/mongo
+dori:mongo mac$ ls -ltr
+total 459048
+-rw-r--r--@  1 mac  staff      16726  4 11 11:01 MPL-2
+-rw-r--r--@  1 mac  staff      30608  4 11 11:01 LICENSE-Community.txt
+-rw-r--r--@  1 mac  staff      60005  4 11 11:01 THIRD-PARTY-NOTICES
+-rw-r--r--@  1 mac  staff       2601  4 11 11:01 README
+-rw-r--r--@  1 mac  staff  231720960  5 11 11:00 mongodb-osx-ssl-x86_64-4.0.9.tar
+drwxr-xr-x  15 mac  staff        480  5 11 11:36 bin
+-rw-r--r--   1 mac  staff       1135  5 11 16:07 mongod.cfg
+-rw-------   1 mac  staff       9656  5 11 16:24 logs
+
+dori:mongo mac$ cd bin
+dori:bin mac$ ls -ltr
+total 452384
+-rwxr-xr-x@ 1 mac  staff   9779276  4 11 11:02 bsondump
+-rwxr-xr-x@ 1 mac  staff  10281148  4 11 11:02 mongostat
+-rwxr-xr-x@ 1 mac  staff  10057740  4 11 11:02 mongofiles
+-rwxr-xr-x@ 1 mac  staff  10163612  4 11 11:02 mongoexport
+-rwxr-xr-x@ 1 mac  staff  10297356  4 11 11:02 mongoimport
+-rwxr-xr-x@ 1 mac  staff  10686316  4 11 11:02 mongorestore
+-rwxr-xr-x@ 1 mac  staff  10560476  4 11 11:02 mongodump
+-rwxr-xr-x@ 1 mac  staff   9978172  4 11 11:02 mongotop
+-rwxr-xr-x@ 1 mac  staff  14068648  4 11 11:02 mongoreplay
+-rwxr-xr-x@ 1 mac  staff  39299984  4 11 11:10 mongo
+-rwxr-xr-x@ 1 mac  staff  34009932  4 11 11:16 mongos
+-rwxr-xr-x@ 1 mac  staff  62399084  4 11 11:25 mongod
+-rwxr-xr-x@ 1 mac  staff      7769  4 11 11:28 install_compass
+dori:bin mac$
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;data directory&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code class=&#34;language- &#34; data-lang=&#34; &#34;&gt;dori:mongo mac$ pwd
+/data001/mongo
+dori:mongo mac$ ls -ltr
+total 272
+-rw-------  1 mac  wheel     21  5 11 16:06 WiredTiger.lock
+-rw-------  1 mac  wheel     45  5 11 16:06 WiredTiger
+-rw-------  1 mac  wheel    114  5 11 16:06 storage.bson
+drwx------  4 mac  wheel    128  5 11 16:06 admin
+drwx------  4 mac  wheel    128  5 11 16:06 local
+-rw-------  1 mac  wheel   4096  5 11 16:07 WiredTigerLAS.wt
+drwx------  5 mac  wheel    160  5 11 16:07 journal
+-rw-------  1 mac  wheel  16384  5 11 16:07 _mdb_catalog.wt
+-rw-------  1 mac  wheel      6  5 11 16:07 mongod.lock
+-rw-------  1 mac  wheel  36864  5 11 16:13 sizeStorer.wt
+-rw-------  1 mac  wheel  61440  5 11 16:13 WiredTiger.wt
+-rw-------  1 mac  wheel   1065  5 11 16:13 WiredTiger.turtle
+drwx------  5 mac  wheel    160  5 11 16:28 config
+drwx------  4 mac  wheel    128  5 11 16:28 diagnostic.data
+&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
     
   </channel>

@@ -3,17 +3,27 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://kimdubi.github.io/cloud/</loc>
+    <lastmod>2020-01-10T10:09:05+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/cloud/docker_images/</loc>
+    <lastmod>2020-01-10T10:09:05+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/</loc>
+    <lastmod>2020-01-10T10:09:05+09:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://kimdubi.github.io/etc/docker-redis-cluster/</loc>
     <lastmod>2020-01-09T11:25:53+09:00</lastmod>
   </url>
   
   <url>
     <loc>https://kimdubi.github.io/etc/</loc>
-    <lastmod>2020-01-09T11:25:53+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://kimdubi.github.io/</loc>
     <lastmod>2020-01-09T11:25:53+09:00</lastmod>
   </url>
   

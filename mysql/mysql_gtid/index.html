@@ -141,8 +141,8 @@ server-uuid=ba315763-e7e8-11e9-9c29-0242ac110002
 <pre><code>ba315763-e7e8-11e9-9c29-0242ac110002:4638
 </code></pre><p>=&gt; ba315763-e7e8-11e9-9c29-0242ac110002 server 에서 수행된 4638번 째 트랜잭션을 의미</p>
 <ul>
-<li>GTID는 master &lt;-&gt; slave 간 복제 시작, 중지의 기준이 되었던 binlog file-offset pairs을 대신함
-=&gt; CHANGE MASTER TO 구문의 MASTER_LOG_FILE, MASTER_LOG_POS 필요없음
+<li>GTID는 master &lt;-&gt; slave 간 복제 시작, 중지의 기준이 되었던 binlog file-offset pairs을 대신함<br>
+=&gt; CHANGE MASTER TO 구문의 MASTER_LOG_FILE, MASTER_LOG_POS 필요없음<br>
 =&gt; GTID 만 보면 되기 때문에 replication master - slave 간 일관성 확인이 쉬움</li>
 <li>slave에 반영된 gtid 트랜잭션이 mysql.gtid_executed 로 관리되기 때문에 중복 수행 안됨</li>
 </ul>
@@ -333,18 +333,6 @@ mysql&gt; show slave status\G;
         Retrieved_Gtid_Set: ba315763-e7e8-11e9-9c29-0242ac110002:4641
         Executed_Gtid_Set: ba315763-e7e8-11e9-9c29-0242ac110002:4641
         Auto_Position: 1
-</code></pre><pre><code>* gtid_purge
-</code></pre>
-<pre><code>           Retrieved_Gtid_Set: ba315763-e7e8-11e9-9c29-0242ac110002:1-3:4641
-            Executed_Gtid_Set: ba315763-e7e8-11e9-9c29-0242ac110002:4641
-                Auto_Position: 1
-
-</code></pre><p>=&gt; replication 실패 지점 4641 ~ 1-3:4641</p>
-<pre><code>mysql&gt; set global gtid_purged='ba315763-e7e8-11e9-9c29-0242ac110002:1-3:4641';
-Query OK, 0 rows affected (0.01 sec)
-
-mysql&gt; start slave sql_thread;
-Query OK, 0 rows affected (0.01 sec)
 </code></pre></div>
 
 </main>

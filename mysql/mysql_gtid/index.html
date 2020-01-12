@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL_GTID 란?</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL_GTID 란?</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL_GTID 란?</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><h3 id="gtid-">gtid 란?</h3>
+<ul>
+<li>Global Transaction IDentifiers</li>
+<li>GTID = source_id:transaction_Id  source_id = server_uuid</li>
+</ul>
+<pre><code>[root@c2b2e13b86b9 data]# cat auto.cnf
+[auto]
+server-uuid=ba315763-e7e8-11e9-9c29-0242ac110002
+</code></pre><ul>
+<li>해당 호스트에서 수행한 트랜잭션에 global 한 id 를 commit 순서에 따라 순차적으로 부여함</li>
+</ul>
+<pre><code>ba315763-e7e8-11e9-9c29-0242ac110002:4638
+</code></pre><p>=&gt; ba315763-e7e8-11e9-9c29-0242ac110002 server 에서 수행된 4638번 째 트랜잭션을 의미</p>
+<ul>
+<li>GTID는 master &lt;-&gt; slave 간 복제 시작, 중지의 기준이 되었던 binlog file-offset pairs을 대신함
+=&gt; CHANGE MASTER TO 구문의 MASTER_LOG_FILE, MASTER_LOG_POS 필요없음
+=&gt; GTID 만 보면 되기 때문에 replication master - slave 간 일관성 확인이 쉬움</li>
+<li>slave에 반영된 gtid 트랜잭션이 mysql.gtid_executed 로 관리되기 때문에 중복 수행 안됨</li>
+</ul>
+<h3 id="gtid-1">GTID 적용</h3>
+<ul>
+<li>적용 전 필수 옵션</li>
+</ul>
+<pre><code>* gtid_mode
+* log-bin
+* log_slave_updates
+* enforce-gtid-consistency
+</code></pre><p>=&gt; mysql.gtid_executed 테이블 등장 전에는 log_bin, log_slave_updates<br>
+옵션이 모든 db에서 필수였지만 등장 후로는 master , master candidate slave서버에서만 켜줘도 됨</p>
+<ul>
+<li>master_log_file / pos 기반 replication</li>
+</ul>
+<pre><code>mysql&gt; show slave status\G;
+*************************** 1. row ***************************
+               Slave_IO_State: Waiting for master to send event
+                  Master_Host: 172.17.0.4
+                  Master_User: replUser
+                  Master_Port: 3306
+                Connect_Retry: 60
+              Master_Log_File: binlog.000005
+          Read_Master_Log_Pos: 195
+               Relay_Log_File: relay-bin.000002
+                Relay_Log_Pos: 319
+        Relay_Master_Log_File: binlog.000005
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+</code></pre><ul>
+<li>enforce-gtid-consistency 옵션 ON (M/S)</li>
+</ul>
+<pre><code>mysql&gt; set global enforce_gtid_consistency=warn;
+Query OK, 0 rows affected (0.05 sec)
+</code></pre><pre><code>mysql&gt; create table tb_test2 as select * From tb_test;
+Query OK, 112000 rows affected, 1 warning (26.61 sec)
+Records: 112000  Duplicates: 0  Warnings: 1
+
+mysql&gt; show warnings;
++---------+------+---------------------------------------------------------------+
+| Level   | Code | Message                                                       |
++---------+------+---------------------------------------------------------------+
+| Warning | 1786 | Statement violates GTID consistency: CREATE TABLE ... SELECT. |
++---------+------+---------------------------------------------------------------+
+1 row in set (0.00 sec)
+</code></pre><p>=&gt; GTID mode 에선 CTAS 불가<br>
+warn 상태에서는 허용하되 warning 남기는데 이런 쿼리들을 전부 수정 후 enforce_gtid_consistency 옵션을 ON 해야함</p>
+<pre><code>mysql&gt; set global enforce_gtid_consistency=ON;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql&gt; create table tb_test3 as select * From tb_test;
+ERROR 1786 (HY000): Statement violates GTID consistency: CREATE TABLE ... SELECT.
+</code></pre><ul>
+<li>gtid_mode off_permissive 로 전환 ( M/S )</li>
+</ul>
+<pre><code>mysql&gt; set global gtid_mode=off_permissive;
+Query OK, 0 rows affected (0.01 sec)
+</code></pre><p>=&gt; GTID 트랜잭션이 전달되어도 처리할 수 있는 mode</p>
+<ul>
+<li>gtid_mode on_permissive 로 전환 ( M/S )</li>
+</ul>
+<pre><code>mysql&gt; set global gtid_mode=on_permissive;
+Query OK, 0 rows affected (0.01 sec)
+</code></pre><pre><code>#200112  8:10:28 server id 64  end_log_pos 687 CRC32 0x089d71a4         GTID    last_committed=2        sequence_number=3       rbr_only=no     original_committed_timestamp=1578816628033859   immediate_commit_timestamp=1578816628033859     transaction_length=308
+
+SET @@SESSION.GTID_NEXT= 'ba315763-e7e8-11e9-9c29-0242ac110002:4641'/*!*/;
+
+
+# at 773
+#200112  8:10:28 server id 64  end_log_pos 885 CRC32 0x645cb197         Query   thread_id=7     exec_time=0     error_code=0
+SET TIMESTAMP=1578816628/*!*/;
+insert into gtid_test values(1)
+/*!*/;
+
+# at 885
+#200112  8:10:28 server id 64  end_log_pos 916 CRC32 0x59107b8a         Xid = 32
+COMMIT/*!*/;
+
+SET @@SESSION.GTID_NEXT= 'AUTOMATIC' /* added by mysqlbinlog */ /*!*/;
+</code></pre><p>=&gt; SET @@SESSION.GTID_NEXT= &lsquo;ba315763-e7e8-11e9-9c29-0242ac110002:4641&rsquo;/<em>!</em>/;<br>
+binlog 에 기록할 트랜잭션의 GTID 를 설정하고 binlog 기록<br>
+SET @@SESSION.GTID_NEXT= &lsquo;AUTOMATIC&rsquo; /* added by mysqlbinlog */ /*!*/;<br>
+그 후 다시 AUTOMATIC 으로 설정</p>
+<pre><code>#200105  6:28:30 server id 64  end_log_pos 155 CRC32 0xcf5b09e0         Previous-GTIDs
+# [empty]
+#200105  7:19:42 server id 64  end_log_pos 202 CRC32 0xe4311d63         Rotate to mysql-bin.000026  pos: 4
+SET @@SESSION.GTID_NEXT= 'AUTOMATIC' /* added by mysqlbinlog */ /*!*/;
+
+.
+.
+SET @@SESSION.GTID_NEXT= 'ba315763-e7e8-11e9-9c29-0242ac110002:1'/*!*/;
+</code></pre><p>=&gt; GTID 첫 설정이면 위와 같이 empty 로 보임</p>
+<ul>
+<li>GTID 없는 트랜잭션 확인</li>
+</ul>
+<pre><code>mysql&gt; show global status like 'ongoing%';
++----------------------------------------------------+-------+
+| Variable_name                                      | Value |
++----------------------------------------------------+-------+
+| Ongoing_anonymous_gtid_violating_transaction_count | 0     |
+| Ongoing_anonymous_transaction_count                | 0     |
+| Ongoing_automatic_gtid_violating_transaction_count | 0     |
++----------------------------------------------------+-------+
+3 rows in set (0.05 sec)
+</code></pre><p>=&gt; 위 값이 0이면 정상</p>
+<ul>
+<li>gtid_mode on으로 전환 ( M/S )</li>
+</ul>
+<pre><code>mysql&gt; set global gtid_mode=on;
+Query OK, 0 rows affected (0.01 sec)
+</code></pre><p>=&gt; 모든 트랜잭션이 gtid mode 이며 아닌 트랜잭션은 실행이 안되는 상태</p>
+<ul>
+<li>replication 재설정 ( S )</li>
+</ul>
+<pre><code>mysql&gt; change master to
+    -&gt; master_auto_position=1;
+</code></pre><p>=&gt; master_log_file / master_log_pos 옵션 대신 master_auto_position 사용</p>
+<ul>
+<li>
+<p>replication 실패</p>
+<ul>
+<li>gtid_next 활용</li>
+</ul>
+</li>
+</ul>
+<pre><code>mysql&gt; show slave status\G;
+*************************** 1. row ***************************
+               Slave_IO_State: Waiting for master to send event
+
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: No
+                   Last_Errno: 1049
+                   Last_Error: Error 'Unknown database 'testdb'' on query. Default database: 'testdb'. Query: 'insert into gtid_test values(1)'
+
+               Last_SQL_Errno: 1049
+               Last_SQL_Error: Error 'Unknown database 'testdb'' on query. Default database: 'testdb'. Query: 'insert into gtid_test values(1)'
+  Replicate_Ignore_Server_Ids:
+             Master_Server_Id: 64
+                  Master_UUID: ba315763-e7e8-11e9-9c29-0242ac110002
+             Master_Info_File: mysql.slave_master_info
+
+     Last_SQL_Error_Timestamp: 200112 10:36:35
+               Master_SSL_Crl:
+           Master_SSL_Crlpath:
+           Retrieved_Gtid_Set: ba315763-e7e8-11e9-9c29-0242ac110002:4641
+            Executed_Gtid_Set:
+                Auto_Position: 1
+ 
+1 row in set (0.01 sec)
+</code></pre><p>=&gt; ba315763-e7e8-11e9-9c29-0242ac110002:4641 트랜잭션을 slave에서 반영하려는데 실패함</p>
+<pre><code>mysql&gt; set global sql_slave_skip_counter=1;
+ERROR 1858 (HY000): sql_slave_skip_counter can not be set when the server is running with @@GLOBAL.GTID_MODE = ON. Instead, for each transaction that you want to skip, generate an empty transaction with the same GTID as the transaction
+</code></pre><p>=&gt; GTID 상태에선 sql_slave_skip_counter 수행 불가</p>
+<pre><code>mysql&gt; set @@session.gtid_next='ba315763-e7e8-11e9-9c29-0242ac110002:4641';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; commit;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; set gtid_next='AUTOMATIC';
+Query OK, 0 rows affected (0.01 sec)
+</code></pre><p>=&gt; 4641 transaction 이 실패했기 때문에 4641을 트랜잭션을 empty 트랜잭션 처리하는 방법</p>
+<pre><code>mysql&gt; start slave;
+Query OK, 0 rows affected (0.02 sec)
+
+mysql&gt; show slave status\G;
+*************************** 1. row ***************************
+               Slave_IO_State: Waiting for master to send event
+                  Master_Host: 172.17.0.2
+                  Master_User: replUser
+                  Master_Port: 3306
+                Connect_Retry: 60
+              Master_Log_File: binlog.000001
+          Read_Master_Log_Pos: 463
+               Relay_Log_File: relay-bin.000002
+                Relay_Log_Pos: 671
+        Relay_Master_Log_File: binlog.000001
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+
+.
+.
+
+        Retrieved_Gtid_Set: ba315763-e7e8-11e9-9c29-0242ac110002:4641
+        Executed_Gtid_Set: ba315763-e7e8-11e9-9c29-0242ac110002:4641
+        Auto_Position: 1
+</code></pre><pre><code>* gtid_purge
+</code></pre>
+<pre><code>           Retrieved_Gtid_Set: ba315763-e7e8-11e9-9c29-0242ac110002:1-3:4641
+            Executed_Gtid_Set: ba315763-e7e8-11e9-9c29-0242ac110002:4641
+                Auto_Position: 1
+
+</code></pre><p>=&gt; replication 실패 지점 4641 ~ 1-3:4641</p>
+<pre><code>mysql&gt; set global gtid_purged='ba315763-e7e8-11e9-9c29-0242ac110002:1-3:4641';
+Query OK, 0 rows affected (0.01 sec)
+
+mysql&gt; start slave sql_thread;
+Query OK, 0 rows affected (0.01 sec)
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

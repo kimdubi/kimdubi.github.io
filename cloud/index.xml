@@ -18,7 +18,8 @@
       <guid>https://kimdubi.github.io/cloud/docker_images/</guid>
       <description>&lt;p&gt;요 며칠 간 docker-compose 로 redis 나 mysql container 생성하는 방법을 공유했습니다.&lt;br&gt;
 &lt;!-- raw HTML omitted --&gt;&lt;a href=&#34;https://kimdubi.github.io/etc/&#34;&gt;https://kimdubi.github.io/etc/&lt;/a&gt; &lt;!-- raw HTML omitted --&gt;&lt;!-- raw HTML omitted --&gt;
-이 과정에서 Docker Image 의 중요성에 대해 새삼 다시 느끼게 되어 정리하는 시간을 가지고자&amp;hellip;&lt;br&gt;
+이 과정에서 Docker Image 의 중요성에 대해
+새삼 다시 느끼게 되어 정리하는 시간을 가지고자&amp;hellip;&lt;br&gt;
 이번 글에서는 docker의 image 에 대해 소개하겠습니다.&lt;/p&gt;
 &lt;h2 id=&#34;u-docker-image-u&#34;&gt;&lt;!-- raw HTML omitted --&gt; Docker Image &lt;!-- raw HTML omitted --&gt;&lt;/h2&gt;
 &lt;p&gt;Docker 에서 가장 중요한 두 축은 Container 와 Image 라고 생각합니다.&lt;br&gt;
@@ -31,7 +32,7 @@ Docker Image는 container를 띄우는데 필요한 모든 파일이나 설정�
 추가로 한다쳐도 Container는 독립적이니 다른 Container에 영향을 끼칠 게 없다&lt;br&gt;
 =&amp;gt; &amp;ldquo;dependency 꼬일 일 없이 서비스를 띄울 수 있다&amp;rdquo;&lt;/p&gt;
 &lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/docker_1.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;AL01542225:~ nhn$ docker search centos
+&lt;pre&gt;&lt;code&gt;kimdubi:~ kimdubi$ docker search centos
 NAME                               DESCRIPTION                                     STARS               OFFICIAL            AUTOMATED
 centos                             The official build of CentOS.                   5763                [OK]
 ansible/centos7-ansible            Ansible on Centos7                              126                                     [OK]
@@ -62,42 +63,42 @@ centos, mysql, nginx 등등 정말 다양한 image 가 있으니 필요한 것�
 A+B+C+ nginx + web app source_v2 모든 레이어를 다시 받아오는 게 아니라
 web app source_v2 라는 새로운 레이어만 받아오면 되기 때문에 굉장히 효율적입니다.&lt;/p&gt;
 &lt;h3 id=&#34;docker-image-layer-&#34;&gt;Docker image layer 확인&lt;/h3&gt;
-&lt;p&gt;기본 centos image로 layer_test, layer_test2 image 를 만들어 정말 layer 구성으로 되는지 확인해보겠습니다.&lt;/p&gt;
+&lt;p&gt;기본 centos image로 centos, centos2, centos3 image 를 만들어 정말 layer 구성으로 되는지 확인해보겠습니다.&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;* centos image
 * centos2 image = centos + a
-* centos3 image = centos_2 + b
+* centos3 image = centos2 + b
 &lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
 &lt;li&gt;centos image 준비&lt;/li&gt;
 &lt;/ul&gt;
-&lt;pre&gt;&lt;code&gt;AL01542225:~ nhn$ docker images | grep centos
+&lt;pre&gt;&lt;code&gt;kimdubi:~ kimdubi$ docker images | grep centos
 centos                    latest              67fa590cfc1c        4 months ago        202MB
 &lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
 &lt;li&gt;centos container 생성&lt;/li&gt;
 &lt;/ul&gt;
-&lt;pre&gt;&lt;code&gt;AL01542225:~ nhn$ docker run -d -it --name centos centos:latest
+&lt;pre&gt;&lt;code&gt;kimdubi:~ kimdubi$ docker run -d -it --name centos centos:latest
 908a06abf004551684c784bf83579d93293cfc4f94e1c9978554621afd362b3d
 
-AL01542225:~ nhn$ docker ps
+kimdubi:~ kimdubi$ docker ps
 CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
 908a06abf004        centos:latest       &amp;quot;/bin/bash&amp;quot;         14 seconds ago      Up 14 seconds                           centos
 &lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
 &lt;li&gt;파일 추가 ( 새로운 layer 추가 )&lt;/li&gt;
 &lt;/ul&gt;
-&lt;pre&gt;&lt;code&gt;AL01542225:~ nhn$ de 908 /bin/bash
+&lt;pre&gt;&lt;code&gt;kimdubi:~ kimdubi$ de 908 /bin/bash
 [root@908a06abf004 /]# fallocate -l 2G layertest
 [root@908a06abf004 /]# ls -ltr layertest
 -rw-r--r-- 1 root root 2147483648 Jan 10 16:17 layertest
 &lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
 &lt;li&gt;변경된 내용 commit 하여 새로운 centos2 image 생성&lt;/li&gt;
 &lt;/ul&gt;
-&lt;pre&gt;&lt;code&gt;AL01542225:~ nhn$ docker commit centos centos2
+&lt;pre&gt;&lt;code&gt;kimdubi:~ kimdubi$ docker commit centos centos2
 sha256:505f52d32377641f5eccdce9ce28db8c00cbd623065420b250b4d418d4a1597c
 
 
-AL01542225:~ nhn$ docker run -d -it --name centos2 centos2
+kimdubi:~ kimdubi$ docker run -d -it --name centos2 centos2
 f6895c211f404735b7ba5b1e2e32f44fc18e96d8ae6babe98e0f21785aa5461a
 
-AL01542225:~ nhn$ de f689 /bin/bash
+kimdubi:~ kimdubi$ de f689 /bin/bash
 
 [root@f6895c211f40 /]# fallocate -l 2G layertest2
 [root@f6895c211f40 /]# ls -ltr layertest2
@@ -105,27 +106,27 @@ AL01542225:~ nhn$ de f689 /bin/bash
 &lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
 &lt;li&gt;centos3 Image 도 동일하게 생성&lt;/li&gt;
 &lt;/ul&gt;
-&lt;pre&gt;&lt;code&gt;AL01542225:~ nhn$ docker commit centos2 centos3
+&lt;pre&gt;&lt;code&gt;kimdubi:~ kimdubi$ docker commit centos2 centos3
 sha256:9d82b922d5e7053aee3bed1628feb87dfaa020e552932bf11ca68de9d76b518c
 
-AL01542225:~ nhn$ docker run -d -it --name centos3 centos3
+kimdubi:~ kimdubi$ docker run -d -it --name centos3 centos3
 10fd843d74e87444503e39d53fa6eb03585e0d83eee44a095c628dfffa4072f0
 &lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
 &lt;li&gt;생성된 image 확인&lt;/li&gt;
 &lt;/ul&gt;
-&lt;pre&gt;&lt;code&gt;AL01542225:~ nhn$ docker images | grep centos
+&lt;pre&gt;&lt;code&gt;kimdubi:~ kimdubi$ docker images | grep centos
 centos3                   latest              9d82b922d5e7        8 minutes ago       4.5GB
 centos2                   latest              505f52d32377        11 minutes ago      2.35GB
 centos                    latest              67fa590cfc1c        4 months ago        202MB
 &lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
 &lt;li&gt;layer 확인&lt;/li&gt;
 &lt;/ul&gt;
-&lt;pre&gt;&lt;code&gt;AL01542225:~ nhn$ docker inspect 9d82b922d5e7 | grep Parent
+&lt;pre&gt;&lt;code&gt;kimdubi:~ kimdubi$ docker inspect 9d82b922d5e7 | grep Parent
         &amp;quot;Parent&amp;quot;: &amp;quot;sha256:505f52d32377641f5eccdce9ce28db8c00cbd623065420b250b4d418d4a1597c&amp;quot;,
-AL01542225:~ nhn$ docker inspect 505f52d32377 | grep Parent
+kimdubi:~ kimdubi$ docker inspect 505f52d32377 | grep Parent
         &amp;quot;Parent&amp;quot;: &amp;quot;sha256:67fa590cfc1c207c30b837528373f819f6262c884b7e69118d060a0c04d70ab8&amp;quot;,
 &lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; centos3 의 parent 는 centos2, centos2의 parent는 centos 확인&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;AL01542225:~ nhn$ docker ps -s | grep centos
+&lt;pre&gt;&lt;code&gt;kimdubi:~ kimdubi$ docker ps -s | grep centos
 10fd843d74e8        centos3             &amp;quot;/bin/bash&amp;quot;         13 seconds ago      Up 10 seconds                           centos3             0B (virtual 4.5GB)
 f6895c211f40        centos2             &amp;quot;/bin/bash&amp;quot;         3 minutes ago       Up 3 minutes                            centos2             2.15GB (virtual 4.5GB)
 908a06abf004        centos:latest       &amp;quot;/bin/bash&amp;quot;         5 minutes ago       Up 5 minutes                            centos              2.15GB (virtual 2.35GB)

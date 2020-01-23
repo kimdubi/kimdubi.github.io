@@ -35,6 +35,36 @@ server-uuid=ba315763-e7e8-11e9-9c29-0242ac110002
 =&amp;gt; GTID 만 보면 되기 때문에 replication master - slave 간 일관성 확인이 쉬움&lt;/li&gt;
 &lt;li&gt;slave에 반영된 gtid 트랜잭션이 mysql.gtid_executed 로 관리되기 때문에 중복 수행 안됨&lt;/li&gt;
 &lt;/ul&gt;
+&lt;h3 id=&#34;gtid-life-cycle&#34;&gt;GTID life cycle&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Master) 트랜잭션 실행 후 커밋되면 GTID를 할당 받고 master의 binlog 에 기록됨&lt;/li&gt;
+&lt;li&gt;할당된 GTID 는 gtid_executed system variable 과 mysql.gtid_executed 에 저장됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select @@global.gtid_executed;
++------------------------------------------+
+| @@global.gtid_executed                   |
++------------------------------------------+
+| ba315763-e7e8-11e9-9c29-0242ac110002:1-3 |
++------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql&amp;gt; select * from mysql.gtid_executed;
++--------------------------------------+----------------+--------------+
+| source_uuid                          | interval_start | interval_end |
++--------------------------------------+----------------+--------------+
+| ba315763-e7e8-11e9-9c29-0242ac110002 |              1 |            1 |
+| ba315763-e7e8-11e9-9c29-0242ac110002 |              2 |            2 |
+| ba315763-e7e8-11e9-9c29-0242ac110002 |              3 |            3 |
++--------------------------------------+----------------+--------------+
+3 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; DB에 이 GTID 까지 반영이 되었다는 것을 보장함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Slave ) master 의 binlog =&amp;gt; slave relay log로 저장된 후 slave 는 GTID 를 읽고 gtid_next 값을 설정함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;SET @@SESSION.GTID_NEXT= &#39;ba315763-e7e8-11e9-9c29-0242ac110002:3&#39;/*!*/;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;Slave ) gtid_executed 를 확인하여 해당 GTID가 DBB에 미반영 건임을 확인 후 DBB에 반영함&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h3 id=&#34;gtid-1&#34;&gt;GTID 적용&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;적용 전 필수 옵션&lt;/li&gt;
@@ -78,7 +108,7 @@ mysql&amp;gt; show warnings;
 | Warning | 1786 | Statement violates GTID consistency: CREATE TABLE ... SELECT. |
 +---------+------+---------------------------------------------------------------+
 1 row in set (0.00 sec)
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; GTID mode 에선 CTAS 불가&lt;br&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; GTID mode 에선 CTAS , CREATE TEMPORARY TABLE(트랜잭션 안에서) 불가
 warn 상태에서는 허용하되 warning 남기는데 이런 쿼리들을 전부 수정 후 enforce_gtid_consistency 옵션을 ON 해야함&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;mysql&amp;gt; set global enforce_gtid_consistency=ON;
 Query OK, 0 rows affected (0.01 sec)
@@ -150,13 +180,9 @@ Query OK, 0 rows affected (0.01 sec)
 &lt;pre&gt;&lt;code&gt;mysql&amp;gt; change master to
     -&amp;gt; master_auto_position=1;
 &lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; master_log_file / master_log_pos 옵션 대신 master_auto_position 사용&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;replication 실패&lt;/p&gt;
+&lt;h3 id=&#34;replication-&#34;&gt;replication 실패하면?&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;gtid_next 활용&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
 &lt;/ul&gt;
 &lt;pre&gt;&lt;code&gt;mysql&amp;gt; show slave status\G;
 *************************** 1. row ***************************

@@ -5,10 +5,162 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 12 Jan 2020 21:00:27 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 07 Mar 2020 17:56:41 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Xtrabackup 8.0 잡다구리 정보</title>
+      <link>https://kimdubi.github.io/mysql/xtrabackup_8/</link>
+      <pubDate>Sat, 07 Mar 2020 17:56:41 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/xtrabackup_8/</guid>
+      <description>&lt;p&gt;mysql8.0 버전부터 xtrabackup 을 사용하려면 기존 2.x 버전이 아닌 xtrabackup 8.0 버전을 사용해야 합니다.&lt;br&gt;
+mysql 8.0 버전이 되면서 아래와 같은 이유로 기존 2.x 버전에서 호환이 되지 않기 때문인데요&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;data dictionary 를 따로 사용하게 되고 시스템 테이블들을 MyISAM 엔진이 아닌 innodb 사용&lt;/li&gt;
+&lt;li&gt;redo / undo log 변경사항&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;특히 8.0 으로 올라오면서 시스템 테이블 등에 기본적으로 MyISAM 을 쓰지 않는 것이 default 설정이 되면서 &lt;!-- raw HTML omitted --&gt;
+xtrabackup 내부적으로도 MyISAM 테이블이 없으면 &amp;ndash;no-lock 옵션이 없더라도 &lt;!-- raw HTML omitted --&gt;
+flush tables with read lock 을 수행하지 않습니다.  &lt;!-- raw HTML omitted --&gt;
+그닥 중요하거나 신기한 변경사항은 아니지만 기록용으로 남겨둡니다. &lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;h3 id=&#34;mysql-57--xtrabackup-24x&#34;&gt;MySQL 5.7 &amp;amp;&amp;amp; xtrabackup 2.4.x&lt;/h3&gt;
+&lt;h4 id=&#34;nolock---&#34;&gt;&amp;ndash;no-lock 옵션 없을 때&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;backup log&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;innobackupex --defaults-file=/engn001/mysql57/my.cnf --user=root --password=&#39;qhdks123&#39; --backup .
+.
+.
+200303 13:39:59 [01] Copying ./sys/sys_config.ibd to /engn001/2020-03-03_13-39-56/sys/sys_config.ibd
+200303 13:39:59 [01]        ...done
+200303 13:39:59 &amp;gt;&amp;gt; log scanned up to (2630184)
+200303 13:40:00 Executing FLUSH NO_WRITE_TO_BINLOG TABLES...
+200303 13:40:00 Executing FLUSH TABLES WITH READ LOCK...
+200303 13:40:00 Starting to backup non-InnoDB tables and files
+200303 13:40:00 [01] Copying ./mysql/event.MYD to /engn001/2020-03-03_13-39-56/mysql/event.MYD
+200303 13:40:00 [01]        ...done
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;general log&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;2020-03-03T13:40:00.150174Z        33 Query     FLUSH NO_WRITE_TO_BINLOG TABLES
+2020-03-03T13:40:00.158230Z        33 Query     FLUSH TABLES WITH READ LOCK
+2020-03-03T13:40:00.668616Z        33 Query     SHOW MASTER STATUS
+2020-03-03T13:40:00.668860Z        33 Query     SHOW VARIABLES
+2020-03-03T13:40:00.673065Z        33 Query     FLUSH NO_WRITE_TO_BINLOG ENGINE LOGS
+2020-03-03T13:40:00.881970Z        33 Query     UNLOCK TABLES
+2020-03-03T13:40:00.886962Z        33 Query     SELECT UUID()
+2020-03-03T13:40:00.887344Z        33 Query     SELECT VERSION()
+&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&#34;nolock---1&#34;&gt;&amp;ndash;no-lock 옵션 줬을 때&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;backup log&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;innobackupex --defaults-file=/engn001/mysql57/my.cnf --user=root --password=&#39;qhdks123&#39; --no-lock --backup .
+.
+.
+200303 13:47:33 &amp;gt;&amp;gt; log scanned up to (2630184)
+200303 13:47:33 Starting to backup non-InnoDB tables and files
+200303 13:47:33 [01] Copying ./mysql/event.MYD to /engn001/2020-03-03_13-47-32/mysql/event.MYD
+200303 13:47:33 [01]        ...done
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;general_log&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;2020-03-03T13:47:32.484331Z        42 Query     SHOW VARIABLES
+2020-03-03T13:47:32.488614Z        42 Query     SHOW ENGINE INNODB STATUS
+2020-03-03T13:47:34.362662Z        42 Query     SHOW MASTER STATUS
+2020-03-03T13:47:34.362883Z        42 Query     SHOW VARIABLES
+2020-03-03T13:47:34.371905Z        42 Query     FLUSH NO_WRITE_TO_BINLOG ENGINE LOGS
+2020-03-03T13:47:34.388615Z        42 Query     SELECT UUID()
+2020-03-03T13:47:34.388893Z        42 Query     SELECT VERSION()
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;mysql-80--xtrabackup-80&#34;&gt;MySQL 8.0 &amp;amp;&amp;amp; Xtrabackup 8.0&lt;/h3&gt;
+&lt;h4 id=&#34;myisam----nolock--&#34;&gt;MyISAM 테이블 있음 &amp;amp;&amp;amp; &amp;ndash;no-lock 옵션 없이&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;backup log&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;xtrabackup --defaults-file=/engn001/mysql/my.cnf -uroot -p  --backup
+.
+.
+
+200303 07:48:24 Executing FLUSH NO_WRITE_TO_BINLOG TABLES...
+200303 07:48:24 Executing FLUSH TABLES WITH READ LOCK...
+200303 07:48:24 Starting to backup non-InnoDB tables and files
+200303 07:48:24 [01] Copying mysql/slow_log_202.sdi to /engn001/xtrabackup_backupfiles/mysql/slow_log_202.sdi
+200303 07:48:24 [01]        ...done
+
+.
+.
+200303 06:46:30 Executing FLUSH NO_WRITE_TO_BINLOG ENGINE LOGS...
+xtrabackup: The latest check point (for incremental): &#39;2270681168&#39;
+200303 06:46:30 &amp;gt;&amp;gt; log scanned up to (2270681168)
+xtrabackup: Stopping log copying thread at LSN 2270681168.
+200303 06:46:30 &amp;gt;&amp;gt; log scanned up to (2270681168)
+
+200303 06:46:30 Executing UNLOCK TABLES
+200303 06:46:30 All tables unlocked
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;general log&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;2020-03-03T06:46:30.288188Z       115 Query     FLUSH NO_WRITE_TO_BINLOG TABLES
+2020-03-03T06:46:30.293380Z       115 Query     FLUSH TABLES WITH READ LOCK
+2020-03-03T06:46:30.626076Z       115 Query     SELECT server_uuid, local, replication, storage_engines FROM performance_schema.log_status
+2020-03-03T06:46:30.629071Z       115 Query     SHOW VARIABLES
+2020-03-03T06:46:30.637192Z       115 Query     FLUSH NO_WRITE_TO_BINLOG ENGINE LOGS
+2020-03-03T06:46:30.644805Z       115 Query     UNLOCK TABLES
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; MyISAM 있을 땐 &amp;ndash;no-lock 조건 없으면 마찬가지로 flush tables / read lock 적용&lt;/p&gt;
+&lt;h4 id=&#34;myisam----nolock--1&#34;&gt;MyISAM 테이블 없음 &amp;amp;&amp;amp; &amp;ndash;no-lock 옵션 없음&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;backup log&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;xtrabackup --defaults-file=/engn001/mysql/my.cnf -uroot -p  --backup
+.
+.
+.
+200303 08:05:28 [01]        ...done
+200303 08:05:29 Starting to backup non-InnoDB tables and files
+200303 08:05:29 [01] Copying mysql/slow_log_202.sdi to /engn001/xtrabackup_backupfiles/mysql/slow_log_202.sdi
+200303 08:05:29 [01]        ...done
+200303 08:05:29 [01] Copying mysql/general_log.CSM to /engn001/xtrabackup_backupfiles/mysql/general_log.CSM
+200303 08:05:29 [01]        ...done
+.
+.
+.
+200303 08:05:29 Finished backing up non-InnoDB tables and files
+200303 08:05:29 Selecting LSN and binary log position from p_s.log_status
+200303 08:05:29 [00] Writing /engn001/xtrabackup_backupfiles/xtrabackup_binlog_info
+200303 08:05:29 [00]        ...done
+200303 08:05:29 Executing FLUSH NO_WRITE_TO_BINLOG ENGINE LOGS...
+xtrabackup: The latest check point (for incremental): &#39;2270782327&#39;
+xtrabackup: Stopping log copying thread at LSN 2270782327.
+.200303 08:05:29 &amp;gt;&amp;gt; log scanned up to (2270788317)
+200303 08:05:29 &amp;gt;&amp;gt; log scanned up to (2270788317)
+
+200303 08:05:29 All tables unlocked
+.
+.
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;general log&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;2020-03-03T07:28:11.578919Z       119 Connect   root@localhost on  using Socket
+2020-03-03T07:28:11.594249Z       120 Connect   root@localhost on  using Socket
+2020-03-03T07:28:11.596458Z       120 Query     SET SESSION wait_timeout=2147483
+2020-03-03T07:28:11.603802Z       120 Query     SET SESSION autocommit=1
+2020-03-03T07:28:11.604306Z       120 Query     SHOW VARIABLES
+2020-03-03T07:28:11.612669Z       120 Query     SELECT COUNT(*) FROM information_schema.tables WHERE engine = &#39;MyISAM&#39;
+2020-03-03T07:28:11.642523Z       120 Query     SHOW ENGINE INNODB STATUS
+2020-03-03T07:28:11.773417Z       120 Query     SELECT PLUGIN_NAME, PLUGIN_LIBRARY FROM information_schema.plugins WHERE PLUGIN_STATUS = &#39;ACTIVE&#39; AND PLUGIN_TYPE = &#39;KEYRING&#39;
+2020-03-03T07:28:11.778923Z       120 Query     SELECT  CONCAT(table_schema, &#39;/&#39;, table_name), engine FROM information_schema.tables WHERE engine NOT IN (&#39;MyISAM&#39;, &#39;InnoDB&#39;, &#39;CSV&#39;, &#39;MRG_MYISAM&#39;) AND table_schema NOT IN (  &#39;performance_schema&#39;, &#39;information_schema&#39;,   &#39;mysql&#39;)
+2020-03-03T07:28:11.858571Z       120 Query     SELECT FILE_NAME, TABLESPACE_NAME  FROM INFORMATION_SCHEMA.FILES  WHERE ENGINE = &#39;InnoDB&#39;    AND STATUS = &#39;NORMAL&#39;    AND FILE_TYPE &amp;lt;&amp;gt; &#39;TEMPORARY&#39;    AND FILE_TYPE &amp;lt;&amp;gt; &#39;UNDO LOG&#39;    AND FILE_ID &amp;lt;&amp;gt; 0
+2020-03-03T07:28:17.591374Z       120 Query     SELECT server_uuid, local, replication, storage_engines FROM performance_schema.log_status
+2020-03-03T07:28:17.593575Z       120 Query     SHOW VARIABLES
+2020-03-03T07:28:17.605901Z       120 Query     FLUSH NO_WRITE_TO_BINLOG ENGINE LOGS
+2020-03-03T07:28:17.816881Z       120 Query     SELECT UUID()
+2020-03-03T07:28:17.818017Z       120 Query     SELECT VERSION()
+2020-03-03T07:28:17.933089Z       120 Quit
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; MyISAM 없으면 &amp;ndash;no-lock 조건 없이도  lock 자체를 안걸음&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>MySQL_GTID 란?</title>

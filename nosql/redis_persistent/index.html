@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Redis persistent</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Redis persistent</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Redis persistent</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>Redis 와 Memcached 를 가장 크게 구분짓는 특징은 무엇일까요?<br>
+간단하게는 아래와 같은 특징들이 있는데</p>
+<ul>
+<li>Key-Value 만 지원하는 Memcached 에 비해 Key-value , list , hash , set , sorted set 다양한 자료구조를 지원</li>
+<li>Redis의 데이터를 디스크로 저장하는 Persistent 기능</li>
+</ul>
+<p>이번 글에서는 그 중에서도 data 영속성에 대해 다뤄보겠습니다.</p>
+<h3 id="rdb">RDB</h3>
+<p>Redis 인스턴스의 현재 메모리에 대한 dump (스냅샷) 를 생성하는 기능</p>
+<h4 id="rdb-">RDB 설정</h4>
+<pre><code>save &quot;&quot;
+#save 900 1
+#save 300 10
+#save 60 10000
+
+rdbchecksum yes
+stop-writes-on-bgsave-error no
+rdbcompression yes
+
+dbfilename redis_6001.rdb
+</code></pre><ul>
+<li>save : save <!-- raw HTML omitted --> <!-- raw HTML omitted --> 의 형태
+<ul>
+<li>save 900 1 =&gt; 900초 안에 1번 이상의 변경이 생기면 RDB 생성하겠다는 의미</li>
+<li>save &quot;&rdquo; =&gt; 자동으로 RDB를 생성하지 않고 수동으로 bgsave , save 커맨드를 통해 생성하겠다는 의미</li>
+<li>bgsave : RDB 생성 작업을 backgroundd process 로 수행</li>
+<li>save : redis의 single thread로 RDB 생성작업을 수행하기 때문에 다른 모든 작업이 대기하게됨</li>
+</ul>
+</li>
+<li>rdbchecksum : rdb 파일이 정상적으로 저장되었는지 checksum 을 파일의 끝에 넣는 옵션</li>
+<li>stop-writes-on-bgsave-error : RDB 저장이 실패하는 경우 write blocking 하는 기능으로 read 는 가능함
+<ul>
+<li>디스크 여유공간이 없을 때</li>
+<li>RDB 생성 중 메모리 부족으로 작업 실패</li>
+<li>기타 등등의 이유로 실패함</li>
+</ul>
+</li>
+</ul>
+<pre><code>127.0.0.1:6379&gt; bgsave
+102:M 08 Mar 2020 06:11:07.159 * Background saving started by pid 125
+Background saving started
+127.0.0.1:6379&gt; 125:C 08 Mar 2020 06:11:07.160 # Failed opening the RDB file dump.rdb (in server root dir unknown) for saving: No such file or directory
+                102:M 08 Mar 2020 06:11:07.220 # Background saving error
+127.0.0.1:6379&gt;
+127.0.0.1:6379&gt; set a 1
+
+(error) MISCONF Redis is configured to save RDB snapshots, but it is currently not able to persist on disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.
+</code></pre><p>=&gt; RDB 작업 실패로 write blocking 된 현상</p>
+<ul>
+<li>rdbcompression : rdb dump파일 압축 여부, 압축 알고리즘은 LZF</li>
+<li>dbfilename : rdb dump파일의 이름 설정</li>
+</ul>
+<h4 id="rdb--info-">RDB 관련 info 조회</h4>
+<pre><code>127.0.0.1:6379&gt; info persistence
+# Persistence
+loading:0
+rdb_changes_since_last_save:1
+rdb_bgsave_in_progress:0
+rdb_last_save_time:1583647845
+rdb_last_bgsave_status:err
+rdb_last_bgsave_time_sec:0
+rdb_current_bgsave_time_sec:-1
+rdb_last_cow_size:180224
+</code></pre><p>=&gt; 마지막 RDB 작업 성공 여부, 걸린 시간 등을 파악할 수 있음</p>
+<h3 id="rdb--">RDB 주의할 점</h3>
+<ul>
+<li>save 커맨드 수행 시엔 조심 !!
+<ul>
+<li>save 는 single thread로 수행하기 때문에 작업이 완료되기 까지 모든 요청이 대기하게됨</li>
+<li>bgsave 커맨드로 background 자식 프로세스를 통해 RDB 작업 수행하도록 할 것</li>
+</ul>
+</li>
+<li>bgsave 커맨드 수행 시엔 memory 사용률 조심!!
+<ul>
+<li>
+<p>redis 서비스에서 사용중인 데이터는 모두 메모리 위에 있는데 이를 &ldquo;서비스 영향 없이&rdquo; 스냅샷으로 저장하기 위해서는 Copy-on-Write(COW) 방식을 사용함<br>
+자식 프로세스 fork() 후 부모 프로세스의 메모리에서 실제로 변경이 발생한 부분만 복사하게 되는데<br>
+write 작업이 많아서 부모 페이지 전부에 변경이 발생하게 되면 부모 페이지 전부를 복사하게 됨
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_cow1.png" alt="">
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_cow2.png" alt=""></p>
+</li>
+<li>
+<p>서버 physical memory 10GB, redis memory 6GB 사용하는 서비스에서 RDB 수행 중 COW 발생하여 메모리 두배가 필요하여 2GB 부족한 상황이 되면 swap 이 발생하여 서비스 지연이 발생하게 되므로 redis의 max-memory 설정을 주의깊게 할 것!!</p>
+</li>
+<li>
+<p>save 는 redis process가 직접 수행하여 COW 발생하지 않음</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="aof">AOF</h3>
+<p>AOF (Append Only File) 는 redis 에서 데이터 변경이 일어나는 커맨드를 AOF 파일에 기록하는 방식<br>
+RDBMS WAL (Write Ahead Logging) 처럼 아래와 같은 순서로 동작함</p>
+<ul>
+<li>client 가 redis로 데이터 변경 관련 (조회 제외 insert,update,delete) 요청</li>
+<li>Redis 는 해당 command 를 AOF buffer 에 저장함</li>
+<li>redis memory의 내용 변경</li>
+<li>appendfsync 설정에 따라 AOF buffer의 내용을 AOF 파일로 내려씀</li>
+</ul>
+<h4 id="aof-">AOF 설정</h4>
+<pre><code>appendonly no
+appendfsync no
+
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64MB
+
+appendfilename redis_appendonly_6001.aof
+</code></pre><ul>
+<li>appendonly : AOF 기능 사용 여부</li>
+<li>appendfsync : AOF buffer 의 내용을 AOF file로 내려쓰는 주기 설정
+<ul>
+<li>always : update 관련 커맨드 마다 fsync 호출하여 AOF 로 내려씀, redis 성능을 지연시킬 수 있음</li>
+<li>everysec : 매초마다 fsync, 성능 지연은 없으나 1초의 데이터가 유실될 수 있음</li>
+<li>no : OS에 맡김</li>
+</ul>
+</li>
+<li>auto-aof-rewrite-percentage : AOF 파일 다시 쓰는 시점 설정하는 옵션으로 100으로 설정시 이전 AOF파일의 크기 100% 도달 시 다시쓰기 수행
+<ul>
+<li>AOF 는 데이터 변경 관련 커맨드를 모두 로깅하기 때문에 과거의 데이터 변경 관련 커맨드도 갖고 있어 redis 메모리의 데이터보다도 커질 수 있음</li>
+<li>bgrewriteaof 커맨드를 통해 수행되며 bg, background로 수행되기 때문에 마찬가지로 COW 발생</li>
+</ul>
+</li>
+<li>auto-aof-rewrite-min-size : redis 처음 시작 후 AOF 파일 사이즈가 0일 때 auto-aof-rewrite-percentage 대신 적용됨, ex) AOF 파일 64MB되면 다시쓰기</li>
+<li>appendfilename : AOF 파일 이름 설정</li>
+</ul>
+<h4 id="aof--info-">AOF 관련 info 조회</h4>
+<pre><code>aof_enabled:1
+aof_rewrite_in_progress:0
+aof_rewrite_scheduled:0
+aof_last_rewrite_time_sec:0
+aof_current_rewrite_time_sec:-1
+aof_last_bgrewrite_status:ok
+aof_last_write_status:ok
+aof_last_cow_size:200704
+aof_current_size:152
+aof_base_size:102
+aof_pending_rewrite:0
+aof_buffer_length:0
+aof_rewrite_buffer_length:0
+aof_pending_bio_fsync:0
+aof_delayed_fsync:0
+</code></pre><ul>
+<li>aof_base_size , aof_current_size 를 비교하여 aof_current_size가 auto-aof-rewrite-percentage 이상 되면 bgrewriteaof 수행</li>
+</ul>
+<h4 id="aof--rdb---">AOF 와 RDB 무엇을 먼저 읽을까?</h4>
+<ul>
+<li>redis config 상 appendonly yes =&gt; AOF 파일 읽음</li>
+<li>appendonly no =&gt; rdb 파일 읽음</li>
+</ul>
+<pre><code>void loadDataFromDisk(void) {
+    long long start = ustime();
+    if (server.aof_state == AOF_ON) {
+        if (loadAppendOnlyFile(server.aof_filename) == C_OK)
+            serverLog(LL_NOTICE,&quot;DB loaded from append only file: %.3f seconds&quot;,(float)(ustime()-start)/1000000);
+    } else {
+        rdbSaveInfo rsi = RDB_SAVE_INFO_INIT;
+        if (rdbLoad(server.rdb_filename,&amp;rsi) == C_OK) {
+            serverLog(LL_NOTICE,&quot;DB loaded from disk: %.3f seconds&quot;,
+                (float)(ustime()-start)/1000000);
+</code></pre><p>=&gt; redis source code를 보면 AOF on 일 땐 AOF 파일을, off 일 땐 RDB을 읽음<br>
+그러나 AOF on 인데 AOF 파일이 없다고 RDB파일을 읽진 않으며 반대도 마찬가지임</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

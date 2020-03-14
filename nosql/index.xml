@@ -5,10 +5,327 @@
     <description>Recent content in Nosqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 08 Mar 2020 12:44:38 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 14 Mar 2020 16:30:55 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/nosql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Redis Data structures</title>
+      <link>https://kimdubi.github.io/nosql/redis_datastructure/</link>
+      <pubDate>Sat, 14 Mar 2020 16:30:55 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/nosql/redis_datastructure/</guid>
+      <description>&lt;p&gt;지난 글에서 Redis와 Memcached 의 가장 큰 차이점으로 데이터를 저장할 수 있다는 점을 들며&lt;br&gt;
+RDB, AOF에 대한 내용을 다뤘었는데요&lt;br&gt;
+이번 글에서는 또 다른 차이점인 Redis의 다양한 자료구조에 대해 다뤄보겠습니다.&lt;/p&gt;
+&lt;h2 id=&#34;redis-data-structures&#34;&gt;Redis Data Structures&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_datastructure.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;초기에는 String, Bitmap, Hash, List, Set, Sorted Set 정도의 데이터 타입만 제공하다가&lt;br&gt;
+버전이 올라가면서 현재는 Geospatial Index, Hyperloglog, Stream 까지 지원하고 있습니다.&lt;br&gt;
+이렇게 다양한 자료구조를 key-value 형태로 지원하는 점 뿐만 아니라&lt;br&gt;
+각 자료구조를 효율적으로 사용할 수 있도록 도와주는 커맨드를 지원하는 덕분에 개발의 편의성과 효율성을 높일 수 있는 것이 큰 장점입니다.&lt;/p&gt;
+&lt;h3 id=&#34;string&#34;&gt;String&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_string.png&#34; alt=&#34;&#34;&gt;
+일반적인 Key-Value 의 data type 으로 이진 데이터 뿐만 아니라 모든 종류의 문자열 저장할 수 있습니다.&lt;br&gt;
+다양한 커맨드를 지원하여 문자열의 범위 검색이나 value를 정수형으로 변환하여 증감 연산도 가능합니다.&lt;br&gt;
+최대 저장 가능 크기는 512MB 입니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;set [key] [value] / get [key]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; set test string
+OK
+127.0.0.1:6001&amp;gt; get test
+&amp;quot;string&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; key-value 를 설정하고 조회하는 커맨드&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;getset [key] [value]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; getset test &amp;quot;new string&amp;quot;
+&amp;quot;string&amp;quot;
+127.0.0.1:6001&amp;gt; get test
+&amp;quot;new string&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; key에 새로운 value를 setting 하기 이전에 이전 값을 보여주고 set 처리하는 커맨드&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;incr [key] / incrby [key] &amp;lt;증가값&amp;gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; set num_test 1
+OK
+127.0.0.1:6001&amp;gt; incr num_test
+(integer) 2
+127.0.0.1:6001&amp;gt; incr num_test
+(integer) 3
+127.0.0.1:6001&amp;gt; incrby num_test 100
+(integer) 103
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;string value에 incr 하면?&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; get test
+&amp;quot;new string&amp;quot;
+127.0.0.1:6001&amp;gt; incr test 1
+(error) ERR wrong number of arguments for &#39;incr&#39; command
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;getrange [key] start end&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; getrange test 0 2
+&amp;quot;new&amp;quot;
+
+127.0.0.1:6001&amp;gt; getrange test 0 -1
+&amp;quot;new string&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; string 범위 검색&lt;/p&gt;
+&lt;h3 id=&#34;set&#34;&gt;Set&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_set.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;집합형 data type으로 정렬되지 않고 중복되지 않는 데이터를 저장합니다.&lt;br&gt;
+value를 추가하거나 지우는 작업을 처리할 땐 현재 set에 포함된 데이터 수와는 관계없이 O(1) 로 처리가 가능하며&lt;br&gt;
+집합형이기 때문에 합집합,교집합,차집합 같은 연산도 가능합니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;SADD [key] [member] / SMEMBBERS [key]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; SADD set_test &#39;test1&#39;
+(integer) 1
+127.0.0.1:6001&amp;gt; SADD set_test &#39;test2&#39;
+(integer) 1
+127.0.0.1:6001&amp;gt; SADD set_test &#39;test3&#39;
+(integer) 1
+127.0.0.1:6001&amp;gt; SADD set_test &#39;test3&#39;
+(integer) 0
+127.0.0.1:6001&amp;gt; SADD set_test &#39;test3&#39;
+(integer) 0
+127.0.0.1:6001&amp;gt; SMEMBERS set_test
+1) &amp;quot;test3&amp;quot;
+2) &amp;quot;test2&amp;quot;
+3) &amp;quot;test1&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt;SADD는 key에 member (value)를 추가하는 커맨드로 중복값은 허용하지 않습니다.
+SMEMBERS 는 key에 속한 member (value)를 보여주는 커맨드로 정렬이 되지 않습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;집합연산 SDIFF [key1] [key2] / SINTER / SUNION&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; smembers set_test
+1) &amp;quot;test3&amp;quot;
+2) &amp;quot;test2&amp;quot;
+3) &amp;quot;test1&amp;quot;
+
+127.0.0.1:6001&amp;gt; smembers set_test2
+1) &amp;quot;test_1&amp;quot;
+2) &amp;quot;test3&amp;quot;
+3) &amp;quot;test_3&amp;quot;
+4) &amp;quot;test_2&amp;quot;
+
+127.0.0.1:6001&amp;gt; SDIFF set_test set_test2
+1) &amp;quot;test1&amp;quot;
+2) &amp;quot;test2&amp;quot;
+=&amp;gt; 차집합 연산
+
+127.0.0.1:6001&amp;gt; SINTER set_test set_test2
+1) &amp;quot;test3&amp;quot;
+=&amp;gt; 교집합
+
+127.0.0.1:6001&amp;gt; SUNION set_test set_test2
+1) &amp;quot;test_2&amp;quot;
+2) &amp;quot;test3&amp;quot;
+3) &amp;quot;test2&amp;quot;
+4) &amp;quot;test1&amp;quot;
+5) &amp;quot;test_1&amp;quot;
+6) &amp;quot;test_3&amp;quot;
+=&amp;gt; 합집합
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;SCARD [key]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; SCARD set_test
+(integer) 3
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; key의 member (value) 개 수&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;SSCAN [KEY] [MATCH pattern] [COUNT count]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; sscan myset 0
+1) &amp;quot;5&amp;quot;
+2)  1) &amp;quot;A2&amp;quot;
+    2) &amp;quot;A1&amp;quot;
+.
+.
+    9) &amp;quot;D2&amp;quot;
+   10) &amp;quot;D1&amp;quot;
+127.0.0.1:6001&amp;gt; sscan myset 5
+1) &amp;quot;0&amp;quot;
+2) 1) &amp;quot;E1&amp;quot;
+   2) &amp;quot;B2&amp;quot;
+   3) &amp;quot;C1&amp;quot;
+   4) &amp;quot;B3&amp;quot;
+   5) &amp;quot;A3&amp;quot;
+127.0.0.1:6001&amp;gt; sscan myset 0 MATCH A*
+1) &amp;quot;5&amp;quot;
+2) 1) &amp;quot;A2&amp;quot;
+   2) &amp;quot;A1&amp;quot;
+127.0.0.1:6001&amp;gt; sscan myset 5 MATCH A*
+1) &amp;quot;0&amp;quot;
+2) 1) &amp;quot;A3&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 한번에 전체 member 를 조회하는 smembers 와 달리 SSCAN를 통해 일정단위로 조회 가능합니다.&lt;br&gt;
+위 예제처럼 MATCH 옵션으로 A로 시작하는 member만 조회할 수도 있습니다.&lt;/p&gt;
+&lt;h3 id=&#34;sorted-set&#34;&gt;Sorted Set&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_sortedset.png&#34; alt=&#34;&#34;&gt;
+set data type에 정렬의 개념을 추가한 data type 입니다.&lt;br&gt;
+key의 각 member에 score를 매핑하여 score 오름차순으로 정렬할 수 있는 data type입니다.&lt;br&gt;
+정렬&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;ZADD [key] &lt;!-- raw HTML omitted --&gt; [member]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; ZADD MID 1 fizz
+(integer) 1
+127.0.0.1:6001&amp;gt; ZADD MID 2 ryze
+(integer) 1
+127.0.0.1:6001&amp;gt; ZADD MID 3 garen
+(integer) 1
+127.0.0.1:6001&amp;gt; ZADD MID 1000 TF
+(integer) 1
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;ZRANGE [key] &lt;!-- raw HTML omitted --&gt; &lt;!-- raw HTML omitted --&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; ZRANGE MID 0 -1
+1) &amp;quot;fizz&amp;quot;
+2) &amp;quot;ryze&amp;quot;
+3) &amp;quot;garen&amp;quot;
+4) &amp;quot;TF&amp;quot;
+
+127.0.0.1:6001&amp;gt; ZRANGE MID 1 2
+1) &amp;quot;ryze&amp;quot;
+2) &amp;quot;garen&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; score 순으로 정렬된 member 들 중 start ~ end 순서의 member를 조회 (start는 0부터 시작 )&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;ZRANGEBYSCORE [key] &lt;!-- raw HTML omitted --&gt; &lt;!-- raw HTML omitted --&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; ZRANGEBYSCORE MID 100 1000
+1) &amp;quot;TF&amp;quot;
+
+127.0.0.1:6001&amp;gt; ZRANGEBYSCORE MID 1000 +inf
+1) &amp;quot;TF&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 특정 score 내의 member만 조회하는 커맨드 (+inf는 범위 끝까지)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;ZINCRBY [key] &amp;lt;증가값&amp;gt; [member]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; ZINCRBY MID 100 fizz
+&amp;quot;101&amp;quot;
+127.0.0.1:6001&amp;gt; ZRANGE MID 0 -1
+1) &amp;quot;ryze&amp;quot;
+2) &amp;quot;garen&amp;quot;
+3) &amp;quot;fizz&amp;quot;
+4) &amp;quot;TF&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; score 증감연산도 가능&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;ZSCAN [KEY] [MATCH pattern] [COUNT count]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; ZSCAN myzip 0 MATCH A*
+1) &amp;quot;0&amp;quot;
+2) 1) &amp;quot;A1&amp;quot;
+   2) &amp;quot;1&amp;quot;
+   3) &amp;quot;A2&amp;quot;
+   4) &amp;quot;2&amp;quot;
+   5) &amp;quot;A3&amp;quot;
+   6) &amp;quot;3&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; sorted set의 member와 그의 score를 일정단위로 조회하는 기능&lt;br&gt;
+MATCH 옵션으로 특정 member만 조회할 수 있음&lt;/p&gt;
+&lt;h3 id=&#34;list&#34;&gt;List&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_list.png&#34; alt=&#34;&#34;&gt;
+Set data type이 group 형태에 중복값을 가질 수 없는 data type이라면
+List data type은 Array 형태로 key 하나에 n개의 값을 가지며 중복값도 가질 수 있는 data type 입니다.&lt;br&gt;
+일반적인 Linked list 라서 LPUSH , RPUSH 같은 list의 끝에 데이터를 추가할 때 O(1) 로 처리가능합니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;LPUSH / RPUSH [key] [value]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; LPUSH DB mysql
+(integer) 1
+127.0.0.1:6001&amp;gt; LPUSH DB oracle
+(integer) 2
+127.0.0.1:6001&amp;gt; RPUSH DB redis
+(integer) 3
+127.0.0.1:6001&amp;gt; LPUSH DB mongodb
+(integer) 4
+127.0.0.1:6001&amp;gt; LRANGE DB 0 10
+1) &amp;quot;mongodb&amp;quot;
+2) &amp;quot;oracle&amp;quot;
+3) &amp;quot;mysql&amp;quot;
+4) &amp;quot;redis&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;LPUSHX&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; LPUSHX DB_2 mysql
+(integer) 0
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; LPUSHX / RPUSHX 는 존재하는 KEY에만 PUSH 작업이 가능합니다.&lt;br&gt;
+DB_2 라는 key 를 기존에 생성하지 않았기 때문에 위 작업은 실패합니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;BLPOP / BRPOP [key] &lt;!-- raw HTML omitted --&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;========= A session =========
+
+127.0.0.1:6001&amp;gt; BLPOP DB 10
+1) &amp;quot;DB&amp;quot;
+2) &amp;quot;oracle&amp;quot;
+127.0.0.1:6001&amp;gt; BLPOP DB 10
+1) &amp;quot;DB&amp;quot;
+2) &amp;quot;mysql&amp;quot;
+127.0.0.1:6001&amp;gt; BLPOP DB 0
+
+========= B session =========
+127.0.0.1:6001&amp;gt; LPUSH DB redis
+(integer) 1
+
+========= A session =========
+
+1) &amp;quot;DB&amp;quot;
+2) &amp;quot;redis&amp;quot;
+(35.38s)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; KEY에서 LPOP / RPOP 을 수행하는데 데이터가 없으면 timeout 만큼 기다려라 는 커맨드입니다.&lt;br&gt;
+그래서 KEY 에 데이터가 있으면 timeout값이 있어도 바로 LPOP, 즉 왼쪽에서 POP 하는 커맨드와 동일합니다.&lt;br&gt;
+그러나 KEY에 데이터가 없을 때 timeout 0으로 BLPOP 커맨드를 수행하면 데이터가 들어올때까지 기다렸다가&lt;br&gt;
+다른 세션(위에선 B session)에서 데이터가 들어오면 그때서야 LPOP 커맨드를 수행하게 됩니다.&lt;/p&gt;
+&lt;h3 id=&#34;hash&#34;&gt;Hash&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_hash.png&#34; alt=&#34;&#34;&gt;
+key 하나에 여러개의 field와 value 로 구성되는 data type으로 RDBMS의 테이블과 비슷한 개념입니다.&lt;br&gt;
+Hash key는 RDBMS 테이블의 PK, field 는 column, values는 value 로 매핑됩니다.&lt;br&gt;
+또한 Hash key가 PK의 역할을 하기 때문에 key 하나는 RDBMS에서 테이블의 한 row라고 할 수 있습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;HSET [key] [field] [value]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; HSET mysql RDBMS yes
+(integer) 1
+127.0.0.1:6001&amp;gt; HSET mysql ENGINE innodb
+(integer) 1
+127.0.0.1:6001&amp;gt; HSET mysql REPLICATION yes
+(integer) 1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 하나의 key에 여러개의 field와 value 를 저장할 수 있음&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;HGET [key] [field] / HGETALL [key]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; HGET mysql RDBMS
+&amp;quot;yes&amp;quot;
+127.0.0.1:6001&amp;gt; HGETALL mysql
+1) &amp;quot;RDBMS&amp;quot;
+2) &amp;quot;yes&amp;quot;
+3) &amp;quot;ENGINE&amp;quot;
+4) &amp;quot;innodb&amp;quot;
+5) &amp;quot;REPLICATION&amp;quot;
+6) &amp;quot;yes&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; key의 field 별로 조회 가능&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;HDEL [key] [field]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; HDEL mysql RDBMS
+(integer) 1
+127.0.0.1:6001&amp;gt; HKEYS mysql
+1) &amp;quot;ENGINE&amp;quot;
+2) &amp;quot;REPLICATION&amp;quot;
+127.0.0.1:6001&amp;gt; HVALS mysql
+1) &amp;quot;innodb&amp;quot;
+2) &amp;quot;yes&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;HSCAN [key] [MATCH pattern] [COUNT count]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; HSCAN myhash 0 MATCH *1
+1) &amp;quot;0&amp;quot;
+2) 1) &amp;quot;f1&amp;quot;
+   2) &amp;quot;v1&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; hash의 field와 value를 일정단위로 조회하는 기능&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Redis AOF와 RDB에 대해</title>

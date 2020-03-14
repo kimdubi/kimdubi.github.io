@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Redis Data structures</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Redis Data structures</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Redis Data structures</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>지난 글에서 Redis와 Memcached 의 가장 큰 차이점으로 데이터를 저장할 수 있다는 점을 들며<br>
+RDB, AOF에 대한 내용을 다뤘었는데요<br>
+이번 글에서는 또 다른 차이점인 Redis의 다양한 자료구조에 대해 다뤄보겠습니다.</p>
+<h2 id="redis-data-structures">Redis Data Structures</h2>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_datastructure.png" alt=""></p>
+<p>초기에는 String, Bitmap, Hash, List, Set, Sorted Set 정도의 데이터 타입만 제공하다가<br>
+버전이 올라가면서 현재는 Geospatial Index, Hyperloglog, Stream 까지 지원하고 있습니다.<br>
+이렇게 다양한 자료구조를 key-value 형태로 지원하는 점 뿐만 아니라<br>
+각 자료구조를 효율적으로 사용할 수 있도록 도와주는 커맨드를 지원하는 덕분에 개발의 편의성과 효율성을 높일 수 있는 것이 큰 장점입니다.</p>
+<h3 id="string">String</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_string.png" alt="">
+일반적인 Key-Value 의 data type 으로 이진 데이터 뿐만 아니라 모든 종류의 문자열 저장할 수 있습니다.<br>
+다양한 커맨드를 지원하여 문자열의 범위 검색이나 value를 정수형으로 변환하여 증감 연산도 가능합니다.<br>
+최대 저장 가능 크기는 512MB 입니다.</p>
+<ul>
+<li>set [key] [value] / get [key]</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; set test string
+OK
+127.0.0.1:6001&gt; get test
+&quot;string&quot;
+</code></pre><p>=&gt; key-value 를 설정하고 조회하는 커맨드</p>
+<ul>
+<li>getset [key] [value]</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; getset test &quot;new string&quot;
+&quot;string&quot;
+127.0.0.1:6001&gt; get test
+&quot;new string&quot;
+</code></pre><p>=&gt; key에 새로운 value를 setting 하기 이전에 이전 값을 보여주고 set 처리하는 커맨드</p>
+<ul>
+<li>incr [key] / incrby [key] &lt;증가값&gt;</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; set num_test 1
+OK
+127.0.0.1:6001&gt; incr num_test
+(integer) 2
+127.0.0.1:6001&gt; incr num_test
+(integer) 3
+127.0.0.1:6001&gt; incrby num_test 100
+(integer) 103
+</code></pre><ul>
+<li>string value에 incr 하면?</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; get test
+&quot;new string&quot;
+127.0.0.1:6001&gt; incr test 1
+(error) ERR wrong number of arguments for 'incr' command
+</code></pre><ul>
+<li>getrange [key] start end</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; getrange test 0 2
+&quot;new&quot;
+
+127.0.0.1:6001&gt; getrange test 0 -1
+&quot;new string&quot;
+</code></pre><p>=&gt; string 범위 검색</p>
+<h3 id="set">Set</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_set.png" alt=""></p>
+<p>집합형 data type으로 정렬되지 않고 중복되지 않는 데이터를 저장합니다.<br>
+value를 추가하거나 지우는 작업을 처리할 땐 현재 set에 포함된 데이터 수와는 관계없이 O(1) 로 처리가 가능하며<br>
+집합형이기 때문에 합집합,교집합,차집합 같은 연산도 가능합니다.</p>
+<ul>
+<li>SADD [key] [member] / SMEMBBERS [key]</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; SADD set_test 'test1'
+(integer) 1
+127.0.0.1:6001&gt; SADD set_test 'test2'
+(integer) 1
+127.0.0.1:6001&gt; SADD set_test 'test3'
+(integer) 1
+127.0.0.1:6001&gt; SADD set_test 'test3'
+(integer) 0
+127.0.0.1:6001&gt; SADD set_test 'test3'
+(integer) 0
+127.0.0.1:6001&gt; SMEMBERS set_test
+1) &quot;test3&quot;
+2) &quot;test2&quot;
+3) &quot;test1&quot;
+</code></pre><p>=&gt;SADD는 key에 member (value)를 추가하는 커맨드로 중복값은 허용하지 않습니다.
+SMEMBERS 는 key에 속한 member (value)를 보여주는 커맨드로 정렬이 되지 않습니다.</p>
+<ul>
+<li>집합연산 SDIFF [key1] [key2] / SINTER / SUNION</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; smembers set_test
+1) &quot;test3&quot;
+2) &quot;test2&quot;
+3) &quot;test1&quot;
+
+127.0.0.1:6001&gt; smembers set_test2
+1) &quot;test_1&quot;
+2) &quot;test3&quot;
+3) &quot;test_3&quot;
+4) &quot;test_2&quot;
+
+127.0.0.1:6001&gt; SDIFF set_test set_test2
+1) &quot;test1&quot;
+2) &quot;test2&quot;
+=&gt; 차집합 연산
+
+127.0.0.1:6001&gt; SINTER set_test set_test2
+1) &quot;test3&quot;
+=&gt; 교집합
+
+127.0.0.1:6001&gt; SUNION set_test set_test2
+1) &quot;test_2&quot;
+2) &quot;test3&quot;
+3) &quot;test2&quot;
+4) &quot;test1&quot;
+5) &quot;test_1&quot;
+6) &quot;test_3&quot;
+=&gt; 합집합
+</code></pre><ul>
+<li>SCARD [key]</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; SCARD set_test
+(integer) 3
+</code></pre><p>=&gt; key의 member (value) 개 수</p>
+<ul>
+<li>SSCAN [KEY] [MATCH pattern] [COUNT count]</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; sscan myset 0
+1) &quot;5&quot;
+2)  1) &quot;A2&quot;
+    2) &quot;A1&quot;
+.
+.
+    9) &quot;D2&quot;
+   10) &quot;D1&quot;
+127.0.0.1:6001&gt; sscan myset 5
+1) &quot;0&quot;
+2) 1) &quot;E1&quot;
+   2) &quot;B2&quot;
+   3) &quot;C1&quot;
+   4) &quot;B3&quot;
+   5) &quot;A3&quot;
+127.0.0.1:6001&gt; sscan myset 0 MATCH A*
+1) &quot;5&quot;
+2) 1) &quot;A2&quot;
+   2) &quot;A1&quot;
+127.0.0.1:6001&gt; sscan myset 5 MATCH A*
+1) &quot;0&quot;
+2) 1) &quot;A3&quot;
+</code></pre><p>=&gt; 한번에 전체 member 를 조회하는 smembers 와 달리 SSCAN를 통해 일정단위로 조회 가능합니다.<br>
+위 예제처럼 MATCH 옵션으로 A로 시작하는 member만 조회할 수도 있습니다.</p>
+<h3 id="sorted-set">Sorted Set</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_sortedset.png" alt="">
+set data type에 정렬의 개념을 추가한 data type 입니다.<br>
+key의 각 member에 score를 매핑하여 score 오름차순으로 정렬할 수 있는 data type입니다.<br>
+정렬</p>
+<ul>
+<li>ZADD [key] <!-- raw HTML omitted --> [member]</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; ZADD MID 1 fizz
+(integer) 1
+127.0.0.1:6001&gt; ZADD MID 2 ryze
+(integer) 1
+127.0.0.1:6001&gt; ZADD MID 3 garen
+(integer) 1
+127.0.0.1:6001&gt; ZADD MID 1000 TF
+(integer) 1
+</code></pre><ul>
+<li>ZRANGE [key] <!-- raw HTML omitted --> <!-- raw HTML omitted --></li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; ZRANGE MID 0 -1
+1) &quot;fizz&quot;
+2) &quot;ryze&quot;
+3) &quot;garen&quot;
+4) &quot;TF&quot;
+
+127.0.0.1:6001&gt; ZRANGE MID 1 2
+1) &quot;ryze&quot;
+2) &quot;garen&quot;
+</code></pre><p>=&gt; score 순으로 정렬된 member 들 중 start ~ end 순서의 member를 조회 (start는 0부터 시작 )</p>
+<ul>
+<li>ZRANGEBYSCORE [key] <!-- raw HTML omitted --> <!-- raw HTML omitted --></li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; ZRANGEBYSCORE MID 100 1000
+1) &quot;TF&quot;
+
+127.0.0.1:6001&gt; ZRANGEBYSCORE MID 1000 +inf
+1) &quot;TF&quot;
+</code></pre><p>=&gt; 특정 score 내의 member만 조회하는 커맨드 (+inf는 범위 끝까지)</p>
+<ul>
+<li>ZINCRBY [key] &lt;증가값&gt; [member]</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; ZINCRBY MID 100 fizz
+&quot;101&quot;
+127.0.0.1:6001&gt; ZRANGE MID 0 -1
+1) &quot;ryze&quot;
+2) &quot;garen&quot;
+3) &quot;fizz&quot;
+4) &quot;TF&quot;
+</code></pre><p>=&gt; score 증감연산도 가능</p>
+<ul>
+<li>ZSCAN [KEY] [MATCH pattern] [COUNT count]</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; ZSCAN myzip 0 MATCH A*
+1) &quot;0&quot;
+2) 1) &quot;A1&quot;
+   2) &quot;1&quot;
+   3) &quot;A2&quot;
+   4) &quot;2&quot;
+   5) &quot;A3&quot;
+   6) &quot;3&quot;
+</code></pre><p>=&gt; sorted set의 member와 그의 score를 일정단위로 조회하는 기능<br>
+MATCH 옵션으로 특정 member만 조회할 수 있음</p>
+<h3 id="list">List</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_list.png" alt="">
+Set data type이 group 형태에 중복값을 가질 수 없는 data type이라면
+List data type은 Array 형태로 key 하나에 n개의 값을 가지며 중복값도 가질 수 있는 data type 입니다.<br>
+일반적인 Linked list 라서 LPUSH , RPUSH 같은 list의 끝에 데이터를 추가할 때 O(1) 로 처리가능합니다.</p>
+<ul>
+<li>LPUSH / RPUSH [key] [value]</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; LPUSH DB mysql
+(integer) 1
+127.0.0.1:6001&gt; LPUSH DB oracle
+(integer) 2
+127.0.0.1:6001&gt; RPUSH DB redis
+(integer) 3
+127.0.0.1:6001&gt; LPUSH DB mongodb
+(integer) 4
+127.0.0.1:6001&gt; LRANGE DB 0 10
+1) &quot;mongodb&quot;
+2) &quot;oracle&quot;
+3) &quot;mysql&quot;
+4) &quot;redis&quot;
+</code></pre><ul>
+<li>LPUSHX</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; LPUSHX DB_2 mysql
+(integer) 0
+</code></pre><p>=&gt; LPUSHX / RPUSHX 는 존재하는 KEY에만 PUSH 작업이 가능합니다.<br>
+DB_2 라는 key 를 기존에 생성하지 않았기 때문에 위 작업은 실패합니다.</p>
+<ul>
+<li>BLPOP / BRPOP [key] <!-- raw HTML omitted --></li>
+</ul>
+<pre><code>========= A session =========
+
+127.0.0.1:6001&gt; BLPOP DB 10
+1) &quot;DB&quot;
+2) &quot;oracle&quot;
+127.0.0.1:6001&gt; BLPOP DB 10
+1) &quot;DB&quot;
+2) &quot;mysql&quot;
+127.0.0.1:6001&gt; BLPOP DB 0
+
+========= B session =========
+127.0.0.1:6001&gt; LPUSH DB redis
+(integer) 1
+
+========= A session =========
+
+1) &quot;DB&quot;
+2) &quot;redis&quot;
+(35.38s)
+</code></pre><p>=&gt; KEY에서 LPOP / RPOP 을 수행하는데 데이터가 없으면 timeout 만큼 기다려라 는 커맨드입니다.<br>
+그래서 KEY 에 데이터가 있으면 timeout값이 있어도 바로 LPOP, 즉 왼쪽에서 POP 하는 커맨드와 동일합니다.<br>
+그러나 KEY에 데이터가 없을 때 timeout 0으로 BLPOP 커맨드를 수행하면 데이터가 들어올때까지 기다렸다가<br>
+다른 세션(위에선 B session)에서 데이터가 들어오면 그때서야 LPOP 커맨드를 수행하게 됩니다.</p>
+<h3 id="hash">Hash</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_hash.png" alt="">
+key 하나에 여러개의 field와 value 로 구성되는 data type으로 RDBMS의 테이블과 비슷한 개념입니다.<br>
+Hash key는 RDBMS 테이블의 PK, field 는 column, values는 value 로 매핑됩니다.<br>
+또한 Hash key가 PK의 역할을 하기 때문에 key 하나는 RDBMS에서 테이블의 한 row라고 할 수 있습니다.</p>
+<ul>
+<li>HSET [key] [field] [value]</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; HSET mysql RDBMS yes
+(integer) 1
+127.0.0.1:6001&gt; HSET mysql ENGINE innodb
+(integer) 1
+127.0.0.1:6001&gt; HSET mysql REPLICATION yes
+(integer) 1
+</code></pre><p>=&gt; 하나의 key에 여러개의 field와 value 를 저장할 수 있음</p>
+<ul>
+<li>HGET [key] [field] / HGETALL [key]</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; HGET mysql RDBMS
+&quot;yes&quot;
+127.0.0.1:6001&gt; HGETALL mysql
+1) &quot;RDBMS&quot;
+2) &quot;yes&quot;
+3) &quot;ENGINE&quot;
+4) &quot;innodb&quot;
+5) &quot;REPLICATION&quot;
+6) &quot;yes&quot;
+</code></pre><p>=&gt; key의 field 별로 조회 가능</p>
+<ul>
+<li>HDEL [key] [field]</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; HDEL mysql RDBMS
+(integer) 1
+127.0.0.1:6001&gt; HKEYS mysql
+1) &quot;ENGINE&quot;
+2) &quot;REPLICATION&quot;
+127.0.0.1:6001&gt; HVALS mysql
+1) &quot;innodb&quot;
+2) &quot;yes&quot;
+</code></pre><ul>
+<li>HSCAN [key] [MATCH pattern] [COUNT count]</li>
+</ul>
+<pre><code>127.0.0.1:6001&gt; HSCAN myhash 0 MATCH *1
+1) &quot;0&quot;
+2) 1) &quot;f1&quot;
+   2) &quot;v1&quot;
+</code></pre><p>=&gt; hash의 field와 value를 일정단위로 조회하는 기능</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

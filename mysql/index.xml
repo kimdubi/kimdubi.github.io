@@ -5,10 +5,226 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 07 Mar 2020 17:56:41 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 15 Mar 2020 14:54:15 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL lossless semi-sync</title>
+      <link>https://kimdubi.github.io/mysql/semi_sync/</link>
+      <pubDate>Sun, 15 Mar 2020 14:54:15 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/semi_sync/</guid>
+      <description>&lt;p&gt;MySQL은 ORACLE 과는 HighAvailibility를 충족시키는 방법이 다릅니다.&lt;br&gt;
+하나의 스토리지에 데이터를 이중화,삼중화해서 저장하고 이를 여러 인스턴스가 공유하는 ORACLE의 RAC와는 달리&lt;br&gt;
+MySQL은 Master-Slave의 개념으로 Master의 데이터를 Slave 서버로 복제하고 MHA나 MMM 같은 솔루션을 통해&lt;br&gt;
+Master가 down 되었을 때 실시간으로 복제해둔 Slave를 Master로 승격시키는 방식입니다.&lt;br&gt;
+&lt;!-- raw HTML omitted --&gt;
+이 방식에는 한가지 문제점이 있는데요.&lt;br&gt;
+바로 Slave가 Master의 데이터를 모두 복제하지 못한채로 Master로 승격이 되는 경우입니다.&lt;br&gt;
+이 문제점을 해결하기 위해서는 단순하게는 Sync 방식으로 복제를 해오면 되겠지만 Slave에도 반영이 되어야&lt;br&gt;
+Master의 트랜잭션도 처리가 된다는 점에서 성능 이슈가 발생할 수 있습니다.&lt;br&gt;
+그래서 MySQL은 5.5버전부터 Semi-sync라는 방식을 지원하고 5.7버전에는 lossless semi-sync라는 거창한 이름의 복제방식이 나왔는데요.&lt;br&gt;
+이번 글에서는 이전의 semi-sync와 lossless semi-sync방식의 차이점에 대해 알아보겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;-&#34;&gt;기본 설정&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;sync_binlog = 1&lt;br&gt;
+=&amp;gt; binlog commit 단계에서 바로 file로 Fsync 처리&lt;/li&gt;
+&lt;li&gt;innodb_flush_log_at_trx_commit = 1&lt;br&gt;
+=&amp;gt; engine commit 단계에서 redo log file로 Flush 처리&lt;/li&gt;
+&lt;li&gt;innodb_support_xa = 1&lt;br&gt;
+=&amp;gt; 트랜잭션 commit 이 engine prepare - binlog commit - engine commit 으로 2PC commit 으로 수행되게 하여 binlog 와 redo log의 sync를 manage함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;semisync-57--aftercommit&#34;&gt;semi-sync 5.7 이전 (AFTER_COMMIT)&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/after_commit.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;User transaction commit&lt;/li&gt;
+&lt;li&gt;Engine prepare&lt;/li&gt;
+&lt;li&gt;Binlog flush&lt;/li&gt;
+&lt;li&gt;Binlog commit&lt;/li&gt;
+&lt;li&gt;Engine commit&lt;/li&gt;
+&lt;li&gt;Binlog dump thread send event with ACK Request&lt;/li&gt;
+&lt;li&gt;semi-sync wait (AFTER_COMMIT)&lt;/li&gt;
+&lt;li&gt;User Commit OK&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h4 id=&#34;heading&#34;&gt;문제점&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;7번 Slave가 data를 받았다는 응답을 기다리는 도중 Master가 down 된다면?
+&lt;ul&gt;
+&lt;li&gt;Master에서는 이미 Engine commit 까지 된 상황이기 때문에 새로 승격될 Slave에는 데이터가 없지만 Old Master에는 데이터가 존재하여 정합성이 깨짐&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;5번 engine commit 이 된 시점부터 다른 세션에서는 변경된 데이터를 읽을 수 있음&lt;br&gt;
+SLAVE로의 복제가 실패하면 이 트랜잭션은 Master에서 수동으로 rollback 처리해야함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;lossless-semisync-57--aftersync&#34;&gt;lossless semi-sync 5.7 이후 (AFTER_SYNC)&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/after_sync.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;User transaction commit&lt;/li&gt;
+&lt;li&gt;Engine prepare&lt;/li&gt;
+&lt;li&gt;Binlog flush&lt;/li&gt;
+&lt;li&gt;Binlog commit&lt;/li&gt;
+&lt;li&gt;Binlog dump thread send event with ACK Request&lt;/li&gt;
+&lt;li&gt;loss-less semisync wait (AFTER_SYNC)&lt;/li&gt;
+&lt;li&gt;Engine commit&lt;/li&gt;
+&lt;li&gt;User Commit OK&lt;/li&gt;
+&lt;/ol&gt;
+&lt;ul&gt;
+&lt;li&gt;6번 Slave의 응답을 기다리는 도중 Master가 down 되어도 Master에서 engine commit이 처리되지 않았으므로 유실되는 데이터는 없음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;57--aftercommit----&#34;&gt;5.7 이전 버전(AFTER_COMMIT) 데이터 유실 시나리오 테스트&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;AFTER_COMMIT 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;mysql&amp;gt; show global variables like &amp;lsquo;rpl_semi_sync_master_wait_point&amp;rsquo;;
++&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash;+
+| Variable_name                   | Value        |
++&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash;+
+| rpl_semi_sync_master_wait_point | AFTER_COMMIT |
++&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash;+
+1 row in set (0.01 sec)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;insert 작업 전 binary log 파일 사이즈 확인&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;master&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;-rw-r----- 1 root root       195 Mar 15 11:37 master-bin.000035
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;slave&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;-rw-r----- 1 root root       315 Mar 15 11:37 slave-relay.000021
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;insert 수행&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;./sysbench --mysql-user=sbtest --mysql-password=&#39;qhdks123&#39; --mysql-db=sbtest --mysql-host=localhost --mysql-port=3306 --mysql-socket=/engn001/mysql/data/mysql.sock --threads=10 --time=300 --report-interval=10 /engn001/sysbench-master/share/sysbench/oltp_insert.lua run &amp;gt; sysbench.out &amp;amp;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;수행 도중 Master kill&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[root@8429d3d8f01b data]# kill -9 298
+[root@8429d3d8f01b data]#
+[1]+  Killed                  /engn001/mysql/bin/mysqld --defaults-file=/engn001/mysql/my.cnf
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;insert 작업 후 binary log 파일 사이즈 확인&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;master&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;-rw-r----- 1 root root   3573155 Mar 15 11:38 master-bin.000035
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;slave&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;-rw-r----- 1 root root   3572728 Mar 15 11:38 slave-relay.000021
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;=&amp;gt; 맨 처음 120bytes 이상으로 binary log / relay log 간 사이즈 차이 확인&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;데이터 확인&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;master&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select max(id) from sbtest1;
++---------+
+| max(id) |
++---------+
+|   13000 |
++---------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;slave&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select max(id) from sbtest1;
++---------+
+| max(id) |
++---------+
+|   12999 |
++---------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;=&amp;gt; 데이터 유실 발생&lt;/p&gt;
+&lt;h3 id=&#34;57--aftersync-&#34;&gt;5.7 이후 (AFTER_SYNC) 테스트&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;AFTER_SYNC 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;mysql&amp;gt; show global variables like &amp;lsquo;rpl_semi_sync_master_wait_point&amp;rsquo;;
++&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash;+
+| Variable_name                   | Value        |
++&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash;+
+| rpl_semi_sync_master_wait_point | AFTER_SYNC   |
++&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash;+
+1 row in set (0.01 sec)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;insert 작업 전 binary log 파일 사이즈 확인&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;master&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;-rw-r----- 1 root root       195 Mar 15 11:26 master-bin.000033
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;slave&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;-rw-r----- 1 root root       315 Mar 15 11:26 slave-relay.000017
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;insert 수행&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;./sysbench --mysql-user=sbtest --mysql-password=&#39;qhdks123&#39; --mysql-db=sbtest --mysql-host=localhost --mysql-port=3306 --mysql-socket=/engn001/mysql/data/mysql.sock --tables=5 --threads=10 --time=300 --report-interval=10 /engn001/sysbench-master/share/sysbench/oltp_insert.lua run &amp;gt; sysbench.out &amp;amp;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;수행 도중 Master kill&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[root@8429d3d8f01b data]# kill -9 296
+[root@8429d3d8f01b data]#
+[1]+  Killed                  /engn001/mysql/bin/mysqld --defaults-file=/engn001/mysql/my.cnf
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;insert 작업 후 binary log 파일 사이즈 확인&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;master&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;-rw-r----- 1 root root   3515364 Mar 15 11:38 master-bin.000033
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;slave&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;-rw-r----- 1 root root   3515484 Mar 15 11:38 slave-relay.000017
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;=&amp;gt; 초기 binary / relay log file 120bytes 만큼만 차이남&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;데이터 확인&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;master&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select max(id) from sbtest1;
++---------+
+| max(id) |
++---------+
+|   10840 |
++---------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;slave&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select max(id) from sbtest1;
++---------+
+| max(id) |
++---------+
+|  10840  |
++---------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;heading1&#34;&gt;결론&lt;/h3&gt;
+&lt;p&gt;AFTER_COMMIT 방식을 사용하는 5.7 이전의 semi-sync는 Slave로부터 ACK를 받기도 전에 engine commit을 처리하기 때문에 도중에 Master가 crash 되면 Slave data 유실 되는 케이스가 종종 발생합니다.&lt;br&gt;
+이를 AFTER_SYNC 방식의 lossless semi-sync 로 변경하면 Slave로 부터 ACK를 받은 후 engine commit이 발생하기 때문에 Slave의 data 유실이 발생하지 않습니다.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Xtrabackup 8.0 잡다구리 정보</title>

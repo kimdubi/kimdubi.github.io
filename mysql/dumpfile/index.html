@@ -5,7 +5,7 @@
 
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Mysqls</title>
+        <title>MySQL full backup dumpfile 테이블별로 쪼개는법</title>
         
         <style>
 
@@ -54,9 +54,6 @@
 <script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
  <meta name="generator" content="Hugo 0.60.1" />
         
-            <link href="/mysql/index.xml" rel="alternate" type="application/rss&#43;xml" title="kimDuBiA" />
-            <link href="/mysql/index.xml" rel="feed" type="application/rss&#43;xml" title="kimDuBiA" />
-        
 
         
             <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
@@ -82,7 +79,7 @@
         <nav class="navbar navbar-default navbar-fixed-top">
             <div class="container">
                 <div class="navbar-header">
-                    <a class="navbar-brand visible-xs" href="#">Mysqls</a>
+                    <a class="navbar-brand visible-xs" href="#">MySQL full backup dumpfile 테이블별로 쪼개는법</a>
                     <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
@@ -123,103 +120,90 @@
 
 <main>
 
-    <h2>Mysqls</h2>
+    <div>
+        <h2>MySQL full backup dumpfile 테이블별로 쪼개는법</h2>
+        <h5></h5>
+        
 
-     <div class="item">
+    </div>
 
-    
-    
-    
+    <div align="start" class="content"><p>운영환경에서 DB 백업을 받을 때 보통 xtrabackup이나 mysqldump 으로 풀백업을 받으실텐데요<br>
+사이즈가 엄청 큰 DB를 mysqldump 로 풀백업 받은 경우 복구 시 병렬처리가 안되기 때문에<br>
+굉장히 많은 시간이 소요됩니다.<br>
+이 때 dumpfile을 테이블 별로 쪼개면 병렬로 수행할 수 있게 됩니다.<br>
+이번 글에서는 mysqldump로 받은 풀백업본 dumpfile 을 table별로 쪼개는 방법에 대해 공유 드리겠습니다</p>
+<h4 id="mysqldump-">mysqldump 준비</h4>
+<pre><code>mysqldump --opt --single-transaction -R -Q --all-databases -S /home1/irteam/db/mysql/tmp/mysql.sock -uadmin -p &gt; test_dump.sql
+</code></pre><p>=&gt; table 별로 dumpfile 받은 것이 아닌 full backup 받은 상황</p>
+<h4 id="dumpfile--table-line-">dumpfile 내 table line 확인</h4>
+<pre><code>nl -b a test_dump.sql | egrep &quot;DROP TABLE|UNLOCK TABLES&quot;
 
-    
-    
+.
+.
+.
 
-    <h4><a href="/mysql/dumpfile/">MySQL full backup dumpfile 테이블별로 쪼개는법</a></h4>
-    <h5>March 26, 2020</h5>
-    
+  6262  DROP TABLE IF EXISTS `guild_building`;
+  6285  UNLOCK TABLES;
+  6291  DROP TABLE IF EXISTS `guild_member`;
+  6331  UNLOCK TABLES;
+  6337  DROP TABLE IF EXISTS `tb_test`;
+  7389  UNLOCK TABLES;
+  7395  DROP TABLE IF EXISTS `tb_test2`;
+  7483  UNLOCK TABLES;
+  7489  DROP TABLE IF EXISTS `test3`;
+  7507  UNLOCK TABLES;
+  7513  DROP TABLE IF EXISTS `vegetable`;
+  7532  UNLOCK TABLES;
+</code></pre><p>=&gt; tb_test 테이블은 dump file에서 6337 ~ 7389 line에 있음 확인</p>
+<h4 id="dumpfile-">dumpfile 쪼개기</h4>
+<pre><code>head -7389 test_dump.sql | tail -1052 &gt; tb_test.sql
+</code></pre><p>=&gt; dumpfile의 tb_test 부분 6337~7389 line 까지 tb_test.sql 로 떨굼</p>
+<h4 id="-">데이터 확인</h4>
+<pre><code>mysql -uadmin -p --database test2 &lt; tb_test.sql
 
+### 원본
+mysql&gt; use test;
+Database changed
+mysql&gt; select count(*) from tb_test;
++----------+
+| count(*) |
++----------+
+| 12403999 |
++----------+
+1 row in set (1.67 sec)
 
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/online_schema_change/">MySQL online DDL을 위한 TOOL pt-osc &amp; gh-ost</a></h4>
-    <h5>March 18, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/semi_sync/">MySQL lossless semi-sync</a></h4>
-    <h5>March 15, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/xtrabackup_8/">Xtrabackup 8.0 잡다구리 정보</a></h4>
-    <h5>March 7, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/mysql_gtid/">MySQL_GTID 란?</a></h4>
-    <h5>January 12, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/mysql-mmm/">Mysql MMM</a></h4>
-    <h5>December 29, 2019</h5>
-    
-
-
-</div>
- 
+### 복원 데이터
+mysql&gt; use test2;
+Database changed
+mysql&gt; select count(*) from tb_test;
++----------+
+| count(*) |
++----------+
+| 12403999 |
++----------+
+1 row in set (12.05 sec)
+</code></pre></div>
 
 </main>
 
 
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
 
         <footer>
             <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>

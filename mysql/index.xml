@@ -5,10 +5,74 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 18 Mar 2020 22:18:47 +0900</lastBuildDate>
+    <lastBuildDate>Thu, 26 Mar 2020 13:57:06 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL full backup dumpfile 테이블별로 쪼개는법</title>
+      <link>https://kimdubi.github.io/mysql/dumpfile/</link>
+      <pubDate>Thu, 26 Mar 2020 13:57:06 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/dumpfile/</guid>
+      <description>&lt;p&gt;운영환경에서 DB 백업을 받을 때 보통 xtrabackup이나 mysqldump 으로 풀백업을 받으실텐데요&lt;br&gt;
+사이즈가 엄청 큰 DB를 mysqldump 로 풀백업 받은 경우 복구 시 병렬처리가 안되기 때문에&lt;br&gt;
+굉장히 많은 시간이 소요됩니다.&lt;br&gt;
+이 때 dumpfile을 테이블 별로 쪼개면 병렬로 수행할 수 있게 됩니다.&lt;br&gt;
+이번 글에서는 mysqldump로 받은 풀백업본 dumpfile 을 table별로 쪼개는 방법에 대해 공유 드리겠습니다&lt;/p&gt;
+&lt;h4 id=&#34;mysqldump-&#34;&gt;mysqldump 준비&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;mysqldump --opt --single-transaction -R -Q --all-databases -S /home1/irteam/db/mysql/tmp/mysql.sock -uadmin -p &amp;gt; test_dump.sql
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; table 별로 dumpfile 받은 것이 아닌 full backup 받은 상황&lt;/p&gt;
+&lt;h4 id=&#34;dumpfile--table-line-&#34;&gt;dumpfile 내 table line 확인&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;nl -b a test_dump.sql | egrep &amp;quot;DROP TABLE|UNLOCK TABLES&amp;quot;
+
+.
+.
+.
+
+  6262  DROP TABLE IF EXISTS `guild_building`;
+  6285  UNLOCK TABLES;
+  6291  DROP TABLE IF EXISTS `guild_member`;
+  6331  UNLOCK TABLES;
+  6337  DROP TABLE IF EXISTS `tb_test`;
+  7389  UNLOCK TABLES;
+  7395  DROP TABLE IF EXISTS `tb_test2`;
+  7483  UNLOCK TABLES;
+  7489  DROP TABLE IF EXISTS `test3`;
+  7507  UNLOCK TABLES;
+  7513  DROP TABLE IF EXISTS `vegetable`;
+  7532  UNLOCK TABLES;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; tb_test 테이블은 dump file에서 6337 ~ 7389 line에 있음 확인&lt;/p&gt;
+&lt;h4 id=&#34;dumpfile-&#34;&gt;dumpfile 쪼개기&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;head -7389 test_dump.sql | tail -1052 &amp;gt; tb_test.sql
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; dumpfile의 tb_test 부분 6337~7389 line 까지 tb_test.sql 로 떨굼&lt;/p&gt;
+&lt;h4 id=&#34;-&#34;&gt;데이터 확인&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;mysql -uadmin -p --database test2 &amp;lt; tb_test.sql
+
+### 원본
+mysql&amp;gt; use test;
+Database changed
+mysql&amp;gt; select count(*) from tb_test;
++----------+
+| count(*) |
++----------+
+| 12403999 |
++----------+
+1 row in set (1.67 sec)
+
+### 복원 데이터
+mysql&amp;gt; use test2;
+Database changed
+mysql&amp;gt; select count(*) from tb_test;
++----------+
+| count(*) |
++----------+
+| 12403999 |
++----------+
+1 row in set (12.05 sec)
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>MySQL online DDL을 위한 TOOL pt-osc &amp; gh-ost</title>

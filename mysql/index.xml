@@ -5,10 +5,121 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 26 Mar 2020 13:57:06 +0900</lastBuildDate>
+    <lastBuildDate>Thu, 26 Mar 2020 20:16:35 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL의 timeout 설정</title>
+      <link>https://kimdubi.github.io/mysql/timeout/</link>
+      <pubDate>Thu, 26 Mar 2020 20:16:35 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/timeout/</guid>
+      <description>&lt;h3 id=&#34;sleep-&#34;&gt;sleep 세션&lt;/h3&gt;
+&lt;p&gt;client-mysql 서버와 연결 후 다음 query 수행까지 대기중인 상태의 세션&lt;br&gt;
+sleep 세션이 너무 많고 정리가 안되는 경우 connection full 로 인해 신규 세션 접속이 불가능해지고&lt;br&gt;
+session 별 할당 되는 메모리로 인해 memory 부족 현상 발생할 수 있음&lt;/p&gt;
+&lt;h3 id=&#34;timeout--&#34;&gt;timeout 관련 설정&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;connect_timeout  :  MySQL 서버 접속시에 접속실패를 메시지를 보내기까지 대기하는 시간&lt;/li&gt;
+&lt;li&gt;delayed_insert_timeout  :  insert시 delay될 경우 대기하는 시간&lt;/li&gt;
+&lt;li&gt;innodb_lock_wait_timeout  :  innodb에 transaction 처리중 lock이 걸렸을 시 롤백 될때까지 대기하는 시간으로 innodb는 자동으로 데드락을 검색해서 롤백시킴&lt;/li&gt;
+&lt;li&gt;innodb_rollback_on_timeout  :  innodb의 마지막 구문을 롤백시킬지 결정하는 파라미터&lt;br&gt;
+timeout은 진행중인 transaction을 중단하고 전체 transaction을 롤백하는 과정에서 발생&lt;/li&gt;
+&lt;li&gt;net_read_timeout  :  Client =&amp;gt; Net =&amp;gt; MySQL Server 구성에서 mysql 이 net으로부터 read하는 상황에서 세션을 끊을때까지 기다리는 시간,&lt;br&gt;
+IDC =&amp;gt; RDS 이관할때 timeout 난다면 설정 고려해볼것&lt;/li&gt;
+&lt;li&gt;net_write_timeout  :  MySQL Server =&amp;gt; Net =&amp;gt; Client 구성에서 mysql 이 net으로 data write 하는 상황에서 세션을 끊을때 까지 기다리는 시간&lt;/li&gt;
+&lt;li&gt;slave_net_timeout  :  마스터/슬레이브로 서버가 클라이언트로부터 데이터를 읽어들이는 것을 중단하기까지 대기하는 시간&lt;/li&gt;
+&lt;li&gt;table_lock_wait_timeout  :  테이블 락을 중단하기까지 대기하는 시간&lt;/li&gt;
+&lt;li&gt;wait_timeout  :   활동하지 않는 커넥션을 끊을때까지 서버가 대기하는 시간 (php,jdbc 등을 통한 connection)&lt;/li&gt;
+&lt;li&gt;interactive_timeout  :  활동중인 커넥션이 닫히기 전까지 서버가 대기하는 시간 (mysql command line)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;=&amp;gt; DB의 Timeout 설정으로 sleep 세션들을 정리할 수 있으며
+이번 글에서 살펴볼 설정은 wait_timeout 과 interactive_timeout&lt;/p&gt;
+&lt;h3 id=&#34;sleep----&#34;&gt;sleep 세션 자동으로 정리하는 방법&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;sleep session 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select count(*) from information_schema.processlist where command=&#39;Sleep&#39;;
++----------+
+| count(*) |
++----------+
+|      326 |
++----------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; sleep 상태의 세션이 326개&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;timeout 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; show variables like &#39;interactive%&#39;;
++---------------------+-------+
+| Variable_name       | Value |
++---------------------+-------+
+| interactive_timeout | 28800 |
++---------------------+-------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt;28800 초 이후 interactive 세션들을 정리하게 설정되어있음&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; show variables like &#39;wait_timeout&#39;;
++---------------------+-------+
+| Variable_name       | Value |
++---------------------+-------+
+| wait_timeout | 28800 |
++---------------------+-------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt;28800 초 이후 non-interactive 세션들을 정리하게 설정되어있음&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;timeout 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; set global interactive_timeout=30;
+Query OK, 0 rows affected (0.00 sec)
+ 
+mysql&amp;gt; show global variables like &#39;interactive%&#39;;
++---------------------+-------+
+| Variable_name       | Value |
++---------------------+-------+
+| interactive_timeout | 30    |
++---------------------+-------+
+1 row in set (0.00 sec)
+ 
+mysql&amp;gt; set global wait_timeout=30;
+Query OK, 0 rows affected (0.00 sec)
+ 
+mysql&amp;gt; show global variables like &#39;wait_timeout&#39;;
++---------------+-------+
+| Variable_name | Value |
++---------------+-------+
+| wait_timeout  | 30    |
++---------------+-------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; sleep 상태가 30초 이상 된 세션들 정리하도록 설정&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;설정 적용 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; show processlist;
++----+-------------+--------------------+------+---------+-------+-----------------------------------------------------------------------------+------------------+----------+
+| Id | User        | Host               | db   | Command | Time  | State                                                                       | Info             | Progress |
++----+-------------+--------------------+------+---------+-------+-----------------------------------------------------------------------------+------------------+----------+
+|  3 | system user |                    | NULL | Connect | 99200 | Connecting to master                                                        | NULL             |    0.000 |
+|  4 | system user |                    | NULL | Connect | 99200 | Slave has read all relay log; waiting for the slave I/O thread to update it | NULL             |    0.000 |
+| 25 | root        | 165.243.5.20:29883 | NULL | Sleep   |    29 |                                                                             | NULL             |    0.000 |
+| 26 | root        | localhost          | NULL | Query   |     0 | init                                                                        | show processlist |    0.000 |
++----+-------------+--------------------+------+---------+-------+-----------------------------------------------------------------------------+------------------+----------+
+4 rows in set (0.00 sec)
+ 
+mysql&amp;gt; show processlist;
++----+-------------+-----------+------+---------+-------+-----------------------------------------------------------------------------+------------------+----------+
+| Id | User        | Host      | db   | Command | Time  | State                                                                       | Info             | Progress |
++----+-------------+-----------+------+---------+-------+-----------------------------------------------------------------------------+------------------+----------+
+|  3 | system user |           | NULL | Connect | 99201 | Connecting to master                                                        | NULL             |    0.000 |
+|  4 | system user |           | NULL | Connect | 99201 | Slave has read all relay log; waiting for the slave I/O thread to update it | NULL             |    0.000 |
+| 26 | root        | localhost | NULL | Query   |     0 | init                                                                        | show processlist |    0.000 |
++----+-------------+-----------+------+---------+-------+-----------------------------------------------------------------------------+------------------+----------+
+3 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; Sleep 상태의 세션이 30초 지난 후 자동으로 정리됨
+★ 설정 변경 전 존재하는 sleep 세션들에 대해서는 적용안됨, 신규 세션들만 적용됨&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>MySQL full backup dumpfile 테이블별로 쪼개는법</title>

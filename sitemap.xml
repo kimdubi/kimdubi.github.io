@@ -4,20 +4,27 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-03-26T13:57:06+09:00</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://kimdubi.github.io/mysql/dumpfile/</loc>
-    <lastmod>2020-03-26T13:57:06+09:00</lastmod>
+    <lastmod>2020-03-26T20:16:35+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
     <loc>https://kimdubi.github.io/mysql/</loc>
+    <lastmod>2020-03-26T20:16:35+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/timeout/</loc>
+    <lastmod>2020-03-26T20:16:35+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/dumpfile/</loc>
     <lastmod>2020-03-26T13:57:06+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL의 timeout 설정</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL의 timeout 설정</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL의 timeout 설정</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><h3 id="sleep-">sleep 세션</h3>
+<p>client-mysql 서버와 연결 후 다음 query 수행까지 대기중인 상태의 세션<br>
+sleep 세션이 너무 많고 정리가 안되는 경우 connection full 로 인해 신규 세션 접속이 불가능해지고<br>
+session 별 할당 되는 메모리로 인해 memory 부족 현상 발생할 수 있음</p>
+<h3 id="timeout--">timeout 관련 설정</h3>
+<ul>
+<li>connect_timeout  :  MySQL 서버 접속시에 접속실패를 메시지를 보내기까지 대기하는 시간</li>
+<li>delayed_insert_timeout  :  insert시 delay될 경우 대기하는 시간</li>
+<li>innodb_lock_wait_timeout  :  innodb에 transaction 처리중 lock이 걸렸을 시 롤백 될때까지 대기하는 시간으로 innodb는 자동으로 데드락을 검색해서 롤백시킴</li>
+<li>innodb_rollback_on_timeout  :  innodb의 마지막 구문을 롤백시킬지 결정하는 파라미터<br>
+timeout은 진행중인 transaction을 중단하고 전체 transaction을 롤백하는 과정에서 발생</li>
+<li>net_read_timeout  :  Client =&gt; Net =&gt; MySQL Server 구성에서 mysql 이 net으로부터 read하는 상황에서 세션을 끊을때까지 기다리는 시간,<br>
+IDC =&gt; RDS 이관할때 timeout 난다면 설정 고려해볼것</li>
+<li>net_write_timeout  :  MySQL Server =&gt; Net =&gt; Client 구성에서 mysql 이 net으로 data write 하는 상황에서 세션을 끊을때 까지 기다리는 시간</li>
+<li>slave_net_timeout  :  마스터/슬레이브로 서버가 클라이언트로부터 데이터를 읽어들이는 것을 중단하기까지 대기하는 시간</li>
+<li>table_lock_wait_timeout  :  테이블 락을 중단하기까지 대기하는 시간</li>
+<li>wait_timeout  :   활동하지 않는 커넥션을 끊을때까지 서버가 대기하는 시간 (php,jdbc 등을 통한 connection)</li>
+<li>interactive_timeout  :  활동중인 커넥션이 닫히기 전까지 서버가 대기하는 시간 (mysql command line)</li>
+</ul>
+<p>=&gt; DB의 Timeout 설정으로 sleep 세션들을 정리할 수 있으며
+이번 글에서 살펴볼 설정은 wait_timeout 과 interactive_timeout</p>
+<h3 id="sleep----">sleep 세션 자동으로 정리하는 방법</h3>
+<ul>
+<li>sleep session 확인</li>
+</ul>
+<pre><code>mysql&gt; select count(*) from information_schema.processlist where command='Sleep';
++----------+
+| count(*) |
++----------+
+|      326 |
++----------+
+1 row in set (0.00 sec)
+</code></pre><p>=&gt; sleep 상태의 세션이 326개</p>
+<ul>
+<li>timeout 확인</li>
+</ul>
+<pre><code>mysql&gt; show variables like 'interactive%';
++---------------------+-------+
+| Variable_name       | Value |
++---------------------+-------+
+| interactive_timeout | 28800 |
++---------------------+-------+
+1 row in set (0.00 sec)
+</code></pre><p>=&gt;28800 초 이후 interactive 세션들을 정리하게 설정되어있음</p>
+<pre><code>mysql&gt; show variables like 'wait_timeout';
++---------------------+-------+
+| Variable_name       | Value |
++---------------------+-------+
+| wait_timeout | 28800 |
++---------------------+-------+
+1 row in set (0.00 sec)
+</code></pre><p>=&gt;28800 초 이후 non-interactive 세션들을 정리하게 설정되어있음</p>
+<ul>
+<li>timeout 설정</li>
+</ul>
+<pre><code>mysql&gt; set global interactive_timeout=30;
+Query OK, 0 rows affected (0.00 sec)
+ 
+mysql&gt; show global variables like 'interactive%';
++---------------------+-------+
+| Variable_name       | Value |
++---------------------+-------+
+| interactive_timeout | 30    |
++---------------------+-------+
+1 row in set (0.00 sec)
+ 
+mysql&gt; set global wait_timeout=30;
+Query OK, 0 rows affected (0.00 sec)
+ 
+mysql&gt; show global variables like 'wait_timeout';
++---------------+-------+
+| Variable_name | Value |
++---------------+-------+
+| wait_timeout  | 30    |
++---------------+-------+
+1 row in set (0.00 sec)
+</code></pre><p>=&gt; sleep 상태가 30초 이상 된 세션들 정리하도록 설정</p>
+<ul>
+<li>설정 적용 확인</li>
+</ul>
+<pre><code>mysql&gt; show processlist;
++----+-------------+--------------------+------+---------+-------+-----------------------------------------------------------------------------+------------------+----------+
+| Id | User        | Host               | db   | Command | Time  | State                                                                       | Info             | Progress |
++----+-------------+--------------------+------+---------+-------+-----------------------------------------------------------------------------+------------------+----------+
+|  3 | system user |                    | NULL | Connect | 99200 | Connecting to master                                                        | NULL             |    0.000 |
+|  4 | system user |                    | NULL | Connect | 99200 | Slave has read all relay log; waiting for the slave I/O thread to update it | NULL             |    0.000 |
+| 25 | root        | 165.243.5.20:29883 | NULL | Sleep   |    29 |                                                                             | NULL             |    0.000 |
+| 26 | root        | localhost          | NULL | Query   |     0 | init                                                                        | show processlist |    0.000 |
++----+-------------+--------------------+------+---------+-------+-----------------------------------------------------------------------------+------------------+----------+
+4 rows in set (0.00 sec)
+ 
+mysql&gt; show processlist;
++----+-------------+-----------+------+---------+-------+-----------------------------------------------------------------------------+------------------+----------+
+| Id | User        | Host      | db   | Command | Time  | State                                                                       | Info             | Progress |
++----+-------------+-----------+------+---------+-------+-----------------------------------------------------------------------------+------------------+----------+
+|  3 | system user |           | NULL | Connect | 99201 | Connecting to master                                                        | NULL             |    0.000 |
+|  4 | system user |           | NULL | Connect | 99201 | Slave has read all relay log; waiting for the slave I/O thread to update it | NULL             |    0.000 |
+| 26 | root        | localhost | NULL | Query   |     0 | init                                                                        | show processlist |    0.000 |
++----+-------------+-----------+------+---------+-------+-----------------------------------------------------------------------------+------------------+----------+
+3 rows in set (0.00 sec)
+</code></pre><p>=&gt; Sleep 상태의 세션이 30초 지난 후 자동으로 정리됨
+★ 설정 변경 전 존재하는 sleep 세션들에 대해서는 적용안됨, 신규 세션들만 적용됨</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

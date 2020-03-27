@@ -5,10 +5,135 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 26 Mar 2020 20:16:35 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 28 Mar 2020 01:09:32 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL test data 쉽게 준비하는 방법</title>
+      <link>https://kimdubi.github.io/mysql/rand_insert/</link>
+      <pubDate>Sat, 28 Mar 2020 01:09:32 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/rand_insert/</guid>
+      <description>&lt;p&gt;성능 테스트 등 테스트를 위해 test data를 생성해야할 때가 있습니다&lt;br&gt;
+프로시저를 생성하거나 sysbench 를 수정해서 사용해도 되지만 그보다 더 편한 tool을 찾게 되어 소개드리겠습니다.
+percona에서 만든 mysql_random_data_load 라는 툴입니다.&lt;/p&gt;
+&lt;h3 id=&#34;install&#34;&gt;install&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;https://github.com/Percona-Lab/mysql_random_data_load/releases/download/v0.1.12/mysql_random_data_load_0.1.12_Linux_x86_64.tar.gz
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;test&#34;&gt;TEST&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;table 생성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;CREATE DATABASE IF NOT EXISTS test;
+
+CREATE TABLE `test`.`t3` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `tcol01` tinyint(4) DEFAULT NULL,
+  `tcol02` smallint(6) DEFAULT NULL,
+  `tcol03` mediumint(9) DEFAULT NULL,
+  `tcol04` int(11) DEFAULT NULL,
+  `tcol05` bigint(20) DEFAULT NULL,
+  `tcol06` float DEFAULT NULL,
+  `tcol07` double DEFAULT NULL,
+  `tcol08` decimal(10,2) DEFAULT NULL,
+  `tcol09` date DEFAULT NULL,
+  `tcol10` datetime DEFAULT NULL,
+  `tcol11` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `tcol12` time DEFAULT NULL,
+  `tcol13` year(4) DEFAULT NULL,
+  `tcol14` varchar(100) DEFAULT NULL,
+  `tcol15` char(2) DEFAULT NULL,
+  `tcol16` blob,
+  `tcol17` text,
+  `tcol18` mediumtext,
+  `tcol19` mediumblob,
+  `tcol20` longblob,
+  `tcol21` longtext,
+  `tcol22` mediumtext,
+  `tcol23` varchar(3) DEFAULT NULL,
+  `tcol24` varbinary(10) DEFAULT NULL,
+  `tcol25` enum(&#39;a&#39;,&#39;b&#39;,&#39;c&#39;) DEFAULT NULL,
+  `tcol26` set(&#39;red&#39;,&#39;green&#39;,&#39;blue&#39;) DEFAULT NULL,
+  `tcol27` float(5,3) DEFAULT NULL,
+  `tcol28` double(4,2) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;insert&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[root@46249296ede3 mysql57]# ./mysql_random_data_load test t3 1000000 --user=root --password=qhdks123 --bulk-size=1000
+INFO[2020-03-27T16:32:22Z] Starting
+  --- [--------------------------------------------------------------------]   0%
+  15s [--------------------------------------------------------------------]   1%
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;data 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select * from test.t3 limit 1\G;
+*************************** 1. row ***************************
+    id: 1
+tcol01: 5
+tcol02: 136
+tcol03: 172113
+tcol04: 1801160058
+tcol05: 3916589616287113937
+tcol06: 5.49459
+tcol07: 0.939116
+tcol08: 1.20
+tcol09: 2020-03-27
+tcol10: 2020-02-20 17:05:05
+tcol11: 2019-08-31 23:11:37
+tcol12: 00:59:48
+tcol13: 2020
+tcol14: natus molestiae et itaque temporibus non!
+tcol15: Do
+tcol16: alias libero sint dolorem eveniet quam nisi.
+tcol17: excepturi maiores quo magni quia.
+tcol18: maxime est sunt unde voluptas ex ut.
+tcol19: et aut voluptas sint nesciunt!
+tcol20: et nobis reprehenderit est architecto modi.
+tcol21: minus porro doloremque iusto cumque suscipit aspernatur eius.
+tcol22: sit ratione accusamus maxime!
+tcol23: Mar
+tcol24: Shawn
+tcol25: b
+tcol26: red
+tcol27: 0.131
+tcol28: 0.00
+1 row in set (0.01 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;options&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[root@46249296ede3 mysql57]# ./mysql_random_data_load --help
+usage: mysql_random_data_loader [&amp;lt;flags&amp;gt;] &amp;lt;database&amp;gt; &amp;lt;table&amp;gt; &amp;lt;rows&amp;gt;
+
+MySQL Random Data Loader
+
+Flags:
+      --help                   Show context-sensitive help (also try --help-long and --help-man).
+      --bulk-size=1000         Number of rows per insert statement
+      --config-file=&amp;quot;/root/.my.cnf&amp;quot;
+                               MySQL config file
+      --debug                  Log debugging information
+      --fk-samples-factor=0.3  Percentage used to get random samples for foreign keys fields
+  -h, --host=HOST              Host name/IP
+      --max-retries=100        Number of rows to insert
+      --max-threads=1          Maximum number of threads to run inserts
+      --no-progress            Show progress bar
+  -p, --password=PASSWORD      Password
+  -P, --port=PORT              Port
+      --print                  Print queries to the standard output instead of inserting them into the db
+      --max-fk-samples=100     Maximum number of samples for foreign keys fields
+  -u, --user=USER              User
+      --version                Show version and exit
+
+Args:
+  &amp;lt;database&amp;gt;  Database
+  &amp;lt;table&amp;gt;     Table
+  &amp;lt;rows&amp;gt;      Number of rows to insert
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; max-thread 옵션이 있기는 한데 여러개로 수행해도 1개의 thread로만 수행됨&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>MySQL의 timeout 설정</title>

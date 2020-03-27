@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL test data 쉽게 준비하는 방법</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL test data 쉽게 준비하는 방법</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL test data 쉽게 준비하는 방법</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>성능 테스트 등 테스트를 위해 test data를 생성해야할 때가 있습니다<br>
+프로시저를 생성하거나 sysbench 를 수정해서 사용해도 되지만 그보다 더 편한 tool을 찾게 되어 소개드리겠습니다.
+percona에서 만든 mysql_random_data_load 라는 툴입니다.</p>
+<h3 id="install">install</h3>
+<pre><code>https://github.com/Percona-Lab/mysql_random_data_load/releases/download/v0.1.12/mysql_random_data_load_0.1.12_Linux_x86_64.tar.gz
+</code></pre><h3 id="test">TEST</h3>
+<ul>
+<li>table 생성</li>
+</ul>
+<pre><code>CREATE DATABASE IF NOT EXISTS test;
+
+CREATE TABLE `test`.`t3` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `tcol01` tinyint(4) DEFAULT NULL,
+  `tcol02` smallint(6) DEFAULT NULL,
+  `tcol03` mediumint(9) DEFAULT NULL,
+  `tcol04` int(11) DEFAULT NULL,
+  `tcol05` bigint(20) DEFAULT NULL,
+  `tcol06` float DEFAULT NULL,
+  `tcol07` double DEFAULT NULL,
+  `tcol08` decimal(10,2) DEFAULT NULL,
+  `tcol09` date DEFAULT NULL,
+  `tcol10` datetime DEFAULT NULL,
+  `tcol11` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `tcol12` time DEFAULT NULL,
+  `tcol13` year(4) DEFAULT NULL,
+  `tcol14` varchar(100) DEFAULT NULL,
+  `tcol15` char(2) DEFAULT NULL,
+  `tcol16` blob,
+  `tcol17` text,
+  `tcol18` mediumtext,
+  `tcol19` mediumblob,
+  `tcol20` longblob,
+  `tcol21` longtext,
+  `tcol22` mediumtext,
+  `tcol23` varchar(3) DEFAULT NULL,
+  `tcol24` varbinary(10) DEFAULT NULL,
+  `tcol25` enum('a','b','c') DEFAULT NULL,
+  `tcol26` set('red','green','blue') DEFAULT NULL,
+  `tcol27` float(5,3) DEFAULT NULL,
+  `tcol28` double(4,2) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+</code></pre><ul>
+<li>insert</li>
+</ul>
+<pre><code>[root@46249296ede3 mysql57]# ./mysql_random_data_load test t3 1000000 --user=root --password=qhdks123 --bulk-size=1000
+INFO[2020-03-27T16:32:22Z] Starting
+  --- [--------------------------------------------------------------------]   0%
+  15s [--------------------------------------------------------------------]   1%
+</code></pre><ul>
+<li>data 확인</li>
+</ul>
+<pre><code>mysql&gt; select * from test.t3 limit 1\G;
+*************************** 1. row ***************************
+    id: 1
+tcol01: 5
+tcol02: 136
+tcol03: 172113
+tcol04: 1801160058
+tcol05: 3916589616287113937
+tcol06: 5.49459
+tcol07: 0.939116
+tcol08: 1.20
+tcol09: 2020-03-27
+tcol10: 2020-02-20 17:05:05
+tcol11: 2019-08-31 23:11:37
+tcol12: 00:59:48
+tcol13: 2020
+tcol14: natus molestiae et itaque temporibus non!
+tcol15: Do
+tcol16: alias libero sint dolorem eveniet quam nisi.
+tcol17: excepturi maiores quo magni quia.
+tcol18: maxime est sunt unde voluptas ex ut.
+tcol19: et aut voluptas sint nesciunt!
+tcol20: et nobis reprehenderit est architecto modi.
+tcol21: minus porro doloremque iusto cumque suscipit aspernatur eius.
+tcol22: sit ratione accusamus maxime!
+tcol23: Mar
+tcol24: Shawn
+tcol25: b
+tcol26: red
+tcol27: 0.131
+tcol28: 0.00
+1 row in set (0.01 sec)
+</code></pre><ul>
+<li>options</li>
+</ul>
+<pre><code>[root@46249296ede3 mysql57]# ./mysql_random_data_load --help
+usage: mysql_random_data_loader [&lt;flags&gt;] &lt;database&gt; &lt;table&gt; &lt;rows&gt;
+
+MySQL Random Data Loader
+
+Flags:
+      --help                   Show context-sensitive help (also try --help-long and --help-man).
+      --bulk-size=1000         Number of rows per insert statement
+      --config-file=&quot;/root/.my.cnf&quot;
+                               MySQL config file
+      --debug                  Log debugging information
+      --fk-samples-factor=0.3  Percentage used to get random samples for foreign keys fields
+  -h, --host=HOST              Host name/IP
+      --max-retries=100        Number of rows to insert
+      --max-threads=1          Maximum number of threads to run inserts
+      --no-progress            Show progress bar
+  -p, --password=PASSWORD      Password
+  -P, --port=PORT              Port
+      --print                  Print queries to the standard output instead of inserting them into the db
+      --max-fk-samples=100     Maximum number of samples for foreign keys fields
+  -u, --user=USER              User
+      --version                Show version and exit
+
+Args:
+  &lt;database&gt;  Database
+  &lt;table&gt;     Table
+  &lt;rows&gt;      Number of rows to insert
+</code></pre><p>=&gt; max-thread 옵션이 있기는 한데 여러개로 수행해도 1개의 thread로만 수행됨</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

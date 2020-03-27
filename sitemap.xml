@@ -4,14 +4,21 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-03-26T20:16:35+09:00</lastmod>
+    <lastmod>2020-03-28T01:09:32+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/rand_insert/</loc>
+    <lastmod>2020-03-28T01:09:32+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
     <loc>https://kimdubi.github.io/mysql/</loc>
-    <lastmod>2020-03-26T20:16:35+09:00</lastmod>
+    <lastmod>2020-03-28T01:09:32+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>

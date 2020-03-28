@@ -5,10 +5,52 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 28 Mar 2020 22:35:38 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 29 Mar 2020 00:54:49 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>ORACLE / MySQL PARTITION DDL 차이점</title>
+      <link>https://kimdubi.github.io/mysql/partition/</link>
+      <pubDate>Sun, 29 Mar 2020 00:54:49 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/partition/</guid>
+      <description>&lt;p&gt;이번 글에서는 ORACLE과 MySQL의 파티션 테이블 구문의 차이점에 대해서 알아보겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;oracle--mysql-partition-ddl-&#34;&gt;ORACLE / MySQL partition DDL 차이점&lt;/h3&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;p&gt;이외에도 아래와 같은 차이점이 더 있습니다&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;MySQL 은 global index가 지원되지 않음, (local index는 지원)&lt;/li&gt;
+&lt;li&gt;MySQL의 partition key column은 PK에 포함되어야함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;exchange-partition-without-validation&#34;&gt;exchange partition without validation&lt;/h3&gt;
+&lt;p&gt;ORACLE에는 기존에도 있는 기능이었지만 MySQL에는 5.7 버전 부터 생긴 기능으로&lt;br&gt;
+기존엔 파티셔닝 되어 있지 않은 source table에 partition 정의에 맞지 않는&lt;br&gt;
+데이터가 들어있지는 않은지 1행씩 데이터를 읽어 확인하던 것을 skip 하는 기능입니다.&lt;/p&gt;
+&lt;p&gt;아래와 같이 partition_test 테이블의 파티션 p1을 partition_test_archivce 로 옮길 때 사용할 수 있습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;partition_test : 서비스에서 사용중인 파티션 테이블&lt;/li&gt;
+&lt;li&gt;partition_test_tmp : partition_test와 같은 구조의 일반 테이블&lt;/li&gt;
+&lt;li&gt;partition_test_archive : 파티션 테이블의 아카이브용 테이블&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; alter table partition_test exchange partition p1 with table partition_test_tmp;
+Query OK, 0 rows affected (0.09 sec)
+
+### without validation 옵션 줬을 때 
+mysql&amp;gt; alter table partition_test_archive exchange partition p1 with table partition_test_tmp without validation;
+Query OK, 0 rows affected (0.08 sec)
+
+### without validation 옵션 없을 때 
+mysql&amp;gt; alter table partition_test_archive exchange partition p1 with table partition_test_tmp;
+Query OK, 0 rows affected (1.89 sec)
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt;partition_test_tmp의 데이터를 partition_test_archive로 옮길때&lt;br&gt;
+without validation 옵션을 사용하면 일반테이블의 데이터를 1행 씩 확인하는 과정이 skip 되기 때문에&lt;br&gt;
+속도가 훨씬 빠른 것을 확인할 수 있습니다.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>MySQL Flashback recovery</title>

@@ -1,0 +1,58 @@
+---
+title: "Mysql8"
+date: 2020-03-12T11:16:46+09:00
+draft: true
+---
+
+참고 URL : [https://mysqlserverteam.com/new-defaults-in-mysql-8-0/](https://mysqlserverteam.com/new-defaults-in-mysql-8-0/)
+
+| **PARAMETER/OPTION** | **OLD DEFAULT** | **NEW DEFAULT** | 비고 |
+| :--------------- | :---------- | :---------- | --- |
+| <span style="color:#0052cc">**SERVER**</span> |  |  |  |
+| character\_set\_server | latin1 | utf8mb4 | 문자 최대 4 바이트로 저장, Emoji 문자열 가능 |
+| collation_server | latin1\_swedish\_ci | utf8mb4\_0900\_ai\_ci | **uft8mb4** : 각 문자가 UTF-8 인코딩 체계에서 최대 4 바이트로 저장된다는 것을 의미<br>**0900** : Unicode Collation Algorithm 버전<br>**ai** : 악센트 무시. 즉, 정렬 할 때 e, è, é, ê, ë 사이에는 차이가 없음 (8.0 부터 추가)<br>**ci** : 대소 문자를 구분하지 않음. 즉, 정렬 할 때 p와 P 사이에 차이가 없음<br><br>\!\) utf8mb4\_general\_ci VS <span style="color:#0052cc">utf8mb4\_0900\_ai\_ci</span> 의견 주세요~<br>pad 지원여부? -> NO PAD (문자열 끝의 공백 처리)<br>[https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-sets.html](https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-sets.html)<br><span style="color:#a67f59">mysql></span><span style="color:#000000"></span><span style="color:#0077aa">SELECT</span><span style="color:#000000">COLLATION_NAME</span><span style="color:#999999">,</span><span style="color:#000000">PAD_ATTRIBUTE</span><span style="color:#0077aa">FROM</span><span style="color:#000000">INFORMATION_SCHEMA</span><span style="color:#999999">.</span><span style="color:#000000">COLLATIONS</span><span style="color:#0077aa">WHERE</span><span style="color:#000000">CHARACTER\_SET\_NAME</span><span style="color:#a67f59">=</span><span style="color:#000000"></span><span style="color:#669900">'utf8mb4'</span><span style="color:#999999">;</span><br>유니코드지원? -> 0900 유니코드 버전 |
+| explicit\_defaults\_for\_timestamp | OFF | ON | \- 5\.7<br>CREATE TABLE \`test\` \( \`a\` timestamp <span style="color:#e11d21">NOT NULL DEFAULT CURRENT\_TIMESTAMP ON UPDATE CURRENT\_TIMESTAMP</span><span style="color:#0052cc"> </span>)<br>ENGINE=InnoDB DEFAULT CHARSET=utf8mb4<br><br>\- 8\.0<br>CREATE TABLE \`test\` \( \`a\` timestamp <span style="color:#e11d21">NULL DEFAULT NULL</span>)<br>ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4\_0900\_ai\_ci<br><br>!) timestamp 에 NULL 허용됨 / OFF로 하기로 |
+| optimizer\_trace\_max\_mem\_size | 16KB | 1MB | 옵티마이저 추적의 최대 누적 크기<br><br>!) 필요할 때만 session 단위로 늘리는 것이 어떨지 (8.0 기본값 사용하기로) |
+| ~~validate\_password\_check\_user\_name~~<br>8.0.4 에서 제거 | ~~OFF~~ | ~~ON~~ | ~~validate_password plugin이 다음 버전에서 사라질 예정~~<br><br>~~!) 우린 사용 안 하니 상관 없을 듯 / OFF 하기로~~ |
+| back_log | \-1 \(autosize\) changed from : back\_log = 50 \+ \(max\_connections / 5\) | \-1 \(autosize\) changed to : back\_log = max\_connections | MySQL에서 보유할 수 있는 처리되지 않은 연결 요청의 수<br>짧은 시간에 매우 많은 연결 요청을 받을 경우에 효과<br><br>!) 기본값 사용하기로 |
+| max\_allowed\_packet | 4194304 (4MB) | 67108864 (64MB) | <span style="color:#000000">서버에 전달 또는 서버로부터 받게 되는 패킷의 최대 길이</span><br>클라이언트가 서버로 요청하는 쿼리 문장의 길이보다 큰 값으로만 설정<br>클라이언트가 커다란 BLOB나 TEXT값들을 전송하는 경우라면, 이 서버 변수를 늘릴 필요가 있고 클라이언트에서도 같이 늘려야 함<br><br><span style="color:#333333">!) 현 설정값 = 1G 이걸로</span> |
+| max\_error\_count | 64 | 1024 | SHOW ERRORS, SHOW WARNINGS명령문에 의해 표시하기 위해 저장 될 오류, 경고 및 정보 메시지의 최대 수<br><br>!) 8.0 기본값 사용해도 될 듯 |
+| event_scheduler | OFF | ON | !) OFF 로 |
+| table\_open\_cache | 2000 | 4000 | max_connections * N (실행쿼리 결합의 결합당 테이블 최대 수)<br><br><span style="color:#333333">!) 현 설정값 -> 8.0 디폴트 값 사용하기로</span><br><span style="color:#333333">max_connection = 3000</span><br><span style="color:#333333">table\_open\_cache = 2000 </span> |
+| log\_error\_verbosity | 3 (Notes) | 2 (Warning) | 1 : <span style="color:#555555">Error messages</span><br>2 : <span style="color:#555555">Error and warning messages</span><br>3 : Error, warning, and information(Note) messages<br><br>!) 현 설정값 = 3 으로 |
+| <span style="color:#4a4c59">default-authentication-plugin</span> | mysql\_native\_password | <span style="color:#000000">caching\_sha2\_password</span> | <span style="color:#000000">mysql\_native\_password : MySQL 기본 암호 사용</span><br><span style="color:#000000"><span style="color:#000000">caching\_sha2\_password </span>: SHA-256 암호 사용</span><br><span style="color:#000000"></span><br><span style="color:#000000">!) </span><span style="color:#4a4c59"><span style="color:#000000">default\-authentication\-plugin=mysql\_native\_password \(클라이언트\,커넥터가 아직 지원 안함\)</span></span> |
+| <span style="color:#0052cc">**INNODB**</span> |  |  |  |
+| innodb\_undo\_tablespaces | 0 | 2 (기본값이자 최소값) | undo tablespace 수<br>해당 변수는 8.0.14 부터 설정할 수 없으며, 제거될 예정? -> 아직 있음 (dynamic 변경도 안됨)<br><br>!) 기본값 사용 하기로 |
+| innodb\_undo\_log\_truncate | OFF | ON | 활성화하면 innodb\_max\_undo\_log\_size 설정으로 정의된 임계치를 넘기면 undo tablespace가 잘리게 됨<br><br>!) OFF 하기로 |
+| innodb\_flush\_method | NULL | fsync (Unix),unbuffered (Windows) | fsync : 데이터 변경이 일어날 때 데이터와 파일의 메타데이터 한꺼번에 변경<br>O_DIRECT : 운영체제 버퍼 기록 단계 생략하고 바로 사용자의 데이터를 디스크에 씀<br><br>!) 현 설정값 = "O_DIRECT" 유지로 |
+| <span style="color:#e11d21">~~i~~nnodb\_autoinc\_lock\_mode</span> | 1 (consecutive) | 2 (interleaved) | 자동 증가값에 사용하는 잠금 모드<br>기본값 변경이 일어난 이유, 5.7 기본 복제 유형이 명령문 기반에서 행 기반으로 변경됨을 반영<br>명령문 기반 복제는 자동 증가 잠금 모드가 필요하지만, 행 기반에선 SQL 실행 순서에 민감하지 않음<br><br>!) binlog_format = mixed 사용하므로 1 로 |
+| i<span style="color:#e11d21">nnodb\_flush\_neighbors</span> | 1 (enable) | 0 (disable) | 0으로 하면 더티페이지가 버퍼풀에서 플러시 되지 않음<br>HDD 같은 경우, 저장할때 인접 페이지를 한번의 작업으로 플러시하면  다른 시간에 개별적으로 페이지를 플러시 하는 것 보다<br>I/O 오버 헤드가 줄어들지만<br>SSD 같은 경우, 저장된 데이터 검색 시간이 중요하지 않아 0으로 설정하여 쓰기 작업을 분산 시킬 수 있음<br><br>!) my.cnf 현 설정값 = 8.0 기본값으로 |
+| <span style="color:#e11d21">innodb\_max\_dirty\_pages\_pct\_lwm</span> | 0 (%) | 10 (%) | 급격한 DML동작으로 dirty page나 checkpoint age 상한선을 넘겨 I/O bursting 발생을 방지하기 위해<br>lower water mark 를 설정하여 pre-flushing 할수 있도록 조정하는 값<br>이 설정 값을 주면 평소보다 좀 더 플러싱하여 I/O를 사용하긴 함<br><br>!) my.cnf 현 설정값 = 0 / 8.0 기본값으로 |
+| <span style="color:#e11d21">innodb\_max\_dirty\_pages\_pct</span> | 75 (%) | 90 (%) | 더티페이지 비율이 이 비율을 넘지 않음<br><br>!) my.cnf 현 설정값 = 75% / 8.0 기본값으로 |
+| <span style="color:#0052cc">PERFORMANCE SCHEMA</span> |  |  |  |
+| performance-schema-instrument='wait/lock/metadata/sql/%=ON' | OFF | ON | 현재 메타락 정보를 볼 수 있음<br>performance\_schema\.metadata\_locks<br><br>SELECT \*FROM performance\_schema\.setup\_instrumentsWHERE NAME like 'wait/lock/metadata/sql/%'; |
+| performance-schema-instrument='memory/%=COUNTED' | OFF | COUNTED | 메모리 사용 및 통계 집계<br>performance\_schema\.memory\_summary\_global\_by\_event\_name<br><br><span style="color:#0077aa"></span><span style="color:#999999"></span>SELECT \*FROM performance\_schema\.setup\_instrumentsWHERE NAME like 'memory/%'; |
+| performance-schema-consumer-events-transactions-current=ON | OFF | ON | events\_transactions\_current : 각 스레드에 대한 현재 트랜잭션 이벤트<br><br>SELECT \*FROM performance\_schema\.setup\_consumersWHERE NAME LIKE 'events\_transactions%'; |
+| performance-schema-consumer-events-transactions-history=ON | OFF | ON | events\_transactions\_history: 스레드 당 종료된 가장 최근의 트랜잭션 이벤트<br><br><span style="color:#0077aa"></span><span style="color:#999999"></span>SELECT \*FROM performance\_schema\.setup\_consumersWHERE NAME LIKE 'events\_transactions%';<span style="color:#000000"></span><span style="color:#555555"><span style="color:#999999"></span></span> |
+| performance-schema-instrument='transaction%=ON' | OFF | ON | 개별 트랜잭션 정보를 수집 할지<span style="color:#a67f59"><br><br></span><span style="color:#0077aa"></span><span style="color:#999999"></span>SELECT \*FROM performance\_schema\.setup\_instrumentsWHERE NAME = 'transaction'; |
+| <span style="color:#0052cc">**REPLICATION**</span> |  |  |  |
+| log_bin | OFF | ON | !) 현재 my.cnf 값 사용 하기로 |
+| server_id | 0 | 1 | !) 기존 my.cnf 값 사용 하기로 |
+| log\_slave\_updates | OFF | ON | 마스터에서 전달 받은 SQL이 자신의 바이너리 로그에 기록되는 것 (server_id가 다르게 찍힘)<br><br>!) OFF (MMM 에서 핑퐁치는거 있어서 OFF) |
+| ~~expire\_log\_days~~ \-\> binlog\_expire\_logs\_seconds \(초\) | ~~0~~ | ~~30~~ | ~~!) my.cnf 현 설정값 = 5 / 그대로 사용하면 될 듯~~ |
+| master-info-repository | FILE | TABLE | TABLE로 하면 mysql\.slave\_master\_info 에 저장<br><br>!) my.cnf 현 설정값 = TABLE / 그대로 사용하기로 |
+| relay\_log\_info\_repository | FILE | TABLE | TABLE로 하면 mysql\.slave\_relay\_log\_info에 저장<br><br>!) my.cnf 현 설정값 = TABLE / 그대로 사용하기로 |
+| transaction\_write\_set\_extraction | OFF | XXHASH64 | 바이너리 로그에 로그 행을 수집하는 동안, 서버에서도 쓰기 세트를 수집<br>쓰기 세트는 각 행의 기본 키를 기반으로하며 변경된 행을 고유하게 식별하는 태그의 단순하고 간결한 보기<br>이 태그는 충돌을 감지하는 데 사용<br><br>!) group replication을 사용하는 구조에서 필요한 설정 / OFF 로 |
+| slave\_rows\_search\_algorithms | INDEX\_SCAN\, TABLE\_SCAN | INDEX\_SCAN\, HASH\_SCAN | 행 기반 로깅 및 복제 행을 일괄 처리할 때 행 검색 방법을 제어<br><br>![image.png](/files/2484231376497202263)<br>!) 8.0 기본 값 사용 |
+
+* **MySQL 8.0 에서 사라진 옵션**
+    * innodb\_support\_xa = 1
+    * query\_cache\_type = OFF
+    * query\_cache\_size = 0
+    * query\_cache\_limit = 0
+* **기타**
+    * expire\_logs\_days\(일\) = binlog\_expire\_logs\_seconds \(초\)
+        * 향후 버전에서 expire\_logs\_days 사라질 예정
+        * 둘 다 my\.cnf에 선언 했을 경우\, binlog\_expire\_logs\_seconds가 적용됨
+    * <span style="color:#555555">sql\-mode 에서 "NO\_AUTO\_CREATE\_USER" 제거</span>
+        * 비어 있지 않는 (non-empty) 패스워드가 함께 지정되지 않는다면, GRANT가 자동으로 새로운 사용자를 생성하지 못하도록 <span style="color:#000000">만듦</span>

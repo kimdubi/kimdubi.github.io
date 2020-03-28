@@ -5,10 +5,128 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 28 Mar 2020 01:09:32 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 28 Mar 2020 22:35:38 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL Flashback recovery</title>
+      <link>https://kimdubi.github.io/mysql/flashback/</link>
+      <pubDate>Sat, 28 Mar 2020 22:35:38 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/flashback/</guid>
+      <description>&lt;p&gt;MySQL에서는 flashback recovery가 아직 지원되지 않습니다.&lt;br&gt;
+그래서 MariaDB의 mysqlbinlog utility를 가져와서 사용하곤 했는데&lt;br&gt;
+binlog2sql 이라는 utility를 사용하면 MySQL에서도 flashback recovery를 할 수 있습니다.&lt;/p&gt;
+&lt;h3 id=&#34;binlog2sql&#34;&gt;binlog2sql&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;mysqlbinlog 처럼 binary log를 parsing 하는 유틸리티&lt;/li&gt;
+&lt;li&gt;MariaDB 에서는 제공되던 flashback 기능을 mysql 에서 binlog2sql을 통해 사용할 수 있음&lt;/li&gt;
+&lt;li&gt;schema-fileter 기능 (database,table)&lt;/li&gt;
+&lt;li&gt;query-filter 기능 (dml-insert,update,delete)&lt;/li&gt;
+&lt;li&gt;interval-filter 기능 (file,datetime)&lt;/li&gt;
+&lt;li&gt;GTID 는 지원하지않음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;install&#34;&gt;install&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;git clone https://github.com/danfengcao/binlog2sql.git
+cd binlog2sql
+pip install -r requirements.txt
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;mysql8 버전은 PyMySQL , mysql-replication 아래 버전 이상 사용해야함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;PyMySQL==0.9.3
+wheel==0.29.0
+mysql-replication==0.21
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;필수 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### my.cnf
+[mysqld]
+
+server_id = 100            #mandatory
+log_bin = mysql           #mandatory
+max_binlog_size = 1G
+binlog_format = row        #mandatory
+binlog_row_image = full    #mandatory
+
+### user privileges
+
+GRANT SELECT, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;binlog_format=MIXED 설정 시 flashback SQL 생성 불가&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;binary-log--sql-&#34;&gt;binary log 에서 SQL 추출&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;schema-filter&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;python /engn001/binlog2sql/binlog2sql/binlog2sql.py --user=root -p&#39;qhdks123&#39; -d testdb -t binlog2sql --start-file mysql57-bin.000015
+DELETE FROM `testdb`.`binlog2sql` WHERE `age`=19 AND `id`=1 AND `name`=&#39;kimdubi&#39; LIMIT 1; #start 1311203 end 1311711 time 2020-03-28 11:13:56
+DELETE FROM `testdb`.`binlog2sql` WHERE `age`=29 AND `id`=2 AND `name`=&#39;kimdubi2&#39; LIMIT 1; #start 1311203 end 1311711 time 2020-03-28 11:13:56
+DELETE FROM `testdb`.`binlog2sql` WHERE `age`=39 AND `id`=3 AND `name`=&#39;kimdubi3&#39; LIMIT 1; #start 1311203 end 1311711 time 2020-03-28 11:13:56
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; -d , -t 옵션을 통해 특정 schema의 SQL 추출&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;query-filter&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;python /engn001/binlog2sql/binlog2sql/binlog2sql.py --user=root -p&#39;qhdks123&#39; --start-file mysql57-bin.000010 --stop-never --only-dml --sql-type DELETE
+DELETE FROM `test`.`binlog2sql` WHERE `tcol22`=&#39;sed delectus sed velit nulla quidem.&#39; AND `tcol23`=&#39;Way&#39; AND `tcol20`=&#39;est laudantium distinctio rerum ipsa alias.&#39; AND `tcol21`=&#39;ab neque ipsam minima dolorum sunt.&#39; AND `tcol08`=1.20 AND `tcol09`=&#39;2020-03-28&#39; AND `tcol24`=&#39;&#39; AND `tcol25`=&#39;c&#39; AND `tcol04`=1801160058 AND `tcol05`=3916589616287113937 AND `tcol06`=5.49458503723145 AND `tcol07`=0.939116 AND `tcol01`=5 AND `tcol02`=136 AND `tcol03`=172113 AND `tcol26`=&#39;red&#39; AND `id`=1 AND `tcol27`=0.601999998092651 AND `tcol28`=0 AND `tcol19`=&#39;perspiciatis voluptatem asperiores impedit aut in.&#39; AND `tcol18`=&#39;et voluptas et et.&#39; AND `tcol13`=2019 AND `tcol12`=&#39;13:24:25&#39; AND `tcol11`=&#39;2020-03-28 10:01:13&#39; AND `tcol10`=&#39;2019-09-15 14:02:03&#39; AND `tcol17`=&#39;nihil iusto odio eum ea voluptatibus et officia dolores.&#39; AND `tcol16`=&#39;error sunt aut voluptatem eum cumque.&#39; AND `tcol15`=&#39;He&#39; AND `tcol14`=&#39;magni assumenda nemo placeat quo quam officia.&#39; LIMIT 1; #start 1310403 end 1311172 time 2020-03-28 10:52:57
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; &amp;ndash;only-dml , &amp;ndash;sql-type 옵션을 통해 특정 dml SQL 추출&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;interval-filter&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;python /engn001/binlog2sql/binlog2sql/binlog2sql.py --user=root -p&#39;qhdks123&#39; --start-file mysql57-bin.000004 --end-file mysql57-bin.000016 --start-datetime &#39;2020-03-28 11:13:56&#39; --stop-datetime &#39;2020-03-29 11:00:00&#39; 
+INSERT INTO `testdb`.`binlog2sql`(`age`, `id`, `name`) VALUES (123, 12, &#39;kimubi1234&#39;); #start 1311203 end 1311711 time 2020-03-28 11:13:56
+INSERT INTO `testdb`.`binlog2sql`(`age`, `id`, `name`) VALUES (12345, 11, &#39;kimdubi&#39;); #start 1311203 end 1311711 time 2020-03-28 11:13:56
+INSERT INTO `testdb`.`binlog2sql`(`age`, `id`, `name`) VALUES (12345, 10, &#39;kimdubi&#39;); #start 1311203 end 1311711 time 2020-03-28 11:13:56
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; file, datetime 옵션으로 특정 시간대 별 SQL 추출&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;gtid 미지원&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;python /engn001/binlog2sql/binlog2sql/binlog2sql.py --user=root -p&#39;qhdks123&#39; --start-position=&#39;8043f172-5d51-11ea-b0ab-0242ac120003:1&#39;
+usage: binlog2sql.py [-h HOST] [-u USER] [-p [PASSWORD [PASSWORD ...]]]
+                     [-P PORT] [--start-file START_FILE]
+                     [--start-position START_POS] [--stop-file END_FILE]
+                     [--stop-position END_POS] [--start-datetime START_TIME]
+                     [--stop-datetime STOP_TIME] [--stop-never] [--help]
+                     [-d [DATABASES [DATABASES ...]]]
+                     [-t [TABLES [TABLES ...]]] [--only-dml]
+                     [--sql-type [SQL_TYPE [SQL_TYPE ...]]] [-K] [-B]
+                     [--back-interval BACK_INTERVAL]
+binlog2sql.py: error: argument --start-position/--start-pos: invalid int value: &#39;8043f172-5d51-11ea-b0ab-0242ac120003:1&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;flashback-pitr&#34;&gt;Flashback PITR&lt;/h3&gt;
+&lt;p&gt;위에서 살펴본 SQL 추출 구문에서 &amp;ndash;flashback 옵션 추가로 rollback 쿼리 추출할 수 있음&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;update 장애&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; update binlog2sql set tcol24=&#39;&#39; ;
+Query OK, 1000 rows affected (0.04 sec)
+Rows matched: 1000  Changed: 1000  Warnings: 0
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;복구 대상 포지션 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;BEGIN
+/*!*/;
+# at 291
+.
+.
+.
+#200328 10:01:13 server id 33  end_log_pos 871299 CRC32 0xf0f3dd99      Xid = 1260
+COMMIT/*!*/;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;flashback query 추출&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;python /engn001/binlog2sql/binlog2sql/binlog2sql.py --user=root -p&#39;qhdks123&#39; \
+--start-file mysql57-bin.000015 --start-position=291 --stop-position=871299  --flashback &amp;gt; flashback.sql
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;recovery SQL 반영&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;head -n 1 flashback.sql
+UPDATE `test`.`binlog2sql` SET `tcol22`=&#39;perferendis quibusdam iure sed!&#39;, `tcol23`=&#39;Sco&#39;, `tcol20`=&#39;sit excepturi dolorum et sunt ullam reiciendis ex.&#39;, `tcol21`=&#39;magni omnis inventore est placeat sapiente!&#39;, `tcol08`=4.27, `tcol09`=&#39;2020-03-28&#39;, `tcol24`=&#39;Eric&#39;, `tcol25`=&#39;a&#39;, `tcol04`=734647498, `tcol05`=2996241080926269364, `tcol06`=6.63104915618896, `tcol07`=4.244445, `tcol01`=8, `tcol02`=139, `tcol03`=393191, `tcol26`=&#39;blue&#39;, `id`=1000, `tcol27`=0, `tcol28`=0, `tcol19`=&#39;ad est voluptates qui omnis quisquam.&#39;, `tcol18`=&#39;quia odit nulla fugiat eum!&#39;, `tcol13`=2019, `tcol12`=&#39;14:48:23&#39;, `tcol11`=&#39;2019-07-03 20:08:31&#39;, `tcol10`=&#39;2019-08-06 04:04:28&#39;, `tcol17`=&#39;sed sit est repellendus aut necessitatibus ullam explicabo.&#39;, `tcol16`=&#39;ducimus minima officia aspernatur sit deserunt quo rerum sit.&#39;, `tcol15`=&#39;Br&#39;, `tcol14`=&#39;ut aliquam ea aut tempore magnam nemo voluptatem laudantium.&#39; WHERE `tcol22`=&#39;perferendis quibusdam iure sed!&#39; AND `tcol23`=&#39;Sco&#39; AND `tcol20`=&#39;sit excepturi dolorum et sunt ullam reiciendis ex.&#39; AND `tcol21`=&#39;magni omnis inventore est placeat sapiente!&#39; AND `tcol08`=4.27 AND `tcol09`=&#39;2020-03-28&#39; AND `tcol24`=&#39;&#39; AND `tcol25`=&#39;a&#39; AND `tcol04`=734647498 AND `tcol05`=2996241080926269364 AND `tcol06`=6.63104915618896 AND `tcol07`=4.244445 AND `tcol01`=8 AND `tcol02`=139 AND `tcol03`=393191 AND `tcol26`=&#39;blue&#39; AND `id`=1000 AND `tcol27`=0 AND `tcol28`=0 AND `tcol19`=&#39;ad est voluptates qui omnis quisquam.&#39; AND `tcol18`=&#39;quia odit nulla fugiat eum!&#39; AND `tcol13`=2019 AND `tcol12`=&#39;14:48:23&#39; AND `tcol11`=&#39;2020-03-28 10:01:13&#39; AND `tcol10`=&#39;2019-08-06 04:04:28&#39; AND `tcol17`=&#39;sed sit est repellendus aut necessitatibus ullam explicabo.&#39; AND `tcol16`=&#39;ducimus minima officia aspernatur sit deserunt quo rerum sit.&#39; AND `tcol15`=&#39;Br&#39; AND `tcol14`=&#39;ut aliquam ea aut tempore magnam nemo voluptatem laudantium.&#39; LIMIT 1; #start 4 end 871268 time 2020-03-28 10:01:13
+
+
+mysql &amp;lt; flashback.sql
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>MySQL test data 쉽게 준비하는 방법</title>

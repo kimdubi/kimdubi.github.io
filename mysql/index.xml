@@ -5,7 +5,7 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 29 Mar 2020 00:54:49 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 29 Mar 2020 00:55:49 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
@@ -13,7 +13,7 @@
     <item>
       <title>ORACLE / MySQL PARTITION DDL 차이점</title>
       <link>https://kimdubi.github.io/mysql/partition/</link>
-      <pubDate>Sun, 29 Mar 2020 00:54:49 +0900</pubDate>
+      <pubDate>Sun, 29 Mar 2020 00:55:49 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/mysql/partition/</guid>
       <description>&lt;p&gt;이번 글에서는 ORACLE과 MySQL의 파티션 테이블 구문의 차이점에 대해서 알아보겠습니다.&lt;/p&gt;

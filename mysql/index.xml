@@ -18,6 +18,8 @@
       <guid>https://kimdubi.github.io/mysql/partition/</guid>
       <description>&lt;p&gt;이번 글에서는 ORACLE과 MySQL의 파티션 테이블 구문의 차이점에 대해서 알아보겠습니다.&lt;/p&gt;
 &lt;h3 id=&#34;oracle--mysql-partition-ddl-&#34;&gt;ORACLE / MySQL partition DDL 차이점&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/partition.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;!-- raw HTML omitted --&gt;
 &lt;!-- raw HTML omitted --&gt;
 &lt;!-- raw HTML omitted --&gt;
 &lt;p&gt;이외에도 아래와 같은 차이점이 더 있습니다&lt;/p&gt;

@@ -5,7 +5,7 @@
 
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Mysqls</title>
+        <title>MySQL 버전 별 Innodb Architecture</title>
         
         <style>
 
@@ -54,9 +54,6 @@
 <script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
  <meta name="generator" content="Hugo 0.60.1" />
         
-            <link href="/mysql/index.xml" rel="alternate" type="application/rss&#43;xml" title="kimDuBiA" />
-            <link href="/mysql/index.xml" rel="feed" type="application/rss&#43;xml" title="kimDuBiA" />
-        
 
         
             <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
@@ -82,7 +79,7 @@
         <nav class="navbar navbar-default navbar-fixed-top">
             <div class="container">
                 <div class="navbar-header">
-                    <a class="navbar-brand visible-xs" href="#">Mysqls</a>
+                    <a class="navbar-brand visible-xs" href="#">MySQL 버전 별 Innodb Architecture</a>
                     <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
@@ -123,177 +120,61 @@
 
 <main>
 
-    <h2>Mysqls</h2>
+    <div>
+        <h2>MySQL 버전 별 Innodb Architecture</h2>
+        <h5></h5>
+        
 
-     <div class="item">
+    </div>
 
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/innodb_architecture/">MySQL 버전 별 Innodb Architecture</a></h4>
-    <h5>March 29, 2020</h5>
-    
-
-
+    <div align="start" class="content"><p>이번 글에서는 MySQL 의 Innodb 엔진 아키텍처가 버전에 따라 어떻게 달라졌는지 간단히 살펴보겠습니다.</p>
+<h3 id="mysql-56">MySQL 5.6</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/56.png" alt=""></p>
+<h3 id="mysql-57">MySQL 5.7</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/57.png" alt=""></p>
+<h4 id="56--57-">5.6 =&gt; 5.7 변경사항</h4>
+<ul>
+<li>MySQL 5.5 =&gt; 5.6 으로 올라오면서 undo log를 System tablespace (ibdata) 에서 별도로 둘 수 있게됨</li>
+<li>커진 undo log truncate 기능 (set global innodb_undo_log_truncate = ON, innod_max_undo_log_size)</li>
+<li>MySQL 5.7 부터 temp table이 MyISAM이 아닌 InnoDB로 생성됨</li>
+<li>general tablespace의 활용
+=&gt; 특정 테이블을 고속의 스토리지에 배치</li>
+</ul>
+<pre><code>create tablespace ts1 add datafile '/home1/test1/tab1.ibd' ;
+create table tab1 tablespace tab1;
+</code></pre><h3 id="mysql-80">MySQL 8.0</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/80.png" alt=""></p>
+<h4 id="57--80-">5.7 =&gt; 8.0 변경사항</h4>
+<ul>
+<li>기존엔 undo tablespace 의 위치가 system tablespace (ibdata)에 있거나 밖으로 꺼내거나 선택적인 사항이었으나
+8.0 으로 올라오면서 필수로 system tablespace 밖에 생성됨</li>
+<li>5.7 까지는 data dictionary 가 system tablespace(ibdata)과 테이블명.frm 파일로 저장이 되었으나<br>
+8.0으로 올라오면서 innodb 스토리지 엔진을 사용하는 별도의 data dictionary table에 저장됨
+=&gt; frm 파일 읽으면서 생기는 I/O 병목, non-transaction ddl 문제 해결</li>
+<li>temp tablespace 를 global / session 영역 별로 나눠서 사용함</li>
+</ul>
 </div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/partition/">ORACLE / MySQL PARTITION DDL 차이점</a></h4>
-    <h5>March 29, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/flashback/">MySQL Flashback recovery</a></h4>
-    <h5>March 28, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/rand_insert/">MySQL test data 쉽게 준비하는 방법</a></h4>
-    <h5>March 28, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/timeout/">MySQL의 timeout 설정</a></h4>
-    <h5>March 26, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/dumpfile/">MySQL full backup dumpfile 테이블별로 쪼개는법</a></h4>
-    <h5>March 26, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/online_schema_change/">MySQL online DDL을 위한 TOOL pt-osc &amp; gh-ost</a></h4>
-    <h5>March 18, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/semi_sync/">MySQL lossless semi-sync</a></h4>
-    <h5>March 15, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/xtrabackup_8/">Xtrabackup 8.0 잡다구리 정보</a></h4>
-    <h5>March 7, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/mysql_gtid/">MySQL_GTID 란?</a></h4>
-    <h5>January 12, 2020</h5>
-    
-
-
-</div>
- 
 
 </main>
 
 
+<div id="disqus_thread"></div>
+<script type="text/javascript">
 
-<div class="pages">
-
+(function() {
     
-
     
-        <a class="icon pages-icon" href="/mysql/page/2/" rel="next">
-            <i class="fa fa-arrow-right"></i>
-        </a>
-    
+    if (window.location.hostname == "localhost")
+        return;
 
-</div>
-
-
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
 
         <footer>
             <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>

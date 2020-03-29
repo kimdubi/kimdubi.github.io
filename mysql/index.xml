@@ -5,10 +5,45 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 29 Mar 2020 00:55:49 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 29 Mar 2020 16:40:33 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL 버전 별 Innodb Architecture</title>
+      <link>https://kimdubi.github.io/mysql/innodb_architecture/</link>
+      <pubDate>Sun, 29 Mar 2020 16:40:33 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/innodb_architecture/</guid>
+      <description>&lt;p&gt;이번 글에서는 MySQL 의 Innodb 엔진 아키텍처가 버전에 따라 어떻게 달라졌는지 간단히 살펴보겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;mysql-56&#34;&gt;MySQL 5.6&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/56.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;mysql-57&#34;&gt;MySQL 5.7&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/57.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h4 id=&#34;56--57-&#34;&gt;5.6 =&amp;gt; 5.7 변경사항&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;MySQL 5.5 =&amp;gt; 5.6 으로 올라오면서 undo log를 System tablespace (ibdata) 에서 별도로 둘 수 있게됨&lt;/li&gt;
+&lt;li&gt;커진 undo log truncate 기능 (set global innodb_undo_log_truncate = ON, innod_max_undo_log_size)&lt;/li&gt;
+&lt;li&gt;MySQL 5.7 부터 temp table이 MyISAM이 아닌 InnoDB로 생성됨&lt;/li&gt;
+&lt;li&gt;general tablespace의 활용
+=&amp;gt; 특정 테이블을 고속의 스토리지에 배치&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;create tablespace ts1 add datafile &#39;/home1/test1/tab1.ibd&#39; ;
+create table tab1 tablespace tab1;
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;mysql-80&#34;&gt;MySQL 8.0&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/80.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h4 id=&#34;57--80-&#34;&gt;5.7 =&amp;gt; 8.0 변경사항&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;기존엔 undo tablespace 의 위치가 system tablespace (ibdata)에 있거나 밖으로 꺼내거나 선택적인 사항이었으나
+8.0 으로 올라오면서 필수로 system tablespace 밖에 생성됨&lt;/li&gt;
+&lt;li&gt;5.7 까지는 data dictionary 가 system tablespace(ibdata)과 테이블명.frm 파일로 저장이 되었으나&lt;br&gt;
+8.0으로 올라오면서 innodb 스토리지 엔진을 사용하는 별도의 data dictionary table에 저장됨
+=&amp;gt; frm 파일 읽으면서 생기는 I/O 병목, non-transaction ddl 문제 해결&lt;/li&gt;
+&lt;li&gt;temp tablespace 를 global / session 영역 별로 나눠서 사용함&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>ORACLE / MySQL PARTITION DDL 차이점</title>

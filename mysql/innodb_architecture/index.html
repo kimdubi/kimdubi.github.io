@@ -135,7 +135,12 @@
 <h4 id="56--57-">5.6 =&gt; 5.7 변경사항</h4>
 <ul>
 <li>MySQL 5.5 =&gt; 5.6 으로 올라오면서 undo log를 System tablespace (ibdata) 에서 별도로 둘 수 있게됨</li>
-<li>커진 undo log truncate 기능 (set global innodb_undo_log_truncate = ON, innod_max_undo_log_size)</li>
+<li>커진 undo log truncate 기능 (set global innodb_undo_log_truncate = ON)
+<ul>
+<li>innodb_max_undo_log_size 보다 커지면 truncate 수행</li>
+<li>innodb_undo_tablespaces &gt; 1 이상 설정하여 system tablespace에 undo 없도록 설정 필요</li>
+</ul>
+</li>
 <li>MySQL 5.7 부터 temp table이 MyISAM이 아닌 InnoDB로 생성됨</li>
 <li>general tablespace의 활용
 =&gt; 특정 테이블을 고속의 스토리지에 배치</li>

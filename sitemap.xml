@@ -4,21 +4,28 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-03-29T16:40:33+09:00</lastmod>
+    <lastmod>2020-03-31T22:22:54+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
-    <loc>https://kimdubi.github.io/mysql/innodb_architecture/</loc>
-    <lastmod>2020-03-29T16:40:33+09:00</lastmod>
+    <loc>https://kimdubi.github.io/mysql/metadata/</loc>
+    <lastmod>2020-03-31T22:22:54+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
     <loc>https://kimdubi.github.io/mysql/</loc>
-    <lastmod>2020-03-29T16:40:33+09:00</lastmod>
+    <lastmod>2020-03-31T22:22:54+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/innodb_architecture/</loc>
+    <lastmod>2020-03-29T16:45:33+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>

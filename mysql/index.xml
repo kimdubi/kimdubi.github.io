@@ -5,15 +5,99 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 29 Mar 2020 16:40:33 +0900</lastBuildDate>
+    <lastBuildDate>Tue, 31 Mar 2020 22:22:54 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
+      <title>MySQL metadata lock 상황 한눈에 확인하기</title>
+      <link>https://kimdubi.github.io/mysql/metadata/</link>
+      <pubDate>Tue, 31 Mar 2020 22:22:54 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/metadata/</guid>
+      <description>&lt;p&gt;트래픽이 많아 쿼리가 많이 수행되는 환경에서는 단순 쿼리로는 metadata lock 을 찾기 힘들 때도 있습니다.&lt;br&gt;
+percona에서 공유한 metadata lock holder와 waiter를 쉽게 확인할 수 있는 프로시져 관련 글이 있어 공유드립니다.&lt;br&gt;
+(&lt;a href=&#34;https://www.percona.com/blog/2016/12/28/quickly-troubleshooting-metadata-locks-mysql-5-7/&#34;&gt;https://www.percona.com/blog/2016/12/28/quickly-troubleshooting-metadata-locks-mysql-5-7/&lt;/a&gt;)&lt;/p&gt;
+&lt;h3 id=&#34;procedure&#34;&gt;procedure&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;USE test;
+DROP PROCEDURE IF EXISTS procShowMetadataLockSummary;
+delimiter //
+CREATE PROCEDURE procShowMetadataLockSummary()
+BEGIN
+	DECLARE table_schema VARCHAR(64);
+    DECLARE table_name VARCHAR(64);
+    DECLARE id bigint;
+    DECLARE time bigint;
+    DECLARE info longtext;
+	DECLARE curMdlCount INT DEFAULT 0;
+    DECLARE curMdlCtr INT DEFAULT 0;
+	DECLARE curMdl CURSOR FOR SELECT * FROM tmp_blocked_metadata;
+	DROP TEMPORARY TABLE IF EXISTS tmp_blocked_metadata;
+	CREATE TEMPORARY TABLE IF NOT EXISTS tmp_blocked_metadata (
+       table_schema varchar(64) ,
+       table_name varchar(64) ,
+       id bigint ,
+	   time bigint ,
+       info longtext ,
+       PRIMARY KEY(table_schema, table_name)
+    );
+    REPLACE tmp_blocked_metadata(table_schema,table_name,id,time,info) SELECT mdl.OBJECT_SCHEMA, mdl.OBJECT_NAME, t.PROCESSLIST_ID, t.PROCESSLIST_TIME, t.PROCESSLIST_INFO FROM performance_schema.metadata_locks mdl JOIN performance_schema.threads t ON mdl.OWNER_THREAD_ID = t.THREAD_ID WHERE mdl.LOCK_STATUS=&#39;PENDING&#39; and mdl.LOCK_TYPE=&#39;EXCLUSIVE&#39; ORDER BY mdl.OBJECT_SCHEMA,mdl.OBJECT_NAME,t.PROCESSLIST_TIME ASC;
+    OPEN curMdl;
+    SET curMdlCount = (SELECT FOUND_ROWS());
+
+    WHILE (curMdlCtr &amp;lt; curMdlCount)
+    DO
+      FETCH curMdl INTO table_schema, table_name, id, time, info;
+      SELECT CONCAT_WS(&#39; &#39;,&#39;PID&#39;,t.PROCESSLIST_ID,&#39;has metadata lock on&#39;, CONCAT(mdl.OBJECT_SCHEMA,&#39;.&#39;,mdl.OBJECT_NAME), &#39;with current state&#39;, CONCAT_WS(&#39;&#39;,&#39;[&#39;,t.PROCESSLIST_STATE,&#39;]&#39;), &#39;for&#39;, t.PROCESSLIST_TIME, &#39;seconds and is currently running&#39;, CONCAT_WS(&#39;&#39;,&amp;quot;[&amp;quot;,t.PROCESSLIST_INFO,&amp;quot;]&amp;quot;)) AS &#39;Process(es) that have the metadata lock&#39; FROM performance_schema.metadata_locks mdl JOIN performance_schema.threads t ON t.THREAD_ID = mdl.OWNER_THREAD_ID WHERE mdl.LOCK_STATUS=&#39;GRANTED&#39; AND mdl.OBJECT_SCHEMA collate utf8mb4_general_ci = table_schema and mdl.OBJECT_NAME collate utf8mb4_general_ci = table_name AND mdl.OWNER_THREAD_ID NOT IN(SELECT mdl2.OWNER_THREAD_ID FROM performance_schema.metadata_locks mdl2 WHERE mdl2.LOCK_STATUS=&#39;PENDING&#39; AND mdl.OBJECT_SCHEMA = mdl2.OBJECT_SCHEMA and mdl.OBJECT_NAME = mdl2.OBJECT_NAME);  
+      SELECT CONCAT_WS(&#39; &#39;,&#39;PID&#39;, id, &#39;has been waiting for metadata lock on&#39;,CONCAT(table_schema,&#39;.&#39;, table_name),&#39;for&#39;, time, &#39;seconds to execute&#39;, CONCAT_WS(&#39;&#39;,&#39;[&#39;,info,&#39;]&#39;)) AS &#39;Oldest process waiting for metadata lock&#39;;
+      SET curMdlCtr = curMdlCtr + 1;
+	  SELECT CONCAT_WS(&#39; &#39;,&#39;PID&#39;, t.PROCESSLIST_ID, &#39;has been waiting for metadata lock on&#39;,CONCAT(table_schema,&#39;.&#39;, table_name),&#39;for&#39;, t.PROCESSLIST_TIME, &#39;seconds to execute&#39;, CONCAT_WS(&#39;&#39;,&#39;[&#39;,t.PROCESSLIST_INFO,&#39;]&#39;)) AS &#39;Other queries waiting for metadata lock&#39; FROM performance_schema.metadata_locks mdl JOIN performance_schema.threads t ON t.THREAD_ID = mdl.OWNER_THREAD_ID WHERE mdl.LOCK_STATUS=&#39;PENDING&#39; AND mdl.OBJECT_SCHEMA collate utf8mb4_general_ci = table_schema and mdl.OBJECT_NAME collate utf8mb4_general_ci= table_name AND mdl.OWNER_THREAD_ID AND t.PROCESSLIST_ID &amp;lt;&amp;gt; id ;
+	END WHILE;
+    CLOSE curMdl;
+END//
+
+delimiter ;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 프로시져 내 임시테이블 tmp_blocked_metadata 의 값을 읽어 performance_schema의 테이블의 조건으로 넣어줄 때&lt;br&gt;
+DB 환경에 따라 collation error 가 발생할 수 있는데 그럴 땐 아래와 같이 collate 를 수정하면 됩니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mdl.OBJECT_NAME collate utf8mb4_general_ci = table_name
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;test&#34;&gt;TEST&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;A session&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; delete from tb_test where id=100000;
+Query OK, 1 row affected (0.01 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;B session&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; alter table tb_test drop column ghost3;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;metadata 조회&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; call procShowMetadataLockSummary();
++--------------------------------------------------------------------------------------------------------------+
+| Process(es) that have the metadata lock                                                                      |
++--------------------------------------------------------------------------------------------------------------+
+| PID 811262 has metadata lock on test.tb_test with current state [] for 8 seconds and is currently running [] |
++--------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
++---------------------------------------------------------------------------------------------------------------------------------+
+| Oldest process waiting for metadata lock                                                                                        |
++---------------------------------------------------------------------------------------------------------------------------------+
+| PID 811430 has been waiting for metadata lock on test.tb_test for 5 seconds to execute [alter table tb_test drop column ghost3] |
++---------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
       <title>MySQL 버전 별 Innodb Architecture</title>
       <link>https://kimdubi.github.io/mysql/innodb_architecture/</link>
-      <pubDate>Sun, 29 Mar 2020 16:40:33 +0900</pubDate>
+      <pubDate>Sun, 29 Mar 2020 16:45:33 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/mysql/innodb_architecture/</guid>
       <description>&lt;p&gt;이번 글에서는 MySQL 의 Innodb 엔진 아키텍처가 버전에 따라 어떻게 달라졌는지 간단히 살펴보겠습니다.&lt;/p&gt;
@@ -24,7 +108,12 @@
 &lt;h4 id=&#34;56--57-&#34;&gt;5.6 =&amp;gt; 5.7 변경사항&lt;/h4&gt;
 &lt;ul&gt;
 &lt;li&gt;MySQL 5.5 =&amp;gt; 5.6 으로 올라오면서 undo log를 System tablespace (ibdata) 에서 별도로 둘 수 있게됨&lt;/li&gt;
-&lt;li&gt;커진 undo log truncate 기능 (set global innodb_undo_log_truncate = ON, innod_max_undo_log_size)&lt;/li&gt;
+&lt;li&gt;커진 undo log truncate 기능 (set global innodb_undo_log_truncate = ON)
+&lt;ul&gt;
+&lt;li&gt;innodb_max_undo_log_size 보다 커지면 truncate 수행&lt;/li&gt;
+&lt;li&gt;innodb_undo_tablespaces &amp;gt; 1 이상 설정하여 system tablespace에 undo 없도록 설정 필요&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
 &lt;li&gt;MySQL 5.7 부터 temp table이 MyISAM이 아닌 InnoDB로 생성됨&lt;/li&gt;
 &lt;li&gt;general tablespace의 활용
 =&amp;gt; 특정 테이블을 고속의 스토리지에 배치&lt;/li&gt;

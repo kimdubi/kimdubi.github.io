@@ -128,7 +128,8 @@
     </div>
 
     <div align="start" class="content"><p>MySQL의 버전이 올라갈수록 online DDL 지원 범위가 넓어지고 있습니다.<br>
-그런데 의외로 자유자재로 변경가능할 것 같은 varchar column의 사이즈 변경이 특정 케이스에서는 online DDL이 안되기 때문에 주의가 필요합니다.<br>
+그런데 의외로 자유자재로 변경가능할 것 같은 varchar column의 사이즈 변경이 특정 케이스에서는<br>
+online DDL이 안되기 때문에 주의가 필요합니다.<br>
 (MySQL 8.0 버전도 동일)</p>
 <ul>
 <li>VARCHAR column 256 bytes 미만에서 그 이상으로 변경</li>
@@ -161,11 +162,13 @@ mysql&gt; alter table test modify b varchar(640), algorithm=inplace, lock = none
 Query OK, 0 rows affected (0.04 sec)
 Records: 0  Duplicates: 0  Warnings: 0
 
-</code></pre><p>=&gt; column size 변경작업이 metadata 만 수정하느냐 algorithm=COPY 방식으로 수행되느냐의 차이는 varchar column 이 256 bytes 를 넘게되느냐 아니냐의 차이입니다.<br>
+</code></pre><p>=&gt; varchar size 변경작업이 metadata 만 수정하느냐 algorithm=COPY 방식으로 수행되느냐의 차이는<br>
+varchar column 이 256 bytes 를 넘게되느냐 아니냐의 차이입니다.<br>
 그 이유는 최대 저장 가능한 byte가 256 byte를 초과하게 되면 MySQL 내부적으로 해당 컬럼의 실제 저장 길이를 관리하는 flag가 1 byte에서 2 byte로 커져야 하기 때문인데요.</p>
 <p>위 상황에서 test table의 charset 은 utf8mb4이기 때문에 varchar(1) 당 4byte를 필요로 합니다.<br>
-varchar(63) 까지는 252 bytes 이기 때문에 이 아래로는 metadata 만 변경되는 방식으로 column size 증가가 가능하지만<br>
-그러나 varchar(64) 부터는 기존 256bytes 미만에서 256bytes 이상으로 변경되는 작업이기 때문에 metadata만 변경되는 게 아니라 COPY 방식으로 처리됩니다.<br>
+varchar(63) 까지는 252 bytes 이기 때문에 이 아래로는 metadata 만 변경되는 방식으로 column size 증가가 가능합니다.<br>
+그러나 varchar(64) 부터는 기존 256bytes 미만에서 256bytes 이상으로 변경되는 작업이기 때문에<br>
+metadata만 변경되는 게 아니라 COPY 방식으로 처리됩니다.<br>
 256 bytes 이상인 컬럼은 그 이상으로 변경할 때 metadata만 변경됩니다.</p>
 <ul>
 <li>table charset=utf8</li>
@@ -185,16 +188,14 @@ mysql&gt; alter table test_utf8 modify a varchar(86) , algorithm=inplace,lock=no
 ERROR 1846 (0A000): ALGORITHM=INPLACE is not supported. Reason: Cannot change column type INPLACE. Try ALGORITHM=COPY.
 </code></pre><p>=&gt; utf8 은 varchar(1) 당 3bytes 라서 varchar(85)=&gt; varchar(86) 으로 넘어갈 때 이슈가 됩니다.</p>
 <h3 id="varchar-size--">varchar size 변경하는 경우</h3>
-<pre><code>mysql&gt; show create table test;
-+-------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Table | Create Table                                                                                                                                             |
-+-------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
-| test  | CREATE TABLE `test` (
+<pre><code>       Table: test
+Create Table: CREATE TABLE `test` (
   `a` varchar(63) DEFAULT NULL,
   `b` varchar(640) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci |
-+-------+----------------------------------------------------------------------------------------------------------------------------------------------------------+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 1 row in set (0.00 sec)
+
+
 
 mysql&gt; alter table test modify b varchar(600), algorithm=inplace, lock = none;
 ERROR 1846 (0A000): ALGORITHM=INPLACE is not supported. Reason: Cannot change column type INPLACE. Try ALGORITHM=COPY.

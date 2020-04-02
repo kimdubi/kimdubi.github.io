@@ -145,7 +145,8 @@ online ddl 방식으로는 INPLACE, INSTANT (mysql 8.0부터) 가 있고<br>
 </li>
 <li>3번 단계 DML 로깅을 하는 online alter log memory가 부족하면 작업이 실패함 (innodb_online_alter_log_max_size)</li>
 </ul>
-<h2 id="online-ddl-tool">ONLINE DDL Tool</h2>
+<pre><code>ERROR 1799 (HY000): Creating index 'idx2' required more than 'innodb_online_alter_log_max_size' bytes of modification log. Please try again.
+</code></pre><h2 id="online-ddl-tool">ONLINE DDL Tool</h2>
 <p>online DDL이 한정적이다 보니 지원하지 않는 작업을 online 으로 처리하기 위한 도구가 나왔는데
 이번 글에서는 간단한 사용법과 차이점을 살펴보도록 하겠습니다.</p>
 <h3 id="ptonlineschemachange">pt-online-schema-change</h3>

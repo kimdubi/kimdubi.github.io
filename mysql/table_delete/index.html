@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL 대량 데이터 삭제하는 방법</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL 대량 데이터 삭제하는 방법</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL 대량 데이터 삭제하는 방법</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>대용량 테이블의 과거 데이터를 지우는 작업을 종종 할 때가 있는데요<br>
+파티션 테이블의 경우에는 exchange partition 를 통해서 손쉽게 작업을 할 수 있지만<br>
+일반 테이블의 경우에는 repetable-read 일 때 next key lock 영향을 최소화 하기위해<br>
+pk를 기준으로 row 단위로 끊어서 삭제하는 방법이 필요합니다.<br>
+이번 글에서는 각각 상황에 맞는 데이터 삭제 방법을 공유하겠습니다.</p>
+<h3 id="partition-table">partition table</h3>
+<p>partition table 의 경우 exchange partition 커맨드를 통해 손쉽게 과거 데이터를 삭제할 수 있습니다.<br>
+partition table은 partition 마다 OS 상에서 .ibd 파일이 생기는데<br>
+drop partition 은 실제 OS 상에서도 파일을 삭제하느라 리소스가 많이 소요되지만<br>
+exchange partition은 OS 파일 삭제 과정 없이 metadata 만 변경하기 때문에<br>
+리소스가 적게 들고 순식간에 작업이 완료되는 장점이 있습니다.</p>
+<ul>
+<li>partition table 준비</li>
+</ul>
+<pre><code>mysql&gt; show create table tb_partition\G;
+*************************** 1. row ***************************
+       Table: tb_partition
+Create Table: CREATE TABLE `tb_partition` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `messages` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `reg_ymdt` datetime NOT NULL,
+  PRIMARY KEY (`id`,`reg_ymdt`)
+) ENGINE=InnoDB AUTO_INCREMENT=4000001 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+/*!50500 PARTITION BY RANGE  COLUMNS(reg_ymdt)
+(PARTITION p20200101 VALUES LESS THAN ('2020-02-01') ENGINE = InnoDB,
+ PARTITION p20200201 VALUES LESS THAN ('2020-03-01') ENGINE = InnoDB,
+ PARTITION p20200301 VALUES LESS THAN ('2020-04-01') ENGINE = InnoDB,
+ PARTITION p20200401 VALUES LESS THAN ('2020-05-01') ENGINE = InnoDB,
+ PARTITION pMAXVALUE VALUES LESS THAN (MAXVALUE) ENGINE = InnoDB) */
+
+
+mysql&gt; select table_name,partition_name,table_rows from information_schema.partitions where table_name='tb_partition';
++--------------+----------------+------------+
+| TABLE_NAME   | PARTITION_NAME | TABLE_ROWS |
++--------------+----------------+------------+
+| tb_partition | p20200101      |     997920 |
+| tb_partition | p20200201      |     998190 |
+| tb_partition | p20200301      |     997993 |
+| tb_partition | p20200401      |     998285 |
+| tb_partition | pMAXVALUE      |          0 |
++--------------+----------------+------------+
+5 rows in set (0.01 sec)
+
+### OS ibd file
+-rw-r----- 1 irteam irteam     114688 Apr  2 23:33 tb_partition#P#pMAXVALUE.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:35 tb_partition#P#p20200101.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:36 tb_partition#P#p20200201.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:37 tb_partition#P#p20200301.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:38 tb_partition#P#p20200401.ibd
+-rw-r----- 1 irteam irteam     114688 Apr  2 23:42 tb_nonpartition.ibd
+</code></pre><ul>
+<li>exchange partition</li>
+</ul>
+<pre><code>mysql&gt; create table tb_nonpartition like tb_partition;
+Query OK, 0 rows affected (0.03 sec)
+
+mysql&gt; alter table tb_nonpartition remove partitioning;
+Query OK, 0 rows affected (0.04 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql&gt; alter table tb_partition exchange partition p20200101 with table tb_nonpartition;
+Query OK, 0 rows affected (0.05 sec)
+
+mysql&gt; select table_name,partition_name,table_rows from information_schema.partitions where table_name='tb_partition';
++--------------+----------------+------------+
+| TABLE_NAME   | PARTITION_NAME | TABLE_ROWS |
++--------------+----------------+------------+
+| tb_partition | p20200101      |          0 |
+| tb_partition | p20200201      |     924210 |
+| tb_partition | p20200301      |     903150 |
+| tb_partition | p20200401      |     930285 |
+| tb_partition | pMAXVALUE      |          0 |
++--------------+----------------+------------+
+5 rows in set (0.00 sec)
+
+mysql&gt; select count(*) from tb_nonpartition;
++----------+
+| count(*) |
++----------+
+|  1000000 |
++----------+
+1 row in set (0.03 sec)
+
+### OS ibd file
+-rw-r----- 1 irteam irteam     114688 Apr  2 23:33 tb_partition#P#pMAXVALUE.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:36 tb_partition#P#p20200201.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:37 tb_partition#P#p20200301.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:38 tb_partition#P#p20200401.ibd
+-rw-r----- 1 irteam irteam     114688 Apr  2 23:57 tb_partition#P#p20200101.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:57 tb_nonpartition.ibd
+</code></pre><p>=&gt; exchange partition 은 drop partition 과는 달리 실제 OS 파일을 삭제하지 않고 metadata 만 수정함</p>
+<h3 id="nonpartition-talbe">nonpartition talbe</h3>
+<p>파티션 테이블이 아닌 경우에는 pk기준으로 row 단위로 끊어서 delete 하는 과정이 필요합니다.<br>
+그냥 날짜 컬럼 같은 걸로 범위조건 줘서 delete 하면 next key lock으로 update 같은 dml이<br>
+막힐 수 있기 때문입니다.<br>
+아래는 auto_increment 컬럼 id 로 10000 건 씩 잘라 삭제하는 파이썬 스크립트입니다.</p>
+<pre><code>#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import os, sys, time
+from datetime import datetime
+import pymysql
+
+
+def main():
+    minmax=getMinMaxId()
+    min=minmax[0]
+    max=minmax[1]
+
+    delete(min,max)
+
+
+def getMinMaxId():
+    conn=pymysql.connect(host='localhost',port=13306, user='kimdubi', password='qhdks123',db='test',charset='utf8')
+
+    query=&quot;select min(id),max(id) from tb_nonpartition where reg_ymdt &lt; date_add(curdate(), interval - 3 month)&quot;
+    cursor=conn.cursor()
+    cursor.execute(query)
+    min_max=cursor.fetchone()
+    conn.close()
+    return min_max
+
+
+def delete(min,max):
+    conn=pymysql.connect(host='localhost',port=13306, user='kimdubi', password='qhdks123',db='test',charset='utf8')
+    cursor=conn.cursor()
+
+### inc_num 단위로 삭제
+    inc_num=min+10000
+
+    while min &lt;= max :
+        if inc_num &lt; max :
+            query=&quot;delete from tb_nonpartition where id between %d and %d&quot;%(min,inc_num)
+        else :
+            query=&quot;delete from tb_nonpartition where id between %d and %d&quot;%(min,max)
+        cursor.execute(query)
+        result=cursor.fetchone()
+        conn.commit()
+        time.sleep(0.1)
+        min=min+10000
+        inc_num=inc_num+10000
+    conn.close()
+
+main()
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

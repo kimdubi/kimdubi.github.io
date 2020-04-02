@@ -5,10 +5,163 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 01 Apr 2020 21:42:46 +0900</lastBuildDate>
+    <lastBuildDate>Thu, 02 Apr 2020 23:40:32 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL 대량 데이터 삭제하는 방법</title>
+      <link>https://kimdubi.github.io/mysql/table_delete/</link>
+      <pubDate>Thu, 02 Apr 2020 23:40:32 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/table_delete/</guid>
+      <description>&lt;p&gt;대용량 테이블의 과거 데이터를 지우는 작업을 종종 할 때가 있는데요&lt;br&gt;
+파티션 테이블의 경우에는 exchange partition 를 통해서 손쉽게 작업을 할 수 있지만&lt;br&gt;
+일반 테이블의 경우에는 repetable-read 일 때 next key lock 영향을 최소화 하기위해&lt;br&gt;
+pk를 기준으로 row 단위로 끊어서 삭제하는 방법이 필요합니다.&lt;br&gt;
+이번 글에서는 각각 상황에 맞는 데이터 삭제 방법을 공유하겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;partition-table&#34;&gt;partition table&lt;/h3&gt;
+&lt;p&gt;partition table 의 경우 exchange partition 커맨드를 통해 손쉽게 과거 데이터를 삭제할 수 있습니다.&lt;br&gt;
+partition table은 partition 마다 OS 상에서 .ibd 파일이 생기는데&lt;br&gt;
+drop partition 은 실제 OS 상에서도 파일을 삭제하느라 리소스가 많이 소요되지만&lt;br&gt;
+exchange partition은 OS 파일 삭제 과정 없이 metadata 만 변경하기 때문에&lt;br&gt;
+리소스가 적게 들고 순식간에 작업이 완료되는 장점이 있습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;partition table 준비&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; show create table tb_partition\G;
+*************************** 1. row ***************************
+       Table: tb_partition
+Create Table: CREATE TABLE `tb_partition` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `messages` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `reg_ymdt` datetime NOT NULL,
+  PRIMARY KEY (`id`,`reg_ymdt`)
+) ENGINE=InnoDB AUTO_INCREMENT=4000001 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+/*!50500 PARTITION BY RANGE  COLUMNS(reg_ymdt)
+(PARTITION p20200101 VALUES LESS THAN (&#39;2020-02-01&#39;) ENGINE = InnoDB,
+ PARTITION p20200201 VALUES LESS THAN (&#39;2020-03-01&#39;) ENGINE = InnoDB,
+ PARTITION p20200301 VALUES LESS THAN (&#39;2020-04-01&#39;) ENGINE = InnoDB,
+ PARTITION p20200401 VALUES LESS THAN (&#39;2020-05-01&#39;) ENGINE = InnoDB,
+ PARTITION pMAXVALUE VALUES LESS THAN (MAXVALUE) ENGINE = InnoDB) */
+
+
+mysql&amp;gt; select table_name,partition_name,table_rows from information_schema.partitions where table_name=&#39;tb_partition&#39;;
++--------------+----------------+------------+
+| TABLE_NAME   | PARTITION_NAME | TABLE_ROWS |
++--------------+----------------+------------+
+| tb_partition | p20200101      |     997920 |
+| tb_partition | p20200201      |     998190 |
+| tb_partition | p20200301      |     997993 |
+| tb_partition | p20200401      |     998285 |
+| tb_partition | pMAXVALUE      |          0 |
++--------------+----------------+------------+
+5 rows in set (0.01 sec)
+
+### OS ibd file
+-rw-r----- 1 irteam irteam     114688 Apr  2 23:33 tb_partition#P#pMAXVALUE.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:35 tb_partition#P#p20200101.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:36 tb_partition#P#p20200201.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:37 tb_partition#P#p20200301.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:38 tb_partition#P#p20200401.ibd
+-rw-r----- 1 irteam irteam     114688 Apr  2 23:42 tb_nonpartition.ibd
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;exchange partition&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; create table tb_nonpartition like tb_partition;
+Query OK, 0 rows affected (0.03 sec)
+
+mysql&amp;gt; alter table tb_nonpartition remove partitioning;
+Query OK, 0 rows affected (0.04 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql&amp;gt; alter table tb_partition exchange partition p20200101 with table tb_nonpartition;
+Query OK, 0 rows affected (0.05 sec)
+
+mysql&amp;gt; select table_name,partition_name,table_rows from information_schema.partitions where table_name=&#39;tb_partition&#39;;
++--------------+----------------+------------+
+| TABLE_NAME   | PARTITION_NAME | TABLE_ROWS |
++--------------+----------------+------------+
+| tb_partition | p20200101      |          0 |
+| tb_partition | p20200201      |     924210 |
+| tb_partition | p20200301      |     903150 |
+| tb_partition | p20200401      |     930285 |
+| tb_partition | pMAXVALUE      |          0 |
++--------------+----------------+------------+
+5 rows in set (0.00 sec)
+
+mysql&amp;gt; select count(*) from tb_nonpartition;
++----------+
+| count(*) |
++----------+
+|  1000000 |
++----------+
+1 row in set (0.03 sec)
+
+### OS ibd file
+-rw-r----- 1 irteam irteam     114688 Apr  2 23:33 tb_partition#P#pMAXVALUE.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:36 tb_partition#P#p20200201.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:37 tb_partition#P#p20200301.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:38 tb_partition#P#p20200401.ibd
+-rw-r----- 1 irteam irteam     114688 Apr  2 23:57 tb_partition#P#p20200101.ibd
+-rw-r----- 1 irteam irteam   50331648 Apr  2 23:57 tb_nonpartition.ibd
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; exchange partition 은 drop partition 과는 달리 실제 OS 파일을 삭제하지 않고 metadata 만 수정함&lt;/p&gt;
+&lt;h3 id=&#34;nonpartition-talbe&#34;&gt;nonpartition talbe&lt;/h3&gt;
+&lt;p&gt;파티션 테이블이 아닌 경우에는 pk기준으로 row 단위로 끊어서 delete 하는 과정이 필요합니다.&lt;br&gt;
+그냥 날짜 컬럼 같은 걸로 범위조건 줘서 delete 하면 next key lock으로 update 같은 dml이&lt;br&gt;
+막힐 수 있기 때문입니다.&lt;br&gt;
+아래는 auto_increment 컬럼 id 로 10000 건 씩 잘라 삭제하는 파이썬 스크립트입니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import os, sys, time
+from datetime import datetime
+import pymysql
+
+
+def main():
+    minmax=getMinMaxId()
+    min=minmax[0]
+    max=minmax[1]
+
+    delete(min,max)
+
+
+def getMinMaxId():
+    conn=pymysql.connect(host=&#39;localhost&#39;,port=13306, user=&#39;kimdubi&#39;, password=&#39;qhdks123&#39;,db=&#39;test&#39;,charset=&#39;utf8&#39;)
+
+    query=&amp;quot;select min(id),max(id) from tb_nonpartition where reg_ymdt &amp;lt; date_add(curdate(), interval - 3 month)&amp;quot;
+    cursor=conn.cursor()
+    cursor.execute(query)
+    min_max=cursor.fetchone()
+    conn.close()
+    return min_max
+
+
+def delete(min,max):
+    conn=pymysql.connect(host=&#39;localhost&#39;,port=13306, user=&#39;kimdubi&#39;, password=&#39;qhdks123&#39;,db=&#39;test&#39;,charset=&#39;utf8&#39;)
+    cursor=conn.cursor()
+
+### inc_num 단위로 삭제
+    inc_num=min+10000
+
+    while min &amp;lt;= max :
+        if inc_num &amp;lt; max :
+            query=&amp;quot;delete from tb_nonpartition where id between %d and %d&amp;quot;%(min,inc_num)
+        else :
+            query=&amp;quot;delete from tb_nonpartition where id between %d and %d&amp;quot;%(min,max)
+        cursor.execute(query)
+        result=cursor.fetchone()
+        conn.commit()
+        time.sleep(0.1)
+        min=min+10000
+        inc_num=inc_num+10000
+    conn.close()
+
+main()
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>MySQL online DDL varchar 변경 시 주의사항</title>
@@ -683,7 +836,7 @@ mysql&amp;gt; select count(*) from tb_test;
     <item>
       <title>MySQL online DDL을 위한 TOOL pt-osc &amp; gh-ost</title>
       <link>https://kimdubi.github.io/mysql/online_schema_change/</link>
-      <pubDate>Wed, 18 Mar 2020 22:18:47 +0900</pubDate>
+      <pubDate>Wed, 18 Mar 2020 22:19:47 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/mysql/online_schema_change/</guid>
       <description>&lt;h2 id=&#34;online-ddl&#34;&gt;ONLINE DDL&lt;/h2&gt;
@@ -704,7 +857,8 @@ online ddl 방식으로는 INPLACE, INSTANT (mysql 8.0부터) 가 있고&lt;br&g
 &lt;/li&gt;
 &lt;li&gt;3번 단계 DML 로깅을 하는 online alter log memory가 부족하면 작업이 실패함 (innodb_online_alter_log_max_size)&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h2 id=&#34;online-ddl-tool&#34;&gt;ONLINE DDL Tool&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;ERROR 1799 (HY000): Creating index &#39;idx2&#39; required more than &#39;innodb_online_alter_log_max_size&#39; bytes of modification log. Please try again.
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;online-ddl-tool&#34;&gt;ONLINE DDL Tool&lt;/h2&gt;
 &lt;p&gt;online DDL이 한정적이다 보니 지원하지 않는 작업을 online 으로 처리하기 위한 도구가 나왔는데
 이번 글에서는 간단한 사용법과 차이점을 살펴보도록 하겠습니다.&lt;/p&gt;
 &lt;h3 id=&#34;ptonlineschemachange&#34;&gt;pt-online-schema-change&lt;/h3&gt;

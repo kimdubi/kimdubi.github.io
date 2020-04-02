@@ -4,20 +4,27 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-04-01T21:42:46+09:00</lastmod>
+    <lastmod>2020-04-02T23:40:32+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
-    <loc>https://kimdubi.github.io/mysql/varchar/</loc>
-    <lastmod>2020-04-01T21:42:46+09:00</lastmod>
+    <loc>https://kimdubi.github.io/mysql/table_delete/</loc>
+    <lastmod>2020-04-02T23:40:32+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
     <loc>https://kimdubi.github.io/mysql/</loc>
+    <lastmod>2020-04-02T23:40:32+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/varchar/</loc>
     <lastmod>2020-04-01T21:42:46+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
@@ -74,7 +81,7 @@
   
   <url>
     <loc>https://kimdubi.github.io/mysql/online_schema_change/</loc>
-    <lastmod>2020-03-18T22:18:47+09:00</lastmod>
+    <lastmod>2020-03-18T22:19:47+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>

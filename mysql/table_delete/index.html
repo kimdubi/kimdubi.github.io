@@ -240,7 +240,7 @@ def main():
 
 
 def getMinMaxId():
-    conn=pymysql.connect(host='localhost',port=13306, user='kimdubi', password='qhdks123',db='test',charset='utf8')
+    conn=pymysql.connect(host='localhost',port=13306, user='kimdubi', password='',db='test',charset='utf8')
 
     query=&quot;select min(id),max(id) from tb_nonpartition where reg_ymdt &lt; date_add(curdate(), interval - 3 month)&quot;
     cursor=conn.cursor()
@@ -251,7 +251,7 @@ def getMinMaxId():
 
 
 def delete(min,max):
-    conn=pymysql.connect(host='localhost',port=13306, user='kimdubi', password='qhdks123',db='test',charset='utf8')
+    conn=pymysql.connect(host='localhost',port=13306, user='kimdubi', password='',db='test',charset='utf8')
     cursor=conn.cursor()
 
 ### inc_num 단위로 삭제

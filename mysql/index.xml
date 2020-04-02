@@ -5,7 +5,7 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 02 Apr 2020 23:40:32 +0900</lastBuildDate>
+    <lastBuildDate>Thu, 02 Apr 2020 23:40:42 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
@@ -13,7 +13,7 @@
     <item>
       <title>MySQL 대량 데이터 삭제하는 방법</title>
       <link>https://kimdubi.github.io/mysql/table_delete/</link>
-      <pubDate>Thu, 02 Apr 2020 23:40:32 +0900</pubDate>
+      <pubDate>Thu, 02 Apr 2020 23:40:42 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/mysql/table_delete/</guid>
       <description>&lt;p&gt;대용량 테이블의 과거 데이터를 지우는 작업을 종종 할 때가 있는데요&lt;br&gt;
@@ -129,7 +129,7 @@ def main():
 
 
 def getMinMaxId():
-    conn=pymysql.connect(host=&#39;localhost&#39;,port=13306, user=&#39;kimdubi&#39;, password=&#39;qhdks123&#39;,db=&#39;test&#39;,charset=&#39;utf8&#39;)
+    conn=pymysql.connect(host=&#39;localhost&#39;,port=13306, user=&#39;kimdubi&#39;, password=&#39;&#39;,db=&#39;test&#39;,charset=&#39;utf8&#39;)
 
     query=&amp;quot;select min(id),max(id) from tb_nonpartition where reg_ymdt &amp;lt; date_add(curdate(), interval - 3 month)&amp;quot;
     cursor=conn.cursor()
@@ -140,7 +140,7 @@ def getMinMaxId():
 
 
 def delete(min,max):
-    conn=pymysql.connect(host=&#39;localhost&#39;,port=13306, user=&#39;kimdubi&#39;, password=&#39;qhdks123&#39;,db=&#39;test&#39;,charset=&#39;utf8&#39;)
+    conn=pymysql.connect(host=&#39;localhost&#39;,port=13306, user=&#39;kimdubi&#39;, password=&#39;&#39;,db=&#39;test&#39;,charset=&#39;utf8&#39;)
     cursor=conn.cursor()
 
 ### inc_num 단위로 삭제

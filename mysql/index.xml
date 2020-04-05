@@ -5,10 +5,445 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 02 Apr 2020 23:40:42 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 05 Apr 2020 15:07:17 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL8 Multi Source Replication 개선점</title>
+      <link>https://kimdubi.github.io/mysql/mysql8_msr/</link>
+      <pubDate>Sun, 05 Apr 2020 15:07:17 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/mysql8_msr/</guid>
+      <description>&lt;h3 id=&#34;57-80-multisource-replication-&#34;&gt;5.7과 8.0 multi-source replication 차이점&lt;/h3&gt;
+&lt;p&gt;mysql 5.7 버전부터 multi-source replication 기능이 생기면서 유용하게 사용되고 있지만&lt;br&gt;
+두대 이상의 Master 에서 같은 이름의 database를 구분 지어 다른 db명으로 변경해서&lt;br&gt;
+replication 해오는 기능은 지원되지 않았습니다.&lt;br&gt;
+replication filter 가 channel 별로 적용 되는 게 아닌 , global 로 적용되어&lt;br&gt;
+replication_rewrite_db filter를 마음대로 사용할 수 없었기 때문인데&lt;br&gt;
+mysql 8 버전대에서 이 부분이 아래와 같이 가능해졌습니다.&lt;/p&gt;
+&lt;h4 id=&#34;mysql-57&#34;&gt;MySQL 5.7&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;Master 1: kimdubi_db =&amp;gt; Slave : kimdubi_db
+Master 2: kimdubi_db =&amp;gt; Slave : kimdubi_db
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; replication_rewrite_db filter 가 global 로 적용되기 때문에 위와 같이 master host 가 달라도
+data 충돌의 위험이 있음&lt;/p&gt;
+&lt;h4 id=&#34;mysql-80&#34;&gt;MySQL 8.0&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;Master 1: kimdubi_db =&amp;gt; Slave : kimdubi_db1
+Master 2: kimdubi_db =&amp;gt; Slave : kimdubi_db2
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 같은 db 명이지만 slave 로 replication 해올 때 구분 짓기 가능&lt;/p&gt;
+&lt;h3 id=&#34;-&#34;&gt;적용 방법&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;multi source replication 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; change master to
+    -&amp;gt; master_host=&#39;172.17.0.6&#39;,
+    -&amp;gt; master_port=3306,
+    -&amp;gt; master_user=&#39;replUser&#39;,
+    -&amp;gt; master_password=&#39;!dlatl00&#39;,
+    -&amp;gt; master_log_file=&#39;mysql-bin.000011&#39;,
+    -&amp;gt; master_log_pos=789
+    -&amp;gt; for channel &#39;master_1&#39;;
+Query OK, 0 rows affected, 2 warnings (0.05 sec)
+
+mysql&amp;gt; change master to
+    -&amp;gt; master_host=&#39;172.17.0.7&#39;,
+    -&amp;gt; master_port=3306,
+    -&amp;gt; master_user=&#39;replUser&#39;,
+    -&amp;gt; master_password=&#39;!dlatl00&#39;,
+    -&amp;gt; master_log_file=&#39;mysql-bin.000010&#39;,
+    -&amp;gt; master_log_pos=1099
+    -&amp;gt; for channel &#39;master_2&#39;;
+Query OK, 0 rows affected, 2 warnings (0.04 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;각각 master 로 부터 replication 받아올 db 생성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; create database kimdubi_db1;
+Query OK, 1 row affected (0.00 sec)
+
+mysql&amp;gt; create database kimdubi_db2;
+Query OK, 1 row affected (0.02 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;replication filter 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; CHANGE REPLICATION FILTER REPLICATE_DO_DB = (kimdubi_db1), REPLICATE_REWRITE_DB = ((kimdubi_db, kimdubi_db1)) FOR CHANNEL &#39;master_1&#39;;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql&amp;gt; CHANGE REPLICATION FILTER REPLICATE_DO_DB = (kimdubi_db2), REPLICATE_REWRITE_DB = ((kimdubi_db, kimdubi_db2)) FOR CHANNEL &#39;master_2&#39;;
+Query OK, 0 rows affected (0.01 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 5.7 버전에서는 replication filter 가 global 로 적용되었다면&lt;br&gt;
+8.0 버전 부터는 channel 별로 적용되기 때문에 5.7 과 같은 데이터 중복 충돌을 피할 수 있게 되었음&lt;br&gt;
+slave 는 relay log 로 부터 REPLICATE_REWRITE_DB 를 통해 kimdubi_db 를 kimdubi_db1 으로 치환하고&lt;br&gt;
+치환 된 kimdubi_db1 을 복제하게 됨&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;replication status 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; show slave status\G;
+*************************** 1. row ***************************
+               Slave_IO_State: Waiting for master to send event
+                  Master_Host: 172.17.0.6
+                  Master_User: replUser
+                  Master_Port: 3306
+                Connect_Retry: 60
+              Master_Log_File: mysql-bin.000011
+          Read_Master_Log_Pos: 992
+               Relay_Log_File: relay-bin-master_1.000003
+                Relay_Log_Pos: 322
+        Relay_Master_Log_File: mysql-bin.000011
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+
+              Replicate_Do_DB: kimdubi_db1
+ 
+          Exec_Master_Log_Pos: 992
+              Relay_Log_Space: 903
+              Until_Condition: None
+
+             Master_Server_Id: 64
+                  Master_UUID: ba315763-e7e8-11e9-9c29-0242ac110002
+             Master_Info_File: mysql.slave_master_info
+                    SQL_Delay: 0
+          SQL_Remaining_Delay: NULL
+      Slave_SQL_Running_State: Slave has read all relay log; waiting for more updates
+           Master_Retry_Count: 86400
+  
+         Replicate_Rewrite_DB: (kimdubi_db,kimdubi_db1)
+                 Channel_Name: master_1
+
+*************************** 2. row ***************************
+               Slave_IO_State: Waiting for master to send event
+                  Master_Host: 172.17.0.7
+                  Master_User: replUser
+                  Master_Port: 3306
+                Connect_Retry: 60
+              Master_Log_File: mysql-bin.000010
+          Read_Master_Log_Pos: 1302
+               Relay_Log_File: relay-bin-master_2.000004
+                Relay_Log_Pos: 322
+        Relay_Master_Log_File: mysql-bin.000010
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+              Replicate_Do_DB: kimdubi_db2
+ 
+          Exec_Master_Log_Pos: 1302
+              Relay_Log_Space: 903
+
+             Master_Server_Id: 2
+                  Master_UUID: ba315763-e7e8-11e9-9c29-0242ac110002
+             Master_Info_File: mysql.slave_master_info
+                    SQL_Delay: 0
+          SQL_Remaining_Delay: NULL
+      Slave_SQL_Running_State: Slave has read all relay log; waiting for more updates
+           Master_Retry_Count: 86400
+
+         Replicate_Rewrite_DB: (kimdubi_db,kimdubi_db2)
+                 Channel_Name: master_2
+ 
+2 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;replication 정상 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### MASTER_1 에서 수행
+
+mysql&amp;gt; use kimdubi_db;
+Database changed
+
+mysql&amp;gt; create table test (t int);
+Query OK, 0 rows affected (0.09 sec)
+
+mysql&amp;gt; insert into test values(1);
+Query OK, 1 row affected (0.05 sec)
+
+### MASTER_2 에서 수행
+
+mysql&amp;gt; use kimdubi_db;
+Database changed
+mysql&amp;gt; create table test (t int);
+Query OK, 0 rows affected (0.07 sec)
+
+mysql&amp;gt; insert into test values(2);
+Query OK, 1 row affected (0.03 sec)
+
+### SLAVE에서 데이터 확인
+
+mysql&amp;gt; select * from kimdubi_db1.test;
++------+
+| t    |
++------+
+|    1 |
++------+
+1 row in set (0.01 sec)
+
+mysql&amp;gt; select * from kimdubi_db2.test;
++------+
+| t    |
++------+
+|    2 |
++------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>MySQL Multi Source Replication</title>
+      <link>https://kimdubi.github.io/mysql/multi-source-replication/</link>
+      <pubDate>Sun, 05 Apr 2020 14:39:24 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/multi-source-replication/</guid>
+      <description>&lt;h3 id=&#34;multi-source-replication-&#34;&gt;Multi Source Replication ?&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/multi_1.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;하나의 slave db서버가 여러개의 master와 연결하여 replication 을 구성하는 기능으로 mysql 5.7.x 버전대 부터 사용가능함 &lt;br&gt;
+백업 용도, 로그 통합 DB, 배치작업 등을 위해 데이터를 한곳에 모을 필요가 있을 때 매우 유용한 기능&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;multi master 와 multi source 는 다른 개념&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/multi_2.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;slave는 여러 개의 master 를 channel name 으로 구분함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;heading&#34;&gt;구성방법&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;replication repository 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; show variables like &#39;%repository%&#39;;
++---------------------------+-------+
+| Variable_name             | Value |
++---------------------------+-------+
+| master_info_repository    | TABLE |
+| relay_log_info_repository | TABLE |
++---------------------------+-------+
+2 rows in set (0.25 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; MSR 설정을 위해서는 replication 관련 정보 repository 를 TABLE 에 저장해야함&lt;br&gt;
+master_info_repository=TABLE 의미는 Slave가 복제하는 MASTER DB의 status와 connection inforamtion 정보를&lt;br&gt;
+mysql.slave_master_info 에 저장하겠다는 의미&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;각 master 에서 server_id (다르게) 설정 및 replication user 생성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; set global server_id=1;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; CREATE USER &#39;replUser&#39;@&#39;172.17.0.5&#39; IDENTIFIED BY &#39;!dlatl00&#39;;
+Query OK, 0 rows affected (0.03 sec)
+
+mysql&amp;gt; GRANT REPLICATION SLAVE ON *.* TO &#39;replUser&#39;@&#39;172.17.0.5&#39;;
+Query OK, 0 rows affected (0.02 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; M/S 모든 서버들은 서로 server id 가 달라야 DB 내에서 구분이 가능함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;replication 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt;  CHANGE MASTER TO
+    -&amp;gt;  MASTER_HOST=&#39;172.17.0.6&#39;,
+    -&amp;gt;  MASTER_USER=&#39;replUser&#39;,
+    -&amp;gt;  MASTER_PASSWORD=&#39;!dlatl00&#39;,
+    -&amp;gt;  MASTER_LOG_FILE=&#39;mysql-bin.000010&#39;,
+    -&amp;gt;  MASTER_LOG_POS=716
+    -&amp;gt;  FOR CHANNEL &#39;master_1&#39;;
+Query OK, 0 rows affected, 2 warnings (0.03 sec)
+
+mysql&amp;gt;  CHANGE MASTER TO
+    -&amp;gt;  MASTER_HOST=&#39;172.17.0.7&#39;,
+    -&amp;gt;  MASTER_USER=&#39;replUser&#39;,
+    -&amp;gt;  MASTER_PASSWORD=&#39;!dlatl00&#39;,
+    -&amp;gt;  MASTER_LOG_FILE=&#39;mysql-bin.000010&#39;,
+    -&amp;gt;  MASTER_LOG_POS=714
+    -&amp;gt;  FOR CHANNEL &#39;master_2&#39;;
+Query OK, 0 rows affected, 2 warnings (0.05 sec)
+
+mysql&amp;gt;
+mysql&amp;gt;  CHANGE MASTER TO
+    -&amp;gt;  MASTER_HOST=&#39;172.17.0.8&#39;,
+    -&amp;gt;  MASTER_USER=&#39;replUser&#39;,
+    -&amp;gt;  MASTER_PASSWORD=&#39;!dlatl00&#39;,
+    -&amp;gt;  MASTER_LOG_FILE=&#39;mysql-bin.000011&#39;,
+    -&amp;gt;  MASTER_LOG_POS=388
+    -&amp;gt;  FOR CHANNEL &#39;master_3&#39;;
+Query OK, 0 rows affected, 2 warnings (0.04 sec)
+
+
+
+START SLAVE FOR CHANNEL &#39;master_1&#39;;
+START SLAVE FOR CHANNEL &#39;master_2&#39;;
+START SLAVE FOR CHANNEL &#39;master_3&#39;;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 복제 대상 Master 서버 마다 replication channel 할당&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;replication status&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; show slave status for channel &#39;master_1&#39;\G;
+*************************** 1. row ***************************
+               Slave_IO_State: Waiting for master to send event
+                  Master_Host: 172.17.0.6
+                  Master_User: replUser
+                  Master_Port: 3306
+                Connect_Retry: 60
+              Master_Log_File: mysql-bin.000010
+          Read_Master_Log_Pos: 716
+               Relay_Log_File: relay-bin-master_1.000003
+                Relay_Log_Pos: 322
+        Relay_Master_Log_File: mysql-bin.000010
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+
+          Exec_Master_Log_Pos: 716
+              Relay_Log_Space: 533
+
+             Master_Server_Id: 1
+                  Master_UUID: ba315763-e7e8-11e9-9c29-0242ac110002
+             Master_Info_File: mysql.slave_master_info
+                    SQL_Delay: 0
+          SQL_Remaining_Delay: NULL
+      Slave_SQL_Running_State: Slave has read all relay log; waiting for more updates
+           Master_Retry_Count: 86400
+
+                 Channel_Name: master_1
+.
+.
+.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; replication channel 별로 status 조회 가능&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;binary log 는?&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[root@da25e57166b5 data]# ls -ltr relay-bin*
+-rw-r----- 1 root root 155 Nov  3 09:52 relay-bin-master_3.000002
+-rw-r----- 1 root root 211 Nov  3 09:52 relay-bin-master_1.000002
+-rw-r----- 1 root root  56 Nov  3 09:52 relay-bin-master_1.index
+-rw-r----- 1 root root 211 Nov  3 09:52 relay-bin-master_2.000002
+-rw-r----- 1 root root  28 Nov  3 09:52 relay-bin-master_3.index
+-rw-r----- 1 root root  56 Nov  3 09:52 relay-bin-master_2.index
+-rw-r----- 1 root root 510 Nov  3 09:58 relay-bin-master_1.000003
+-rw-r----- 1 root root 510 Nov  3 09:58 relay-bin-master_2.000003
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; master 마다 각각 다른 relay-log file 떨굼&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;replication 모니터링&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### perfomrance_schema.replication_connection_status
+
+
+mysql&amp;gt; select * From performance_schema.replication_connection_status\G:
+*************************** 1. row ***************************
+                                      CHANNEL_NAME: master_1
+                                        GROUP_NAME:
+                                       SOURCE_UUID: ba315763-e7e8-11e9-9c29-0242ac110002
+                                         THREAD_ID: 37
+                                     SERVICE_STATE: ON
+                         COUNT_RECEIVED_HEARTBEATS: 17
+                          LAST_HEARTBEAT_TIMESTAMP: 2019-11-03 10:01:00.967195
+                          RECEIVED_TRANSACTION_SET:
+                                 LAST_ERROR_NUMBER: 0
+                                LAST_ERROR_MESSAGE:
+                              LAST_ERROR_TIMESTAMP: 0000-00-00 00:00:00.000000
+                           LAST_QUEUED_TRANSACTION: ANONYMOUS
+ LAST_QUEUED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 2019-11-03 09:58:00.954012
+LAST_QUEUED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 2019-11-03 09:58:00.954012
+     LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP: 2019-11-03 09:58:00.955845
+       LAST_QUEUED_TRANSACTION_END_QUEUE_TIMESTAMP: 2019-11-03 09:58:00.955890
+                              QUEUEING_TRANSACTION:
+    QUEUEING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 0000-00-00 00:00:00.000000
+   QUEUEING_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 0000-00-00 00:00:00.000000
+        QUEUEING_TRANSACTION_START_QUEUE_TIMESTAMP: 0000-00-00 00:00:00.000000
+*************************** 2. row ***************************
+                                      CHANNEL_NAME: master_2
+                                        GROUP_NAME:
+                                       SOURCE_UUID: ba315763-e7e8-11e9-9c29-0242ac110002
+                                         THREAD_ID: 39
+                                     SERVICE_STATE: ON
+                         COUNT_RECEIVED_HEARTBEATS: 17
+                          LAST_HEARTBEAT_TIMESTAMP: 2019-11-03 10:00:38.758086
+                          RECEIVED_TRANSACTION_SET:
+                                 LAST_ERROR_NUMBER: 0
+                                LAST_ERROR_MESSAGE:
+                              LAST_ERROR_TIMESTAMP: 0000-00-00 00:00:00.000000
+                           LAST_QUEUED_TRANSACTION: ANONYMOUS
+ LAST_QUEUED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 2019-11-03 09:58:08.748663
+LAST_QUEUED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 2019-11-03 09:58:08.748663
+     LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP: 2019-11-03 09:58:08.750592
+       LAST_QUEUED_TRANSACTION_END_QUEUE_TIMESTAMP: 2019-11-03 09:58:08.750634
+                              QUEUEING_TRANSACTION:
+    QUEUEING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 0000-00-00 00:00:00.000000
+   QUEUEING_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 0000-00-00 00:00:00.000000
+        QUEUEING_TRANSACTION_START_QUEUE_TIMESTAMP: 0000-00-00 00:00:00.000000
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;replication error 발생했을 때&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;*************************** 2. row ***************************
+               Slave_IO_State: Waiting for master to send event
+                  Master_Host: 172.17.0.7
+                  Master_User: replUser
+                  Master_Port: 3306
+                Connect_Retry: 60
+              Master_Log_File: mysql-bin.000010
+          Read_Master_Log_Pos: 902
+               Relay_Log_File: relay-bin-master_2.000003
+                Relay_Log_Pos: 322
+        Relay_Master_Log_File: mysql-bin.000010
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: No
+                   Last_Errno: 1007
+                   Last_Error: Error &#39;Can&#39;t create database &#39;test1&#39;; database exists&#39; on query. Default database: &#39;test1&#39;. Query: &#39;create database test1&#39;
+                 Skip_Counter: 0
+          Exec_Master_Log_Pos: 714
+              Relay_Log_Space: 721
+        Seconds_Behind_Master: NULL
+Master_SSL_Verify_Server_Cert: No
+                Last_IO_Errno: 0
+                Last_IO_Error:
+               Last_SQL_Errno: 1007
+               Last_SQL_Error: Error &#39;Can&#39;t create database &#39;test1&#39;; database exists&#39; on query. Default database: &#39;test1&#39;. Query: &#39;create database test1&#39;
+  Replicate_Ignore_Server_Ids:
+             Master_Server_Id: 2
+                  Master_UUID: ba315763-e7e8-11e9-9c29-0242ac110002
+             Master_Info_File: mysql.slave_master_info
+     Last_SQL_Error_Timestamp: 191103 09:58:08
+         Replicate_Rewrite_DB:
+                 Channel_Name: master_2
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; master_2 replication 에러 발생&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; stop slave for channel &#39;master_2&#39;;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql&amp;gt; set global sql_slave_skip_counter=1;
+Query OK, 0 rows affected (0.01 sec)
+
+*************************** 2. row ***************************
+               Slave_IO_State: Waiting for master to send event
+                  Master_Host: 172.17.0.7
+                  Master_User: replUser
+                  Master_Port: 3306
+                Connect_Retry: 60
+              Master_Log_File: mysql-bin.000010
+          Read_Master_Log_Pos: 902
+               Relay_Log_File: relay-bin-master_2.000004
+                Relay_Log_Pos: 322
+        Relay_Master_Log_File: mysql-bin.000010
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+
+                   Last_Errno: 0
+                   Last_Error:
+                 Skip_Counter: 0
+          Exec_Master_Log_Pos: 902
+              Relay_Log_Space: 888
+              Until_Condition: None
+
+        Seconds_Behind_Master: 0
+Master_SSL_Verify_Server_Cert: No
+                Last_IO_Errno: 0
+                Last_IO_Error:
+               Last_SQL_Errno: 0
+               Last_SQL_Error:
+  Replicate_Ignore_Server_Ids:
+             Master_Server_Id: 2
+                  Master_UUID: ba315763-e7e8-11e9-9c29-0242ac110002
+             Master_Info_File: mysql.slave_master_info
+                    SQL_Delay: 0
+          SQL_Remaining_Delay: NULL
+      Slave_SQL_Running_State: Slave has read all relay log; waiting for more updates
+           Master_Retry_Count: 86400
+
+                 Channel_Name: master_2
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; replication error 발생한 channel stop 후 개별 조치&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>MySQL 대량 데이터 삭제하는 방법</title>

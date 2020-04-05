@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL Multi Source Replication</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL Multi Source Replication</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL Multi Source Replication</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><h3 id="multi-source-replication-">Multi Source Replication ?</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/multi_1.png" alt=""></p>
+<p>하나의 slave db서버가 여러개의 master와 연결하여 replication 을 구성하는 기능으로 mysql 5.7.x 버전대 부터 사용가능함 <br>
+백업 용도, 로그 통합 DB, 배치작업 등을 위해 데이터를 한곳에 모을 필요가 있을 때 매우 유용한 기능</p>
+<ul>
+<li>multi master 와 multi source 는 다른 개념</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/multi_2.png" alt=""></p>
+<ul>
+<li>slave는 여러 개의 master 를 channel name 으로 구분함</li>
+</ul>
+<h3 id="heading">구성방법</h3>
+<ul>
+<li>replication repository 설정</li>
+</ul>
+<pre><code>mysql&gt; show variables like '%repository%';
++---------------------------+-------+
+| Variable_name             | Value |
++---------------------------+-------+
+| master_info_repository    | TABLE |
+| relay_log_info_repository | TABLE |
++---------------------------+-------+
+2 rows in set (0.25 sec)
+</code></pre><p>=&gt; MSR 설정을 위해서는 replication 관련 정보 repository 를 TABLE 에 저장해야함<br>
+master_info_repository=TABLE 의미는 Slave가 복제하는 MASTER DB의 status와 connection inforamtion 정보를<br>
+mysql.slave_master_info 에 저장하겠다는 의미</p>
+<ul>
+<li>각 master 에서 server_id (다르게) 설정 및 replication user 생성</li>
+</ul>
+<pre><code>mysql&gt; set global server_id=1;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; CREATE USER 'replUser'@'172.17.0.5' IDENTIFIED BY '!dlatl00';
+Query OK, 0 rows affected (0.03 sec)
+
+mysql&gt; GRANT REPLICATION SLAVE ON *.* TO 'replUser'@'172.17.0.5';
+Query OK, 0 rows affected (0.02 sec)
+</code></pre><p>=&gt; M/S 모든 서버들은 서로 server id 가 달라야 DB 내에서 구분이 가능함</p>
+<ul>
+<li>replication 설정</li>
+</ul>
+<pre><code>mysql&gt;  CHANGE MASTER TO
+    -&gt;  MASTER_HOST='172.17.0.6',
+    -&gt;  MASTER_USER='replUser',
+    -&gt;  MASTER_PASSWORD='!dlatl00',
+    -&gt;  MASTER_LOG_FILE='mysql-bin.000010',
+    -&gt;  MASTER_LOG_POS=716
+    -&gt;  FOR CHANNEL 'master_1';
+Query OK, 0 rows affected, 2 warnings (0.03 sec)
+
+mysql&gt;  CHANGE MASTER TO
+    -&gt;  MASTER_HOST='172.17.0.7',
+    -&gt;  MASTER_USER='replUser',
+    -&gt;  MASTER_PASSWORD='!dlatl00',
+    -&gt;  MASTER_LOG_FILE='mysql-bin.000010',
+    -&gt;  MASTER_LOG_POS=714
+    -&gt;  FOR CHANNEL 'master_2';
+Query OK, 0 rows affected, 2 warnings (0.05 sec)
+
+mysql&gt;
+mysql&gt;  CHANGE MASTER TO
+    -&gt;  MASTER_HOST='172.17.0.8',
+    -&gt;  MASTER_USER='replUser',
+    -&gt;  MASTER_PASSWORD='!dlatl00',
+    -&gt;  MASTER_LOG_FILE='mysql-bin.000011',
+    -&gt;  MASTER_LOG_POS=388
+    -&gt;  FOR CHANNEL 'master_3';
+Query OK, 0 rows affected, 2 warnings (0.04 sec)
+
+
+
+START SLAVE FOR CHANNEL 'master_1';
+START SLAVE FOR CHANNEL 'master_2';
+START SLAVE FOR CHANNEL 'master_3';
+</code></pre><p>=&gt; 복제 대상 Master 서버 마다 replication channel 할당</p>
+<ul>
+<li>replication status</li>
+</ul>
+<pre><code>mysql&gt; show slave status for channel 'master_1'\G;
+*************************** 1. row ***************************
+               Slave_IO_State: Waiting for master to send event
+                  Master_Host: 172.17.0.6
+                  Master_User: replUser
+                  Master_Port: 3306
+                Connect_Retry: 60
+              Master_Log_File: mysql-bin.000010
+          Read_Master_Log_Pos: 716
+               Relay_Log_File: relay-bin-master_1.000003
+                Relay_Log_Pos: 322
+        Relay_Master_Log_File: mysql-bin.000010
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+
+          Exec_Master_Log_Pos: 716
+              Relay_Log_Space: 533
+
+             Master_Server_Id: 1
+                  Master_UUID: ba315763-e7e8-11e9-9c29-0242ac110002
+             Master_Info_File: mysql.slave_master_info
+                    SQL_Delay: 0
+          SQL_Remaining_Delay: NULL
+      Slave_SQL_Running_State: Slave has read all relay log; waiting for more updates
+           Master_Retry_Count: 86400
+
+                 Channel_Name: master_1
+.
+.
+.
+</code></pre><p>=&gt; replication channel 별로 status 조회 가능</p>
+<ul>
+<li>binary log 는?</li>
+</ul>
+<pre><code>[root@da25e57166b5 data]# ls -ltr relay-bin*
+-rw-r----- 1 root root 155 Nov  3 09:52 relay-bin-master_3.000002
+-rw-r----- 1 root root 211 Nov  3 09:52 relay-bin-master_1.000002
+-rw-r----- 1 root root  56 Nov  3 09:52 relay-bin-master_1.index
+-rw-r----- 1 root root 211 Nov  3 09:52 relay-bin-master_2.000002
+-rw-r----- 1 root root  28 Nov  3 09:52 relay-bin-master_3.index
+-rw-r----- 1 root root  56 Nov  3 09:52 relay-bin-master_2.index
+-rw-r----- 1 root root 510 Nov  3 09:58 relay-bin-master_1.000003
+-rw-r----- 1 root root 510 Nov  3 09:58 relay-bin-master_2.000003
+</code></pre><p>=&gt; master 마다 각각 다른 relay-log file 떨굼</p>
+<ul>
+<li>replication 모니터링</li>
+</ul>
+<pre><code>### perfomrance_schema.replication_connection_status
+
+
+mysql&gt; select * From performance_schema.replication_connection_status\G:
+*************************** 1. row ***************************
+                                      CHANNEL_NAME: master_1
+                                        GROUP_NAME:
+                                       SOURCE_UUID: ba315763-e7e8-11e9-9c29-0242ac110002
+                                         THREAD_ID: 37
+                                     SERVICE_STATE: ON
+                         COUNT_RECEIVED_HEARTBEATS: 17
+                          LAST_HEARTBEAT_TIMESTAMP: 2019-11-03 10:01:00.967195
+                          RECEIVED_TRANSACTION_SET:
+                                 LAST_ERROR_NUMBER: 0
+                                LAST_ERROR_MESSAGE:
+                              LAST_ERROR_TIMESTAMP: 0000-00-00 00:00:00.000000
+                           LAST_QUEUED_TRANSACTION: ANONYMOUS
+ LAST_QUEUED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 2019-11-03 09:58:00.954012
+LAST_QUEUED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 2019-11-03 09:58:00.954012
+     LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP: 2019-11-03 09:58:00.955845
+       LAST_QUEUED_TRANSACTION_END_QUEUE_TIMESTAMP: 2019-11-03 09:58:00.955890
+                              QUEUEING_TRANSACTION:
+    QUEUEING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 0000-00-00 00:00:00.000000
+   QUEUEING_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 0000-00-00 00:00:00.000000
+        QUEUEING_TRANSACTION_START_QUEUE_TIMESTAMP: 0000-00-00 00:00:00.000000
+*************************** 2. row ***************************
+                                      CHANNEL_NAME: master_2
+                                        GROUP_NAME:
+                                       SOURCE_UUID: ba315763-e7e8-11e9-9c29-0242ac110002
+                                         THREAD_ID: 39
+                                     SERVICE_STATE: ON
+                         COUNT_RECEIVED_HEARTBEATS: 17
+                          LAST_HEARTBEAT_TIMESTAMP: 2019-11-03 10:00:38.758086
+                          RECEIVED_TRANSACTION_SET:
+                                 LAST_ERROR_NUMBER: 0
+                                LAST_ERROR_MESSAGE:
+                              LAST_ERROR_TIMESTAMP: 0000-00-00 00:00:00.000000
+                           LAST_QUEUED_TRANSACTION: ANONYMOUS
+ LAST_QUEUED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 2019-11-03 09:58:08.748663
+LAST_QUEUED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 2019-11-03 09:58:08.748663
+     LAST_QUEUED_TRANSACTION_START_QUEUE_TIMESTAMP: 2019-11-03 09:58:08.750592
+       LAST_QUEUED_TRANSACTION_END_QUEUE_TIMESTAMP: 2019-11-03 09:58:08.750634
+                              QUEUEING_TRANSACTION:
+    QUEUEING_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 0000-00-00 00:00:00.000000
+   QUEUEING_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 0000-00-00 00:00:00.000000
+        QUEUEING_TRANSACTION_START_QUEUE_TIMESTAMP: 0000-00-00 00:00:00.000000
+</code></pre><ul>
+<li>replication error 발생했을 때</li>
+</ul>
+<pre><code>*************************** 2. row ***************************
+               Slave_IO_State: Waiting for master to send event
+                  Master_Host: 172.17.0.7
+                  Master_User: replUser
+                  Master_Port: 3306
+                Connect_Retry: 60
+              Master_Log_File: mysql-bin.000010
+          Read_Master_Log_Pos: 902
+               Relay_Log_File: relay-bin-master_2.000003
+                Relay_Log_Pos: 322
+        Relay_Master_Log_File: mysql-bin.000010
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: No
+                   Last_Errno: 1007
+                   Last_Error: Error 'Can't create database 'test1'; database exists' on query. Default database: 'test1'. Query: 'create database test1'
+                 Skip_Counter: 0
+          Exec_Master_Log_Pos: 714
+              Relay_Log_Space: 721
+        Seconds_Behind_Master: NULL
+Master_SSL_Verify_Server_Cert: No
+                Last_IO_Errno: 0
+                Last_IO_Error:
+               Last_SQL_Errno: 1007
+               Last_SQL_Error: Error 'Can't create database 'test1'; database exists' on query. Default database: 'test1'. Query: 'create database test1'
+  Replicate_Ignore_Server_Ids:
+             Master_Server_Id: 2
+                  Master_UUID: ba315763-e7e8-11e9-9c29-0242ac110002
+             Master_Info_File: mysql.slave_master_info
+     Last_SQL_Error_Timestamp: 191103 09:58:08
+         Replicate_Rewrite_DB:
+                 Channel_Name: master_2
+
+</code></pre><p>=&gt; master_2 replication 에러 발생</p>
+<pre><code>mysql&gt; stop slave for channel 'master_2';
+Query OK, 0 rows affected (0.01 sec)
+
+mysql&gt; set global sql_slave_skip_counter=1;
+Query OK, 0 rows affected (0.01 sec)
+
+*************************** 2. row ***************************
+               Slave_IO_State: Waiting for master to send event
+                  Master_Host: 172.17.0.7
+                  Master_User: replUser
+                  Master_Port: 3306
+                Connect_Retry: 60
+              Master_Log_File: mysql-bin.000010
+          Read_Master_Log_Pos: 902
+               Relay_Log_File: relay-bin-master_2.000004
+                Relay_Log_Pos: 322
+        Relay_Master_Log_File: mysql-bin.000010
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+
+                   Last_Errno: 0
+                   Last_Error:
+                 Skip_Counter: 0
+          Exec_Master_Log_Pos: 902
+              Relay_Log_Space: 888
+              Until_Condition: None
+
+        Seconds_Behind_Master: 0
+Master_SSL_Verify_Server_Cert: No
+                Last_IO_Errno: 0
+                Last_IO_Error:
+               Last_SQL_Errno: 0
+               Last_SQL_Error:
+  Replicate_Ignore_Server_Ids:
+             Master_Server_Id: 2
+                  Master_UUID: ba315763-e7e8-11e9-9c29-0242ac110002
+             Master_Info_File: mysql.slave_master_info
+                    SQL_Delay: 0
+          SQL_Remaining_Delay: NULL
+      Slave_SQL_Running_State: Slave has read all relay log; waiting for more updates
+           Master_Retry_Count: 86400
+
+                 Channel_Name: master_2
+
+</code></pre><p>=&gt; replication error 발생한 channel stop 후 개별 조치</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

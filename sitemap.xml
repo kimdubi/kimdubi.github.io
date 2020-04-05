@@ -4,20 +4,34 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-04-02T23:40:42+09:00</lastmod>
+    <lastmod>2020-04-05T15:07:17+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
-    <loc>https://kimdubi.github.io/mysql/table_delete/</loc>
-    <lastmod>2020-04-02T23:40:42+09:00</lastmod>
+    <loc>https://kimdubi.github.io/mysql/mysql8_msr/</loc>
+    <lastmod>2020-04-05T15:07:17+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
     <loc>https://kimdubi.github.io/mysql/</loc>
+    <lastmod>2020-04-05T15:07:17+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/multi-source-replication/</loc>
+    <lastmod>2020-04-05T14:39:24+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/table_delete/</loc>
     <lastmod>2020-04-02T23:40:42+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>

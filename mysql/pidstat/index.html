@@ -146,8 +146,9 @@ Linux 2.6.32-754.15.3.el6.x86_64 (testserver)    04/26/20        _x86_64_       
 22:09:09            -     56143    0.00    0.00    0.00    0.00     0  |__mysqld
 22:09:09            -     56144    0.00    0.00    0.00    0.00     0  |__mysqld
 22:09:09            -     14628   38.80    5.20    0.00   44.00     3  |__mysqld
-</code></pre><p>=&gt; Usage: pidstat [ options ] [ <!-- raw HTML omitted --> [ <!-- raw HTML omitted --> ] ]<br>
-mysqld 프로세스의 thread만 5초 interval로 확인하는 커맨드</p>
+</code></pre><p>=&gt; Usage: pidstat  options   interval<br>
+mysqld 프로세스의 thread만 5초 interval로 확인하는 커맨드 <br>
+56141,56142,14628 OS THREAD ID를 가진 세션이 CPU를 많이 사용하는 것을 확인할 수 있음</p>
 <ul>
 <li>MySQL - performance_schema.threads</li>
 </ul>

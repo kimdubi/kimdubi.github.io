@@ -5,7 +5,7 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 26 Apr 2020 22:18:50 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 26 Apr 2020 22:19:50 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
@@ -13,7 +13,7 @@
     <item>
       <title>MySQL CPU 많이 사용하는 세션 찾기</title>
       <link>https://kimdubi.github.io/mysql/pidstat/</link>
-      <pubDate>Sun, 26 Apr 2020 22:18:50 +0900</pubDate>
+      <pubDate>Sun, 26 Apr 2020 22:19:50 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/mysql/pidstat/</guid>
       <description>&lt;p&gt;MySQL은 PostgreSQL, Oracle 과 같은 프로세스 기반 DB가 아니라 쓰레드 기반 DBMS입니다.&lt;br&gt;
@@ -35,8 +35,9 @@ Linux 2.6.32-754.15.3.el6.x86_64 (testserver)    04/26/20        _x86_64_       
 22:09:09            -     56143    0.00    0.00    0.00    0.00     0  |__mysqld
 22:09:09            -     56144    0.00    0.00    0.00    0.00     0  |__mysqld
 22:09:09            -     14628   38.80    5.20    0.00   44.00     3  |__mysqld
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; Usage: pidstat [ options ] [ &lt;!-- raw HTML omitted --&gt; [ &lt;!-- raw HTML omitted --&gt; ] ]&lt;br&gt;
-mysqld 프로세스의 thread만 5초 interval로 확인하는 커맨드&lt;/p&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; Usage: pidstat  options   interval&lt;br&gt;
+mysqld 프로세스의 thread만 5초 interval로 확인하는 커맨드 &lt;br&gt;
+56141,56142,14628 OS THREAD ID를 가진 세션이 CPU를 많이 사용하는 것을 확인할 수 있음&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;MySQL - performance_schema.threads&lt;/li&gt;
 &lt;/ul&gt;

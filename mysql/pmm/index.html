@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL PMM 수동 설치</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL PMM 수동 설치</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL PMM 수동 설치</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>이전에 docker 를 사용하여 PMM 구성하는 법을 다룬 적이 있는데 이번 글에서는 docker 가 아닌 수동으로 구성하는 방법에 대해 정리해보겠습니다.</p>
+<p><a href="https://sarc.io/index.php/mariadb/1268-mariadb-monitoring-pmm">https://sarc.io/index.php/mariadb/1268-mariadb-monitoring-pmm</a>
+<a href="https://sarc.io/index.php/mariadb/1269-mariadb-monitoring-pmm-2">https://sarc.io/index.php/mariadb/1269-mariadb-monitoring-pmm-2</a></p>
+<h3 id="heading">설치파일</h3>
+<pre><code>wget https://github.com/prometheus/prometheus/releases/download/v1.2.3/prometheus-1.2.3.linux-amd64.tar.gz
+wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.9.0/mysqld_exporter-0.9.0.linux-amd64.tar.gz
+wget https://github.com/prometheus/node_exporter/releases/download/v0.13.0-rc.1/node_exporter-0.13.0-rc.1.linux-amd64.tar.gz
+wget https://dl.grafana.com/oss/release/grafana-6.4.2.linux-amd64.tar.gz
+</code></pre><h3 id="prometheus---">prometheus 설정 (모니터링 서버)</h3>
+<ul>
+<li>prometheus.yaml 설정</li>
+</ul>
+<pre><code>[root@b871f6768909 prometheus-1.2.3.linux-amd64]# cat prometheus.yml
+global:
+  scrape_interval:     1m
+  scrape_timeout :     1s
+scrape_configs:
+  - job_name: linux
+    static_configs:
+      - targets: ['localhost:9100']  #내서버 ip:9100 node_exporter
+        labels:
+          instance : mysql_OS
+  - job_name: mysql
+    static_configs:
+      - targets: ['localhost:9104'] #내서버 ip:9104 mysql_exporter
+        labels:
+          instance : mysql_DB
+</code></pre><ul>
+<li>prometheus 기동</li>
+</ul>
+<pre><code>[root@b871f6768909 prometheus-1.2.3.linux-amd64]# ./prometheus --config.file=prometheus.yml &amp;
+[1] 51
+
+[root@b871f6768909 prometheus-1.2.3.linux-amd64]# INFO[0000] Starting prometheus (version=1.2.3, branch=master, revision=c1eee5b0da2540b9dfd2f70752015b0fce83b616)  source=main.go:75
+INFO[0000] Build context (go=go1.7.3, user=root@d8eb84e17a12, date=20161103-21:45:14)  source=main.go:76
+INFO[0000] Loading configuration file prometheus.yml     source=main.go:247
+INFO[0000] Loading series map and head chunks...         source=storage.go:354
+INFO[0000] 648 series loaded.                            source=storage.go:359
+WARN[0000] No AlertManagers configured, not dispatching any alerts  source=notifier.go:176
+INFO[0000] Listening on :9090                            source=web.go:240
+INFO[0000] Starting target manager...                    source=targetmanager.go:76
+</code></pre><h3 id="exporter----">exporter 설정 (모니터링 대상 서버)</h3>
+<ul>
+<li>node exporter 기동</li>
+</ul>
+<pre><code> ./node_exporter -collectors.enabled=&quot;diskstats,filesystem,loadavg,meminfo,netdev,stat,time,uname,vmstat&quot; -log.level=info &amp;
+</code></pre><ul>
+<li>mysqld exporter 기동</li>
+</ul>
+<pre><code>root@55dbcd6f1eaa:/engn001/mysqld_exporter-0.9.0.linux-amd64# cat my.cnf
+[client]
+user=root
+password=!dlatl00
+port=3310
+socket=/var/run/mysqld/mysqld.sock
+
+./mysqld_exporter -config.my-cnf=&quot;./my.cnf&quot; -collect.binlog_size=true -collect.info_schema.processlist=true -web.listen-address=:9104 -log.level=info
+
+root@55dbcd6f1eaa:/engn001/mysqld_exporter-0.9.0.linux-amd64# ./mysqld_exporter --help
+</code></pre><p>=&gt; mysqld_exporter 가 DB에 접속해서 metric을 수집해야 하기 때문에 접속할 DB정보를 설정해야함</p>
+<ul>
+<li>mysqld_export 옵션</li>
+</ul>
+<pre><code>Usage of ./mysqld_exporter:
+  -collect.auto_increment.columns
+     Collect auto_increment columns and max values from information_schema
+  -collect.binlog_size
+     Collect the current size of all registered binlog files
+  -collect.engine_innodb_status
+     Collect from SHOW ENGINE INNODB STATUS
+  -collect.engine_tokudb_status
+     Collect from SHOW ENGINE TOKUDB STATUS
+  -collect.global_status
+     Collect from SHOW GLOBAL STATUS (default true)
+  -collect.global_variables
+     Collect from SHOW GLOBAL VARIABLES (default true)
+  -collect.info_schema.clientstats
+     If running with userstat=1, set to true to collect client statistics
+  -collect.info_schema.innodb_metrics
+     Collect metrics from information_schema.innodb_metrics
+  -collect.info_schema.innodb_tablespaces
+     Collect metrics from information_schema.innodb_sys_tablespaces
+  -collect.info_schema.processlist
+     Collect current thread state counts from the information_schema.processlist
+  -collect.info_schema.processlist.min_time int
+     Minimum time a thread must be in each state to be counted
+  -collect.info_schema.query_response_time
+     Collect query response time distribution if query_response_time_stats is ON.
+  -collect.info_schema.tables
+     Collect metrics from information_schema.tables (default true)
+  -collect.info_schema.tables.databases string
+     The list of databases to collect table stats for, or '*' for all (default &quot;*&quot;)
+  -collect.info_schema.tablestats
+     If running with userstat=1, set to true to collect table statistics
+  -collect.info_schema.userstats
+     If running with userstat=1, set to true to collect user statistics
+  -collect.perf_schema.eventsstatements
+     Collect metrics from performance_schema.events_statements_summary_by_digest
+  -collect.perf_schema.eventsstatements.digest_text_limit int
+     Maximum length of the normalized statement text (default 120)
+  -collect.perf_schema.eventsstatements.limit int
+     Limit the number of events statements digests by response time (default 250)
+  -collect.perf_schema.eventsstatements.timelimit int
+     Limit how old the 'last_seen' events statements can be, in seconds (default 86400)
+  -collect.perf_schema.eventswaits
+     Collect metrics from performance_schema.events_waits_summary_global_by_event_name
+  -collect.perf_schema.file_events
+     Collect metrics from performance_schema.file_summary_by_event_name
+  -collect.perf_schema.indexiowaits
+     Collect metrics from performance_schema.table_io_waits_summary_by_index_usage
+  -collect.perf_schema.tableiowaits
+     Collect metrics from performance_schema.table_io_waits_summary_by_table
+  -collect.perf_schema.tablelocks
+     Collect metrics from performance_schema.table_lock_waits_summary_by_table
+  -collect.slave_status
+     Collect from SHOW SLAVE STATUS (default true)
+  -config.my-cnf string
+     Path to .my.cnf file to read MySQL credentials from. (default &quot;/root/.my.cnf&quot;)
+  -log.format value
+     If set use a syslog logger or JSON logging. Example: logger:syslog?appname=bob&amp;local=7 or logger:stdout?json=true. Defaults to stderr.
+  -log.level value
+     Only log messages with the given severity or above. Valid levels: [debug, info, warn, error, fatal]. (default info)
+  -log_slow_filter
+     Add a log_slow_filter to avoid exessive MySQL slow logging.  NOTE: Not supported by Oracle MySQL.
+</code></pre><p>=&gt; 거의 모든 정보를 수집하고 있어서 grafana 에서 무언가를 더 보고 싶을 때는 exporter 를 수정할 게 아니라
+grafana 에서 pannel 추가 후 prometheus 쿼리를 작성해서 보는게 더 간편함</p>
+<ul>
+<li>export 확인</li>
+</ul>
+<pre><code>root@55dbcd6f1eaa:/engn001/mysqld_exporter-0.9.0.linux-amd64# ps -ef | grep exporter
+root       199   186  0 12:27 pts/1    00:00:00 ./node_exporter -collectors.enabled=diskstats,filesystem,loadavg,meminfo,netdev,stat,time,uname,vmstat -log.level=info
+root       228   186  0 13:33 pts/1    00:00:00 ./mysqld_exporter -config.my-cnf=./my.cnf -collect.binlog_size=true -collect.info_schema.processlist=true -web.listen-address=:9104 -log.level=info
+</code></pre><ul>
+<li>여러 인스턴스 띄운다면?</li>
+</ul>
+<pre><code>### 각 인스턴스 별 mysqld_exporter 구성 후
+
+/data/pmm_client/mysqld_exporter/3306
+/data/pmm_client/mysqld_exporter/3307
+/data/pmm_client/mysqld_exporter/3308
+
+
+### mysqld_exporter.cnf 파일 생성(3개의 디렉토리에 각각 생성)
+
+/home/mysql/mysqld_exporter_3306/mysqld_exporter_3306.cnf
+/home/mysql/mysqld_exporter_3307/mysqld_exporter_3307.cnf
+/home/mysql/mysqld_exporter_3308/mysqld_exporter_3308.cnf
+
+### mysqld_exporter 각각의 프로세스를 각각 다른 웹 서비스 포트로 기동
+
+cd /home/mysql/mysqld_exporter_3306/
+nohup ./mysqld_exporter -config.my-cnf=&quot;/home/mysql/mysqld_exporter_3306/mysqld_exporter_3306.cnf&quot; -collect.binlog_size=true -collect.info_schema.processlist=true -web.listen-address=:9104 -log.level=info &gt; /home/mysql/mysqld_exporter_3306/mysqld_exporter.log 2&gt;&amp;1 &amp;
+
+cd /home/mysql/mysqld_exporter_3307/
+nohup ./mysqld_exporter -config.my-cnf=&quot;/home/mysql/mysqld_exporter_3307/mysqld_exporter_3307.cnf&quot; -collect.binlog_size=true -collect.info_schema.processlist=true -web.listen-address=:9105 -log.level=info &gt; /home/mysql/mysqld_exporter_3307/mysqld_exporter.log 2&gt;&amp;1 &amp;
+
+cd /home/mysql/mysqld_exporter_3308/
+nohup ./mysqld_exporter -config.my-cnf=&quot;/home/mysql/mysqld_exporter_3308/mysqld_exporter_3308.cnf&quot; -collect.binlog_size=true -collect.info_schema.processlist=true -web.listen-address=:9106 -log.level=info &gt; /home/mysql/mysqld_exporter_3308/mysqld_exporter.log 2&gt;&amp;1 &amp;
+</code></pre><h3 id="grafana-">grafana 설정</h3>
+<ul>
+<li>dashboard path 설정 (grafana 5.0 이전 버전)</li>
+</ul>
+<pre><code>### vi /engn001/mysql_monitor/grafana/grafana-3.1.0/conf/defaults.ini
+
+[dashboards.json]
+enabled = true
+path = /engn001/mysql_monitor/grafana/grafana-3.1.0/public/dashboards
+</code></pre><ul>
+<li>dashboard path 설정 (grafana 5.0 이후 버전)</li>
+</ul>
+<pre><code>### vi /engn001/mysql_monitor/grafana/grafana-6.3.6/conf/provisioning/dashboards/defaults.yaml
+
+apiVersion: 1
+
+providers:
+- name: 'dashboard'
+  orgId: 1
+  folder: ''
+  folderUid: ''
+  type: file
+  disableDeletion: false
+  editable: true
+  updateIntervalSeconds: 10
+  allowUiUpdates: false
+  options:
+    path: /engn001/mysql_monitor/grafana/grafana-3.1.0/public/dashboards
+</code></pre><ul>
+<li>dashboards 받아오기</li>
+</ul>
+<pre><code>git clone https://github.com/percona/grafana-dashboards.gitcp grafana-dashboards/dashboards/MySQL*  /engn001/mysql_monitor/grafana/grafana-6.3.6/public/dashboards/
+
+cp grafana-dashboards/dashboards/System* /engn001/mysql_monitor/grafana/grafana-6.3.6/public/dashboards/
+cp grafana-dashboards/dashboards/Disk* /engn001/mysql_monitor/grafana/grafana-6.3.6/public/dashboards/
+cp grafana-dashboards/dashboards/Trends* /engn001/mysql_monitor/grafana/grafana-6.3.6/public/dashboards/
+cp grafana-dashboards/dashboards/Summary* /engn001/mysql_monitor/grafana/grafana-6.3.6/public/dashboards/
+</code></pre><p>=&gt; 필요한 dashboard를 받아서 위에서 설정한 dashboard path 에 넣어주면 됨
+(grafana 웹페이지 UI 에서 간단히 import 하는 방법도 가능
+<a href="https://grafana.com/docs/grafana/latest/reference/export_import/">https://grafana.com/docs/grafana/latest/reference/export_import/</a>)</p>
+<ul>
+<li>grafana 기동</li>
+</ul>
+<pre><code>/engn001/mysql_monitor/grafana/grafana-6.3.6/bin/grafana-server -config ../conf/default.ini start &amp;
+</code></pre><ul>
+<li>포트 정리 (예시)
+<ul>
+<li>grafana : 3000</li>
+<li>prometheus : 9090</li>
+<li>node_exporter : 9100</li>
+<li>mysqld_exprter :9104( -web.listen-address 포트변경시)</li>
+</ul>
+</li>
+</ul>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

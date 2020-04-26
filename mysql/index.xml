@@ -5,10 +5,304 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 05 Apr 2020 15:07:17 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 26 Apr 2020 22:18:50 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL CPU 많이 사용하는 세션 찾기</title>
+      <link>https://kimdubi.github.io/mysql/pidstat/</link>
+      <pubDate>Sun, 26 Apr 2020 22:18:50 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/pidstat/</guid>
+      <description>&lt;p&gt;MySQL은 PostgreSQL, Oracle 과 같은 프로세스 기반 DB가 아니라 쓰레드 기반 DBMS입니다.&lt;br&gt;
+MySQL의 DB 내부 쓰레드와 OS 쓰레드를 일치시켜서 확인하는 도구가 없기 때문에&lt;br&gt;
+DB의 어떤 세션이 리소스를 특별히 많이 잡고 있는지 확인할 때 OS의 utility 를 사용하는 데 있어서 제한점이 있었는데요&lt;br&gt;
+이 문제는 5.7 버전으로 올라오면서 PERFORMANCE_SCHEMA.THREADS 테이블에 thread_os_id 컬럼이 추가되면서 확인이 쉬워졌습니다.&lt;/p&gt;
+&lt;h3 id=&#34;-&#34;&gt;확인 방법&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;OS - pidstat&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[test@testserver 22:09:12 ~ ]$ pidstat -t -p `/sbin/pidof mysqld` 5
+Linux 2.6.32-754.15.3.el6.x86_64 (testserver)    04/26/20        _x86_64_        (4 CPU)
+
+22:09:04         TGID       TID    %usr %system  %guest    %CPU   CPU  Command
+22:09:09        56090         -  100.00   27.00    0.00  100.00     0  mysqld
+22:10:01            -     56090    0.00    0.00    0.00    0.00     0  |__mysqld
+22:09:09            -     56141   39.00    3.60    0.00   42.60     3  |__mysqld
+22:09:09            -     56142   48.80    4.80    0.00   53.60     1  |__mysqld
+22:09:09            -     56143    0.00    0.00    0.00    0.00     0  |__mysqld
+22:09:09            -     56144    0.00    0.00    0.00    0.00     0  |__mysqld
+22:09:09            -     14628   38.80    5.20    0.00   44.00     3  |__mysqld
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; Usage: pidstat [ options ] [ &lt;!-- raw HTML omitted --&gt; [ &lt;!-- raw HTML omitted --&gt; ] ]&lt;br&gt;
+mysqld 프로세스의 thread만 5초 interval로 확인하는 커맨드&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;MySQL - performance_schema.threads&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select * from performance_schema.threads where thread_os_id=&#39;56141&#39;\G;
+*************************** 1. row ***************************
+          THREAD_ID: 721909
+               NAME: thread/sql/one_connection
+               TYPE: FOREGROUND
+     PROCESSLIST_ID: 721876
+   PROCESSLIST_USER: admin
+   PROCESSLIST_HOST: localhost
+     PROCESSLIST_DB: NULL
+PROCESSLIST_COMMAND: Query
+   PROCESSLIST_TIME: 16
+  PROCESSLIST_STATE: Sending data
+   PROCESSLIST_INFO: select SQL_NO_CACHE  * from test.tb_test
+   PARENT_THREAD_ID: NULL
+               ROLE: NULL
+       INSTRUMENTED: YES
+            HISTORY: YES
+    CONNECTION_TYPE: Socket
+       THREAD_OS_ID: 56141
+     RESOURCE_GROUP: USR_default
+1 row in set (0.00 sec)
+
+ERROR:
+No query specified
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; OS에서 pidstat 으로 확인한 OS thread id 로 DB 내에서 어떤 세션인지 매핑하여 확인 가능&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;memory&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; show tables like &#39;memory%&#39;;
++-----------------------------------+
+| Tables_in_sys (memory%)           |
++-----------------------------------+
+| memory_by_host_by_current_bytes   |
+| memory_by_thread_by_current_bytes |
+| memory_by_user_by_current_bytes   |
+| memory_global_by_current_bytes    |
+| memory_global_total               |
++-----------------------------------+
+5 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; memory 사용률은 sys schema에서 제공하는 정보로 확인 가능&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>MySQL PMM 수동 설치</title>
+      <link>https://kimdubi.github.io/mysql/pmm/</link>
+      <pubDate>Sun, 26 Apr 2020 22:18:42 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/pmm/</guid>
+      <description>&lt;p&gt;이전에 docker 를 사용하여 PMM 구성하는 법을 다룬 적이 있는데 이번 글에서는 docker 가 아닌 수동으로 구성하는 방법에 대해 정리해보겠습니다.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://sarc.io/index.php/mariadb/1268-mariadb-monitoring-pmm&#34;&gt;https://sarc.io/index.php/mariadb/1268-mariadb-monitoring-pmm&lt;/a&gt;
+&lt;a href=&#34;https://sarc.io/index.php/mariadb/1269-mariadb-monitoring-pmm-2&#34;&gt;https://sarc.io/index.php/mariadb/1269-mariadb-monitoring-pmm-2&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id=&#34;heading&#34;&gt;설치파일&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;wget https://github.com/prometheus/prometheus/releases/download/v1.2.3/prometheus-1.2.3.linux-amd64.tar.gz
+wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.9.0/mysqld_exporter-0.9.0.linux-amd64.tar.gz
+wget https://github.com/prometheus/node_exporter/releases/download/v0.13.0-rc.1/node_exporter-0.13.0-rc.1.linux-amd64.tar.gz
+wget https://dl.grafana.com/oss/release/grafana-6.4.2.linux-amd64.tar.gz
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;prometheus---&#34;&gt;prometheus 설정 (모니터링 서버)&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;prometheus.yaml 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[root@b871f6768909 prometheus-1.2.3.linux-amd64]# cat prometheus.yml
+global:
+  scrape_interval:     1m
+  scrape_timeout :     1s
+scrape_configs:
+  - job_name: linux
+    static_configs:
+      - targets: [&#39;localhost:9100&#39;]  #내서버 ip:9100 node_exporter
+        labels:
+          instance : mysql_OS
+  - job_name: mysql
+    static_configs:
+      - targets: [&#39;localhost:9104&#39;] #내서버 ip:9104 mysql_exporter
+        labels:
+          instance : mysql_DB
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;prometheus 기동&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[root@b871f6768909 prometheus-1.2.3.linux-amd64]# ./prometheus --config.file=prometheus.yml &amp;amp;
+[1] 51
+
+[root@b871f6768909 prometheus-1.2.3.linux-amd64]# INFO[0000] Starting prometheus (version=1.2.3, branch=master, revision=c1eee5b0da2540b9dfd2f70752015b0fce83b616)  source=main.go:75
+INFO[0000] Build context (go=go1.7.3, user=root@d8eb84e17a12, date=20161103-21:45:14)  source=main.go:76
+INFO[0000] Loading configuration file prometheus.yml     source=main.go:247
+INFO[0000] Loading series map and head chunks...         source=storage.go:354
+INFO[0000] 648 series loaded.                            source=storage.go:359
+WARN[0000] No AlertManagers configured, not dispatching any alerts  source=notifier.go:176
+INFO[0000] Listening on :9090                            source=web.go:240
+INFO[0000] Starting target manager...                    source=targetmanager.go:76
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;exporter----&#34;&gt;exporter 설정 (모니터링 대상 서버)&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;node exporter 기동&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt; ./node_exporter -collectors.enabled=&amp;quot;diskstats,filesystem,loadavg,meminfo,netdev,stat,time,uname,vmstat&amp;quot; -log.level=info &amp;amp;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;mysqld exporter 기동&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;root@55dbcd6f1eaa:/engn001/mysqld_exporter-0.9.0.linux-amd64# cat my.cnf
+[client]
+user=root
+password=!dlatl00
+port=3310
+socket=/var/run/mysqld/mysqld.sock
+
+./mysqld_exporter -config.my-cnf=&amp;quot;./my.cnf&amp;quot; -collect.binlog_size=true -collect.info_schema.processlist=true -web.listen-address=:9104 -log.level=info
+
+root@55dbcd6f1eaa:/engn001/mysqld_exporter-0.9.0.linux-amd64# ./mysqld_exporter --help
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; mysqld_exporter 가 DB에 접속해서 metric을 수집해야 하기 때문에 접속할 DB정보를 설정해야함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;mysqld_export 옵션&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;Usage of ./mysqld_exporter:
+  -collect.auto_increment.columns
+     Collect auto_increment columns and max values from information_schema
+  -collect.binlog_size
+     Collect the current size of all registered binlog files
+  -collect.engine_innodb_status
+     Collect from SHOW ENGINE INNODB STATUS
+  -collect.engine_tokudb_status
+     Collect from SHOW ENGINE TOKUDB STATUS
+  -collect.global_status
+     Collect from SHOW GLOBAL STATUS (default true)
+  -collect.global_variables
+     Collect from SHOW GLOBAL VARIABLES (default true)
+  -collect.info_schema.clientstats
+     If running with userstat=1, set to true to collect client statistics
+  -collect.info_schema.innodb_metrics
+     Collect metrics from information_schema.innodb_metrics
+  -collect.info_schema.innodb_tablespaces
+     Collect metrics from information_schema.innodb_sys_tablespaces
+  -collect.info_schema.processlist
+     Collect current thread state counts from the information_schema.processlist
+  -collect.info_schema.processlist.min_time int
+     Minimum time a thread must be in each state to be counted
+  -collect.info_schema.query_response_time
+     Collect query response time distribution if query_response_time_stats is ON.
+  -collect.info_schema.tables
+     Collect metrics from information_schema.tables (default true)
+  -collect.info_schema.tables.databases string
+     The list of databases to collect table stats for, or &#39;*&#39; for all (default &amp;quot;*&amp;quot;)
+  -collect.info_schema.tablestats
+     If running with userstat=1, set to true to collect table statistics
+  -collect.info_schema.userstats
+     If running with userstat=1, set to true to collect user statistics
+  -collect.perf_schema.eventsstatements
+     Collect metrics from performance_schema.events_statements_summary_by_digest
+  -collect.perf_schema.eventsstatements.digest_text_limit int
+     Maximum length of the normalized statement text (default 120)
+  -collect.perf_schema.eventsstatements.limit int
+     Limit the number of events statements digests by response time (default 250)
+  -collect.perf_schema.eventsstatements.timelimit int
+     Limit how old the &#39;last_seen&#39; events statements can be, in seconds (default 86400)
+  -collect.perf_schema.eventswaits
+     Collect metrics from performance_schema.events_waits_summary_global_by_event_name
+  -collect.perf_schema.file_events
+     Collect metrics from performance_schema.file_summary_by_event_name
+  -collect.perf_schema.indexiowaits
+     Collect metrics from performance_schema.table_io_waits_summary_by_index_usage
+  -collect.perf_schema.tableiowaits
+     Collect metrics from performance_schema.table_io_waits_summary_by_table
+  -collect.perf_schema.tablelocks
+     Collect metrics from performance_schema.table_lock_waits_summary_by_table
+  -collect.slave_status
+     Collect from SHOW SLAVE STATUS (default true)
+  -config.my-cnf string
+     Path to .my.cnf file to read MySQL credentials from. (default &amp;quot;/root/.my.cnf&amp;quot;)
+  -log.format value
+     If set use a syslog logger or JSON logging. Example: logger:syslog?appname=bob&amp;amp;local=7 or logger:stdout?json=true. Defaults to stderr.
+  -log.level value
+     Only log messages with the given severity or above. Valid levels: [debug, info, warn, error, fatal]. (default info)
+  -log_slow_filter
+     Add a log_slow_filter to avoid exessive MySQL slow logging.  NOTE: Not supported by Oracle MySQL.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 거의 모든 정보를 수집하고 있어서 grafana 에서 무언가를 더 보고 싶을 때는 exporter 를 수정할 게 아니라
+grafana 에서 pannel 추가 후 prometheus 쿼리를 작성해서 보는게 더 간편함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;export 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;root@55dbcd6f1eaa:/engn001/mysqld_exporter-0.9.0.linux-amd64# ps -ef | grep exporter
+root       199   186  0 12:27 pts/1    00:00:00 ./node_exporter -collectors.enabled=diskstats,filesystem,loadavg,meminfo,netdev,stat,time,uname,vmstat -log.level=info
+root       228   186  0 13:33 pts/1    00:00:00 ./mysqld_exporter -config.my-cnf=./my.cnf -collect.binlog_size=true -collect.info_schema.processlist=true -web.listen-address=:9104 -log.level=info
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;여러 인스턴스 띄운다면?&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### 각 인스턴스 별 mysqld_exporter 구성 후
+
+/data/pmm_client/mysqld_exporter/3306
+/data/pmm_client/mysqld_exporter/3307
+/data/pmm_client/mysqld_exporter/3308
+
+
+### mysqld_exporter.cnf 파일 생성(3개의 디렉토리에 각각 생성)
+
+/home/mysql/mysqld_exporter_3306/mysqld_exporter_3306.cnf
+/home/mysql/mysqld_exporter_3307/mysqld_exporter_3307.cnf
+/home/mysql/mysqld_exporter_3308/mysqld_exporter_3308.cnf
+
+### mysqld_exporter 각각의 프로세스를 각각 다른 웹 서비스 포트로 기동
+
+cd /home/mysql/mysqld_exporter_3306/
+nohup ./mysqld_exporter -config.my-cnf=&amp;quot;/home/mysql/mysqld_exporter_3306/mysqld_exporter_3306.cnf&amp;quot; -collect.binlog_size=true -collect.info_schema.processlist=true -web.listen-address=:9104 -log.level=info &amp;gt; /home/mysql/mysqld_exporter_3306/mysqld_exporter.log 2&amp;gt;&amp;amp;1 &amp;amp;
+
+cd /home/mysql/mysqld_exporter_3307/
+nohup ./mysqld_exporter -config.my-cnf=&amp;quot;/home/mysql/mysqld_exporter_3307/mysqld_exporter_3307.cnf&amp;quot; -collect.binlog_size=true -collect.info_schema.processlist=true -web.listen-address=:9105 -log.level=info &amp;gt; /home/mysql/mysqld_exporter_3307/mysqld_exporter.log 2&amp;gt;&amp;amp;1 &amp;amp;
+
+cd /home/mysql/mysqld_exporter_3308/
+nohup ./mysqld_exporter -config.my-cnf=&amp;quot;/home/mysql/mysqld_exporter_3308/mysqld_exporter_3308.cnf&amp;quot; -collect.binlog_size=true -collect.info_schema.processlist=true -web.listen-address=:9106 -log.level=info &amp;gt; /home/mysql/mysqld_exporter_3308/mysqld_exporter.log 2&amp;gt;&amp;amp;1 &amp;amp;
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;grafana-&#34;&gt;grafana 설정&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;dashboard path 설정 (grafana 5.0 이전 버전)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### vi /engn001/mysql_monitor/grafana/grafana-3.1.0/conf/defaults.ini
+
+[dashboards.json]
+enabled = true
+path = /engn001/mysql_monitor/grafana/grafana-3.1.0/public/dashboards
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;dashboard path 설정 (grafana 5.0 이후 버전)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### vi /engn001/mysql_monitor/grafana/grafana-6.3.6/conf/provisioning/dashboards/defaults.yaml
+
+apiVersion: 1
+
+providers:
+- name: &#39;dashboard&#39;
+  orgId: 1
+  folder: &#39;&#39;
+  folderUid: &#39;&#39;
+  type: file
+  disableDeletion: false
+  editable: true
+  updateIntervalSeconds: 10
+  allowUiUpdates: false
+  options:
+    path: /engn001/mysql_monitor/grafana/grafana-3.1.0/public/dashboards
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;dashboards 받아오기&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;git clone https://github.com/percona/grafana-dashboards.gitcp grafana-dashboards/dashboards/MySQL*  /engn001/mysql_monitor/grafana/grafana-6.3.6/public/dashboards/
+
+cp grafana-dashboards/dashboards/System* /engn001/mysql_monitor/grafana/grafana-6.3.6/public/dashboards/
+cp grafana-dashboards/dashboards/Disk* /engn001/mysql_monitor/grafana/grafana-6.3.6/public/dashboards/
+cp grafana-dashboards/dashboards/Trends* /engn001/mysql_monitor/grafana/grafana-6.3.6/public/dashboards/
+cp grafana-dashboards/dashboards/Summary* /engn001/mysql_monitor/grafana/grafana-6.3.6/public/dashboards/
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 필요한 dashboard를 받아서 위에서 설정한 dashboard path 에 넣어주면 됨
+(grafana 웹페이지 UI 에서 간단히 import 하는 방법도 가능
+&lt;a href=&#34;https://grafana.com/docs/grafana/latest/reference/export_import/&#34;&gt;https://grafana.com/docs/grafana/latest/reference/export_import/&lt;/a&gt;)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;grafana 기동&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;/engn001/mysql_monitor/grafana/grafana-6.3.6/bin/grafana-server -config ../conf/default.ini start &amp;amp;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;포트 정리 (예시)
+&lt;ul&gt;
+&lt;li&gt;grafana : 3000&lt;/li&gt;
+&lt;li&gt;prometheus : 9090&lt;/li&gt;
+&lt;li&gt;node_exporter : 9100&lt;/li&gt;
+&lt;li&gt;mysqld_exprter :9104( -web.listen-address 포트변경시)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>MySQL8 Multi Source Replication 개선점</title>

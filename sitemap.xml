@@ -4,20 +4,34 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-04-05T15:07:17+09:00</lastmod>
+    <lastmod>2020-04-26T22:18:50+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
-    <loc>https://kimdubi.github.io/mysql/mysql8_msr/</loc>
-    <lastmod>2020-04-05T15:07:17+09:00</lastmod>
+    <loc>https://kimdubi.github.io/mysql/pidstat/</loc>
+    <lastmod>2020-04-26T22:18:50+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
     <loc>https://kimdubi.github.io/mysql/</loc>
+    <lastmod>2020-04-26T22:18:50+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/pmm/</loc>
+    <lastmod>2020-04-26T22:18:42+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/mysql8_msr/</loc>
     <lastmod>2020-04-05T15:07:17+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>

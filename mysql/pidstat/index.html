@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL CPU 많이 사용하는 세션 찾기</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL CPU 많이 사용하는 세션 찾기</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL CPU 많이 사용하는 세션 찾기</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>MySQL은 PostgreSQL, Oracle 과 같은 프로세스 기반 DB가 아니라 쓰레드 기반 DBMS입니다.<br>
+MySQL의 DB 내부 쓰레드와 OS 쓰레드를 일치시켜서 확인하는 도구가 없기 때문에<br>
+DB의 어떤 세션이 리소스를 특별히 많이 잡고 있는지 확인할 때 OS의 utility 를 사용하는 데 있어서 제한점이 있었는데요<br>
+이 문제는 5.7 버전으로 올라오면서 PERFORMANCE_SCHEMA.THREADS 테이블에 thread_os_id 컬럼이 추가되면서 확인이 쉬워졌습니다.</p>
+<h3 id="-">확인 방법</h3>
+<ul>
+<li>OS - pidstat</li>
+</ul>
+<pre><code>[test@testserver 22:09:12 ~ ]$ pidstat -t -p `/sbin/pidof mysqld` 5
+Linux 2.6.32-754.15.3.el6.x86_64 (testserver)    04/26/20        _x86_64_        (4 CPU)
+
+22:09:04         TGID       TID    %usr %system  %guest    %CPU   CPU  Command
+22:09:09        56090         -  100.00   27.00    0.00  100.00     0  mysqld
+22:10:01            -     56090    0.00    0.00    0.00    0.00     0  |__mysqld
+22:09:09            -     56141   39.00    3.60    0.00   42.60     3  |__mysqld
+22:09:09            -     56142   48.80    4.80    0.00   53.60     1  |__mysqld
+22:09:09            -     56143    0.00    0.00    0.00    0.00     0  |__mysqld
+22:09:09            -     56144    0.00    0.00    0.00    0.00     0  |__mysqld
+22:09:09            -     14628   38.80    5.20    0.00   44.00     3  |__mysqld
+</code></pre><p>=&gt; Usage: pidstat [ options ] [ <!-- raw HTML omitted --> [ <!-- raw HTML omitted --> ] ]<br>
+mysqld 프로세스의 thread만 5초 interval로 확인하는 커맨드</p>
+<ul>
+<li>MySQL - performance_schema.threads</li>
+</ul>
+<pre><code>mysql&gt; select * from performance_schema.threads where thread_os_id='56141'\G;
+*************************** 1. row ***************************
+          THREAD_ID: 721909
+               NAME: thread/sql/one_connection
+               TYPE: FOREGROUND
+     PROCESSLIST_ID: 721876
+   PROCESSLIST_USER: admin
+   PROCESSLIST_HOST: localhost
+     PROCESSLIST_DB: NULL
+PROCESSLIST_COMMAND: Query
+   PROCESSLIST_TIME: 16
+  PROCESSLIST_STATE: Sending data
+   PROCESSLIST_INFO: select SQL_NO_CACHE  * from test.tb_test
+   PARENT_THREAD_ID: NULL
+               ROLE: NULL
+       INSTRUMENTED: YES
+            HISTORY: YES
+    CONNECTION_TYPE: Socket
+       THREAD_OS_ID: 56141
+     RESOURCE_GROUP: USR_default
+1 row in set (0.00 sec)
+
+ERROR:
+No query specified
+</code></pre><p>=&gt; OS에서 pidstat 으로 확인한 OS thread id 로 DB 내에서 어떤 세션인지 매핑하여 확인 가능</p>
+<ul>
+<li>memory</li>
+</ul>
+<pre><code>mysql&gt; show tables like 'memory%';
++-----------------------------------+
+| Tables_in_sys (memory%)           |
++-----------------------------------+
+| memory_by_host_by_current_bytes   |
+| memory_by_thread_by_current_bytes |
+| memory_by_user_by_current_bytes   |
+| memory_global_by_current_bytes    |
+| memory_global_total               |
++-----------------------------------+
+5 rows in set (0.00 sec)
+</code></pre><p>=&gt; memory 사용률은 sys schema에서 제공하는 정보로 확인 가능</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

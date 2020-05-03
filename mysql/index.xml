@@ -5,10 +5,225 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 26 Apr 2020 22:19:50 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 03 May 2020 21:58:49 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL crash-safe replication</title>
+      <link>https://kimdubi.github.io/mysql/crash-safe/</link>
+      <pubDate>Sun, 03 May 2020 21:58:49 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/crash-safe/</guid>
+      <description>&lt;p&gt;MySQL crash-safe replication 기능은 5.6 버전부터 생긴 오래된 개념입니다.&lt;br&gt;
+slave DB가 crash 되어 재기동 되는 경우에도 data 중복이나 유실 같은&lt;br&gt;
+replication이 깨지는 경우를 막기 위한 기능인데요&lt;br&gt;
+이번 글에서는 MySQL crash-safe replication 에 대해서 살펴보겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;crashsafe-replication-&#34;&gt;crash-safe replication 개념&lt;/h3&gt;
+&lt;p&gt;replication 수행 중 Slave의 status를 file에 update 하기 전에 Slave DB가 crash 후 재기동 되는 경우
+마지막 트랜잭션을 재수행 하기 때문에 중복 에러등으로 replication이 깨질 수 있습니다.&lt;/p&gt;
+&lt;p&gt;이를 보완하기 위해 나온 설정이 relay_log_info_repository=TABLE 이며&lt;br&gt;
+트랜잭션 안에 replication 정보를 포함시켜
+data 반영 SQL과 replication status update가 한 트랜잭션으로 묶여&lt;br&gt;
+이 두가지가 모두 성공해야만 DB에 반영하도록 하는 설정입니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;begin;
+insert into tb_test values(1);
+update mysql.slave_relay_log_info set Relay_log_name=&#39;./relay-bin.000006&#39;,replay_log_pos=1356;
+commit;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;추가로 필요한 relay_log_recovery 설정은 Slave DB 재기동 후 replication 설정을 불러올 때&lt;br&gt;
+master info가 아닌 relay_log 정보만을 갖고 복구를 수행하도록 하는 설정 입니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;2020-05-03T12:19:21.402872Z 0 [Warning] [MY-010539] [Repl] Recovery from master pos 1142 and file mysql-bin.000003 for channel &#39;&#39;. Previous relay log pos and relay log file had been set to 322, ./relay-bin.000014 respectively.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;정리하면 relay_log_info_repository=TABLE 과 relay_log_recovery 설정을 통해&lt;br&gt;
+Slave가 Crash 난 후 재기동 시 발생할 수 있는 문제점들을 해결할 수 있습니다.&lt;/p&gt;
+&lt;h3 id=&#34;crashsafe-replication-process&#34;&gt;crash-safe replication process&lt;/h3&gt;
+&lt;p&gt;위에서 살펴본 crash-safe replication은 아래와 같은 흐름으로 동작합니다.&lt;br&gt;
+녹색 표시가 crash-safe replication에 직접 관여되는 부분입니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/crash-safe.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;필수 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;relay_log_info_repository = TABLE
+relay_log_recovery = ON
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;replication process&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;1. I/O thread는 Master의 binlog data를 slave의 relay log 로 저장
+2. I/O thread는 가져온 Master의 binlog 정보를 mysql.slave_master_info에 update
+3. SQL thread는 relay log를 읽어 transaction을 slave DB에 반영함
+4. SQL thread가 반영한 relay log 정보를 slave_relay_log_info에 업데이트함
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>MySQL 시점복구 빠르게 수행하는 팁</title>
+      <link>https://kimdubi.github.io/mysql/self-replication/</link>
+      <pubDate>Sun, 03 May 2020 21:58:30 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/self-replication/</guid>
+      <description>&lt;p&gt;mysql에서 시점복구를 할 때 가장 흔히 사용하는 방법이 mysqlbinlog를 통해&lt;br&gt;
+binary log을 parsing 하고 이를 순차적으로 적용하는 방법인데요&lt;br&gt;
+이 방법은 single thread로 수행되기 때문에 그 속도가 굉장히 느릴 수 있습니다.&lt;br&gt;
+MariaDB에서에서 이러한 문제점을 피하기 위해 mysql replication의 SQL-thread을&lt;br&gt;
+사용한 방법을 공유한 적이 있습니다.&lt;br&gt;
+&lt;a href=&#34;https://sarc.io/index.php/mariadb/1438-mariadb-point-in-time-recovery&#34;&gt;https://sarc.io/index.php/mariadb/1438-mariadb-point-in-time-recovery&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;mysql 과 mariadb는 gtid 사용방법이 조금 달라서 위의 방법도 조금 다른데요&lt;br&gt;
+이번 글에서는 mysql에서 수행하는 방법을 공유드리겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;gtid--replicatesameserverid-setting&#34;&gt;gtid , replicate-same-server-id setting&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;gtid-mode = ON
+enforce-gtid-consistency
+replicate-same-server-id=1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 원래 replication은 node 간의 server-id 가 달라야하는데&lt;br&gt;
+이번 케이스는 자기자신에게 replication을 걸기 때문에 replicate-same-server-id=1 설정 필요&lt;br&gt;
+binary - relay log 간 동일한 position을 갖는 gtid 설정 필요&lt;/p&gt;
+&lt;h3 id=&#34;test--&#34;&gt;test 데이터 준비&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; show master status;
++------------------+----------+--------------+------------------+----------------------------------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set                            |
++------------------+----------+--------------+------------------+----------------------------------------------+
+| mysql-bin.000001 |  3420155 |              |                  | e07a4297-48a5-11ea-81de-005056ac6a32:1-10000 |
++------------------+----------+--------------+------------------+----------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql&amp;gt; select count(*) from tb_test;
++----------+
+| count(*) |
++----------+
+|    10000 |
++----------+
+1 row in set (0.01 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;backup&#34;&gt;backup&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;mysqldump -uadmin -p --set-gtid-purged=off --socket=/home1/irteam/db/mysql/tmp/mysql.sock --all-databases  &amp;gt; bk.sql
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; &amp;ndash;set-gtid-purged 옵션 사용은 상관없으나 set-gtid-purged=on 설정 시엔 아래와 같은 구문이 백업 덤프에 포함됨&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;SET @@SESSION.SQL_LOG_BIN= 0;
+SET @@GLOBAL.GTID_PURGED=/*!80000 &#39;+&#39;*/ &#39;e07a4297-48a5-11ea-81de-005056ac6a32:1-10000&#39;;
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;--&#34;&gt;데이터 유실 시나리오&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;delete 사고 발생&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; delete from tb_test;
+Query OK, 10000 rows affected (0.03 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;data 사고와 무관한 정상 데이터 유입&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; call insert_test(500);
+Query OK, 0 rows affected (6.02 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;delete gtid position 찾기&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; pager grep -A 1 -B 2 &#39;tb_test&#39; | grep -B 4 delete
+PAGER set to &#39;grep -A 1 -B 2 &#39;tb_test&#39; | grep -B 4 delete&#39;
+
+mysql&amp;gt; show binlog events in &#39;mysql-bin.000001&#39;;
+| mysql-bin.000001 | 3420034 | Write_rows     |      7833 |     3420124 | table_id: 1100 flags: STMT_END_F                                      |
+--
+| mysql-bin.000001 | 3420155 | Gtid           |      7833 |     3420234 | SET @@SESSION.GTID_NEXT= &#39;e07a4297-48a5-11ea-81de-005056ac6a32:10001&#39; |
+| mysql-bin.000001 | 3420234 | Query          |      7833 |     3420318 | BEGIN                                                                 |
+| mysql-bin.000001 | 3420318 | Query          |      7833 |     3420416 | use `test3`; delete from tb_test                                      |
+50006 rows in set (0.08 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 풀백업 본으로 1차 복구 + 데이터 유실 부분 skip + 그 이후의 데이터 2차 복구 하는 시나리오&lt;/p&gt;
+&lt;h3 id=&#34;self--replication----&#34;&gt;self - replication 을 통한 시점 복구&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;binary log 백업&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[testuser@testserver 10:59:04 ~/db/mysql/data ]$ cp ./mysql-bin.000001 ../tmp/
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;풀백업본으로 데이터 유실 전 시점으로 복구&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[testuser@testserver 10:59:04 ~/db/mysql/data ]$ mysql -uroot -p  &amp;lt; bk.sql
+
+mysql&amp;gt; select count(*) from test3.tb_test;
++----------+
+| count(*) |
++----------+
+|    10000 |
++----------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;self-replication 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; reset master;
+Query OK, 0 rows affected (0.01 sec)
+
+SET @@GLOBAL.GTID_PURGED=&#39;e07a4297-48a5-11ea-81de-005056ac6a32:1-10001&#39;;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 데이터 유실 부분 skip&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; SET GLOBAL SLAVE_PARALLEL_TYPE=&#39;LOGICAL_CLOCK&#39;;
+mysql&amp;gt; SET GLOBAL SLAVE_PARALLEL_WORKERS=8;
+
+
+mysql&amp;gt; change master to master_host=&#39;11.111.11.111&#39;, master_user=&#39;repl&#39;,master_password=&#39;&#39;,master_port=3306, master_auto_position=1;
+
+[testuser@testserver 21:59:51 ~/db/mysql/data ]$ cp ../tmp/mysql-bin.000001 relay-bin.000001
+[testuser@testserver 21:59:51 ~/db/mysql/data ]$ ls ./relay-bin.0*&amp;gt; relay-bin.index
+
+mysql&amp;gt; start slave;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 자기자신에게 parallel replication 설정&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;parallel replication 동작 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt;  select * from performance_schema.replication_applier_status_by_worker\G;
+*************************** 1. row ***************************
+                                           CHANNEL_NAME:
+                                              WORKER_ID: 1
+                                              THREAD_ID: 50001
+                                          SERVICE_STATE: ON
+                                      LAST_ERROR_NUMBER: 0
+                                     LAST_ERROR_MESSAGE:
+                                   LAST_ERROR_TIMESTAMP: 0000-00-00 00:00:00.000000
+                               LAST_APPLIED_TRANSACTION: e07a4297-48a5-11ea-81de-005056ac6a32:510001
+     LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 2020-05-01 10:55:22.422507
+    LAST_APPLIED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 2020-05-01 10:55:22.422507
+         LAST_APPLIED_TRANSACTION_START_APPLY_TIMESTAMP: 2020-05-01 11:08:44.116971
+           LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP: 2020-05-01 11:08:44.117571
+
+*************************** 2. row ***************************
+                                           CHANNEL_NAME:
+                                              WORKER_ID: 2
+                                              THREAD_ID: 50002
+                                          SERVICE_STATE: ON
+                                      LAST_ERROR_NUMBER: 0
+                                     LAST_ERROR_MESSAGE:
+                                   LAST_ERROR_TIMESTAMP: 0000-00-00 00:00:00.000000
+                               LAST_APPLIED_TRANSACTION: e07a4297-48a5-11ea-81de-005056ac6a32:509160
+     LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 2020-05-01 10:55:21.911208
+    LAST_APPLIED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 2020-05-01 10:55:21.911208
+         LAST_APPLIED_TRANSACTION_START_APPLY_TIMESTAMP: 2020-05-01 11:08:43.725018
+           LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP: 2020-05-01 11:08:43.725531
+ 
+*************************** 3. row ***************************
+                                           CHANNEL_NAME:
+                                              WORKER_ID: 3
+                                              THREAD_ID: 50003
+                                          SERVICE_STATE: ON
+                                      LAST_ERROR_NUMBER: 0
+                                     LAST_ERROR_MESSAGE:
+                                   LAST_ERROR_TIMESTAMP: 0000-00-00 00:00:00.000000
+                               LAST_APPLIED_TRANSACTION: e07a4297-48a5-11ea-81de-005056ac6a32:161547
+     LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 2020-05-01 10:52:00.619125
+    LAST_APPLIED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 2020-05-01 10:52:00.619125
+         LAST_APPLIED_TRANSACTION_START_APPLY_TIMESTAMP: 2020-05-01 11:06:06.907250
+           LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP: 2020-05-01 11:06:06.907747
+
+*************************** 4. row ***************************
+                                           CHANNEL_NAME:
+                                              WORKER_ID: 4
+                                              THREAD_ID: 50004
+                                          SERVICE_STATE: ON
+                                      LAST_ERROR_NUMBER: 0
+                                     LAST_ERROR_MESSAGE:
+                                   LAST_ERROR_TIMESTAMP: 0000-00-00 00:00:00.000000
+                               LAST_APPLIED_TRANSACTION:
+     LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 0000-00-00 00:00:00.000000
+    LAST_APPLIED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 0000-00-00 00:00:00.000000
+         LAST_APPLIED_TRANSACTION_START_APPLY_TIMESTAMP: 0000-00-00 00:00:00.000000
+           LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP: 0000-00-00 00:00:00.000000
+.
+.
+.
+.
+*************************** 5. row ***************************
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>MySQL CPU 많이 사용하는 세션 찾기</title>

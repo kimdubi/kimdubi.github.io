@@ -5,7 +5,7 @@
 
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Mysqls</title>
+        <title>MySQL crash-safe replication</title>
         
         <style>
 
@@ -54,9 +54,6 @@
 <script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
  <meta name="generator" content="Hugo 0.60.1" />
         
-            <link href="/mysql/index.xml" rel="alternate" type="application/rss&#43;xml" title="kimDuBiA" />
-            <link href="/mysql/index.xml" rel="feed" type="application/rss&#43;xml" title="kimDuBiA" />
-        
 
         
             <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
@@ -82,7 +79,7 @@
         <nav class="navbar navbar-default navbar-fixed-top">
             <div class="container">
                 <div class="navbar-header">
-                    <a class="navbar-brand visible-xs" href="#">Mysqls</a>
+                    <a class="navbar-brand visible-xs" href="#">MySQL crash-safe replication</a>
                     <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
@@ -123,177 +120,71 @@
 
 <main>
 
-    <h2>Mysqls</h2>
+    <div>
+        <h2>MySQL crash-safe replication</h2>
+        <h5></h5>
+        
 
-     <div class="item">
+    </div>
 
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/partition/">ORACLE / MySQL PARTITION DDL 차이점</a></h4>
-    <h5>March 29, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/flashback/">MySQL Flashback recovery</a></h4>
-    <h5>March 28, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/rand_insert/">MySQL test data 쉽게 준비하는 방법</a></h4>
-    <h5>March 28, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/timeout/">MySQL의 timeout 설정</a></h4>
-    <h5>March 26, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/dumpfile/">MySQL full backup dumpfile 테이블별로 쪼개는법</a></h4>
-    <h5>March 26, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/online_schema_change/">MySQL online DDL을 위한 TOOL pt-osc &amp; gh-ost</a></h4>
-    <h5>March 18, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/semi_sync/">MySQL lossless semi-sync</a></h4>
-    <h5>March 15, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/xtrabackup_8/">Xtrabackup 8.0 잡다구리 정보</a></h4>
-    <h5>March 7, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/mysql_gtid/">MySQL_GTID 란?</a></h4>
-    <h5>January 12, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/mysql/mysql-mmm/">Mysql MMM</a></h4>
-    <h5>December 29, 2019</h5>
-    
-
-
-</div>
- 
+    <div align="start" class="content"><p>MySQL crash-safe replication 기능은 5.6 버전부터 생긴 오래된 개념입니다.<br>
+slave DB가 crash 되어 재기동 되는 경우에도 data 중복이나 유실 같은<br>
+replication이 깨지는 경우를 막기 위한 기능인데요<br>
+이번 글에서는 MySQL crash-safe replication 에 대해서 살펴보겠습니다.</p>
+<h3 id="crashsafe-replication-">crash-safe replication 개념</h3>
+<p>replication 수행 중 Slave의 status를 file에 update 하기 전에 Slave DB가 crash 후 재기동 되는 경우
+마지막 트랜잭션을 재수행 하기 때문에 중복 에러등으로 replication이 깨질 수 있습니다.</p>
+<p>이를 보완하기 위해 나온 설정이 relay_log_info_repository=TABLE 이며<br>
+트랜잭션 안에 replication 정보를 포함시켜
+data 반영 SQL과 replication status update가 한 트랜잭션으로 묶여<br>
+이 두가지가 모두 성공해야만 DB에 반영하도록 하는 설정입니다.</p>
+<pre><code>begin;
+insert into tb_test values(1);
+update mysql.slave_relay_log_info set Relay_log_name='./relay-bin.000006',replay_log_pos=1356;
+commit;
+</code></pre><p>추가로 필요한 relay_log_recovery 설정은 Slave DB 재기동 후 replication 설정을 불러올 때<br>
+master info가 아닌 relay_log 정보만을 갖고 복구를 수행하도록 하는 설정 입니다.</p>
+<pre><code>2020-05-03T12:19:21.402872Z 0 [Warning] [MY-010539] [Repl] Recovery from master pos 1142 and file mysql-bin.000003 for channel ''. Previous relay log pos and relay log file had been set to 322, ./relay-bin.000014 respectively.
+</code></pre><p>정리하면 relay_log_info_repository=TABLE 과 relay_log_recovery 설정을 통해<br>
+Slave가 Crash 난 후 재기동 시 발생할 수 있는 문제점들을 해결할 수 있습니다.</p>
+<h3 id="crashsafe-replication-process">crash-safe replication process</h3>
+<p>위에서 살펴본 crash-safe replication은 아래와 같은 흐름으로 동작합니다.<br>
+녹색 표시가 crash-safe replication에 직접 관여되는 부분입니다.</p>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/crash-safe.png" alt=""></p>
+<ul>
+<li>필수 설정</li>
+</ul>
+<pre><code>relay_log_info_repository = TABLE
+relay_log_recovery = ON
+</code></pre><ul>
+<li>replication process</li>
+</ul>
+<pre><code>1. I/O thread는 Master의 binlog data를 slave의 relay log 로 저장
+2. I/O thread는 가져온 Master의 binlog 정보를 mysql.slave_master_info에 update
+3. SQL thread는 relay log를 읽어 transaction을 slave DB에 반영함
+4. SQL thread가 반영한 relay log 정보를 slave_relay_log_info에 업데이트함
+</code></pre></div>
 
 </main>
 
 
+<div id="disqus_thread"></div>
+<script type="text/javascript">
 
-<div class="pages">
-
+(function() {
     
-        <a class="icon pages-icon" href="/mysql/" rel="prev">
-            <i class="fa fa-arrow-left"></i>
-        </a>
     
+    if (window.location.hostname == "localhost")
+        return;
 
-    
-
-</div>
-
-
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
 
         <footer>
             <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>

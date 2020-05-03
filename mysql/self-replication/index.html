@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL 시점복구 빠르게 수행하는 팁</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL 시점복구 빠르게 수행하는 팁</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL 시점복구 빠르게 수행하는 팁</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>mysql에서 시점복구를 할 때 가장 흔히 사용하는 방법이 mysqlbinlog를 통해<br>
+binary log을 parsing 하고 이를 순차적으로 적용하는 방법인데요<br>
+이 방법은 single thread로 수행되기 때문에 그 속도가 굉장히 느릴 수 있습니다.<br>
+MariaDB에서에서 이러한 문제점을 피하기 위해 mysql replication의 SQL-thread을<br>
+사용한 방법을 공유한 적이 있습니다.<br>
+<a href="https://sarc.io/index.php/mariadb/1438-mariadb-point-in-time-recovery">https://sarc.io/index.php/mariadb/1438-mariadb-point-in-time-recovery</a></p>
+<p>mysql 과 mariadb는 gtid 사용방법이 조금 달라서 위의 방법도 조금 다른데요<br>
+이번 글에서는 mysql에서 수행하는 방법을 공유드리겠습니다.</p>
+<h3 id="gtid--replicatesameserverid-setting">gtid , replicate-same-server-id setting</h3>
+<pre><code>gtid-mode = ON
+enforce-gtid-consistency
+replicate-same-server-id=1
+</code></pre><p>=&gt; 원래 replication은 node 간의 server-id 가 달라야하는데<br>
+이번 케이스는 자기자신에게 replication을 걸기 때문에 replicate-same-server-id=1 설정 필요<br>
+binary - relay log 간 동일한 position을 갖는 gtid 설정 필요</p>
+<h3 id="test--">test 데이터 준비</h3>
+<pre><code>mysql&gt; show master status;
++------------------+----------+--------------+------------------+----------------------------------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set                            |
++------------------+----------+--------------+------------------+----------------------------------------------+
+| mysql-bin.000001 |  3420155 |              |                  | e07a4297-48a5-11ea-81de-005056ac6a32:1-10000 |
++------------------+----------+--------------+------------------+----------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql&gt; select count(*) from tb_test;
++----------+
+| count(*) |
++----------+
+|    10000 |
++----------+
+1 row in set (0.01 sec)
+</code></pre><h3 id="backup">backup</h3>
+<pre><code>mysqldump -uadmin -p --set-gtid-purged=off --socket=/home1/irteam/db/mysql/tmp/mysql.sock --all-databases  &gt; bk.sql
+</code></pre><p>=&gt; &ndash;set-gtid-purged 옵션 사용은 상관없으나 set-gtid-purged=on 설정 시엔 아래와 같은 구문이 백업 덤프에 포함됨</p>
+<pre><code>SET @@SESSION.SQL_LOG_BIN= 0;
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ 'e07a4297-48a5-11ea-81de-005056ac6a32:1-10000';
+</code></pre><h3 id="--">데이터 유실 시나리오</h3>
+<ul>
+<li>delete 사고 발생</li>
+</ul>
+<pre><code>mysql&gt; delete from tb_test;
+Query OK, 10000 rows affected (0.03 sec)
+</code></pre><ul>
+<li>data 사고와 무관한 정상 데이터 유입</li>
+</ul>
+<pre><code>mysql&gt; call insert_test(500);
+Query OK, 0 rows affected (6.02 sec)
+</code></pre><ul>
+<li>delete gtid position 찾기</li>
+</ul>
+<pre><code>mysql&gt; pager grep -A 1 -B 2 'tb_test' | grep -B 4 delete
+PAGER set to 'grep -A 1 -B 2 'tb_test' | grep -B 4 delete'
+
+mysql&gt; show binlog events in 'mysql-bin.000001';
+| mysql-bin.000001 | 3420034 | Write_rows     |      7833 |     3420124 | table_id: 1100 flags: STMT_END_F                                      |
+--
+| mysql-bin.000001 | 3420155 | Gtid           |      7833 |     3420234 | SET @@SESSION.GTID_NEXT= 'e07a4297-48a5-11ea-81de-005056ac6a32:10001' |
+| mysql-bin.000001 | 3420234 | Query          |      7833 |     3420318 | BEGIN                                                                 |
+| mysql-bin.000001 | 3420318 | Query          |      7833 |     3420416 | use `test3`; delete from tb_test                                      |
+50006 rows in set (0.08 sec)
+</code></pre><p>=&gt; 풀백업 본으로 1차 복구 + 데이터 유실 부분 skip + 그 이후의 데이터 2차 복구 하는 시나리오</p>
+<h3 id="self--replication----">self - replication 을 통한 시점 복구</h3>
+<ul>
+<li>binary log 백업</li>
+</ul>
+<pre><code>[testuser@testserver 10:59:04 ~/db/mysql/data ]$ cp ./mysql-bin.000001 ../tmp/
+</code></pre><ul>
+<li>풀백업본으로 데이터 유실 전 시점으로 복구</li>
+</ul>
+<pre><code>[testuser@testserver 10:59:04 ~/db/mysql/data ]$ mysql -uroot -p  &lt; bk.sql
+
+mysql&gt; select count(*) from test3.tb_test;
++----------+
+| count(*) |
++----------+
+|    10000 |
++----------+
+1 row in set (0.00 sec)
+</code></pre><ul>
+<li>self-replication 설정</li>
+</ul>
+<pre><code>mysql&gt; reset master;
+Query OK, 0 rows affected (0.01 sec)
+
+SET @@GLOBAL.GTID_PURGED='e07a4297-48a5-11ea-81de-005056ac6a32:1-10001';
+</code></pre><p>=&gt; 데이터 유실 부분 skip</p>
+<pre><code>mysql&gt; SET GLOBAL SLAVE_PARALLEL_TYPE='LOGICAL_CLOCK';
+mysql&gt; SET GLOBAL SLAVE_PARALLEL_WORKERS=8;
+
+
+mysql&gt; change master to master_host='11.111.11.111', master_user='repl',master_password='',master_port=3306, master_auto_position=1;
+
+[testuser@testserver 21:59:51 ~/db/mysql/data ]$ cp ../tmp/mysql-bin.000001 relay-bin.000001
+[testuser@testserver 21:59:51 ~/db/mysql/data ]$ ls ./relay-bin.0*&gt; relay-bin.index
+
+mysql&gt; start slave;
+</code></pre><p>=&gt; 자기자신에게 parallel replication 설정</p>
+<ul>
+<li>parallel replication 동작 확인</li>
+</ul>
+<pre><code>mysql&gt;  select * from performance_schema.replication_applier_status_by_worker\G;
+*************************** 1. row ***************************
+                                           CHANNEL_NAME:
+                                              WORKER_ID: 1
+                                              THREAD_ID: 50001
+                                          SERVICE_STATE: ON
+                                      LAST_ERROR_NUMBER: 0
+                                     LAST_ERROR_MESSAGE:
+                                   LAST_ERROR_TIMESTAMP: 0000-00-00 00:00:00.000000
+                               LAST_APPLIED_TRANSACTION: e07a4297-48a5-11ea-81de-005056ac6a32:510001
+     LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 2020-05-01 10:55:22.422507
+    LAST_APPLIED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 2020-05-01 10:55:22.422507
+         LAST_APPLIED_TRANSACTION_START_APPLY_TIMESTAMP: 2020-05-01 11:08:44.116971
+           LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP: 2020-05-01 11:08:44.117571
+
+*************************** 2. row ***************************
+                                           CHANNEL_NAME:
+                                              WORKER_ID: 2
+                                              THREAD_ID: 50002
+                                          SERVICE_STATE: ON
+                                      LAST_ERROR_NUMBER: 0
+                                     LAST_ERROR_MESSAGE:
+                                   LAST_ERROR_TIMESTAMP: 0000-00-00 00:00:00.000000
+                               LAST_APPLIED_TRANSACTION: e07a4297-48a5-11ea-81de-005056ac6a32:509160
+     LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 2020-05-01 10:55:21.911208
+    LAST_APPLIED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 2020-05-01 10:55:21.911208
+         LAST_APPLIED_TRANSACTION_START_APPLY_TIMESTAMP: 2020-05-01 11:08:43.725018
+           LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP: 2020-05-01 11:08:43.725531
+ 
+*************************** 3. row ***************************
+                                           CHANNEL_NAME:
+                                              WORKER_ID: 3
+                                              THREAD_ID: 50003
+                                          SERVICE_STATE: ON
+                                      LAST_ERROR_NUMBER: 0
+                                     LAST_ERROR_MESSAGE:
+                                   LAST_ERROR_TIMESTAMP: 0000-00-00 00:00:00.000000
+                               LAST_APPLIED_TRANSACTION: e07a4297-48a5-11ea-81de-005056ac6a32:161547
+     LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 2020-05-01 10:52:00.619125
+    LAST_APPLIED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 2020-05-01 10:52:00.619125
+         LAST_APPLIED_TRANSACTION_START_APPLY_TIMESTAMP: 2020-05-01 11:06:06.907250
+           LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP: 2020-05-01 11:06:06.907747
+
+*************************** 4. row ***************************
+                                           CHANNEL_NAME:
+                                              WORKER_ID: 4
+                                              THREAD_ID: 50004
+                                          SERVICE_STATE: ON
+                                      LAST_ERROR_NUMBER: 0
+                                     LAST_ERROR_MESSAGE:
+                                   LAST_ERROR_TIMESTAMP: 0000-00-00 00:00:00.000000
+                               LAST_APPLIED_TRANSACTION:
+     LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP: 0000-00-00 00:00:00.000000
+    LAST_APPLIED_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP: 0000-00-00 00:00:00.000000
+         LAST_APPLIED_TRANSACTION_START_APPLY_TIMESTAMP: 0000-00-00 00:00:00.000000
+           LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP: 0000-00-00 00:00:00.000000
+.
+.
+.
+.
+*************************** 5. row ***************************
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

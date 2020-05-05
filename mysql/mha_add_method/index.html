@@ -151,8 +151,8 @@ MHA failover 발생 시 event status도 enable 시키는 기능이 있으면 좋
     my $command =
 &quot;$dead_master-&gt;{master_ip_failover_script} --orig_master_host=$dead_master-&gt;{hostname} --orig_master_ip=$dead_master-&gt;{ip} --orig_master_port=$dead_master-&gt;{port}&quot;;
 </code></pre><ul>
-<li>master_ip_failover_script는 mha 설정파일인 mha.cnf에서 지정함.
-예시 ) master_ip_failover_script=/engn001/masvc01/mha/mha4mysql-manager-0.57/bin/master_ip_failover</li>
+<li>master_ip_failover_script는 mha 설정파일인 mha.cnf에서 지정함<br>
+예시) master_ip_failover_script=/engn001/masvc01/mha/mha4mysql-manager-0.57/bin/master_ip_failover</li>
 </ul>
 <ol start="3">
 <li>master_ip_failover script 수정
@@ -208,9 +208,13 @@ sub change_event($) {
 추가하려는 method 인 change_event를 정의함</p>
 <h3 id="-">동작 확인</h3>
 <pre><code>Sun Oct  8 15:35:57 2017 - [info]   /engn001/masvc01/mha/mha4mysql-manager-0.57/bin/master_ip_failover --command=start --ssh_user=masvc01 --orig_master_host=ip-172-31-13-44 --orig_master_ip=52.78.212.75 --orig_master_port=3310 --new_master_host=ip-172-31-8-190 --new_master_ip=52.78.108.151 --new_master_port=3310 --new_master_user='root'   --new_master_password=xxx
+
 Set read_only=0 on the new master.
+
 Set event enable on the new master.
+
 Creating app user on the new master..
+
 Sun Oct  8 15:35:57 2017 - [error][/home/masvc01/perl5/lib/perl5/MHA/MasterFailover.pm, ln1589]  Failed to activate master IP address for ip-172-31-8-190(52.78.108.151:3310) with return code 10:0
 Sun Oct  8 15:35:57 2017 - [warning] Proceeding.
 Sun Oct  8 15:35:57 2017 - [info] ** Finished master recovery successfully.

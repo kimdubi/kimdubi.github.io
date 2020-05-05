@@ -5,15 +5,15 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 05 May 2020 20:27:06 +0900</lastBuildDate>
+    <lastBuildDate>Tue, 05 May 2020 20:28:06 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
-      <title>MySQL Replication Table PK 강제설정(REQUIRE_TABLE_PRIMARY_KEY_CHECK)</title>
+      <title>MySQL8.0  Replication REQUIRE_TABLE_PRIMARY_KEY_CHECK</title>
       <link>https://kimdubi.github.io/mysql/replication_force_pk/</link>
-      <pubDate>Tue, 05 May 2020 20:27:06 +0900</pubDate>
+      <pubDate>Tue, 05 May 2020 20:28:06 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/mysql/replication_force_pk/</guid>
       <description>&lt;p&gt;MySQL 8.0 부터 replication 관련 재밌는 기능들이 많이 생겼는데&lt;br&gt;
@@ -72,10 +72,11 @@ start slave sql_thread for channel &#39;repl1&#39;;
 | repl2        |             0 | NULL                  | NO                 | STREAM                          |
 +--------------+---------------+-----------------------+--------------------+---------------------------------+
 2 rows in set (0.00 sec)
-&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;!-- raw HTML omitted --&gt;
+&lt;ul&gt;
 &lt;li&gt;REQUIRE_TABLE_PRIMARY_KEY_CHECK ON 일 때&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;master&#34;&gt;Master&lt;/h4&gt;
+&lt;p&gt;Master&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;mysql&amp;gt; use repl1_test;
 Database changed
 
@@ -84,11 +85,12 @@ Query OK, 0 rows affected (0.05 sec)
 
 mysql&amp;gt; insert into repl1 values(1);
 Query OK, 1 row affected (0.00 sec)
-&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&#34;slave&#34;&gt;Slave&lt;/h4&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Slave&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;show slave status\G;
 
 
 Last_SQL_Error: Error &#39;Unable to create or change a table without a primary key, when the system variable &#39;sql_require_primary_key&#39; is set. Add a primary key to the table or unset this variable to avoid this message. Note that tables without a primary key can cause performance problems in row-based replication, so please consult your DBA before changing this setting.&#39; on query. Default database: &#39;repl1_test&#39;. Query: &#39;create table repl1 (a int)&#39;
+
 Replicate_Ignore_Server_Ids:
 Master_Server_Id: 1
 Master_UUID: 23ab24f6-8ea1-11ea-8084-0242ac110006
@@ -97,7 +99,7 @@ Channel_Name: repl1
 &lt;ul&gt;
 &lt;li&gt;REQUIRE_TABLE_PRIMARY_KEY_CHECK OFF 일 때&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h4 id=&#34;master1&#34;&gt;Master&lt;/h4&gt;
+&lt;p&gt;Master&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;mysql&amp;gt; use repl2_test;
 Database changed
 
@@ -106,7 +108,7 @@ Query OK, 0 rows affected (0.05 sec)
 
 mysql&amp;gt; insert into repl2 values(1);
 Query OK, 1 row affected (0.00 sec)
-&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&#34;slave1&#34;&gt;Slave&lt;/h4&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Slave&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;mysql&amp;gt; select * from repl2_test.repl2;
 +------+
 | a    |
@@ -121,7 +123,7 @@ Query OK, 1 row affected (0.00 sec)
     <item>
       <title>MySQL MHA method 추가하기</title>
       <link>https://kimdubi.github.io/mysql/mha_add_method/</link>
-      <pubDate>Tue, 05 May 2020 20:17:32 +0900</pubDate>
+      <pubDate>Tue, 05 May 2020 20:17:33 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/mysql/mha_add_method/</guid>
       <description>&lt;p&gt;지난 event 관련 글에서 보았던 것 처럼 MHA 구성 환경에서 failover 발생 시&lt;br&gt;
@@ -146,8 +148,8 @@ MHA failover 발생 시 event status도 enable 시키는 기능이 있으면 좋
     my $command =
 &amp;quot;$dead_master-&amp;gt;{master_ip_failover_script} --orig_master_host=$dead_master-&amp;gt;{hostname} --orig_master_ip=$dead_master-&amp;gt;{ip} --orig_master_port=$dead_master-&amp;gt;{port}&amp;quot;;
 &lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
-&lt;li&gt;master_ip_failover_script는 mha 설정파일인 mha.cnf에서 지정함.
-예시 ) master_ip_failover_script=/engn001/masvc01/mha/mha4mysql-manager-0.57/bin/master_ip_failover&lt;/li&gt;
+&lt;li&gt;master_ip_failover_script는 mha 설정파일인 mha.cnf에서 지정함&lt;br&gt;
+예시) master_ip_failover_script=/engn001/masvc01/mha/mha4mysql-manager-0.57/bin/master_ip_failover&lt;/li&gt;
 &lt;/ul&gt;
 &lt;ol start=&#34;3&#34;&gt;
 &lt;li&gt;master_ip_failover script 수정
@@ -203,9 +205,13 @@ sub change_event($) {
 추가하려는 method 인 change_event를 정의함&lt;/p&gt;
 &lt;h3 id=&#34;-&#34;&gt;동작 확인&lt;/h3&gt;
 &lt;pre&gt;&lt;code&gt;Sun Oct  8 15:35:57 2017 - [info]   /engn001/masvc01/mha/mha4mysql-manager-0.57/bin/master_ip_failover --command=start --ssh_user=masvc01 --orig_master_host=ip-172-31-13-44 --orig_master_ip=52.78.212.75 --orig_master_port=3310 --new_master_host=ip-172-31-8-190 --new_master_ip=52.78.108.151 --new_master_port=3310 --new_master_user=&#39;root&#39;   --new_master_password=xxx
+
 Set read_only=0 on the new master.
+
 Set event enable on the new master.
+
 Creating app user on the new master..
+
 Sun Oct  8 15:35:57 2017 - [error][/home/masvc01/perl5/lib/perl5/MHA/MasterFailover.pm, ln1589]  Failed to activate master IP address for ip-172-31-8-190(52.78.108.151:3310) with return code 10:0
 Sun Oct  8 15:35:57 2017 - [warning] Proceeding.
 Sun Oct  8 15:35:57 2017 - [info] ** Finished master recovery successfully.

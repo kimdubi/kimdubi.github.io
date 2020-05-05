@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL Replication Table PK 강제설정(REQUIRE_TABLE_PRIMARY_KEY_CHECK)</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL Replication Table PK 강제설정(REQUIRE_TABLE_PRIMARY_KEY_CHECK)</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL Replication Table PK 강제설정(REQUIRE_TABLE_PRIMARY_KEY_CHECK)</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>MySQL 8.0 부터 replication 관련 재밌는 기능들이 많이 생겼는데<br>
+그 중 하나가 오늘 소개해드릴 REQUIRE_TABLE_PRIMARY_KEY_CHECK 기능입니다.<br>
+replication 구성 환경에서 Table 생성 시 Primary key를 항상 강제시킬 수 있는 기능인데요<br>
+이전부터 CUBRID 라는 DB에서는 PK가 없는 테이블은 replication이 안되는데<br>
+CUBRID가 떠오르는 기능이네요</p>
+<h3 id="requiretableprimarykeycheck-">REQUIRE_TABLE_PRIMARY_KEY_CHECK 란?</h3>
+<ul>
+<li>performance_schema.replication_applier_configuration (8.0.20 이상 지원)</li>
+</ul>
+<pre><code>mysql&gt; desc performance_schema.replication_applier_configuration;
++---------------------------------+---------------------------+------+-----+---------+-------+
+| Field                           | Type                      | Null | Key | Default | Extra |
++---------------------------------+---------------------------+------+-----+---------+-------+
+| CHANNEL_NAME                    | char(64)                  | NO   | PRI | NULL    |       |
+| DESIRED_DELAY                   | int                       | NO   |     | NULL    |       |
+| PRIVILEGE_CHECKS_USER           | text                      | YES  |     | NULL    |       |
+| REQUIRE_ROW_FORMAT              | enum('YES','NO')          | NO   |     | NULL    |       |
+| REQUIRE_TABLE_PRIMARY_KEY_CHECK | enum('STREAM','ON','OFF') | NO   |     | NULL    |       |
++---------------------------------+---------------------------+------+-----+---------+-------+
+</code></pre><p>=&gt; replication 구성에서 Slave가 Master의 트랜잭션을 반영할 때<br>
+영향을 주는 설정을 확인할 수 있는 테이블</p>
+<ul>
+<li>CHANNEL_NAME : replication 채널 이름</li>
+<li>DESIRED_DELAY : slave 가 replication을 의도적으로 지연하는 시간(초)</li>
+<li>REQUIRE_ROW_FORMAT : replication을 위한 binary log의 format을 ROW로 강제할 것인지 (default off)</li>
+<li>REQUIRE_TABLE_PRIMARY_KEY_CHECK : Table을 생성할 때 항상 Primary Key를 강제할 것인지 (default stream)</li>
+</ul>
+<h3 id="heading">테스트</h3>
+<ul>
+<li>replication 설정 (slave)</li>
+</ul>
+<pre><code>change master to
+master_host='172.17.0.6',
+master_port=3306,
+master_user='repl',
+master_password='qhdks123',
+master_log_file='binlog.000002',
+master_log_pos=823
+for channel 'repl1';
+</code></pre><ul>
+<li>특정 replication channel에 옵선 적용</li>
+</ul>
+<pre><code>stop slave sql_thread for channel 'repl1';
+CHANGE MASTER TO REQUIRE_TABLE_PRIMARY_KEY_CHECK = ON FOR CHANNEL 'repl1';
+start slave sql_thread for channel 'repl1';
+</code></pre><ul>
+<li>옵션 적용 확인</li>
+</ul>
+<pre><code>mysql&gt; select * from performance_schema.replication_applier_configuration;
++--------------+---------------+-----------------------+--------------------+---------------------------------+
+| CHANNEL_NAME | DESIRED_DELAY | PRIVILEGE_CHECKS_USER | REQUIRE_ROW_FORMAT | REQUIRE_TABLE_PRIMARY_KEY_CHECK |
++--------------+---------------+-----------------------+--------------------+---------------------------------+
+| repl1        |             0 | NULL                  | NO                 | ON                              |
+| repl2        |             0 | NULL                  | NO                 | STREAM                          |
++--------------+---------------+-----------------------+--------------------+---------------------------------+
+2 rows in set (0.00 sec)
+</code></pre><ul>
+<li>REQUIRE_TABLE_PRIMARY_KEY_CHECK ON 일 때</li>
+</ul>
+<h4 id="master">Master</h4>
+<pre><code>mysql&gt; use repl1_test;
+Database changed
+
+mysql&gt; create table repl1 (a int);
+Query OK, 0 rows affected (0.05 sec)
+
+mysql&gt; insert into repl1 values(1);
+Query OK, 1 row affected (0.00 sec)
+</code></pre><h4 id="slave">Slave</h4>
+<pre><code>show slave status\G;
+
+
+Last_SQL_Error: Error 'Unable to create or change a table without a primary key, when the system variable 'sql_require_primary_key' is set. Add a primary key to the table or unset this variable to avoid this message. Note that tables without a primary key can cause performance problems in row-based replication, so please consult your DBA before changing this setting.' on query. Default database: 'repl1_test'. Query: 'create table repl1 (a int)'
+Replicate_Ignore_Server_Ids:
+Master_Server_Id: 1
+Master_UUID: 23ab24f6-8ea1-11ea-8084-0242ac110006
+Channel_Name: repl1
+</code></pre><p>=&gt; sql_require_primary_key 설정에 의해 PK 없는 테이블은 복제하지 않음과 동시에 replication stop</p>
+<ul>
+<li>REQUIRE_TABLE_PRIMARY_KEY_CHECK OFF 일 때</li>
+</ul>
+<h4 id="master1">Master</h4>
+<pre><code>mysql&gt; use repl2_test;
+Database changed
+
+mysql&gt; create table repl2 (a int);
+Query OK, 0 rows affected (0.05 sec)
+
+mysql&gt; insert into repl2 values(1);
+Query OK, 1 row affected (0.00 sec)
+</code></pre><h4 id="slave1">Slave</h4>
+<pre><code>mysql&gt; select * from repl2_test.repl2;
++------+
+| a    |
++------+
+|    1 |
++------+
+1 row in set (0.00 sec)
+</code></pre><p>=&gt; PK 없어도 상관없음</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

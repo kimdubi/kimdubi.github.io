@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL Xtrabackup LSN 유실 에러</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL Xtrabackup LSN 유실 에러</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL Xtrabackup LSN 유실 에러</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>xtrabackup 백업 본으로 복구 할 때 LSN이 유실되었던 이슈가 발생해서<br>
+원인과 해결방법 공유드리겠습니다.</p>
+<h3 id="xtrabackup---mysql--">Xtrabackup 복구 후 MySQL 기동 실패</h3>
+<pre><code>InnoDB: Starting an apply batch of log records to the database...
+InnoDB: Progress in percent: InnoDB: Page [page id: space=695, page number=81921] log sequence number 11324236422964 is in the future! Current system log sequence number 11324230185692.
+
+
+InnoDB: Your database may be corrupt or you may have copied the InnoDB tablespace but not the InnoDB log files. Please refer to http://dev.mysql.com/doc/refman/5.7/en/forcing-innodb-recovery.html for information about forcing recovery.
+
+InnoDB: Page [page id: space=1435, page number=322180] log sequence number 11324372211076 is in the future! Current system log sequence number 11324230185692.
+
+InnoDB: Your database may be corrupt or you may have copied the InnoDB tablespace but not the InnoDB log files. Please refer to http://dev.mysql.com/doc/refman/5.7/en/forcing-innodb-recovery.html for information about forcing recovery.
+</code></pre><p>=&gt; apply log 를 통해 ib_logfile 을 생성 후 db recovery 과정을 진행하는데 아래 구간 LSN 유실 에러 발생</p>
+<ul>
+<li>LSN 11324230185692 ~ 11324236422964</li>
+<li>LSN 11324372211076 ~ 11324230185692</li>
+</ul>
+<h2 id="xtrabackup-lsn---">xtrabackup은 LSN 을 어떻게 얻어올까</h2>
+<h3 id="xtrabackup-log-copy-thread">xtrabackup log copy thread</h3>
+<pre><code>Thread 8 (Thread 0x7f2a53aac700 (LWP 459)):
+#0  0x00007f2a591beda2 in pthread_cond_timedwait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x000000000147af65 in os_event::timed_wait (this=this@entry=0x44fa228, abstime=abstime@entry=0x7f2a53aabbe0) at /usr/src/debug/percona-xtrabackup-8.0.9/storage/innobase/os/os0event.cc:322
+#2  0x000000000147bc01 in os_event::wait_time_low (this=0x44fa228, time_in_usec=&lt;optimized out&gt;, reset_sig_count=1) at /usr/src/debug/percona-xtrabackup-8.0.9/storage/innobase/os/os0event.cc:495
+#3  0x0000000000cb4fce in Redo_Log_Data_Manager::copy_func (this=0x7fff3edebfe0) at /usr/src/debug/percona-xtrabackup-8.0.9/storage/innobase/xtrabackup/src/redo_log.cc:1073
+#4  0x0000000000cb509b in operator() (__closure=&lt;optimized out&gt;) at /usr/src/debug/percona-xtrabackup-8.0.9/storage/innobase/xtrabackup/src/redo_log.cc:867
+#5  __invoke_impl&lt;void, Redo_Log_Data_Manager::init()::&lt;lambda()&gt;&amp;&gt; (__f=...) at /opt/rh/devtoolset-7/root/usr/include/c++/7/bits/invoke.h:60
+#6  __invoke&lt;Redo_Log_Data_Manager::init()::&lt;lambda()&gt;&amp;&gt; (__fn=&lt;synthetic pointer&gt;) at /opt/rh/devtoolset-7/root/usr/include/c++/7/bits/invoke.h:95
+#7  __call&lt;void&gt; (__args=&lt;optimized out&gt;, this=&lt;synthetic pointer&gt;) at /opt/rh/devtoolset-7/root/usr/include/c++/7/functional:467
+#8  operator()&lt;&gt; (this=&lt;synthetic pointer&gt;) at /opt/rh/devtoolset-7/root/usr/include/c++/7/functional:551
+#9  operator()&lt;Redo_Log_Data_Manager::init()::&lt;lambda()&gt; &gt; (f=&lt;unknown type in /usr/lib/debug/usr/bin/xtrabackup.debug, CU 0x9a9ff2, DIE 0x9c6cbe&gt;, this=0x44fa330)
+    at /usr/src/debug/percona-xtrabackup-8.0.9/storage/innobase/include/os0thread-create.h:101
+#10 __invoke_impl&lt;void, Runnable, Redo_Log_Data_Manager::init()::&lt;lambda()&gt; &gt; (__f=&lt;optimized out&gt;) at /opt/rh/devtoolset-7/root/usr/include/c++/7/bits/invoke.h:60
+#11 __invoke&lt;Runnable, Redo_Log_Data_Manager::init()::&lt;lambda()&gt; &gt; (__fn=&lt;optimized out&gt;) at /opt/rh/devtoolset-7/root/usr/include/c++/7/bits/invoke.h:95
+#12 _M_invoke&lt;0, 1&gt; (this=0x44fa328) at /opt/rh/devtoolset-7/root/usr/include/c++/7/thread:234
+#13 operator() (this=0x44fa328) at /opt/rh/devtoolset-7/root/usr/include/c++/7/thread:243
+#14 std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;Runnable, Redo_Log_Data_Manager::init()::&lt;lambda()&gt; &gt; &gt; &gt;::_M_run(void) (this=0x44fa320)
+    at /opt/rh/devtoolset-7/root/usr/include/c++/7/thread:186
+#15 0x000000000242c97f in execute_native_thread_routine ()
+#16 0x00007f2a591bae65 in start_thread () from /lib64/libpthread.so.0
+#17 0x00007f2a5710e88d in clone () from /lib64/libc.so.6
+</code></pre><ul>
+<li>db backup 중 발생한 데이터 변경분에 대해 ib_logfile 을 crawling 하는 log-copy thread</li>
+</ul>
+<h2 id="heading">해결방법</h2>
+<ul>
+<li>ib_logfile이 너무 작아서 xtrabackup의 log-copy thread 가 crawling 하기 전에 덮어 씌워져 LSN 이 유실된 건 아닐까?</li>
+<li>기존 innodb-log-file-size 1GB =&gt; 2GB
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/logfile1.png" alt="">
+=&gt; checkpoint age가 max checkpoint age에 근접하거나
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/logfile2.png" alt="">
+=&gt; logfile에 쓰여지는 data양이 total logfile size보다 크면 logfile size 늘릴 필요가 있음</li>
+<li>xtrabackup source에서 log-copy-interval 수정
+<a href="https://github.com/percona/percona-xtrabackup/blob/8.0/storage/innobase/xtrabackup/src/xtrabackup.cc">https://github.com/percona/percona-xtrabackup/blob/8.0/storage/innobase/xtrabackup/src/xtrabackup.cc</a></li>
+</ul>
+<pre><code>/* sleep interval beetween log copy iterations in log copying thread
+in milliseconds (default is 1 second)
+ulint xtrabackup_log_copy_interval = 1000;
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL MHA method 추가하기</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL MHA method 추가하기</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL MHA method 추가하기</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>지난 event 관련 글에서 보았던 것 처럼 MHA 구성 환경에서 failover 발생 시<br>
+slave-&gt;master db로 승격은 되지만 그에 따라 event의 status는 변경이 되지 않았고 수동으로 상태를 설정해야 합니다.<br>
+현재 운영하는 maria db들은 모두 master에서만 event를 수행하고 있기 때문에<br>
+MHA failover 발생 시 event status도 enable 시키는 기능이 있으면 좋겠다는 생각에 MHA 스크립트를 수정해보았습니다.<br>
+이번 글 내용은 event 자동 enable 설정 관련 내용이지만 아래와 같은 방식으로 원하는 기능을 추가하시면 됩니다.</p>
+<ul>
+<li><a href="https://sarc.io/index.php/mariadb/941-mha-event">https://sarc.io/index.php/mariadb/941-mha-event</a></li>
+</ul>
+<h3 id="failover---mha--">Failover 발생 시 MHA 작동 순서</h3>
+<ol>
+<li>MHA Manager 서버의 masterha_manager 가 master db down 감지</li>
+</ol>
+<pre><code>if ( $exit_code &amp;&amp; $exit_code != $MHA::ManagerConst::MASTER_DEAD_RC ) {
+  exit $exit_code;
+}
+</code></pre><ol start="2">
+<li>MHA::MasterFailover::main 함수 실행 및 master_ip_failover_script 수행</li>
+</ol>
+<pre><code> if ( $dead_master-&gt;{master_ip_failover_script} ) {
+    my $command =
+&quot;$dead_master-&gt;{master_ip_failover_script} --orig_master_host=$dead_master-&gt;{hostname} --orig_master_ip=$dead_master-&gt;{ip} --orig_master_port=$dead_master-&gt;{port}&quot;;
+</code></pre><ul>
+<li>master_ip_failover_script는 mha 설정파일인 mha.cnf에서 지정함.
+예시 ) master_ip_failover_script=/engn001/masvc01/mha/mha4mysql-manager-0.57/bin/master_ip_failover</li>
+</ul>
+<ol start="3">
+<li>master_ip_failover script 수정
+vi /engn001/masvc01/mha/mha4mysql-manager-0.57/bin/master_ip_failover  ( mha manager 압축해제, samples 디렉토리에서 제공)</li>
+</ol>
+<pre><code>.
+.
+
+eval {
+
+  my $new_master_handler = new MHA::DBHelper();
+      # args: hostname, port, user, password, raise_error_or_not
+      $new_master_handler-&gt;connect( $new_master_ip, $new_master_port,
+        $new_master_user, $new_master_password, 1 );
+      ## Set read_only=0 on the new master
+      $new_master_handler-&gt;disable_log_bin_local();
+      print &quot;Set read_only=0 on the new master.\n&quot;;
+      $new_master_handler-&gt;disable_read_only();
+.
+.
+</code></pre><p>스크립트를 대략 살펴보면<br>
+$new_master_handler 라는 MHA::DBHelper() 객체를 생성하고<br>
+새로운 마스터 DB에 접속한 뒤 read_only off 설정을 하는 method 등이 실행됨<br>
+<!-- raw HTML omitted --></p>
+<ul>
+<li>아래와 같이 추가하려는 새로운 기능인 change_event() method를 추가</li>
+</ul>
+<pre><code>  ## Set event enable on the new master    
+  print &quot;Set event enable on the new master.\n&quot;;    
+  $new_master_handler-&gt;change_event();
+</code></pre><h3 id="dbhelperpm-">DBHelper.pm 수정</h3>
+<p>master_ip_failover script 의 connect,set read_only 등 db에 붙어서 수행하는 기능은<br>
+DBHelper 클래스의 method 로 구현되어있으므로 DBHelper에 추가하려는 기능을 구현해야함</p>
+<ul>
+<li>vi /home/masvc01/perl5/lib/perl5/MHA/DBHelper.pm  (perl 설치 경로 아래에 있음)</li>
+</ul>
+<pre><code>.
+.
+use constant change_event_enable =&gt; &quot;update mysql.event set status= 'enabled' where status='slaveside_disabled'&quot;;
+
+.
+.
+sub change_event($) {
+  my $self = shift;
+  if ( $self-&gt;is_read_only() eq &quot;1&quot; ) {
+    return 0;
+  }
+  else {
+    return $self-&gt;execute(change_event_enable);
+  }
+}
+</code></pre><p>=&gt; db에서 수행할 쿼리를 담은 change_event_enable 상수를 선언 후<br>
+추가하려는 method 인 change_event를 정의함</p>
+<h3 id="-">동작 확인</h3>
+<pre><code>Sun Oct  8 15:35:57 2017 - [info]   /engn001/masvc01/mha/mha4mysql-manager-0.57/bin/master_ip_failover --command=start --ssh_user=masvc01 --orig_master_host=ip-172-31-13-44 --orig_master_ip=52.78.212.75 --orig_master_port=3310 --new_master_host=ip-172-31-8-190 --new_master_ip=52.78.108.151 --new_master_port=3310 --new_master_user='root'   --new_master_password=xxx
+Set read_only=0 on the new master.
+Set event enable on the new master.
+Creating app user on the new master..
+Sun Oct  8 15:35:57 2017 - [error][/home/masvc01/perl5/lib/perl5/MHA/MasterFailover.pm, ln1589]  Failed to activate master IP address for ip-172-31-8-190(52.78.108.151:3310) with return code 10:0
+Sun Oct  8 15:35:57 2017 - [warning] Proceeding.
+Sun Oct  8 15:35:57 2017 - [info] ** Finished master recovery successfully.
+Sun Oct  8 15:35:57 2017 - [info] * Phase 3: Master Recovery Phase completed. . . .
+----- Failover Report -----
+mha: MySQL Master failover ip-172-31-13-44(52.78.212.75:3310) to ip-172-31-8-190(52.78.108.151:3310) succeeded
+.
+.
+</code></pre><p>master DB shutdown 후 mha log를 살펴보면</p>
+<pre><code>Set event enable on the new master.
+</code></pre><p>위에서 change_event method를 설정한대로 로그가 남고<br>
+<!-- raw HTML omitted --></p>
+<pre><code>mysql&gt; select db,name,status from mysql.event;
++------+------------+---------+
+| db   | name       | status  |
++------+------------+---------+
+| test | test_event | ENABLED |
++------+------------+---------+
+1 row in set (0.00 sec)
+</code></pre><p>db에서도 자동으로 enabled 가 되었음을 확인</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

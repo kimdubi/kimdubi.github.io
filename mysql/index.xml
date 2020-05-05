@@ -5,10 +5,295 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 03 May 2020 21:58:49 +0900</lastBuildDate>
+    <lastBuildDate>Tue, 05 May 2020 20:27:06 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL Replication Table PK 강제설정(REQUIRE_TABLE_PRIMARY_KEY_CHECK)</title>
+      <link>https://kimdubi.github.io/mysql/replication_force_pk/</link>
+      <pubDate>Tue, 05 May 2020 20:27:06 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/replication_force_pk/</guid>
+      <description>&lt;p&gt;MySQL 8.0 부터 replication 관련 재밌는 기능들이 많이 생겼는데&lt;br&gt;
+그 중 하나가 오늘 소개해드릴 REQUIRE_TABLE_PRIMARY_KEY_CHECK 기능입니다.&lt;br&gt;
+replication 구성 환경에서 Table 생성 시 Primary key를 항상 강제시킬 수 있는 기능인데요&lt;br&gt;
+이전부터 CUBRID 라는 DB에서는 PK가 없는 테이블은 replication이 안되는데&lt;br&gt;
+CUBRID가 떠오르는 기능이네요&lt;/p&gt;
+&lt;h3 id=&#34;requiretableprimarykeycheck-&#34;&gt;REQUIRE_TABLE_PRIMARY_KEY_CHECK 란?&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;performance_schema.replication_applier_configuration (8.0.20 이상 지원)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; desc performance_schema.replication_applier_configuration;
++---------------------------------+---------------------------+------+-----+---------+-------+
+| Field                           | Type                      | Null | Key | Default | Extra |
++---------------------------------+---------------------------+------+-----+---------+-------+
+| CHANNEL_NAME                    | char(64)                  | NO   | PRI | NULL    |       |
+| DESIRED_DELAY                   | int                       | NO   |     | NULL    |       |
+| PRIVILEGE_CHECKS_USER           | text                      | YES  |     | NULL    |       |
+| REQUIRE_ROW_FORMAT              | enum(&#39;YES&#39;,&#39;NO&#39;)          | NO   |     | NULL    |       |
+| REQUIRE_TABLE_PRIMARY_KEY_CHECK | enum(&#39;STREAM&#39;,&#39;ON&#39;,&#39;OFF&#39;) | NO   |     | NULL    |       |
++---------------------------------+---------------------------+------+-----+---------+-------+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; replication 구성에서 Slave가 Master의 트랜잭션을 반영할 때&lt;br&gt;
+영향을 주는 설정을 확인할 수 있는 테이블&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;CHANNEL_NAME : replication 채널 이름&lt;/li&gt;
+&lt;li&gt;DESIRED_DELAY : slave 가 replication을 의도적으로 지연하는 시간(초)&lt;/li&gt;
+&lt;li&gt;REQUIRE_ROW_FORMAT : replication을 위한 binary log의 format을 ROW로 강제할 것인지 (default off)&lt;/li&gt;
+&lt;li&gt;REQUIRE_TABLE_PRIMARY_KEY_CHECK : Table을 생성할 때 항상 Primary Key를 강제할 것인지 (default stream)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;heading&#34;&gt;테스트&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;replication 설정 (slave)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;change master to
+master_host=&#39;172.17.0.6&#39;,
+master_port=3306,
+master_user=&#39;repl&#39;,
+master_password=&#39;qhdks123&#39;,
+master_log_file=&#39;binlog.000002&#39;,
+master_log_pos=823
+for channel &#39;repl1&#39;;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;특정 replication channel에 옵선 적용&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;stop slave sql_thread for channel &#39;repl1&#39;;
+CHANGE MASTER TO REQUIRE_TABLE_PRIMARY_KEY_CHECK = ON FOR CHANNEL &#39;repl1&#39;;
+start slave sql_thread for channel &#39;repl1&#39;;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;옵션 적용 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select * from performance_schema.replication_applier_configuration;
++--------------+---------------+-----------------------+--------------------+---------------------------------+
+| CHANNEL_NAME | DESIRED_DELAY | PRIVILEGE_CHECKS_USER | REQUIRE_ROW_FORMAT | REQUIRE_TABLE_PRIMARY_KEY_CHECK |
++--------------+---------------+-----------------------+--------------------+---------------------------------+
+| repl1        |             0 | NULL                  | NO                 | ON                              |
+| repl2        |             0 | NULL                  | NO                 | STREAM                          |
++--------------+---------------+-----------------------+--------------------+---------------------------------+
+2 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;REQUIRE_TABLE_PRIMARY_KEY_CHECK ON 일 때&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;master&#34;&gt;Master&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; use repl1_test;
+Database changed
+
+mysql&amp;gt; create table repl1 (a int);
+Query OK, 0 rows affected (0.05 sec)
+
+mysql&amp;gt; insert into repl1 values(1);
+Query OK, 1 row affected (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&#34;slave&#34;&gt;Slave&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;show slave status\G;
+
+
+Last_SQL_Error: Error &#39;Unable to create or change a table without a primary key, when the system variable &#39;sql_require_primary_key&#39; is set. Add a primary key to the table or unset this variable to avoid this message. Note that tables without a primary key can cause performance problems in row-based replication, so please consult your DBA before changing this setting.&#39; on query. Default database: &#39;repl1_test&#39;. Query: &#39;create table repl1 (a int)&#39;
+Replicate_Ignore_Server_Ids:
+Master_Server_Id: 1
+Master_UUID: 23ab24f6-8ea1-11ea-8084-0242ac110006
+Channel_Name: repl1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; sql_require_primary_key 설정에 의해 PK 없는 테이블은 복제하지 않음과 동시에 replication stop&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;REQUIRE_TABLE_PRIMARY_KEY_CHECK OFF 일 때&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;master1&#34;&gt;Master&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; use repl2_test;
+Database changed
+
+mysql&amp;gt; create table repl2 (a int);
+Query OK, 0 rows affected (0.05 sec)
+
+mysql&amp;gt; insert into repl2 values(1);
+Query OK, 1 row affected (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&#34;slave1&#34;&gt;Slave&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select * from repl2_test.repl2;
++------+
+| a    |
++------+
+|    1 |
++------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; PK 없어도 상관없음&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>MySQL MHA method 추가하기</title>
+      <link>https://kimdubi.github.io/mysql/mha_add_method/</link>
+      <pubDate>Tue, 05 May 2020 20:17:32 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/mha_add_method/</guid>
+      <description>&lt;p&gt;지난 event 관련 글에서 보았던 것 처럼 MHA 구성 환경에서 failover 발생 시&lt;br&gt;
+slave-&amp;gt;master db로 승격은 되지만 그에 따라 event의 status는 변경이 되지 않았고 수동으로 상태를 설정해야 합니다.&lt;br&gt;
+현재 운영하는 maria db들은 모두 master에서만 event를 수행하고 있기 때문에&lt;br&gt;
+MHA failover 발생 시 event status도 enable 시키는 기능이 있으면 좋겠다는 생각에 MHA 스크립트를 수정해보았습니다.&lt;br&gt;
+이번 글 내용은 event 자동 enable 설정 관련 내용이지만 아래와 같은 방식으로 원하는 기능을 추가하시면 됩니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://sarc.io/index.php/mariadb/941-mha-event&#34;&gt;https://sarc.io/index.php/mariadb/941-mha-event&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;failover---mha--&#34;&gt;Failover 발생 시 MHA 작동 순서&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;MHA Manager 서버의 masterha_manager 가 master db down 감지&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;if ( $exit_code &amp;amp;&amp;amp; $exit_code != $MHA::ManagerConst::MASTER_DEAD_RC ) {
+  exit $exit_code;
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;ol start=&#34;2&#34;&gt;
+&lt;li&gt;MHA::MasterFailover::main 함수 실행 및 master_ip_failover_script 수행&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt; if ( $dead_master-&amp;gt;{master_ip_failover_script} ) {
+    my $command =
+&amp;quot;$dead_master-&amp;gt;{master_ip_failover_script} --orig_master_host=$dead_master-&amp;gt;{hostname} --orig_master_ip=$dead_master-&amp;gt;{ip} --orig_master_port=$dead_master-&amp;gt;{port}&amp;quot;;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;master_ip_failover_script는 mha 설정파일인 mha.cnf에서 지정함.
+예시 ) master_ip_failover_script=/engn001/masvc01/mha/mha4mysql-manager-0.57/bin/master_ip_failover&lt;/li&gt;
+&lt;/ul&gt;
+&lt;ol start=&#34;3&#34;&gt;
+&lt;li&gt;master_ip_failover script 수정
+vi /engn001/masvc01/mha/mha4mysql-manager-0.57/bin/master_ip_failover  ( mha manager 압축해제, samples 디렉토리에서 제공)&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;.
+.
+
+eval {
+
+  my $new_master_handler = new MHA::DBHelper();
+      # args: hostname, port, user, password, raise_error_or_not
+      $new_master_handler-&amp;gt;connect( $new_master_ip, $new_master_port,
+        $new_master_user, $new_master_password, 1 );
+      ## Set read_only=0 on the new master
+      $new_master_handler-&amp;gt;disable_log_bin_local();
+      print &amp;quot;Set read_only=0 on the new master.\n&amp;quot;;
+      $new_master_handler-&amp;gt;disable_read_only();
+.
+.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;스크립트를 대략 살펴보면&lt;br&gt;
+$new_master_handler 라는 MHA::DBHelper() 객체를 생성하고&lt;br&gt;
+새로운 마스터 DB에 접속한 뒤 read_only off 설정을 하는 method 등이 실행됨&lt;br&gt;
+&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;아래와 같이 추가하려는 새로운 기능인 change_event() method를 추가&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;  ## Set event enable on the new master    
+  print &amp;quot;Set event enable on the new master.\n&amp;quot;;    
+  $new_master_handler-&amp;gt;change_event();
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;dbhelperpm-&#34;&gt;DBHelper.pm 수정&lt;/h3&gt;
+&lt;p&gt;master_ip_failover script 의 connect,set read_only 등 db에 붙어서 수행하는 기능은&lt;br&gt;
+DBHelper 클래스의 method 로 구현되어있으므로 DBHelper에 추가하려는 기능을 구현해야함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;vi /home/masvc01/perl5/lib/perl5/MHA/DBHelper.pm  (perl 설치 경로 아래에 있음)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;.
+.
+use constant change_event_enable =&amp;gt; &amp;quot;update mysql.event set status= &#39;enabled&#39; where status=&#39;slaveside_disabled&#39;&amp;quot;;
+
+.
+.
+sub change_event($) {
+  my $self = shift;
+  if ( $self-&amp;gt;is_read_only() eq &amp;quot;1&amp;quot; ) {
+    return 0;
+  }
+  else {
+    return $self-&amp;gt;execute(change_event_enable);
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; db에서 수행할 쿼리를 담은 change_event_enable 상수를 선언 후&lt;br&gt;
+추가하려는 method 인 change_event를 정의함&lt;/p&gt;
+&lt;h3 id=&#34;-&#34;&gt;동작 확인&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;Sun Oct  8 15:35:57 2017 - [info]   /engn001/masvc01/mha/mha4mysql-manager-0.57/bin/master_ip_failover --command=start --ssh_user=masvc01 --orig_master_host=ip-172-31-13-44 --orig_master_ip=52.78.212.75 --orig_master_port=3310 --new_master_host=ip-172-31-8-190 --new_master_ip=52.78.108.151 --new_master_port=3310 --new_master_user=&#39;root&#39;   --new_master_password=xxx
+Set read_only=0 on the new master.
+Set event enable on the new master.
+Creating app user on the new master..
+Sun Oct  8 15:35:57 2017 - [error][/home/masvc01/perl5/lib/perl5/MHA/MasterFailover.pm, ln1589]  Failed to activate master IP address for ip-172-31-8-190(52.78.108.151:3310) with return code 10:0
+Sun Oct  8 15:35:57 2017 - [warning] Proceeding.
+Sun Oct  8 15:35:57 2017 - [info] ** Finished master recovery successfully.
+Sun Oct  8 15:35:57 2017 - [info] * Phase 3: Master Recovery Phase completed. . . .
+----- Failover Report -----
+mha: MySQL Master failover ip-172-31-13-44(52.78.212.75:3310) to ip-172-31-8-190(52.78.108.151:3310) succeeded
+.
+.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;master DB shutdown 후 mha log를 살펴보면&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;Set event enable on the new master.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;위에서 change_event method를 설정한대로 로그가 남고&lt;br&gt;
+&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select db,name,status from mysql.event;
++------+------------+---------+
+| db   | name       | status  |
++------+------------+---------+
+| test | test_event | ENABLED |
++------+------------+---------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;db에서도 자동으로 enabled 가 되었음을 확인&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>MySQL Xtrabackup LSN 유실 에러</title>
+      <link>https://kimdubi.github.io/mysql/xtrabackup_error/</link>
+      <pubDate>Tue, 05 May 2020 20:09:03 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/xtrabackup_error/</guid>
+      <description>&lt;p&gt;xtrabackup 백업 본으로 복구 할 때 LSN이 유실되었던 이슈가 발생해서&lt;br&gt;
+원인과 해결방법 공유드리겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;xtrabackup---mysql--&#34;&gt;Xtrabackup 복구 후 MySQL 기동 실패&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;InnoDB: Starting an apply batch of log records to the database...
+InnoDB: Progress in percent: InnoDB: Page [page id: space=695, page number=81921] log sequence number 11324236422964 is in the future! Current system log sequence number 11324230185692.
+
+
+InnoDB: Your database may be corrupt or you may have copied the InnoDB tablespace but not the InnoDB log files. Please refer to http://dev.mysql.com/doc/refman/5.7/en/forcing-innodb-recovery.html for information about forcing recovery.
+
+InnoDB: Page [page id: space=1435, page number=322180] log sequence number 11324372211076 is in the future! Current system log sequence number 11324230185692.
+
+InnoDB: Your database may be corrupt or you may have copied the InnoDB tablespace but not the InnoDB log files. Please refer to http://dev.mysql.com/doc/refman/5.7/en/forcing-innodb-recovery.html for information about forcing recovery.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; apply log 를 통해 ib_logfile 을 생성 후 db recovery 과정을 진행하는데 아래 구간 LSN 유실 에러 발생&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;LSN 11324230185692 ~ 11324236422964&lt;/li&gt;
+&lt;li&gt;LSN 11324372211076 ~ 11324230185692&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;xtrabackup-lsn---&#34;&gt;xtrabackup은 LSN 을 어떻게 얻어올까&lt;/h2&gt;
+&lt;h3 id=&#34;xtrabackup-log-copy-thread&#34;&gt;xtrabackup log copy thread&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;Thread 8 (Thread 0x7f2a53aac700 (LWP 459)):
+#0  0x00007f2a591beda2 in pthread_cond_timedwait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x000000000147af65 in os_event::timed_wait (this=this@entry=0x44fa228, abstime=abstime@entry=0x7f2a53aabbe0) at /usr/src/debug/percona-xtrabackup-8.0.9/storage/innobase/os/os0event.cc:322
+#2  0x000000000147bc01 in os_event::wait_time_low (this=0x44fa228, time_in_usec=&amp;lt;optimized out&amp;gt;, reset_sig_count=1) at /usr/src/debug/percona-xtrabackup-8.0.9/storage/innobase/os/os0event.cc:495
+#3  0x0000000000cb4fce in Redo_Log_Data_Manager::copy_func (this=0x7fff3edebfe0) at /usr/src/debug/percona-xtrabackup-8.0.9/storage/innobase/xtrabackup/src/redo_log.cc:1073
+#4  0x0000000000cb509b in operator() (__closure=&amp;lt;optimized out&amp;gt;) at /usr/src/debug/percona-xtrabackup-8.0.9/storage/innobase/xtrabackup/src/redo_log.cc:867
+#5  __invoke_impl&amp;lt;void, Redo_Log_Data_Manager::init()::&amp;lt;lambda()&amp;gt;&amp;amp;&amp;gt; (__f=...) at /opt/rh/devtoolset-7/root/usr/include/c++/7/bits/invoke.h:60
+#6  __invoke&amp;lt;Redo_Log_Data_Manager::init()::&amp;lt;lambda()&amp;gt;&amp;amp;&amp;gt; (__fn=&amp;lt;synthetic pointer&amp;gt;) at /opt/rh/devtoolset-7/root/usr/include/c++/7/bits/invoke.h:95
+#7  __call&amp;lt;void&amp;gt; (__args=&amp;lt;optimized out&amp;gt;, this=&amp;lt;synthetic pointer&amp;gt;) at /opt/rh/devtoolset-7/root/usr/include/c++/7/functional:467
+#8  operator()&amp;lt;&amp;gt; (this=&amp;lt;synthetic pointer&amp;gt;) at /opt/rh/devtoolset-7/root/usr/include/c++/7/functional:551
+#9  operator()&amp;lt;Redo_Log_Data_Manager::init()::&amp;lt;lambda()&amp;gt; &amp;gt; (f=&amp;lt;unknown type in /usr/lib/debug/usr/bin/xtrabackup.debug, CU 0x9a9ff2, DIE 0x9c6cbe&amp;gt;, this=0x44fa330)
+    at /usr/src/debug/percona-xtrabackup-8.0.9/storage/innobase/include/os0thread-create.h:101
+#10 __invoke_impl&amp;lt;void, Runnable, Redo_Log_Data_Manager::init()::&amp;lt;lambda()&amp;gt; &amp;gt; (__f=&amp;lt;optimized out&amp;gt;) at /opt/rh/devtoolset-7/root/usr/include/c++/7/bits/invoke.h:60
+#11 __invoke&amp;lt;Runnable, Redo_Log_Data_Manager::init()::&amp;lt;lambda()&amp;gt; &amp;gt; (__fn=&amp;lt;optimized out&amp;gt;) at /opt/rh/devtoolset-7/root/usr/include/c++/7/bits/invoke.h:95
+#12 _M_invoke&amp;lt;0, 1&amp;gt; (this=0x44fa328) at /opt/rh/devtoolset-7/root/usr/include/c++/7/thread:234
+#13 operator() (this=0x44fa328) at /opt/rh/devtoolset-7/root/usr/include/c++/7/thread:243
+#14 std::thread::_State_impl&amp;lt;std::thread::_Invoker&amp;lt;std::tuple&amp;lt;Runnable, Redo_Log_Data_Manager::init()::&amp;lt;lambda()&amp;gt; &amp;gt; &amp;gt; &amp;gt;::_M_run(void) (this=0x44fa320)
+    at /opt/rh/devtoolset-7/root/usr/include/c++/7/thread:186
+#15 0x000000000242c97f in execute_native_thread_routine ()
+#16 0x00007f2a591bae65 in start_thread () from /lib64/libpthread.so.0
+#17 0x00007f2a5710e88d in clone () from /lib64/libc.so.6
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;db backup 중 발생한 데이터 변경분에 대해 ib_logfile 을 crawling 하는 log-copy thread&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;heading&#34;&gt;해결방법&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;ib_logfile이 너무 작아서 xtrabackup의 log-copy thread 가 crawling 하기 전에 덮어 씌워져 LSN 이 유실된 건 아닐까?&lt;/li&gt;
+&lt;li&gt;기존 innodb-log-file-size 1GB =&amp;gt; 2GB
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/logfile1.png&#34; alt=&#34;&#34;&gt;
+=&amp;gt; checkpoint age가 max checkpoint age에 근접하거나
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/logfile2.png&#34; alt=&#34;&#34;&gt;
+=&amp;gt; logfile에 쓰여지는 data양이 total logfile size보다 크면 logfile size 늘릴 필요가 있음&lt;/li&gt;
+&lt;li&gt;xtrabackup source에서 log-copy-interval 수정
+&lt;a href=&#34;https://github.com/percona/percona-xtrabackup/blob/8.0/storage/innobase/xtrabackup/src/xtrabackup.cc&#34;&gt;https://github.com/percona/percona-xtrabackup/blob/8.0/storage/innobase/xtrabackup/src/xtrabackup.cc&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;/* sleep interval beetween log copy iterations in log copying thread
+in milliseconds (default is 1 second)
+ulint xtrabackup_log_copy_interval = 1000;
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>MySQL crash-safe replication</title>

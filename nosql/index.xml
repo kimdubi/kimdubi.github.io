@@ -5,7 +5,7 @@
     <description>Recent content in Nosqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 09 May 2020 01:18:23 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 09 May 2020 01:19:23 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/nosql/index.xml" rel="self" type="application/rss+xml" />
     
@@ -13,7 +13,7 @@
     <item>
       <title>Redis 응답은 느리지만 Slowlog 안남을 때</title>
       <link>https://kimdubi.github.io/nosql/slowlog/</link>
-      <pubDate>Sat, 09 May 2020 01:18:23 +0900</pubDate>
+      <pubDate>Sat, 09 May 2020 01:19:23 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/nosql/slowlog/</guid>
       <description>&lt;p&gt;Redis 운영 중 Client 쪽에서 응답을 늦게 받았다고 확인 요청이 와서&lt;br&gt;
@@ -47,7 +47,7 @@ Redis의 slowlog 를 확인해봤더니 아무 slowlog가 없는 케이스가 �
 &lt;/li&gt;
 &lt;/ol&gt;
 &lt;p&gt;=&amp;gt; 이번 케이스도 2번의 케이스로 한대의 redis 서버에서 아래와 같은 부하가 발생했음
-&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/slowlog3.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/slowlog3_2.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
 &lt;p&gt;=&amp;gt; 쿼리를 replica 로 분산시켜서 해결가능&lt;/p&gt;
 </description>
     </item>

@@ -4,7 +4,21 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-05-05T20:28:06+09:00</lastmod>
+    <lastmod>2020-05-09T01:18:23+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/nosql/</loc>
+    <lastmod>2020-05-09T01:18:23+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/nosql/slowlog/</loc>
+    <lastmod>2020-05-09T01:18:23+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
@@ -152,13 +166,6 @@
   <url>
     <loc>https://kimdubi.github.io/mysql/semi_sync/</loc>
     <lastmod>2020-03-15T14:54:15+09:00</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://kimdubi.github.io/nosql/</loc>
-    <lastmod>2020-03-14T16:30:55+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>

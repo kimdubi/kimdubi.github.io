@@ -5,10 +5,52 @@
     <description>Recent content in Nosqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 14 Mar 2020 16:30:55 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 09 May 2020 01:18:23 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/nosql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Redis 응답은 느리지만 Slowlog 안남을 때</title>
+      <link>https://kimdubi.github.io/nosql/slowlog/</link>
+      <pubDate>Sat, 09 May 2020 01:18:23 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/nosql/slowlog/</guid>
+      <description>&lt;p&gt;Redis 운영 중 Client 쪽에서 응답을 늦게 받았다고 확인 요청이 와서&lt;br&gt;
+Redis의 slowlog 를 확인해봤더니 아무 slowlog가 없는 케이스가 발생했습니다.&lt;/p&gt;
+&lt;h3 id=&#34;slowlog-&#34;&gt;slowlog 확인&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; config get slowlog-log-slower-than
+1) &amp;quot;slowlog-log-slower-than&amp;quot;
+2) &amp;quot;10000&amp;quot;
+### 10000 microsecond 
+
+127.0.0.1:6001&amp;gt; slowlog get 10
+(empty list or set)
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;slowlog--&#34;&gt;slowlog는 언제 찍힐까?&lt;/h3&gt;
+&lt;p&gt;client가 느끼는 slowlog, 즉 latency 와 redis의 slowlog 기준은 조금 다릅니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/slowlog1.png&#34; alt=&#34;&#34;&gt;
+=&amp;gt; client latency : client가 redis 에 request 를 보내고 결과를 받을 때 까지의 시간&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/slowlog2.png&#34; alt=&#34;&#34;&gt;
+=&amp;gt; redis slowlog : redis 내에서 응답을 처리하는 시간&lt;/p&gt;
+&lt;h3 id=&#34;client-----&#34;&gt;client 가 응답을 늦게 받는 케이스&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;client의 latency도 느리고 redis도 느린 경우
+&lt;ul&gt;
+&lt;li&gt;O(N) 커맨드 사용 : HGETALL , keys 등&lt;/li&gt;
+&lt;li&gt;메모리 부족으로 swap 발생한 경우&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;client의 latency는 느리지만 redis는 빠른 경우
+&lt;ul&gt;
+&lt;li&gt;redis는 single thread이기 때문에 리퀘스트가 정상적으로 빨리 처리되어도 리퀘스트가 너무 많이 몰린 경우 리퀘스트가 대기하게됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;=&amp;gt; 이번 케이스도 2번의 케이스로 한대의 redis 서버에서 아래와 같은 부하가 발생했음
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/slowlog3.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;=&amp;gt; 쿼리를 replica 로 분산시켜서 해결가능&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Redis Data structures</title>

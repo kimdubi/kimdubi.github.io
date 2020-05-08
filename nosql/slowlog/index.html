@@ -5,7 +5,7 @@
 
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Nosqls</title>
+        <title>Redis 응답은 느리지만 Slowlog 안남을 때</title>
         
         <style>
 
@@ -54,9 +54,6 @@
 <script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
  <meta name="generator" content="Hugo 0.60.1" />
         
-            <link href="/nosql/index.xml" rel="alternate" type="application/rss&#43;xml" title="kimDuBiA" />
-            <link href="/nosql/index.xml" rel="feed" type="application/rss&#43;xml" title="kimDuBiA" />
-        
 
         
             <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
@@ -82,7 +79,7 @@
         <nav class="navbar navbar-default navbar-fixed-top">
             <div class="container">
                 <div class="navbar-header">
-                    <a class="navbar-brand visible-xs" href="#">Nosqls</a>
+                    <a class="navbar-brand visible-xs" href="#">Redis 응답은 느리지만 Slowlog 안남을 때</a>
                     <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
@@ -125,163 +122,68 @@
 
 <main>
 
-    <h2>Nosqls</h2>
+    <div>
+        <h2>Redis 응답은 느리지만 Slowlog 안남을 때</h2>
+        <h5></h5>
+        
 
-     <div class="item">
+    </div>
 
-    
-    
-    
+    <div align="start" class="content"><p>Redis 운영 중 Client 쪽에서 응답을 늦게 받았다고 확인 요청이 와서<br>
+Redis의 slowlog 를 확인해봤더니 아무 slowlog가 없는 케이스가 발생했습니다.</p>
+<h3 id="slowlog-">slowlog 확인</h3>
+<pre><code>127.0.0.1:6001&gt; config get slowlog-log-slower-than
+1) &quot;slowlog-log-slower-than&quot;
+2) &quot;10000&quot;
+### 10000 microsecond 
 
-    
-    
-
-    <h4><a href="/nosql/slowlog/">Redis 응답은 느리지만 Slowlog 안남을 때</a></h4>
-    <h5>May 9, 2020</h5>
-    
-
-
+127.0.0.1:6001&gt; slowlog get 10
+(empty list or set)
+</code></pre><h3 id="slowlog--">slowlog는 언제 찍힐까?</h3>
+<p>client가 느끼는 slowlog, 즉 latency 와 redis의 slowlog 기준은 조금 다릅니다.</p>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/slowlog1.png" alt="">
+=&gt; client latency : client가 redis 에 request 를 보내고 결과를 받을 때 까지의 시간</p>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/slowlog2.png" alt="">
+=&gt; redis slowlog : redis 내에서 응답을 처리하는 시간</p>
+<h3 id="client-----">client 가 응답을 늦게 받는 케이스</h3>
+<ol>
+<li>client의 latency도 느리고 redis도 느린 경우
+<ul>
+<li>O(N) 커맨드 사용 : HGETALL , keys 등</li>
+<li>메모리 부족으로 swap 발생한 경우</li>
+</ul>
+</li>
+<li>client의 latency는 느리지만 redis는 빠른 경우
+<ul>
+<li>redis는 single thread이기 때문에 리퀘스트가 정상적으로 빨리 처리되어도 리퀘스트가 너무 많이 몰린 경우 리퀘스트가 대기하게됨</li>
+</ul>
+</li>
+</ol>
+<p>=&gt; 이번 케이스도 2번의 케이스로 한대의 redis 서버에서 아래와 같은 부하가 발생했음
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/slowlog3.png" alt=""></p>
+<p>=&gt; 쿼리를 replica 로 분산시켜서 해결가능</p>
 </div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/nosql/redis_datastructure/">Redis Data structures</a></h4>
-    <h5>March 14, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/nosql/redis_persistent/">Redis AOF와 RDB에 대해</a></h4>
-    <h5>March 8, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/nosql/mongo_replicaset_reconfig/">MongoDB ReplicaSet reconfig</a></h4>
-    <h5>December 12, 2019</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/nosql/mongo_shard_mongos/">MongoDB Sharded Cluster - Mongos</a></h4>
-    <h5>December 12, 2019</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/nosql/mongo_shard_config_svr/">MongoDB Sharded Cluster - Config server</a></h4>
-    <h5>December 12, 2019</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/nosql/mongo_shard/">MongoDB Sharded Cluster</a></h4>
-    <h5>December 11, 2019</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/nosql/mongo_replicaset/">MongoDB ReplicaSet</a></h4>
-    <h5>December 7, 2019</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/nosql/mongo_simple_command/">MongoDB simple command</a></h4>
-    <h5>December 7, 2019</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/nosql/mongodb-installation/">MongoDB Installation</a></h4>
-    <h5>December 7, 2019</h5>
-    
-
-
-</div>
- 
 
 </main>
 
 
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
 
         <footer>
             <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>

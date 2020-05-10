@@ -5,10 +5,131 @@
     <description>Recent content in Nosqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 09 May 2020 01:20:23 +0900</lastBuildDate>
+    <lastBuildDate>Mon, 11 May 2020 08:31:23 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/nosql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Redis unlink와 del 차이점</title>
+      <link>https://kimdubi.github.io/nosql/unlink/</link>
+      <pubDate>Mon, 11 May 2020 08:31:23 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/nosql/unlink/</guid>
+      <description>&lt;p&gt;Redis 4.0부터 unlink라는 Key 삭제 커맨드가 추가되었습니다.&lt;br&gt;
+기존에도 del 이라는 Key 삭제 커맨드가 있는데 차이점은 무엇일까요?&lt;br&gt;
+바로 unlink는 async 방식으로 background에서 별도의 Thread에 의해 처리된다는 점입니다.&lt;br&gt;
+(del 은 sync 방식으로 main thread에서 처리됨)&lt;br&gt;
+따라서 del 로 처리할 때 보다 훨씬 더 빨리 서비스에 영향 없이 처리할 수 있는데요&lt;br&gt;
+이번 글에서는 unlink 커맨드에 대해 알아보겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;redis-unlink--&#34;&gt;redis의 unlink 관련 설정&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;lazyfree-lazy-eviction yes : maxmemory 까지 사용중일 때 maxmemory-policy 에 따라 key를 삭제하는 경우 del 대신 unlink 사용
+lazyfree-lazy-expire yes : EXPIRE 커맨드로 TTL이 설정된 key를 삭제할 때 del 대신 unlink 사용
+lazyfree-lazy-server-del yes : 기존에 있는 key를 set이나 rename 으로 엎어칠때 기존 값을 del 대신 unlink로 삭제함
+replica-lazy-flush yes : replicaof 설정으로 master의 데이터를 처음 복제해올때 기존에 있던 값들을 del 대신 unlink로 삭제함
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;redis-thread-&#34;&gt;redis thread 확인&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;[root@e7900ebd4833 /]# ps -eLf | grep redis
+root        19     1    19  0    4 04:59 ?        00:00:11 redis-server 0.0.0.0:6001
+root        19     1    20  0    4 04:59 ?        00:00:00 redis-server 0.0.0.0:6001
+root        19     1    21  0    4 04:59 ?        00:00:00 redis-server 0.0.0.0:6001
+root        19     1    22  0    4 04:59 ?        00:00:00 redis-server 0.0.0.0:6001
+
+
+(gdb) thread apply all bt
+
+Thread 4 (Thread 0x7f2aa33ff700 (LWP 20)):
+#0  0x00007f2aa401a9f5 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x0000000000483d2c in bioProcessBackgroundJobs (arg=0x0) at bio.c:176
+#2  0x00007f2aa4016e65 in start_thread () from /lib64/libpthread.so.0
+#3  0x00007f2aa3d3f88d in clone () from /lib64/libc.so.6
+
+Thread 3 (Thread 0x7f2aa2bfe700 (LWP 21)):
+#0  0x00007f2aa401a9f5 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x0000000000483d2c in bioProcessBackgroundJobs (arg=0x1) at bio.c:176
+#2  0x00007f2aa4016e65 in start_thread () from /lib64/libpthread.so.0
+#3  0x00007f2aa3d3f88d in clone () from /lib64/libc.so.6
+
+Thread 2 (Thread 0x7f2aa23fd700 (LWP 22)):
+#0  0x00007f2aa401a9f5 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x0000000000483d2c in bioProcessBackgroundJobs (arg=0x2) at bio.c:176
+#2  0x00007f2aa4016e65 in start_thread () from /lib64/libpthread.so.0
+#3  0x00007f2aa3d3f88d in clone () from /lib64/libc.so.6
+
+Thread 1 (Thread 0x7f2aa4b51f80 (LWP 19)):
+#0  0x00007f2aa3d3fe63 in epoll_wait () from /lib64/libc.so.6
+#1  0x000000000042addf in aeApiPoll (tvp=&amp;lt;optimized out&amp;gt;, eventLoop=0x7f2aa386a0a0) at ae_epoll.c:112
+#2  aeProcessEvents (eventLoop=eventLoop@entry=0x7f2aa386a0a0, flags=flags@entry=11) at ae.c:411
+#3  0x000000000042b2eb in aeMain (eventLoop=0x7f2aa386a0a0) at ae.c:501
+#4  0x0000000000428190 in main (argc=&amp;lt;optimized out&amp;gt;, argv=0x7fffc06dc698) at server.c:4234
+(gdb)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 한개의 process와 4개의 thread로 이루어져있음&lt;br&gt;
+위에서 Thread1은 main thread 이고&lt;br&gt;
+bioProcessBackgroundJobs 3개 thread는 아래와 같이 각각의 역할을 담당함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;BIO_CLOSE_FILE : AOF rewrite 수행 시 기존 aof파일 close하는 역할&lt;/li&gt;
+&lt;li&gt;BIO_AOF_FSYNC : 1초마다 커맨드를 AOF에 로깅하는 역할&lt;/li&gt;
+&lt;li&gt;BIO_LAZY_FREE : unlink, async flushall, flushdb 수행하는 역할&lt;/li&gt;
+&lt;li&gt;rdb 관련 thread는 save,bgsave 수행 시 생겨남&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;vi bio.c:176
+
+if (type == BIO_CLOSE_FILE) {
+    close((long)job-&amp;gt;arg1);
+} else if (type == BIO_AOF_FSYNC) {
+    redis_fsync((long)job-&amp;gt;arg1);
+} else if (type == BIO_LAZY_FREE) {
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;del--unlink--&#34;&gt;del / unlink 삭제 테스트&lt;/h3&gt;
+&lt;h4 id=&#34;-&#34;&gt;테스트 환경&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;# Memory
+used_memory:841383360
+used_memory_human:802.41M
+
+# sentinel 구성
+master0:name=mymaster,status=ok,address=172.16.0.12:6001,slaves=2,sentinels=3
+127.0.0.1:7001&amp;gt; sentinel set mymaster down-after-milliseconds 10000
+
+127.0.0.1:6001&amp;gt; eval &amp;quot;local i = tonumber(ARGV[1]);local res;math.randomseed(tonumber(ARGV[2]));while (i &amp;gt; 0) do res = redis.call(&#39;sadd&#39;,KEYS[1],math.random());i = i-1;end&amp;quot; 1  testset 10000000 2
+127.0.0.1:6001&amp;gt; scard testset
+(integer) 9976638
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;sentinel 구성이며 master가 1초이상 응답없을 시 failover 수행함&lt;/li&gt;
+&lt;li&gt;set type으로 약 1000000개의 member를 가진 key 준비&lt;/li&gt;
+&lt;li&gt;memory는 800MB 사용 중&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;del&#34;&gt;del&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; scard testset
+(integer) 9976638
+127.0.0.1:6001&amp;gt; del testset
+
+(integer) 1
+(67.94s)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; del testset 수행하는데 67초나 소요됨&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# Replication
+role:slave
+master_host:172.16.0.11
+
+127.0.0.1:6001&amp;gt; scard testset
+(integer) 9976638
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; del 작업은 main thread에서 수행되기 때문에 del 작업동안 모든 작업이 block됨&lt;br&gt;
+down-after-milliseconds 10초를 넘겼기 때문에 failover도 수행되고 del 작업도 실패하게됨&lt;/p&gt;
+&lt;h4 id=&#34;unlink&#34;&gt;unlink&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; scard testset
+(integer) 9976638
+127.0.0.1:6001&amp;gt; unlink testset
+(integer) 1
+127.0.0.1:6001&amp;gt;
+127.0.0.1:6001&amp;gt;
+127.0.0.1:6001&amp;gt; info replication
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=172.16.0.10,port=6001,state=online,offset=530077384,lag=0
+slave1:ip=172.16.0.12,port=6001,state=online,offset=530077384,lag=1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; del과 달리 다른 작업 block 없이 순식간에 데이터 삭제가능&lt;/p&gt;
+&lt;h4 id=&#34;-1&#34;&gt;참고 문서&lt;/h4&gt;
+&lt;p&gt;&lt;a href=&#34;http://antirez.com/news/93&#34;&gt;http://antirez.com/news/93&lt;/a&gt;&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Redis 응답은 느리지만 Slowlog 안남을 때</title>

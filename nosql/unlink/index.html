@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Redis unlink와 del 차이점</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Redis unlink와 del 차이점</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Redis unlink와 del 차이점</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>Redis 4.0부터 unlink라는 Key 삭제 커맨드가 추가되었습니다.<br>
+기존에도 del 이라는 Key 삭제 커맨드가 있는데 차이점은 무엇일까요?<br>
+바로 unlink는 async 방식으로 background에서 별도의 Thread에 의해 처리된다는 점입니다.<br>
+(del 은 sync 방식으로 main thread에서 처리됨)<br>
+따라서 del 로 처리할 때 보다 훨씬 더 빨리 서비스에 영향 없이 처리할 수 있는데요<br>
+이번 글에서는 unlink 커맨드에 대해 알아보겠습니다.</p>
+<h3 id="redis-unlink--">redis의 unlink 관련 설정</h3>
+<pre><code>lazyfree-lazy-eviction yes : maxmemory 까지 사용중일 때 maxmemory-policy 에 따라 key를 삭제하는 경우 del 대신 unlink 사용
+lazyfree-lazy-expire yes : EXPIRE 커맨드로 TTL이 설정된 key를 삭제할 때 del 대신 unlink 사용
+lazyfree-lazy-server-del yes : 기존에 있는 key를 set이나 rename 으로 엎어칠때 기존 값을 del 대신 unlink로 삭제함
+replica-lazy-flush yes : replicaof 설정으로 master의 데이터를 처음 복제해올때 기존에 있던 값들을 del 대신 unlink로 삭제함
+</code></pre><h3 id="redis-thread-">redis thread 확인</h3>
+<pre><code>[root@e7900ebd4833 /]# ps -eLf | grep redis
+root        19     1    19  0    4 04:59 ?        00:00:11 redis-server 0.0.0.0:6001
+root        19     1    20  0    4 04:59 ?        00:00:00 redis-server 0.0.0.0:6001
+root        19     1    21  0    4 04:59 ?        00:00:00 redis-server 0.0.0.0:6001
+root        19     1    22  0    4 04:59 ?        00:00:00 redis-server 0.0.0.0:6001
+
+
+(gdb) thread apply all bt
+
+Thread 4 (Thread 0x7f2aa33ff700 (LWP 20)):
+#0  0x00007f2aa401a9f5 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x0000000000483d2c in bioProcessBackgroundJobs (arg=0x0) at bio.c:176
+#2  0x00007f2aa4016e65 in start_thread () from /lib64/libpthread.so.0
+#3  0x00007f2aa3d3f88d in clone () from /lib64/libc.so.6
+
+Thread 3 (Thread 0x7f2aa2bfe700 (LWP 21)):
+#0  0x00007f2aa401a9f5 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x0000000000483d2c in bioProcessBackgroundJobs (arg=0x1) at bio.c:176
+#2  0x00007f2aa4016e65 in start_thread () from /lib64/libpthread.so.0
+#3  0x00007f2aa3d3f88d in clone () from /lib64/libc.so.6
+
+Thread 2 (Thread 0x7f2aa23fd700 (LWP 22)):
+#0  0x00007f2aa401a9f5 in pthread_cond_wait@@GLIBC_2.3.2 () from /lib64/libpthread.so.0
+#1  0x0000000000483d2c in bioProcessBackgroundJobs (arg=0x2) at bio.c:176
+#2  0x00007f2aa4016e65 in start_thread () from /lib64/libpthread.so.0
+#3  0x00007f2aa3d3f88d in clone () from /lib64/libc.so.6
+
+Thread 1 (Thread 0x7f2aa4b51f80 (LWP 19)):
+#0  0x00007f2aa3d3fe63 in epoll_wait () from /lib64/libc.so.6
+#1  0x000000000042addf in aeApiPoll (tvp=&lt;optimized out&gt;, eventLoop=0x7f2aa386a0a0) at ae_epoll.c:112
+#2  aeProcessEvents (eventLoop=eventLoop@entry=0x7f2aa386a0a0, flags=flags@entry=11) at ae.c:411
+#3  0x000000000042b2eb in aeMain (eventLoop=0x7f2aa386a0a0) at ae.c:501
+#4  0x0000000000428190 in main (argc=&lt;optimized out&gt;, argv=0x7fffc06dc698) at server.c:4234
+(gdb)
+</code></pre><p>=&gt; 한개의 process와 4개의 thread로 이루어져있음<br>
+위에서 Thread1은 main thread 이고<br>
+bioProcessBackgroundJobs 3개 thread는 아래와 같이 각각의 역할을 담당함</p>
+<ul>
+<li>BIO_CLOSE_FILE : AOF rewrite 수행 시 기존 aof파일 close하는 역할</li>
+<li>BIO_AOF_FSYNC : 1초마다 커맨드를 AOF에 로깅하는 역할</li>
+<li>BIO_LAZY_FREE : unlink, async flushall, flushdb 수행하는 역할</li>
+<li>rdb 관련 thread는 save,bgsave 수행 시 생겨남</li>
+</ul>
+<pre><code>vi bio.c:176
+
+if (type == BIO_CLOSE_FILE) {
+    close((long)job-&gt;arg1);
+} else if (type == BIO_AOF_FSYNC) {
+    redis_fsync((long)job-&gt;arg1);
+} else if (type == BIO_LAZY_FREE) {
+</code></pre><h3 id="del--unlink--">del / unlink 삭제 테스트</h3>
+<h4 id="-">테스트 환경</h4>
+<pre><code># Memory
+used_memory:841383360
+used_memory_human:802.41M
+
+# sentinel 구성
+master0:name=mymaster,status=ok,address=172.16.0.12:6001,slaves=2,sentinels=3
+127.0.0.1:7001&gt; sentinel set mymaster down-after-milliseconds 10000
+
+127.0.0.1:6001&gt; eval &quot;local i = tonumber(ARGV[1]);local res;math.randomseed(tonumber(ARGV[2]));while (i &gt; 0) do res = redis.call('sadd',KEYS[1],math.random());i = i-1;end&quot; 1  testset 10000000 2
+127.0.0.1:6001&gt; scard testset
+(integer) 9976638
+</code></pre><ul>
+<li>sentinel 구성이며 master가 1초이상 응답없을 시 failover 수행함</li>
+<li>set type으로 약 1000000개의 member를 가진 key 준비</li>
+<li>memory는 800MB 사용 중</li>
+</ul>
+<h4 id="del">del</h4>
+<pre><code>127.0.0.1:6001&gt; scard testset
+(integer) 9976638
+127.0.0.1:6001&gt; del testset
+
+(integer) 1
+(67.94s)
+</code></pre><p>=&gt; del testset 수행하는데 67초나 소요됨</p>
+<pre><code># Replication
+role:slave
+master_host:172.16.0.11
+
+127.0.0.1:6001&gt; scard testset
+(integer) 9976638
+</code></pre><p>=&gt; del 작업은 main thread에서 수행되기 때문에 del 작업동안 모든 작업이 block됨<br>
+down-after-milliseconds 10초를 넘겼기 때문에 failover도 수행되고 del 작업도 실패하게됨</p>
+<h4 id="unlink">unlink</h4>
+<pre><code>127.0.0.1:6001&gt; scard testset
+(integer) 9976638
+127.0.0.1:6001&gt; unlink testset
+(integer) 1
+127.0.0.1:6001&gt;
+127.0.0.1:6001&gt;
+127.0.0.1:6001&gt; info replication
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=172.16.0.10,port=6001,state=online,offset=530077384,lag=0
+slave1:ip=172.16.0.12,port=6001,state=online,offset=530077384,lag=1
+</code></pre><p>=&gt; del과 달리 다른 작업 block 없이 순식간에 데이터 삭제가능</p>
+<h4 id="-1">참고 문서</h4>
+<p><a href="http://antirez.com/news/93">http://antirez.com/news/93</a></p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

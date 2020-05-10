@@ -5,7 +5,7 @@
     <description>Recent content in Nosqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 09 May 2020 01:19:23 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 09 May 2020 01:20:23 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/nosql/index.xml" rel="self" type="application/rss+xml" />
     
@@ -13,7 +13,7 @@
     <item>
       <title>Redis 응답은 느리지만 Slowlog 안남을 때</title>
       <link>https://kimdubi.github.io/nosql/slowlog/</link>
-      <pubDate>Sat, 09 May 2020 01:19:23 +0900</pubDate>
+      <pubDate>Sat, 09 May 2020 01:20:23 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/nosql/slowlog/</guid>
       <description>&lt;p&gt;Redis 운영 중 Client 쪽에서 응답을 늦게 받았다고 확인 요청이 와서&lt;br&gt;
@@ -32,6 +32,7 @@ Redis의 slowlog 를 확인해봤더니 아무 slowlog가 없는 케이스가 �
 =&amp;gt; client latency : client가 redis 에 request 를 보내고 결과를 받을 때 까지의 시간&lt;/p&gt;
 &lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/slowlog2.png&#34; alt=&#34;&#34;&gt;
 =&amp;gt; redis slowlog : redis 내에서 응답을 처리하는 시간&lt;/p&gt;
+&lt;p&gt;(출처 : &lt;a href=&#34;https://charsyam.wordpress.com/2020/03/15/%EC%9E%85-%EA%B0%9C%EB%B0%9C-%EC%99%9C-redis-%EC%9D%91%EB%8B%B5%EC%9D%B4-%EB%8A%90%EB%A6%B0%EB%8D%B0-slowlog%EC%97%90%EB%8A%94-%EC%95%88%EC%B0%8D%ED%9E%88%EB%82%98%EC%9A%94/&#34;&gt;https://charsyam.wordpress.com/2020/03/15/%EC%9E%85-%EA%B0%9C%EB%B0%9C-%EC%99%9C-redis-%EC%9D%91%EB%8B%B5%EC%9D%B4-%EB%8A%90%EB%A6%B0%EB%8D%B0-slowlog%EC%97%90%EB%8A%94-%EC%95%88%EC%B0%8D%ED%9E%88%EB%82%98%EC%9A%94/&lt;/a&gt;)&lt;/p&gt;
 &lt;h3 id=&#34;client-----&#34;&gt;client 가 응답을 늦게 받는 케이스&lt;/h3&gt;
 &lt;ol&gt;
 &lt;li&gt;client의 latency도 느리고 redis도 느린 경우

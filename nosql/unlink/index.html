@@ -136,10 +136,17 @@
 따라서 del 로 처리할 때 보다 훨씬 더 빨리 서비스에 영향 없이 처리할 수 있는데요<br>
 이번 글에서는 unlink 커맨드에 대해 알아보겠습니다.</p>
 <h3 id="redis-unlink--">redis의 unlink 관련 설정</h3>
-<pre><code>lazyfree-lazy-eviction yes : maxmemory 까지 사용중일 때 maxmemory-policy 에 따라 key를 삭제하는 경우 del 대신 unlink 사용
-lazyfree-lazy-expire yes : EXPIRE 커맨드로 TTL이 설정된 key를 삭제할 때 del 대신 unlink 사용
-lazyfree-lazy-server-del yes : 기존에 있는 key를 set이나 rename 으로 엎어칠때 기존 값을 del 대신 unlink로 삭제함
-replica-lazy-flush yes : replicaof 설정으로 master의 데이터를 처음 복제해올때 기존에 있던 값들을 del 대신 unlink로 삭제함
+<pre><code>* lazyfree-lazy-eviction yes  
+=&gt;maxmemory 까지 사용중일 때 maxmemory-policy 에 따라 key를 삭제하는 경우 del 대신 unlink 사용
+
+* lazyfree-lazy-expire yes 
+=&gt; EXPIRE 커맨드로 TTL이 설정된 key를 삭제할 때 del 대신 unlink 사용
+
+* lazyfree-lazy-server-del yes 
+=&gt; 기존에 있는 key를 set이나 rename 으로 엎어칠때 기존 값을 del 대신 unlink로 삭제함
+
+* replica-lazy-flush yes 
+=&gt; replicaof 설정으로 master의 데이터를 처음 복제해올때 기존에 있던 값들을 del 대신 unlink로 삭제함
 </code></pre><h3 id="redis-thread-">redis thread 확인</h3>
 <pre><code>[root@e7900ebd4833 /]# ps -eLf | grep redis
 root        19     1    19  0    4 04:59 ?        00:00:11 redis-server 0.0.0.0:6001

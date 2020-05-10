@@ -5,7 +5,7 @@
     <description>Recent content in Nosqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 11 May 2020 08:31:23 +0900</lastBuildDate>
+    <lastBuildDate>Mon, 11 May 2020 08:31:33 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/nosql/index.xml" rel="self" type="application/rss+xml" />
     
@@ -13,7 +13,7 @@
     <item>
       <title>Redis unlink와 del 차이점</title>
       <link>https://kimdubi.github.io/nosql/unlink/</link>
-      <pubDate>Mon, 11 May 2020 08:31:23 +0900</pubDate>
+      <pubDate>Mon, 11 May 2020 08:31:33 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/nosql/unlink/</guid>
       <description>&lt;p&gt;Redis 4.0부터 unlink라는 Key 삭제 커맨드가 추가되었습니다.&lt;br&gt;
@@ -23,10 +23,17 @@
 따라서 del 로 처리할 때 보다 훨씬 더 빨리 서비스에 영향 없이 처리할 수 있는데요&lt;br&gt;
 이번 글에서는 unlink 커맨드에 대해 알아보겠습니다.&lt;/p&gt;
 &lt;h3 id=&#34;redis-unlink--&#34;&gt;redis의 unlink 관련 설정&lt;/h3&gt;
-&lt;pre&gt;&lt;code&gt;lazyfree-lazy-eviction yes : maxmemory 까지 사용중일 때 maxmemory-policy 에 따라 key를 삭제하는 경우 del 대신 unlink 사용
-lazyfree-lazy-expire yes : EXPIRE 커맨드로 TTL이 설정된 key를 삭제할 때 del 대신 unlink 사용
-lazyfree-lazy-server-del yes : 기존에 있는 key를 set이나 rename 으로 엎어칠때 기존 값을 del 대신 unlink로 삭제함
-replica-lazy-flush yes : replicaof 설정으로 master의 데이터를 처음 복제해올때 기존에 있던 값들을 del 대신 unlink로 삭제함
+&lt;pre&gt;&lt;code&gt;* lazyfree-lazy-eviction yes  
+=&amp;gt;maxmemory 까지 사용중일 때 maxmemory-policy 에 따라 key를 삭제하는 경우 del 대신 unlink 사용
+
+* lazyfree-lazy-expire yes 
+=&amp;gt; EXPIRE 커맨드로 TTL이 설정된 key를 삭제할 때 del 대신 unlink 사용
+
+* lazyfree-lazy-server-del yes 
+=&amp;gt; 기존에 있는 key를 set이나 rename 으로 엎어칠때 기존 값을 del 대신 unlink로 삭제함
+
+* replica-lazy-flush yes 
+=&amp;gt; replicaof 설정으로 master의 데이터를 처음 복제해올때 기존에 있던 값들을 del 대신 unlink로 삭제함
 &lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;redis-thread-&#34;&gt;redis thread 확인&lt;/h3&gt;
 &lt;pre&gt;&lt;code&gt;[root@e7900ebd4833 /]# ps -eLf | grep redis
 root        19     1    19  0    4 04:59 ?        00:00:11 redis-server 0.0.0.0:6001

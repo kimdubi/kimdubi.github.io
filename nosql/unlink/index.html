@@ -223,7 +223,12 @@ master0:name=mymaster,status=ok,address=172.16.0.12:6001,slaves=2,sentinels=3
 
 (integer) 1
 (67.94s)
-</code></pre><p>=&gt; del testset 수행하는데 67초나 소요됨</p>
+
+# Memory
+used_memory:869160
+used_memory_human:848.79K
+</code></pre><p>=&gt; del testset 수행하는데 67초나 소요됨<br>
+sync방식으로 동작해서 del 동시에 메모리도 회수됨</p>
 <pre><code># Replication
 role:slave
 master_host:172.16.0.11
@@ -231,21 +236,35 @@ master_host:172.16.0.11
 127.0.0.1:6001&gt; scard testset
 (integer) 9976638
 </code></pre><p>=&gt; del 작업은 main thread에서 수행되기 때문에 del 작업동안 모든 작업이 block됨<br>
-down-after-milliseconds 10초를 넘겼기 때문에 failover도 수행되고 del 작업도 실패하게됨</p>
+sentinel 구성에서 del 작업이 오래 수행되어 down-after-milliseconds를 넘기는 경우<br>
+위와 같이 failover도 수행되고 del 작업도 실패하게됨</p>
 <h4 id="unlink">unlink</h4>
 <pre><code>127.0.0.1:6001&gt; scard testset
 (integer) 9976638
 127.0.0.1:6001&gt; unlink testset
 (integer) 1
-127.0.0.1:6001&gt;
-127.0.0.1:6001&gt;
+
+# Memory
+used_memory:573013768
+used_memory_human:546.47M
+.
+.
+# Memory
+used_memory:223346032
+used_memory_human:213.00M
+.
+.# Memory
+used_memory:869160
+used_memory_human:848.79K
+
 127.0.0.1:6001&gt; info replication
 # Replication
 role:master
 connected_slaves:2
 slave0:ip=172.16.0.10,port=6001,state=online,offset=530077384,lag=0
 slave1:ip=172.16.0.12,port=6001,state=online,offset=530077384,lag=1
-</code></pre><p>=&gt; del과 달리 다른 작업 block 없이 순식간에 데이터 삭제가능</p>
+</code></pre><p>=&gt; del과 달리 다른 작업 block 없이 순식간에 데이터 삭제가능<br>
+async방식이라 unlink 수행 후 memory가 바로 회수되지는 않음</p>
 <h4 id="-1">참고 문서</h4>
 <p><a href="http://antirez.com/news/93">http://antirez.com/news/93</a></p>
 </div>

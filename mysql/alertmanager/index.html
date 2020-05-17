@@ -226,12 +226,18 @@ alert rule 예제는 아래 참고!!<br>
 <pre><code>/engn001/prometheus/prometheus -config.file=/engn001/prometheus/prometheus.yml -alertmanager.url=http://localhost:9093 &amp;
 /engn001/alertmanager/alertmanager -config.file=/engn001/alertmanager/alertmanager.yaml &amp;
 </code></pre><h3 id="alertmanager--">alertmanager 동작 확인</h3>
-<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert1.png" alt="">
-=&gt; MySQL 재시작
+<ul>
+<li>MySQL restarted 이벤트 발생
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert1.png" alt="">
+<!-- raw HTML omitted --></li>
+<li>alertmanager 감지 후 알람 발송
 <img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert2.png" alt="">
+<!-- raw HTML omitted --></li>
+<li>slack에서 알람 수신
 =&gt; alertmanager 감지 후 알람 발송
 <img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert3.png" alt="">
-=&gt; slack 으로 알람 받음</p>
+=&gt; slack 으로 알람 받음</li>
+</ul>
 </div>
 
 </main>

@@ -5,7 +5,7 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 17 May 2020 18:20:12 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 17 May 2020 18:21:12 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
@@ -13,7 +13,7 @@
     <item>
       <title>PMM alertmanager 로 알람받기</title>
       <link>https://kimdubi.github.io/mysql/alertmanager/</link>
-      <pubDate>Sun, 17 May 2020 18:20:12 +0900</pubDate>
+      <pubDate>Sun, 17 May 2020 18:21:12 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/mysql/alertmanager/</guid>
       <description>&lt;p&gt;지난 글에서 MySQL 에서 생기는 일들을 모니터링 하는 PMM 구축 방법에 대해 소개해드렸습니다.&lt;br&gt;
@@ -113,12 +113,18 @@ alert rule 예제는 아래 참고!!&lt;br&gt;
 &lt;pre&gt;&lt;code&gt;/engn001/prometheus/prometheus -config.file=/engn001/prometheus/prometheus.yml -alertmanager.url=http://localhost:9093 &amp;amp;
 /engn001/alertmanager/alertmanager -config.file=/engn001/alertmanager/alertmanager.yaml &amp;amp;
 &lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;alertmanager--&#34;&gt;alertmanager 동작 확인&lt;/h3&gt;
-&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert1.png&#34; alt=&#34;&#34;&gt;
-=&amp;gt; MySQL 재시작
+&lt;ul&gt;
+&lt;li&gt;MySQL restarted 이벤트 발생
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert1.png&#34; alt=&#34;&#34;&gt;
+&lt;!-- raw HTML omitted --&gt;&lt;/li&gt;
+&lt;li&gt;alertmanager 감지 후 알람 발송
 &lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert2.png&#34; alt=&#34;&#34;&gt;
+&lt;!-- raw HTML omitted --&gt;&lt;/li&gt;
+&lt;li&gt;slack에서 알람 수신
 =&amp;gt; alertmanager 감지 후 알람 발송
 &lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert3.png&#34; alt=&#34;&#34;&gt;
-=&amp;gt; slack 으로 알람 받음&lt;/p&gt;
+=&amp;gt; slack 으로 알람 받음&lt;/li&gt;
+&lt;/ul&gt;
 </description>
     </item>
     

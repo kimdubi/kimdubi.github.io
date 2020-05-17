@@ -5,10 +5,122 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 05 May 2020 20:28:06 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 17 May 2020 18:20:12 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>PMM alertmanager 로 알람받기</title>
+      <link>https://kimdubi.github.io/mysql/alertmanager/</link>
+      <pubDate>Sun, 17 May 2020 18:20:12 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/alertmanager/</guid>
+      <description>&lt;p&gt;지난 글에서 MySQL 에서 생기는 일들을 모니터링 하는 PMM 구축 방법에 대해 소개해드렸습니다.&lt;br&gt;
+&lt;a href=&#34;https://kimdubi.github.io/mysql/pmm/&#34;&gt;https://kimdubi.github.io/mysql/pmm/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;그러나 모니터링 서버가 있어도 바로 이슈를 전달 받지 못하면 아무 소용이 없겠죠?&lt;br&gt;
+그래서 이번 글에서는 alertmanager 를 통해서 PMM에서 감지 된 이슈들을&lt;br&gt;
+sms으로 받는 방법에 대해 소개해드리겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;alertmanager-&#34;&gt;alertmanager 란?&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/pmm_alert.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;prometheus 를 통해 수집된 metric에서 사전에 설정해둔 alert rule 에 해당하는&lt;br&gt;
+이벤트가 발생하면 alertmanager 에게 알림이 가고&lt;br&gt;
+alertmanager는 이 알람을 email,slack, web-hook 등 다양한 방법으로 전달하는 역할을 합니다.&lt;br&gt;
+사실 dashboard 역할을 하는 grafana도 4.x 버전대 부터는 이 알람기능이 추가 되었는데요&lt;br&gt;
+UI상에서 정말 쉽게 알람 설정을 할 수 있다는 장점이 있지만&lt;br&gt;
+host 마다, metric 마다 일일이 설정해야 한다는 단점이 있어
+모니터링 해야하는 대상이 많을 땐 역시 alertmanager 가 더 좋은 것 같습니다.&lt;/p&gt;
+&lt;h3 id=&#34;alertmanager-1&#34;&gt;alertmanager 설정&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;prometheus, grafana 설치한 서버에 설치했음&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;alertmanager 다운로드&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;wget &lt;a href=&#34;https://github.com/prometheus/alertmanager/releases/download/v0.5.1/alertmanager-0.5.1.linux-amd64.tar.gz&#34;&gt;https://github.com/prometheus/alertmanager/releases/download/v0.5.1/alertmanager-0.5.1.linux-amd64.tar.gz&lt;/a&gt; &amp;amp;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;prometheus.yml 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;global:
+  scrape_interval:     1m
+  scrape_timeout :     1s
+### 기존 설정에 아래 rule_files 위치 설정 추가  
+rule_files:    
+  - /engn001/alertmanager/alert.rules
+
+scrape_configs:
+  - job_name: linux
+    static_configs:
+      - targets: [&#39;172.17.0.3:9100&#39;]
+      .
+      .
+      .
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;alertmanager.yaml&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;vi /engn001/alertmanager-0.5.1.linux-amd64/alertmanager.yaml
+
+
+global:
+  slack_api_url: &#39;https://hooks.slack.com/services/xxxxxxxx&#39;
+
+route:
+  receiver: &#39;slack id&#39;
+
+  group_by: [&#39;alertname&#39;]
+
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+  routes:
+  - receiver: &#39;slack id&#39;
+    group_wait: 10s
+    match_re:
+      service: mysql
+
+receivers:
+- name: &#39;slack id&#39;
+  slack_configs:
+  - channel: &#39;#slack channel&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; smtp , web-hook을 통한 slack, 핸드폰 문자 등 여러 방법으로 이벤트를 받아볼 수 있으나&lt;br&gt;
+smtp 메일은 거의 확인을 안할테고..&lt;br&gt;
+핸드폰 문자는 webhook 서버를 따로 구축하고 sms 서비스를 이용하는 등 손이 많이 가서&lt;br&gt;
+간단한 slack webhook을 사용해봤습니다.&lt;br&gt;
+alertmanager 설정은 아래 링크 참고!!&lt;br&gt;
+&lt;a href=&#34;https://prometheus.io/docs/alerting/configuration/&#34;&gt;https://prometheus.io/docs/alerting/configuration/&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id=&#34;alert-rule-&#34;&gt;alert rule 설정&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;vi /engn001/alertmanager-0.5.1.linux-amd64/alert.rules
+
+ALERT LinuxMemory
+    IF (round(((node_memory_MemTotal - (node_memory_MemFree + node_memory_Buffers + node_memory_Cached)) / node_memory_MemTotal) * 100) &amp;gt; 90 ) and (node_memory_MemFree + node_memory_Buffers + node_memory_Cached &amp;lt; 1073741824)
+    FOR 1m
+    ANNOTATIONS {summary=&amp;quot;Linux Memory Usage is at {{$value}}%&amp;quot;}
+.
+.
+.
+ALERT MySQLRestarted
+    IF  mysql_global_status_uptime  &amp;lt; 300
+    FOR 1m
+    LABELS {severity=&amp;quot;warning&amp;quot;}
+    ANNOTATIONS {summary=&amp;quot;MySQL DB Server has been Restarted!!&amp;quot;}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 알람 받을 이벤트에 대한 rule 설정하는 부분&lt;br&gt;
+prometheus 수집 데이터들만 가능하며 alertmanager, prometheus 버전에 따라 alert rule 설정 방법이 다를 수 있음&lt;br&gt;
+alert rule 예제는 아래 참고!!&lt;br&gt;
+&lt;a href=&#34;https://awesome-prometheus-alerts.grep.to/rules&#34;&gt;https://awesome-prometheus-alerts.grep.to/rules&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id=&#34;alertmanager-prometheus-&#34;&gt;alertmanager, prometheus 기동&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;/engn001/prometheus/prometheus -config.file=/engn001/prometheus/prometheus.yml -alertmanager.url=http://localhost:9093 &amp;amp;
+/engn001/alertmanager/alertmanager -config.file=/engn001/alertmanager/alertmanager.yaml &amp;amp;
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;alertmanager--&#34;&gt;alertmanager 동작 확인&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert1.png&#34; alt=&#34;&#34;&gt;
+=&amp;gt; MySQL 재시작
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert2.png&#34; alt=&#34;&#34;&gt;
+=&amp;gt; alertmanager 감지 후 알람 발송
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert3.png&#34; alt=&#34;&#34;&gt;
+=&amp;gt; slack 으로 알람 받음&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>MySQL8.0  Replication REQUIRE_TABLE_PRIMARY_KEY_CHECK</title>

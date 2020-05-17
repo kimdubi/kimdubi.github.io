@@ -4,7 +4,21 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-05-11T08:31:34+09:00</lastmod>
+    <lastmod>2020-05-17T18:20:12+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/</loc>
+    <lastmod>2020-05-17T18:20:12+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/alertmanager/</loc>
+    <lastmod>2020-05-17T18:20:12+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
@@ -32,13 +46,6 @@
   
   <url>
     <loc>https://kimdubi.github.io/mysql/replication_force_pk/</loc>
-    <lastmod>2020-05-05T20:28:06+09:00</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://kimdubi.github.io/mysql/</loc>
     <lastmod>2020-05-05T20:28:06+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>

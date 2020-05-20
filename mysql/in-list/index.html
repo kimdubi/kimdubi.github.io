@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL IN조건은 &#39;=&#39;과 같을까 </title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL IN조건은 &#39;=&#39;과 같을까 </a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL IN조건은 &#39;=&#39;과 같을까 </h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>저같은 쿼리 왕초보들은 where 절의 IN list 조건을 보면<br>
+&lsquo;=&rsquo; 과 동일하게 생각하는 경우가 드문드문 있을 것 같습니다. 일단 전 그랬습니다&hellip;.<br>
+쿼리 검수를 하다가 IN 조건이 무조건 &lsquo;='과 동일한 것은 아니다 라는 것을 알게 되어 기록남겨봅니다.</p>
+<pre><code>SELECT
+t2.column1 ,
+t3.column1
+FROM tb_test1 t1
+INNER JOIN tb_test2 t2 ON t2.column1 = t1.column1
+INNER JOIN tb_test3 ON t3.column1 = t1.column1
+WHERE
+  t1.coulmn1 = #{idNo}
+  AND t1.column2 = 'N'
+  AND t1.column3 in ( 'A','B','C')
+ORDER BY t1.column4 DESC
+LIMIT #{offset}, #{limit};
+</code></pre><p>위와 같은 쿼리가 초당 수십건 씩 들어올 것이라고 쿼리검수가 들어왔습니다.<br>
+부끄럽지만 쿼리 튜닝을 이제야 공부하고 있는 저는 ..</p>
+<ul>
+<li>t1 테이블에 조건이 많으니 t1이 드라이빙 테이블로 풀리겠네</li>
+<li>order by + limit 이 있고 게다가 해당 컬럼도 드라이빙 테이블 컬럼이니 sorting 을 없애면 좋겠다</li>
+<li>IN도 IN-List Iterator 방식으로 풀리니까 조건도 모두 &lsquo;=&rsquo; 조건 이니 쉽네</li>
+</ul>
+<p>라는 생각에 아무 의심도 없이 아래와 같은 인덱스를 생성했습니다.</p>
+<pre><code>create index idx1_tb_test1 on tb_test1 (column1,column2,column3,column4);
+</code></pre><p>그리고 실행계획을 보는데..</p>
+<pre><code>+----+-------------+-------+--------+---------------+---------+---------------------------------------+
+| id | select_type | table | type   | key           | key_len | Extra                                 |
++----+-------------+-------+--------+---------------+---------+---------------------------------------+
+|  1 | SIMPLE      | t1    | range  | idx1_tb_test1 | 528     | Using index condition; Using filesort |
+|  1 | SIMPLE      | t2    | eq_ref | PRIMARY       | 8       | NULL                                  |
+|  1 | SIMPLE      | t3    | eq_ref | PRIMARY       | 8       | NULL                                  |
++----+-------------+-------+--------+---------------+---------+---------------------------------------+
+</code></pre><p>=&gt; using filesort, order by가 인덱스를 타지 못해 sorting이 발생하고 있었습니다.<br>
+알고보니 그 이유는 IN-List Iterator 에 대한 제 오해에서 비롯되었습니다.</p>
+<h3 id="inlist-iterator-">IN-List Iterator로 풀어보면?</h3>
+<pre><code>SELECT
+t2.column1 ,
+t3.column1
+FROM tb_test1 t1
+INNER JOIN tb_test2 t2 ON t2.column1 = t1.column1
+INNER JOIN tb_test3 ON t3.column1 = t1.column1
+WHERE
+  t1.coulmn1 = #{idNo}
+  AND t1.column2 = 'N'
+  AND t1.column3 = 'A'
+UNION ALL
+SELECT ~
+.
+.
+  AND t1.column3 = 'B'
+UNION ALL
+SELECT ~
+.
+.
+  AND t1.column3 = 'C'
+
+ORDER BY t1.column4 DESC
+LIMIT #{offset}, #{limit};
+</code></pre><p>=&gt; 원본 쿼리를 IN-List Iterator 방식으로 풀어보면 위와 같이 바꿀 수 있습니다.<br>
+즉 sort 연산을 인덱스로 생략하기 위해서는 column3='A&rsquo; 부터 &lsquo;B&rsquo;,&lsquo;C&rsquo; 브랜치를 차례대로 수행했을때 그 결과가 column4 순으로 정렬되어야 합니다.<br>
+column3='A'의 결과가 column3='B'의 결과보다 column4 기준으로 더 큰 결과여야 하고<br>
+column3='B'의 결과가 column3='C'의 결과보다 column4 기준으로 더 커야만 한다는 것이죠<br>
+이는 불가능한 일이므로 옵티마이저는 당연히 sort 를 수행하게 됩니다.</p>
+<h3 id="in--filter-">IN 조건을 Filter로 풀리도록</h3>
+<pre><code>create index idx1_tb_test1 on tb_test1 (column1,column2,column4);
+
+
++----+-------------+-------+--------+---------------+---------+---------------------------------------+
+| id | select_type | table | type   | key           | key_len | Extra                                 |
++----+-------------+-------+--------+---------------+---------+---------------------------------------+
+|  1 | SIMPLE      | t1    | range  | idx1_tb_test1 | 406     | Using where; Backward index scan      |
+|  1 | SIMPLE      | t2    | eq_ref | PRIMARY       | 8       | NULL                                  |
+|  1 | SIMPLE      | t3    | eq_ref | PRIMARY       | 8       | NULL                                  |
++----+-------------+-------+--------+---------------+---------+---------------------------------------+
+
+</code></pre><p>=&gt; IN 절의 column3 이 빠져서 t1 을 읽을 때 key_len 값이 528=&gt;406 으로 줄어들고<br>
+무엇보다 Extra 부분이 Using where; Backward index scan 으로 변경됐습니다.<br>
+인덱스 컬럼을 재구성하여 IN list-iterator 부분을 ACCESS 조건이 아니라 filter 로 사용되도록 변경했기 때문입니다.<br>
+IN을 무조건 &lsquo;=&rsquo; 조건 취급할 게 아니라는 것, 그래서 sort 연산을 생략하려면 IN 조건절이 access 조건이 아닌 filter 로 풀려야 하는 경우도 있다는 것을 알게 되었습니다.</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

@@ -5,10 +5,98 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 17 May 2020 18:21:12 +0900</lastBuildDate>
+    <lastBuildDate>Thu, 21 May 2020 08:35:14 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL IN조건은 &#39;=&#39;과 같을까 </title>
+      <link>https://kimdubi.github.io/mysql/in-list/</link>
+      <pubDate>Thu, 21 May 2020 08:35:14 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/in-list/</guid>
+      <description>&lt;p&gt;저같은 쿼리 왕초보들은 where 절의 IN list 조건을 보면&lt;br&gt;
+&amp;lsquo;=&amp;rsquo; 과 동일하게 생각하는 경우가 드문드문 있을 것 같습니다. 일단 전 그랬습니다&amp;hellip;.&lt;br&gt;
+쿼리 검수를 하다가 IN 조건이 무조건 &amp;lsquo;=&#39;과 동일한 것은 아니다 라는 것을 알게 되어 기록남겨봅니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;SELECT
+t2.column1 ,
+t3.column1
+FROM tb_test1 t1
+INNER JOIN tb_test2 t2 ON t2.column1 = t1.column1
+INNER JOIN tb_test3 ON t3.column1 = t1.column1
+WHERE
+  t1.coulmn1 = #{idNo}
+  AND t1.column2 = &#39;N&#39;
+  AND t1.column3 in ( &#39;A&#39;,&#39;B&#39;,&#39;C&#39;)
+ORDER BY t1.column4 DESC
+LIMIT #{offset}, #{limit};
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;위와 같은 쿼리가 초당 수십건 씩 들어올 것이라고 쿼리검수가 들어왔습니다.&lt;br&gt;
+부끄럽지만 쿼리 튜닝을 이제야 공부하고 있는 저는 ..&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;t1 테이블에 조건이 많으니 t1이 드라이빙 테이블로 풀리겠네&lt;/li&gt;
+&lt;li&gt;order by + limit 이 있고 게다가 해당 컬럼도 드라이빙 테이블 컬럼이니 sorting 을 없애면 좋겠다&lt;/li&gt;
+&lt;li&gt;IN도 IN-List Iterator 방식으로 풀리니까 조건도 모두 &amp;lsquo;=&amp;rsquo; 조건 이니 쉽네&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;라는 생각에 아무 의심도 없이 아래와 같은 인덱스를 생성했습니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;create index idx1_tb_test1 on tb_test1 (column1,column2,column3,column4);
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;그리고 실행계획을 보는데..&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;+----+-------------+-------+--------+---------------+---------+---------------------------------------+
+| id | select_type | table | type   | key           | key_len | Extra                                 |
++----+-------------+-------+--------+---------------+---------+---------------------------------------+
+|  1 | SIMPLE      | t1    | range  | idx1_tb_test1 | 528     | Using index condition; Using filesort |
+|  1 | SIMPLE      | t2    | eq_ref | PRIMARY       | 8       | NULL                                  |
+|  1 | SIMPLE      | t3    | eq_ref | PRIMARY       | 8       | NULL                                  |
++----+-------------+-------+--------+---------------+---------+---------------------------------------+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; using filesort, order by가 인덱스를 타지 못해 sorting이 발생하고 있었습니다.&lt;br&gt;
+알고보니 그 이유는 IN-List Iterator 에 대한 제 오해에서 비롯되었습니다.&lt;/p&gt;
+&lt;h3 id=&#34;inlist-iterator-&#34;&gt;IN-List Iterator로 풀어보면?&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;SELECT
+t2.column1 ,
+t3.column1
+FROM tb_test1 t1
+INNER JOIN tb_test2 t2 ON t2.column1 = t1.column1
+INNER JOIN tb_test3 ON t3.column1 = t1.column1
+WHERE
+  t1.coulmn1 = #{idNo}
+  AND t1.column2 = &#39;N&#39;
+  AND t1.column3 = &#39;A&#39;
+UNION ALL
+SELECT ~
+.
+.
+  AND t1.column3 = &#39;B&#39;
+UNION ALL
+SELECT ~
+.
+.
+  AND t1.column3 = &#39;C&#39;
+
+ORDER BY t1.column4 DESC
+LIMIT #{offset}, #{limit};
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 원본 쿼리를 IN-List Iterator 방식으로 풀어보면 위와 같이 바꿀 수 있습니다.&lt;br&gt;
+즉 sort 연산을 인덱스로 생략하기 위해서는 column3=&#39;A&amp;rsquo; 부터 &amp;lsquo;B&amp;rsquo;,&amp;lsquo;C&amp;rsquo; 브랜치를 차례대로 수행했을때 그 결과가 column4 순으로 정렬되어야 합니다.&lt;br&gt;
+column3=&#39;A&#39;의 결과가 column3=&#39;B&#39;의 결과보다 column4 기준으로 더 큰 결과여야 하고&lt;br&gt;
+column3=&#39;B&#39;의 결과가 column3=&#39;C&#39;의 결과보다 column4 기준으로 더 커야만 한다는 것이죠&lt;br&gt;
+이는 불가능한 일이므로 옵티마이저는 당연히 sort 를 수행하게 됩니다.&lt;/p&gt;
+&lt;h3 id=&#34;in--filter-&#34;&gt;IN 조건을 Filter로 풀리도록&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;create index idx1_tb_test1 on tb_test1 (column1,column2,column4);
+
+
++----+-------------+-------+--------+---------------+---------+---------------------------------------+
+| id | select_type | table | type   | key           | key_len | Extra                                 |
++----+-------------+-------+--------+---------------+---------+---------------------------------------+
+|  1 | SIMPLE      | t1    | range  | idx1_tb_test1 | 406     | Using where; Backward index scan      |
+|  1 | SIMPLE      | t2    | eq_ref | PRIMARY       | 8       | NULL                                  |
+|  1 | SIMPLE      | t3    | eq_ref | PRIMARY       | 8       | NULL                                  |
++----+-------------+-------+--------+---------------+---------+---------------------------------------+
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; IN 절의 column3 이 빠져서 t1 을 읽을 때 key_len 값이 528=&amp;gt;406 으로 줄어들고&lt;br&gt;
+무엇보다 Extra 부분이 Using where; Backward index scan 으로 변경됐습니다.&lt;br&gt;
+인덱스 컬럼을 재구성하여 IN list-iterator 부분을 ACCESS 조건이 아니라 filter 로 사용되도록 변경했기 때문입니다.&lt;br&gt;
+IN을 무조건 &amp;lsquo;=&amp;rsquo; 조건 취급할 게 아니라는 것, 그래서 sort 연산을 생략하려면 IN 조건절이 access 조건이 아닌 filter 로 풀려야 하는 경우도 있다는 것을 알게 되었습니다.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>PMM alertmanager 로 알람받기</title>

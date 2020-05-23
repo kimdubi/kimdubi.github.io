@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Ansible로 MySQL 관리하기</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Ansible로 MySQL 관리하기</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Ansible로 MySQL 관리하기</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><h3 id="ansible-">ansible 설치</h3>
+<pre><code>[root@test_ansible]# git clone https://github.com/ansible/ansible.git
+
+[root@test_ansible]# make
+[root@test_ansible]# make install
+</code></pre><ul>
+<li>make error 발생 시</li>
+</ul>
+<pre><code>Traceback (most recent call last):
+  File &quot;packaging/release/versionhelper/version_helper.py&quot;, line 9, in &lt;module&gt;
+    from packaging.version import Version, VERSION_PATTERN
+ImportError: No module named packaging.version
+Makefile:40: *** &quot;version_helper failed&quot;.  Stop.
+
+[root@test_ansible]# pip install --upgrade setuptools
+[root@test_ansible]# pip install packaging
+</code></pre><p>=&gt; 설치 후 make 재시도</p>
+<ul>
+<li>ansible configure 파일 설정</li>
+</ul>
+<pre><code>$ vi ~/.bash_profile
+
+ansible 사용 계정 profile에 아래 환경변수 설정 시 ansible command 수행할 때 아래의 ansible.cfg 설정파일을 자동으로 읽어옴
+
+$ export ANSIBLE_CONFIG=/engn001/ansible/work/ansible.cfg
+$ export ANSIBLE_HOSTS=/engn001/ansible/work/hosts 
+
+$ vi ansible.cfg
+
+forks          = 10   ### multi thread 개수 
+host_key_checking = False   ### 호스트 키 확인과정이 필요한지
+timeout = 5
+remote_user = ansible_user   ### target 서버에 붙을 계정
+</code></pre><h3 id="ansible-1">ansible 구성요소</h3>
+<h4 id="inventory">inventory</h4>
+<pre><code>* vi /engn001/ansible/work/hosts 
+
+[mysql_test]
+
+11.11.111.11
+22.222.222.22
+333.333.333.33
+444.444.444.555
+
+[mysql_test:vars]
+ansible_ssh_user=root
+port=3306
+centos_version:6
+
+[mysql_prod]
+
+11.11.111.111
+22.222.222.222
+333.333.333.333
+444.444.444.5555
+
+[mysql_prod:vars]
+ansible_ssh_user=root
+port=13306
+centos_version:7
+
+[redis]
+
+redis1
+redis2
+redis3
+
+</code></pre><ul>
+<li>ansible 로 접속해서 작업할 target 서버 리스트</li>
+<li>all 로 모든 대상서버에 command를 수행하거나 [그룹명]  로 그룹핑한 서버들에만 선별적으로 command 수행 가능</li>
+<li>/etc/hosts 에 대상 서버 ip에 alias를 주면 inventory 파일에서 alias 로 지정 가능</li>
+<li>대상서버들은 ansible 서버와 ssh keygen 을 통해 key 작업을 해주어야함</li>
+<li>위에서 설정한 vars 값은 playbook 에서 {{port}} , {{centos_version}} 등으로 사용 가능</li>
+</ul>
+<h4 id="module">module</h4>
+<pre><code>$ ansible-doc -l | grep mysql_
+mysql_info                           Gather information about MySQL servers
+mysql_db                             Add or remove MySQL databases from a remote host
+mysql_variables                      Manage MySQL global variables
+mysql_user                           Adds or removes a user from a MySQL database
+mysql_replication                    Manage MySQL replication
+</code></pre><p>=&gt; task를 어떻게 수행할 것인지 정의해둔 command의 집합</p>
+<ul>
+<li>각 module 사용법은 공홈 매뉴얼에서 확인 가능
+<a href="https://docs.ansible.com/ansible/latest/modules/mysql_variables_module.html">https://docs.ansible.com/ansible/latest/modules/mysql_variables_module.html</a></li>
+</ul>
+<h4 id="playbook">playbook</h4>
+<pre><code>* vi /engn001/ansible/work/playbook_mysql_task1.yaml
+
+---
+- hosts: mysql_prod
+  become_user: testuser
+  tasks:
+  - name: source profile
+    shell: source ~/.bash_profile &amp;&amp; echo $MARIA_HOME
+    args:
+      chdir: /home/testuser/
+      executable: /bin/bash
+    register: maria_home
+  - name: mysql command
+    command: mysql -utestuser -ptest123 -S &quot;{{ item }}&quot;/mysql/mysql.sock -e &quot;show processlist\G&quot;
+    when : item is defined
+    with_items:
+    - &quot;{{ maria_home.stdout }}&quot;
+    register: result
+  - debug:
+      msg=&quot;{{ result.results | json_query('[].stdout_lines[]') }}&quot;
+</code></pre><ul>
+<li>
+<p>yaml 형식</p>
+</li>
+<li>
+<p>위와 같이 playbook 을 사용하여 특정 서버들에서 수행할 task들을 설정할 수 있음</p>
+</li>
+<li>
+<p>위 예시는 inventory 설정의 대상서버들 중 [mysql_prod] 그룹을 대상으로 하고</p>
+</li>
+<li>
+<p>source profile , mysql_command 을 포함하는 task (ansible module를 호출하는 단위)를 수행함</p>
+</li>
+<li>
+<p>위 playbook 설명</p>
+</li>
+</ul>
+<pre><code>source profile :
+ansible이 대상 서버에 ssh 수행하는 방식은 interactive 하기 때문에 login shell 이 수행 되지 않아 대상 서버 계정의 profile 설정을 사용하려면 위와 같이 설정이 필요함
+ 
+mysql command:
+profile 을 읽어 maria db의 home 을 maria_home 변수로 register 후 'mysql command' 수행하는데 활용함
+그 결과를 register 에 담아서 debug:msg 에서 출력함
+</code></pre><h4 id="ansibleplaybook--">ansible-playbook 수행 결과</h4>
+<pre><code>$ ansible-playbook -i [인벤토리파일]  [플레이북명]
+
+PLAY [dbservers_test_user01] *******************************************************
+TASK [Gathering Facts] *********************************************************
+ok: [11.111.111.111]
+ok: [22.222.222.222]
+
+TASK [source profile] **********************************************************
+changed: [22.222.222.222]
+changed: [11.111.111.111]
+
+TASK [mysql command] ***********************************************************
+changed: [22.222.222.222] =&gt; (item=/engn001/test_user01/TEST_10.2.4)
+changed: [11.111.111.111] =&gt; (item=/engn001/test_user01/TEST_10.2.4)
+
+TASK [debug] *******************************************************************
+ok: [11.111.111.111] =&gt; {
+    &quot;msg&quot;: [
+        &quot;*************************** 1. row ***************************&quot;,
+        &quot;      Id: 1&quot;,
+        &quot;    User: system user&quot;,
+        &quot;    Host: &quot;,
+        &quot;      db: NULL&quot;,
+        &quot; Command: Daemon&quot;,
+        &quot;    Time: NULL&quot;,
+        &quot;   State: InnoDB background thread&quot;,
+        &quot;    Info: NULL&quot;,
+        &quot;Progress: 0.000&quot;,
+        &quot;*************************** 2. row ***************************&quot;,
+        &quot;      Id: 2&quot;,
+        &quot;    User: system user&quot;,
+        &quot;    Host: &quot;,
+        &quot;      db: NULL&quot;,
+        &quot; Command: Daemon&quot;,
+        &quot;    Time: NULL&quot;,
+        &quot;   State: InnoDB background thread&quot;,
+        &quot;    Info: NULL&quot;,
+        &quot;Progress: 0.000&quot;,
+
+    ]
+}
+ok: [22.222.222.222] =&gt; {
+    &quot;msg&quot;: [
+        &quot;*************************** 1. row ***************************&quot;,
+        &quot;      Id: 1&quot;,
+        &quot;    User: system user&quot;,
+        &quot;    Host: &quot;,
+        &quot;      db: NULL&quot;,
+        &quot; Command: Daemon&quot;,
+        &quot;    Time: NULL&quot;,
+        &quot;   State: InnoDB background thread&quot;,
+        &quot;    Info: NULL&quot;,
+        &quot;Progress: 0.000&quot;,
+
+        &quot;*************************** 2. row ***************************&quot;,
+        &quot;      Id: 2&quot;,
+        &quot;    User: system user&quot;,
+        &quot;    Host: &quot;,
+        &quot;      db: NULL&quot;,
+        &quot; Command: Daemon&quot;,
+        &quot;    Time: NULL&quot;,
+        &quot;   State: InnoDB background thread&quot;,
+        &quot;    Info: NULL&quot;,
+        &quot;Progress: 0.000&quot;,
+
+    ]
+
+}
+
+PLAY RECAP *********************************************************************
+
+11.111.111.111              : ok=4    changed=2    unreachable=0    failed=0    skipped=0
+
+22.222.222.222             : ok=4    changed=2    unreachable=0    failed=0    skipped=0
+</code></pre><ul>
+<li>ok :  변경사항 없음</li>
+<li>changed : 변경사항 있음</li>
+<li>unreachable :  서버에 접속 실패</li>
+<li>failed :  실패</li>
+<li>skipped : playbook 설정의 조건에 맞지 않아서 실행되지 않은 경우</li>
+</ul>
+<h4 id="mysql-module--">MySQL module 활용 예제</h4>
+<ul>
+<li>variables 조회</li>
+</ul>
+<pre><code>---
+- name: test
+  hosts: mysql
+  gather_facts: no
+  vars:
+    mysql_user: prom
+    mysql_password: qhdks123
+    mysql_port: 3306
+    login_unix_socket: /engn001/mysql/data/mysql.sock
+  tasks:
+  - name: install mysql-python
+    yum:
+      name: &quot;{{ item }}&quot;
+      state: installed
+    with_items:
+      - MySQL-python
+  - name: get variables
+    mysql_variables:
+      login_user: &quot;{{ mysql_user }}&quot;
+      login_password: &quot;{{ mysql_password }}&quot;
+      variable: sql_mode
+    register: result
+  - debug: var=result
+</code></pre><ul>
+<li>결과</li>
+</ul>
+<pre><code>ok: [172.18.0.3] =&gt; {
+    &quot;result&quot;: {
+        &quot;changed&quot;: false,
+        &quot;failed&quot;: false,
+        &quot;msg&quot;: &quot;ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION&quot;
+    }
+}
+ok: [172.18.0.2] =&gt; {
+    &quot;result&quot;: {
+        &quot;changed&quot;: false,
+        &quot;failed&quot;: false,
+        &quot;msg&quot;: &quot;ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION&quot;
+    }
+}
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

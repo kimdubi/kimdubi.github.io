@@ -5,10 +5,546 @@
     <description>Recent content in Etcs on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 09 Jan 2020 11:25:53 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 23 May 2020 15:04:30 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/etc/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Ansible ROLE 사용하여 MySQL 설치</title>
+      <link>https://kimdubi.github.io/etc/ansible2/</link>
+      <pubDate>Sat, 23 May 2020 15:04:30 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/etc/ansible2/</guid>
+      <description>&lt;p&gt;ansible은 코드 재사용성, 클린 코드를 위해 &amp;ldquo;ROLE&amp;rdquo; 이라는 표준화 된 구성 기능을 제공합니다.&lt;br&gt;
+사용하기 어렵지만 그만큼 간결하게 원하는 작업들을 정의할 수 있는데요&lt;br&gt;
+이 ROLE을 사용하여 MySQL을 설치하는 ansible task를 정의해보겠습니다.&lt;/p&gt;
+&lt;h2 id=&#34;ansible-role-&#34;&gt;ansible role 생성&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;[root@8429d3d8f01b roles]# ansible-galaxy init mysql
+- Role mysql was created successfully
+
+[root@8429d3d8f01b roles]# tree mysql
+mysql
+|-- README.md
+|-- defaults
+|   `-- main.yml
+|-- files
+|-- handlers
+|   `-- main.yml
+|-- meta
+|   `-- main.yml
+|-- tasks
+|   `-- main.yml
+|-- templates
+|-- tests
+|   |-- inventory
+|   `-- test.yml
+`-- vars
+    `-- main.yml
+
+8 directories, 8 files
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;defaults – 공통으로 사용할 변수 설정&lt;/li&gt;
+&lt;li&gt;files – target 으로 배포할 file, 주로 설치파일&lt;/li&gt;
+&lt;li&gt;handlers – task의 작업이 성공했을 때 호출되는 작업,ex) service start mysql&lt;/li&gt;
+&lt;li&gt;meta - role에 대한 meta data, role 간 의존성 정의&lt;/li&gt;
+&lt;li&gt;tasks – 해당 ROLE에 의해 수행 될 task 정의&lt;/li&gt;
+&lt;li&gt;templates : role 배포 시 수정이 필요한 파일 템플릿, my.cnf 같은것&lt;/li&gt;
+&lt;li&gt;vars : 변수 설정, defaults 보다 우선순위가 높음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;install-playbook-&#34;&gt;install playbook 생성&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ vi roles/install_db.yaml
+
+---
+   - hosts: install
+     become: yes
+     vars_files:
+        - vars/main.yml
+     tasks:
+        - include: tasks/install.yml
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;playbook----vars&#34;&gt;playbook에서 사용할 변수 설정 (vars)&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ vi roles/mysql/vars/main.yml
+
+---
+# vars file for mysql
+mysql_collation: utf8mb4_general_ci
+mysql_encoding: utf8mb4
+mysql_bind_address: 0.0.0.0
+mysql_max_connections: 1000
+mysql_root_password: qhdks123
+mysql_user_db_name: ansible
+mysql_user: ansible
+mysql_user_password: qhdks123
+BufferPoolPct: 0.6
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;install-task-&#34;&gt;install task 설정&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ vi roles/mysql/tasks/main.yml
+
+---
+    - name: install epel-release
+      action: &amp;quot;{{ ansible_pkg_mgr }} name=epel-release state=latest&amp;quot;
+    - name: install mysql server
+      action: &amp;quot;{{ ansible_pkg_mgr }} name=mariadb-server state=present&amp;quot;
+    - name: install python mysql support library
+      action: &amp;quot;{{ ansible_pkg_mgr }} name=MySQL-python state=latest&amp;quot;
+    - name: set innodb_buffer size
+      set_fact: 
+        buffer_pool_size: &amp;quot;{{ (ansible_memtotal_mb * BufferPoolPct) | int }}&amp;quot;
+    - name: copy my.cnf
+      template:
+        src=my.cnf.j2 
+        dest=/etc/my.cnf 
+        mode=0600
+      notify: 
+        - start mysql
+      handlers:
+        - include: handlers/main.yml  
+    - name: update mysql root password
+      mysql_user:
+         login_user: root
+         login_password: &amp;quot;{{ mysql_root_password }}&amp;quot;
+         name: root
+         host: &amp;quot;{{ item }}&amp;quot;
+         password: &amp;quot;{{ mysql_root_password }}&amp;quot;
+         check_implicit_admin: yes
+         priv: &amp;quot;*.*:ALL,GRANT&amp;quot;
+      with_items:
+         - &amp;quot;{{ ansible_hostname }}&amp;quot;
+         - 127.0.0.1
+         - ::1
+         - localhost
+    - name: remove test db
+      mysql_db:
+          login_user: root
+          login_password: &amp;quot;{{ mysql_root_password }}&amp;quot;
+          db: test
+          state: absent
+    - name: create a new db
+      mysql_db:
+          login_user: root
+          login_password: &amp;quot;{{ mysql_root_password }}&amp;quot;
+          name: &amp;quot;{{ mysql_user_db_name }}&amp;quot;
+          collation: &amp;quot;{{ mysql_collation }}&amp;quot;
+          encoding: &amp;quot;{{ mysql_encoding }}&amp;quot;
+          state: present
+    - name: delete anonymouse user
+      mysql_user:
+          login_user: root
+          login_password: &amp;quot;{{ mysql_root_password }}&amp;quot;
+          name: &amp;quot;&amp;quot;
+          host_all: yes
+          state: absent
+    - name: create a new user
+      mysql_user:
+          login_user: root
+          login_password: &amp;quot;{{ mysql_root_password }}&amp;quot;
+          name: &amp;quot;{{ mysql_user }}&amp;quot;
+          password: &amp;quot;{{ mysql_user_password }}&amp;quot;
+          priv: &amp;quot;{{ mysql_user_db_name }}.*:ALL,GRANT&amp;quot;
+          host: &amp;quot;%&amp;quot;
+          state: present
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 설치 서버 마다 메모리가 다르고 서버 메모리의 60%를 innodb_buffer size로 설정하기로 했을때&lt;br&gt;
+set_fact 모듈로 buffer_pool_size 변수 설정 후&lt;br&gt;
+template 의 my.cnf.j2 에서 해당 변수를 innodb_buffer_size 에 설정하도록함&lt;/p&gt;
+&lt;h3 id=&#34;handler-&#34;&gt;handler 생성&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;---
+    - name: start mysql
+      systemd: 
+        name: mariadb
+        state: started
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 위의 tasks 에서 copy my.cnf 완료 후 , notify 를 통해 handler 호출&lt;/p&gt;
+&lt;h3 id=&#34;-file-template-&#34;&gt;배포할 file template 설정&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;vi roles/mysql/templates/my.cnf.j2
+
+[client]
+port    = 3306
+socket    = /var/run/mysqld/mysqld.sock
+[mysqld_safe]
+socket    = /var/run/mysqld/mysqld.sock
+nice    = 0
+[mysqld]
+user    = mysql
+pid-file  = /var/run/mysqld/mysqld.pid
+socket    = /var/run/mysqld/mysqld.sock
+port    = 3306
+basedir    = /usr
+datadir    = /var/lib/mysql
+tmpdir    = /tmp
+lc_messages_dir  = /usr/share/mysql
+lc_messages  = en_US
+skip-external-locking
+bind-address    = {{ mysql_bind_address }}
+max_connections    = {{ mysql_max_connections }}
+connect_timeout    = 5
+wait_timeout    = 600
+max_allowed_packet  = 16M
+thread_cache_size       = 128
+sort_buffer_size  = 4M
+bulk_insert_buffer_size  = 16M
+tmp_table_size    = 32M
+max_heap_table_size  = 32M
+# * InnoDB
+default_storage_engine  = InnoDB
+# you can&#39;t just change log file size, requires special procedure
+#innodb_log_file_size  = 50M
+innodb_buffer_pool_size  = {{ buffer_pool_size | int }}M
+innodb_log_buffer_size  = 8M
+innodb_file_per_table  = 1
+innodb_open_files  = 400
+innodb_io_capacity  = 400
+innodb_flush_method  = O_DIRECT
+
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;playbook-&#34;&gt;playbook 수행&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;
+[root@8429d3d8f01b mysql]# ansible-playbook mysql_install.yaml
+
+PLAY [install] *************************
+
+TASK [Gathering Facts] *****************
+ok: [172.18.0.7]
+
+TASK [install epel-release] ************
+ok: [172.18.0.7]
+
+TASK [install mysql server] ************
+ok: [172.18.0.7]
+
+TASK [install python mysql support library] *************************
+ok: [172.18.0.7]
+
+TASK [set innodb_buffer size] ****************
+ok: [172.18.0.7]
+
+TASK [copy my.cnf] ****************************
+ok: [172.18.0.7]
+
+TASK [start mysql server] **************
+changed: [172.18.0.7]
+
+TASK [update mysql root password] ******
+changed: [172.18.0.7] =&amp;gt; (item=19ae1de8bfb1)
+changed: [172.18.0.7] =&amp;gt; (item=127.0.0.1)
+changed: [172.18.0.7] =&amp;gt; (item=::1)
+changed: [172.18.0.7] =&amp;gt; (item=localhost)
+[WARNING]: Module did not set no_log for update_password
+
+TASK [remove test db] ******************
+changed: [172.18.0.7]
+
+TASK [create a new db] *****************
+changed: [172.18.0.7]
+
+TASK [delete anonymouse user] **********
+changed: [172.18.0.7]
+
+TASK [create a new user] ***************
+changed: [172.18.0.7]
+
+PLAY RECAP *****************************
+172.18.0.7                 : ok=12   changed=6    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+
+
+
+[root@19ae1de8bfb1 ~]# mysql -uroot -p -S /var/lib/mysql/mysql.sock
+Enter password:
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 10
+Server version: 5.5.65-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type &#39;help;&#39; or &#39;\h&#39; for help. Type &#39;\c&#39; to clear the current input statement.
+
+
+MariaDB [(none)]&amp;gt; show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| ansible            |
+| mysql              |
+| performance_schema |
++--------------------+
+4 rows in set (0.01 sec)
+
+MariaDB [(none)]&amp;gt; select user,host from mysql.user;
++---------+--------------+
+| user    | host         |
++---------+--------------+
+| ansible | %            |
+| root    | 127.0.0.1    |
+| root    | 19ae1de8bfb1 |
+| root    | ::1          |
+| root    | localhost    |
++---------+--------------+
+5 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>Ansible로 MySQL 관리하기</title>
+      <link>https://kimdubi.github.io/etc/ansible/</link>
+      <pubDate>Fri, 22 May 2020 22:55:50 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/etc/ansible/</guid>
+      <description>&lt;h3 id=&#34;ansible-&#34;&gt;ansible 설치&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;[root@test_ansible]# git clone https://github.com/ansible/ansible.git
+
+[root@test_ansible]# make
+[root@test_ansible]# make install
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;make error 발생 시&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;Traceback (most recent call last):
+  File &amp;quot;packaging/release/versionhelper/version_helper.py&amp;quot;, line 9, in &amp;lt;module&amp;gt;
+    from packaging.version import Version, VERSION_PATTERN
+ImportError: No module named packaging.version
+Makefile:40: *** &amp;quot;version_helper failed&amp;quot;.  Stop.
+
+[root@test_ansible]# pip install --upgrade setuptools
+[root@test_ansible]# pip install packaging
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 설치 후 make 재시도&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;ansible configure 파일 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ vi ~/.bash_profile
+
+ansible 사용 계정 profile에 아래 환경변수 설정 시 ansible command 수행할 때 아래의 ansible.cfg 설정파일을 자동으로 읽어옴
+
+$ export ANSIBLE_CONFIG=/engn001/ansible/work/ansible.cfg
+$ export ANSIBLE_HOSTS=/engn001/ansible/work/hosts 
+
+$ vi ansible.cfg
+
+forks          = 10   ### multi thread 개수 
+host_key_checking = False   ### 호스트 키 확인과정이 필요한지
+timeout = 5
+remote_user = ansible_user   ### target 서버에 붙을 계정
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;ansible-1&#34;&gt;ansible 구성요소&lt;/h3&gt;
+&lt;h4 id=&#34;inventory&#34;&gt;inventory&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;* vi /engn001/ansible/work/hosts 
+
+[mysql_test]
+
+11.11.111.11
+22.222.222.22
+333.333.333.33
+444.444.444.555
+
+[mysql_test:vars]
+ansible_ssh_user=root
+port=3306
+centos_version:6
+
+[mysql_prod]
+
+11.11.111.111
+22.222.222.222
+333.333.333.333
+444.444.444.5555
+
+[mysql_prod:vars]
+ansible_ssh_user=root
+port=13306
+centos_version:7
+
+[redis]
+
+redis1
+redis2
+redis3
+
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;ansible 로 접속해서 작업할 target 서버 리스트&lt;/li&gt;
+&lt;li&gt;all 로 모든 대상서버에 command를 수행하거나 [그룹명]  로 그룹핑한 서버들에만 선별적으로 command 수행 가능&lt;/li&gt;
+&lt;li&gt;/etc/hosts 에 대상 서버 ip에 alias를 주면 inventory 파일에서 alias 로 지정 가능&lt;/li&gt;
+&lt;li&gt;대상서버들은 ansible 서버와 ssh keygen 을 통해 key 작업을 해주어야함&lt;/li&gt;
+&lt;li&gt;위에서 설정한 vars 값은 playbook 에서 {{port}} , {{centos_version}} 등으로 사용 가능&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;module&#34;&gt;module&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;$ ansible-doc -l | grep mysql_
+mysql_info                           Gather information about MySQL servers
+mysql_db                             Add or remove MySQL databases from a remote host
+mysql_variables                      Manage MySQL global variables
+mysql_user                           Adds or removes a user from a MySQL database
+mysql_replication                    Manage MySQL replication
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; task를 어떻게 수행할 것인지 정의해둔 command의 집합&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;각 module 사용법은 공홈 매뉴얼에서 확인 가능
+&lt;a href=&#34;https://docs.ansible.com/ansible/latest/modules/mysql_variables_module.html&#34;&gt;https://docs.ansible.com/ansible/latest/modules/mysql_variables_module.html&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;playbook&#34;&gt;playbook&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;* vi /engn001/ansible/work/playbook_mysql_task1.yaml
+
+---
+- hosts: mysql_prod
+  become_user: testuser
+  tasks:
+  - name: source profile
+    shell: source ~/.bash_profile &amp;amp;&amp;amp; echo $MARIA_HOME
+    args:
+      chdir: /home/testuser/
+      executable: /bin/bash
+    register: maria_home
+  - name: mysql command
+    command: mysql -utestuser -ptest123 -S &amp;quot;{{ item }}&amp;quot;/mysql/mysql.sock -e &amp;quot;show processlist\G&amp;quot;
+    when : item is defined
+    with_items:
+    - &amp;quot;{{ maria_home.stdout }}&amp;quot;
+    register: result
+  - debug:
+      msg=&amp;quot;{{ result.results | json_query(&#39;[].stdout_lines[]&#39;) }}&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;yaml 형식&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;위와 같이 playbook 을 사용하여 특정 서버들에서 수행할 task들을 설정할 수 있음&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;위 예시는 inventory 설정의 대상서버들 중 [mysql_prod] 그룹을 대상으로 하고&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;source profile , mysql_command 을 포함하는 task (ansible module를 호출하는 단위)를 수행함&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;위 playbook 설명&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;source profile :
+ansible이 대상 서버에 ssh 수행하는 방식은 interactive 하기 때문에 login shell 이 수행 되지 않아 대상 서버 계정의 profile 설정을 사용하려면 위와 같이 설정이 필요함
+ 
+mysql command:
+profile 을 읽어 maria db의 home 을 maria_home 변수로 register 후 &#39;mysql command&#39; 수행하는데 활용함
+그 결과를 register 에 담아서 debug:msg 에서 출력함
+&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&#34;ansibleplaybook--&#34;&gt;ansible-playbook 수행 결과&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;$ ansible-playbook -i [인벤토리파일]  [플레이북명]
+
+PLAY [dbservers_test_user01] *******************************************************
+TASK [Gathering Facts] *********************************************************
+ok: [11.111.111.111]
+ok: [22.222.222.222]
+
+TASK [source profile] **********************************************************
+changed: [22.222.222.222]
+changed: [11.111.111.111]
+
+TASK [mysql command] ***********************************************************
+changed: [22.222.222.222] =&amp;gt; (item=/engn001/test_user01/TEST_10.2.4)
+changed: [11.111.111.111] =&amp;gt; (item=/engn001/test_user01/TEST_10.2.4)
+
+TASK [debug] *******************************************************************
+ok: [11.111.111.111] =&amp;gt; {
+    &amp;quot;msg&amp;quot;: [
+        &amp;quot;*************************** 1. row ***************************&amp;quot;,
+        &amp;quot;      Id: 1&amp;quot;,
+        &amp;quot;    User: system user&amp;quot;,
+        &amp;quot;    Host: &amp;quot;,
+        &amp;quot;      db: NULL&amp;quot;,
+        &amp;quot; Command: Daemon&amp;quot;,
+        &amp;quot;    Time: NULL&amp;quot;,
+        &amp;quot;   State: InnoDB background thread&amp;quot;,
+        &amp;quot;    Info: NULL&amp;quot;,
+        &amp;quot;Progress: 0.000&amp;quot;,
+        &amp;quot;*************************** 2. row ***************************&amp;quot;,
+        &amp;quot;      Id: 2&amp;quot;,
+        &amp;quot;    User: system user&amp;quot;,
+        &amp;quot;    Host: &amp;quot;,
+        &amp;quot;      db: NULL&amp;quot;,
+        &amp;quot; Command: Daemon&amp;quot;,
+        &amp;quot;    Time: NULL&amp;quot;,
+        &amp;quot;   State: InnoDB background thread&amp;quot;,
+        &amp;quot;    Info: NULL&amp;quot;,
+        &amp;quot;Progress: 0.000&amp;quot;,
+
+    ]
+}
+ok: [22.222.222.222] =&amp;gt; {
+    &amp;quot;msg&amp;quot;: [
+        &amp;quot;*************************** 1. row ***************************&amp;quot;,
+        &amp;quot;      Id: 1&amp;quot;,
+        &amp;quot;    User: system user&amp;quot;,
+        &amp;quot;    Host: &amp;quot;,
+        &amp;quot;      db: NULL&amp;quot;,
+        &amp;quot; Command: Daemon&amp;quot;,
+        &amp;quot;    Time: NULL&amp;quot;,
+        &amp;quot;   State: InnoDB background thread&amp;quot;,
+        &amp;quot;    Info: NULL&amp;quot;,
+        &amp;quot;Progress: 0.000&amp;quot;,
+
+        &amp;quot;*************************** 2. row ***************************&amp;quot;,
+        &amp;quot;      Id: 2&amp;quot;,
+        &amp;quot;    User: system user&amp;quot;,
+        &amp;quot;    Host: &amp;quot;,
+        &amp;quot;      db: NULL&amp;quot;,
+        &amp;quot; Command: Daemon&amp;quot;,
+        &amp;quot;    Time: NULL&amp;quot;,
+        &amp;quot;   State: InnoDB background thread&amp;quot;,
+        &amp;quot;    Info: NULL&amp;quot;,
+        &amp;quot;Progress: 0.000&amp;quot;,
+
+    ]
+
+}
+
+PLAY RECAP *********************************************************************
+
+11.111.111.111              : ok=4    changed=2    unreachable=0    failed=0    skipped=0
+
+22.222.222.222             : ok=4    changed=2    unreachable=0    failed=0    skipped=0
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;ok :  변경사항 없음&lt;/li&gt;
+&lt;li&gt;changed : 변경사항 있음&lt;/li&gt;
+&lt;li&gt;unreachable :  서버에 접속 실패&lt;/li&gt;
+&lt;li&gt;failed :  실패&lt;/li&gt;
+&lt;li&gt;skipped : playbook 설정의 조건에 맞지 않아서 실행되지 않은 경우&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;mysql-module--&#34;&gt;MySQL module 활용 예제&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;variables 조회&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;---
+- name: test
+  hosts: mysql
+  gather_facts: no
+  vars:
+    mysql_user: prom
+    mysql_password: qhdks123
+    mysql_port: 3306
+    login_unix_socket: /engn001/mysql/data/mysql.sock
+  tasks:
+  - name: install mysql-python
+    yum:
+      name: &amp;quot;{{ item }}&amp;quot;
+      state: installed
+    with_items:
+      - MySQL-python
+  - name: get variables
+    mysql_variables:
+      login_user: &amp;quot;{{ mysql_user }}&amp;quot;
+      login_password: &amp;quot;{{ mysql_password }}&amp;quot;
+      variable: sql_mode
+    register: result
+  - debug: var=result
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;결과&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;ok: [172.18.0.3] =&amp;gt; {
+    &amp;quot;result&amp;quot;: {
+        &amp;quot;changed&amp;quot;: false,
+        &amp;quot;failed&amp;quot;: false,
+        &amp;quot;msg&amp;quot;: &amp;quot;ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION&amp;quot;
+    }
+}
+ok: [172.18.0.2] =&amp;gt; {
+    &amp;quot;result&amp;quot;: {
+        &amp;quot;changed&amp;quot;: false,
+        &amp;quot;failed&amp;quot;: false,
+        &amp;quot;msg&amp;quot;: &amp;quot;ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION&amp;quot;
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>Docker-compose로 Redis Cluster 자동 구성하기</title>

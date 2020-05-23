@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Ansible ROLE 사용하여 MySQL 설치</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Ansible ROLE 사용하여 MySQL 설치</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Ansible ROLE 사용하여 MySQL 설치</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>ansible은 코드 재사용성, 클린 코드를 위해 &ldquo;ROLE&rdquo; 이라는 표준화 된 구성 기능을 제공합니다.<br>
+사용하기 어렵지만 그만큼 간결하게 원하는 작업들을 정의할 수 있는데요<br>
+이 ROLE을 사용하여 MySQL을 설치하는 ansible task를 정의해보겠습니다.</p>
+<h2 id="ansible-role-">ansible role 생성</h2>
+<pre><code>[root@8429d3d8f01b roles]# ansible-galaxy init mysql
+- Role mysql was created successfully
+
+[root@8429d3d8f01b roles]# tree mysql
+mysql
+|-- README.md
+|-- defaults
+|   `-- main.yml
+|-- files
+|-- handlers
+|   `-- main.yml
+|-- meta
+|   `-- main.yml
+|-- tasks
+|   `-- main.yml
+|-- templates
+|-- tests
+|   |-- inventory
+|   `-- test.yml
+`-- vars
+    `-- main.yml
+
+8 directories, 8 files
+</code></pre><ul>
+<li>defaults – 공통으로 사용할 변수 설정</li>
+<li>files – target 으로 배포할 file, 주로 설치파일</li>
+<li>handlers – task의 작업이 성공했을 때 호출되는 작업,ex) service start mysql</li>
+<li>meta - role에 대한 meta data, role 간 의존성 정의</li>
+<li>tasks – 해당 ROLE에 의해 수행 될 task 정의</li>
+<li>templates : role 배포 시 수정이 필요한 파일 템플릿, my.cnf 같은것</li>
+<li>vars : 변수 설정, defaults 보다 우선순위가 높음</li>
+</ul>
+<h3 id="install-playbook-">install playbook 생성</h3>
+<pre><code>$ vi roles/install_db.yaml
+
+---
+   - hosts: install
+     become: yes
+     vars_files:
+        - vars/main.yml
+     tasks:
+        - include: tasks/install.yml
+</code></pre><h3 id="playbook----vars">playbook에서 사용할 변수 설정 (vars)</h3>
+<pre><code>$ vi roles/mysql/vars/main.yml
+
+---
+# vars file for mysql
+mysql_collation: utf8mb4_general_ci
+mysql_encoding: utf8mb4
+mysql_bind_address: 0.0.0.0
+mysql_max_connections: 1000
+mysql_root_password: qhdks123
+mysql_user_db_name: ansible
+mysql_user: ansible
+mysql_user_password: qhdks123
+BufferPoolPct: 0.6
+</code></pre><h3 id="install-task-">install task 설정</h3>
+<pre><code>$ vi roles/mysql/tasks/main.yml
+
+---
+    - name: install epel-release
+      action: &quot;{{ ansible_pkg_mgr }} name=epel-release state=latest&quot;
+    - name: install mysql server
+      action: &quot;{{ ansible_pkg_mgr }} name=mariadb-server state=present&quot;
+    - name: install python mysql support library
+      action: &quot;{{ ansible_pkg_mgr }} name=MySQL-python state=latest&quot;
+    - name: set innodb_buffer size
+      set_fact: 
+        buffer_pool_size: &quot;{{ (ansible_memtotal_mb * BufferPoolPct) | int }}&quot;
+    - name: copy my.cnf
+      template:
+        src=my.cnf.j2 
+        dest=/etc/my.cnf 
+        mode=0600
+      notify: 
+        - start mysql
+      handlers:
+        - include: handlers/main.yml  
+    - name: update mysql root password
+      mysql_user:
+         login_user: root
+         login_password: &quot;{{ mysql_root_password }}&quot;
+         name: root
+         host: &quot;{{ item }}&quot;
+         password: &quot;{{ mysql_root_password }}&quot;
+         check_implicit_admin: yes
+         priv: &quot;*.*:ALL,GRANT&quot;
+      with_items:
+         - &quot;{{ ansible_hostname }}&quot;
+         - 127.0.0.1
+         - ::1
+         - localhost
+    - name: remove test db
+      mysql_db:
+          login_user: root
+          login_password: &quot;{{ mysql_root_password }}&quot;
+          db: test
+          state: absent
+    - name: create a new db
+      mysql_db:
+          login_user: root
+          login_password: &quot;{{ mysql_root_password }}&quot;
+          name: &quot;{{ mysql_user_db_name }}&quot;
+          collation: &quot;{{ mysql_collation }}&quot;
+          encoding: &quot;{{ mysql_encoding }}&quot;
+          state: present
+    - name: delete anonymouse user
+      mysql_user:
+          login_user: root
+          login_password: &quot;{{ mysql_root_password }}&quot;
+          name: &quot;&quot;
+          host_all: yes
+          state: absent
+    - name: create a new user
+      mysql_user:
+          login_user: root
+          login_password: &quot;{{ mysql_root_password }}&quot;
+          name: &quot;{{ mysql_user }}&quot;
+          password: &quot;{{ mysql_user_password }}&quot;
+          priv: &quot;{{ mysql_user_db_name }}.*:ALL,GRANT&quot;
+          host: &quot;%&quot;
+          state: present
+</code></pre><p>=&gt; 설치 서버 마다 메모리가 다르고 서버 메모리의 60%를 innodb_buffer size로 설정하기로 했을때<br>
+set_fact 모듈로 buffer_pool_size 변수 설정 후<br>
+template 의 my.cnf.j2 에서 해당 변수를 innodb_buffer_size 에 설정하도록함</p>
+<h3 id="handler-">handler 생성</h3>
+<pre><code>---
+    - name: start mysql
+      systemd: 
+        name: mariadb
+        state: started
+</code></pre><p>=&gt; 위의 tasks 에서 copy my.cnf 완료 후 , notify 를 통해 handler 호출</p>
+<h3 id="-file-template-">배포할 file template 설정</h3>
+<pre><code>vi roles/mysql/templates/my.cnf.j2
+
+[client]
+port    = 3306
+socket    = /var/run/mysqld/mysqld.sock
+[mysqld_safe]
+socket    = /var/run/mysqld/mysqld.sock
+nice    = 0
+[mysqld]
+user    = mysql
+pid-file  = /var/run/mysqld/mysqld.pid
+socket    = /var/run/mysqld/mysqld.sock
+port    = 3306
+basedir    = /usr
+datadir    = /var/lib/mysql
+tmpdir    = /tmp
+lc_messages_dir  = /usr/share/mysql
+lc_messages  = en_US
+skip-external-locking
+bind-address    = {{ mysql_bind_address }}
+max_connections    = {{ mysql_max_connections }}
+connect_timeout    = 5
+wait_timeout    = 600
+max_allowed_packet  = 16M
+thread_cache_size       = 128
+sort_buffer_size  = 4M
+bulk_insert_buffer_size  = 16M
+tmp_table_size    = 32M
+max_heap_table_size  = 32M
+# * InnoDB
+default_storage_engine  = InnoDB
+# you can't just change log file size, requires special procedure
+#innodb_log_file_size  = 50M
+innodb_buffer_pool_size  = {{ buffer_pool_size | int }}M
+innodb_log_buffer_size  = 8M
+innodb_file_per_table  = 1
+innodb_open_files  = 400
+innodb_io_capacity  = 400
+innodb_flush_method  = O_DIRECT
+
+</code></pre><h3 id="playbook-">playbook 수행</h3>
+<pre><code>
+[root@8429d3d8f01b mysql]# ansible-playbook mysql_install.yaml
+
+PLAY [install] *************************
+
+TASK [Gathering Facts] *****************
+ok: [172.18.0.7]
+
+TASK [install epel-release] ************
+ok: [172.18.0.7]
+
+TASK [install mysql server] ************
+ok: [172.18.0.7]
+
+TASK [install python mysql support library] *************************
+ok: [172.18.0.7]
+
+TASK [set innodb_buffer size] ****************
+ok: [172.18.0.7]
+
+TASK [copy my.cnf] ****************************
+ok: [172.18.0.7]
+
+TASK [start mysql server] **************
+changed: [172.18.0.7]
+
+TASK [update mysql root password] ******
+changed: [172.18.0.7] =&gt; (item=19ae1de8bfb1)
+changed: [172.18.0.7] =&gt; (item=127.0.0.1)
+changed: [172.18.0.7] =&gt; (item=::1)
+changed: [172.18.0.7] =&gt; (item=localhost)
+[WARNING]: Module did not set no_log for update_password
+
+TASK [remove test db] ******************
+changed: [172.18.0.7]
+
+TASK [create a new db] *****************
+changed: [172.18.0.7]
+
+TASK [delete anonymouse user] **********
+changed: [172.18.0.7]
+
+TASK [create a new user] ***************
+changed: [172.18.0.7]
+
+PLAY RECAP *****************************
+172.18.0.7                 : ok=12   changed=6    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+
+
+
+[root@19ae1de8bfb1 ~]# mysql -uroot -p -S /var/lib/mysql/mysql.sock
+Enter password:
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 10
+Server version: 5.5.65-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+
+MariaDB [(none)]&gt; show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| ansible            |
+| mysql              |
+| performance_schema |
++--------------------+
+4 rows in set (0.01 sec)
+
+MariaDB [(none)]&gt; select user,host from mysql.user;
++---------+--------------+
+| user    | host         |
++---------+--------------+
+| ansible | %            |
+| root    | 127.0.0.1    |
+| root    | 19ae1de8bfb1 |
+| root    | ::1          |
+| root    | localhost    |
++---------+--------------+
+5 rows in set (0.00 sec)
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

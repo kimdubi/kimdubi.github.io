@@ -3,8 +3,29 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://kimdubi.github.io/etc/ansible2/</loc>
+    <lastmod>2020-05-23T15:04:30+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/etc/</loc>
+    <lastmod>2020-05-23T15:04:30+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-05-21T08:35:14+09:00</lastmod>
+    <lastmod>2020-05-23T15:04:30+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/etc/ansible/</loc>
+    <lastmod>2020-05-22T22:55:50+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
@@ -235,13 +256,6 @@
   
   <url>
     <loc>https://kimdubi.github.io/etc/docker-redis-cluster/</loc>
-    <lastmod>2020-01-09T11:25:53+09:00</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://kimdubi.github.io/etc/</loc>
     <lastmod>2020-01-09T11:25:53+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>

@@ -5,7 +5,7 @@
     <description>Recent content in Etcs on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 23 May 2020 15:04:30 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 23 May 2020 15:04:31 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/etc/index.xml" rel="self" type="application/rss+xml" />
     
@@ -13,7 +13,7 @@
     <item>
       <title>Ansible ROLE 사용하여 MySQL 설치</title>
       <link>https://kimdubi.github.io/etc/ansible2/</link>
-      <pubDate>Sat, 23 May 2020 15:04:30 +0900</pubDate>
+      <pubDate>Sat, 23 May 2020 15:04:31 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/etc/ansible2/</guid>
       <description>&lt;p&gt;ansible은 코드 재사용성, 클린 코드를 위해 &amp;ldquo;ROLE&amp;rdquo; 이라는 표준화 된 구성 기능을 제공합니다.&lt;br&gt;
@@ -62,6 +62,8 @@ mysql
         - vars/main.yml
      tasks:
         - include: tasks/install.yml
+     handlers:
+        - include: handlers/main.yml
 &lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;playbook----vars&#34;&gt;playbook에서 사용할 변수 설정 (vars)&lt;/h3&gt;
 &lt;pre&gt;&lt;code&gt;$ vi roles/mysql/vars/main.yml
 
@@ -77,7 +79,7 @@ mysql_user: ansible
 mysql_user_password: qhdks123
 BufferPoolPct: 0.6
 &lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;install-task-&#34;&gt;install task 설정&lt;/h3&gt;
-&lt;pre&gt;&lt;code&gt;$ vi roles/mysql/tasks/main.yml
+&lt;pre&gt;&lt;code&gt;$ vi roles/mysql/tasks/install.yml
 
 ---
     - name: install epel-release

@@ -3,22 +3,57 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://kimdubi.github.io/</loc>
+    <lastmod>2020-06-03T17:49:11+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/postgresql/psql_replication/</loc>
+    <lastmod>2020-06-03T17:49:11+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/postgresql/</loc>
+    <lastmod>2020-06-03T17:49:11+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/postgresql/psql_conf/</loc>
+    <lastmod>2020-06-02T16:30:28+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/postgresql/psql_install/</loc>
+    <lastmod>2020-06-02T16:23:46+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/postgresql/psql_architecture/</loc>
+    <lastmod>2020-06-02T15:50:45+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
     <loc>https://kimdubi.github.io/etc/ansible2/</loc>
-    <lastmod>2020-05-23T15:04:30+09:00</lastmod>
+    <lastmod>2020-05-23T15:04:31+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
     <loc>https://kimdubi.github.io/etc/</loc>
-    <lastmod>2020-05-23T15:04:30+09:00</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-05-23T15:04:30+09:00</lastmod>
+    <lastmod>2020-05-23T15:04:31+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
@@ -354,6 +389,12 @@
   
   <url>
     <loc>https://kimdubi.github.io/categories/</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/post/</loc>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>

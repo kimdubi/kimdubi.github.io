@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>PostgreSQL source compile install</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">PostgreSQL source compile install</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>PostgreSQL source compile install</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>간단하게 yum install 할 수도 있지만<br>
+디렉토리 구성 등을 기본 default 설정과는 다르게 구성하여 관리하고 싶어
+source 파일을 다운받아 컴파일 설치하는 식으로 구성해봤습니다.<br>
+때문에 여기서의 디렉토리는 default 설정이 아닌 제 임의로 설정한 구성입니다.</p>
+<h2 id="postgresql--">postgresql 버전 확인</h2>
+<ul>
+<li><a href="https://www.postgresql.org/ftp/source/">https://www.postgresql.org/ftp/source/</a></li>
+</ul>
+<h2 id="heading">설치</h2>
+<ul>
+<li>directory 생성 (kimdubi 계정)</li>
+</ul>
+<pre><code>mkdir -p /home1/kimdubi/psql/engn/    =&gt; PostgreSQL engine 영역
+mkdir -p /home1/kimdubi/psql/data/testdb  =&gt; tablespace 등data 저장공간
+mkdir -p /home1/kimdubi/psql/logs/testdb/error_log  =&gt; error log 
+mkdir -p /home1/kimdubi/psql/arch/testdb  =&gt; pg_wal 아카이빙하는 공간
+</code></pre><ul>
+<li>11.7 버전 download &amp; 압축해제</li>
+</ul>
+<pre><code>[kimdubi@testserver 15:34:53 ~/psql/engn ]$ pwd
+/home1/kimdubi/psql/engn
+
+wget https://ftp.postgresql.org/pub/source/v11.7/postgresql-11.7.tar.gz
+tar zxvpf postgresql-11.7.tar.gz
+</code></pre><ul>
+<li>make install</li>
+</ul>
+<pre><code>[kimdubi@testserver 20:09:06 ~/psql/engn/postgresql-11.7 ]$ pwd
+/home1/kimdubi/psql/engn/postgresql-11.7
+
+
+./configure --prefix=/home1/kimdubi/psql/engn/postgresql-11.7/ --enable-depend --enable-nls=utf8 --with-python
+make
+make install
+</code></pre><ul>
+<li>DB 설치</li>
+</ul>
+<pre><code>[kimdubi@testserver 20:07:47 ~/psql/engn/postgresql-11.7/bin ]$ pwd
+/home1/kimdubi/psql/engn/postgresql-11.7/bin
+
+### initdb 커맨드 수행 -D datadir
+ ./initdb -E utf8 -D /home1/kimdubi/psql/engn/PGSQL/ 
+ 
+ 
+ ### 설치 수행 로그
+
+The files belonging to this database system will be owned by user &quot;kimdubi&quot;.
+This user must also own the server process.
+
+The database cluster will be initialized with locale &quot;C&quot;.
+The default text search configuration will be set to &quot;english&quot;.
+
+Data page checksums are disabled.
+
+fixing permissions on existing directory /home1/kimdubi/psql/engn/PGSQL ... ok
+creating subdirectories ... ok
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default timezone ... ROK
+selecting dynamic shared memory implementation ... posix
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+WARNING: enabling &quot;trust&quot; authentication for local connections
+You can change this by editing pg_hba.conf or using the option -A, or
+--auth-local and --auth-host, the next time you run initdb.
+
+Success. You can now start the database server using:
+
+    ./pg_ctl -D /home1/kimdubi/psql/engn/PGSQL/ -l logfile start
+
+
+</code></pre><ul>
+<li>설치 확인 &amp; 파라미터 수정</li>
+</ul>
+<pre><code>[kimdubi@testserver 10:39:21 ~/psql/engn/PGSQL ]$ pwd
+/home1/kimdubi/psql/engn/PGSQL
+
+[kimdubi@testserver 10:39:33 ~/psql/engn/PGSQL ]$ ls
+PG_VERSION  pg_commit_ts  pg_ident.conf  pg_notify    pg_snapshots  pg_subtrans  pg_wal                postgresql.conf
+base        pg_dynshmem   pg_logical     pg_replslot  pg_stat       pg_tblspc    pg_xact
+global      pg_hba.conf   pg_multixact   pg_serial    pg_stat_tmp   pg_twophase  postgresql.auto.conf
+
+
+vi postgresql.conf
+
+vi ~./bash_profile
+
+vi pg_hba.conf
+</code></pre><p>=&gt; oracle 설치와 비슷하게 엔진 설치 후 parameter 파일 설정 &amp; DB 기동하는 순서</p>
+<ul>
+<li>DB 기동</li>
+</ul>
+<pre><code>[kimdubi@testserver 10:49:59 ~/psql/engn/postgresql-11.7/bin ]$ pg_ctl -D /home1/kimdubi/psql/engn/PGSQL/ start
+waiting for server to start....2020-04-07 01:50:00 GMT LOG:  listening on IPv4 address &quot;0.0.0.0&quot;, port 3000
+2020-04-07 01:50:00 GMT LOG:  listening on IPv6 address &quot;::&quot;, port 3000
+2020-04-07 01:50:00 GMT LOG:  listening on Unix socket &quot;/tmp/.s.PGSQL.3000&quot;
+2020-04-07 01:50:00 GMT LOG:  redirecting log output to logging collector process
+2020-04-07 01:50:00 GMT HINT:  Future log output will appear in directory &quot;/home1/kimdubi/psql/logs/testdb/error_log&quot;.
+ done
+server started
+
+[kimdubi@testserver 10:50:26 ~/psql/engn/postgresql-11.7/bin ]$ pg_ctl -D /home1/kimdubi/psql/engn/PGSQL/ status
+pg_ctl: server is running (PID: 13079)
+/home1/kimdubi/psql/engn/postgresql-11.7/bin/postgres &quot;-D&quot; &quot;/home1/kimdubi/psql/engn/PGSQL&quot;
+
+</code></pre><h2 id="--">생성 후 작업</h2>
+<ul>
+<li>tablespace / database 생성</li>
+</ul>
+<pre><code>### TABLESPACE 생성
+-. OS 디렉토리 생성
+mkdir -p /home1/kimdubi/psql/data/testdb/TS_USER
+mkdir -p /home1/kimdubi/psql/data/testdb/TS_TEMP
+mkdir -p /home1/kimdubi/psql/data/testdb/TS_TEST_D
+mkdir -p /home1/kimdubi/psql/indx/testdb/TS_TEST_I
+
+-. DB tablespace 생성
+postgres=# create tablespace TS_USER location '/home1/kimdubi/psql/data/testdb/TS_USER';
+postgres=# create tablespace TS_TEMP location '/home1/kimdubi/psql/data/testdb/TS_TEMP';
+postgres=# create tablespace TS_TEST_D location '/home1/kimdubi/psql/data/testdb/TS_TEST_D';
+postgres=# create tablespace TS_TEST_I location '/home1/kimdubi/psql/indx/testdb/TS_TEST_I';
+</code></pre><ul>
+<li>USER 생성
+=&gt; 복잡하지만 서비스용 schema, user를 별도로 생성했습니다.<br>
+보안 및 권한으로 인한 장애를 막기 위함인데요<br>
+PostgreSQL은 ORACLE / MySQL 과 user,role,schema 개념이 조금 달라 헷갈릴 수 있습니다.
+이 부분은 다음 시간에 별도로 다루겠습니다.</li>
+</ul>
+<pre><code>### 서비스 계정
+
+create role testuser login password '!dlatl00' noinherit valid until 'infinity';
+create schema testuser authorization testuser;
+alter role testuser set default_tablespace=ts_test_d;
+grant create on tablespace ts_test_d to testuser;
+grant create on tablespace ts_test_i to testuser;
+grant create on tablespace ts_temp to testuser;
+
+###
+postgres=# create database testdb  tablespace='ts_test_d' with owner kimdubi;
+CREATE DATABASE
+</code></pre><ul>
+<li>권한 설정</li>
+</ul>
+<pre><code>### super user로 db 접속
+testdb=&gt; \c testdb kimdubi
+
+### 다른 계정의 접근 차단 및 public schema 사용 권한 회수
+testdb=# revoke all on database testdb from public;
+testdb=# revoke all on schema public from public;
+
+### 서비스계정에 권한 추가
+testdb=# create schema testuser authorization testuser;
+
+grant connect,temporary on database testdb to testuser;
+grant usage on schema testuser to testuser;
+grant select,insert,update,delete on all tables in schema testuser to testuser;
+grant usage on all sequences in schema testuser to testuser;
+alter default privileges in schema testuser grant select,insert,update,delete on tables to testuser;
+alter default privileges in schema testuser grant usage on sequences to testuser;
+
+### 새로운 계정 추가되는 경우
+create role new_testuser login password '!dlatl00' noinherit valid until 'infinity';
+grant connect,temporary on database testdb to new_testuser;
+grant usage on schema testuser to new_testuser;
+grant select,insert,update,delete on all tables in schema testuser to new_testuser;
+
+DB 접속 권한 확인 =&gt; schema usage 권한 확인 =&gt; 각 개별 테이블 권한 확인
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

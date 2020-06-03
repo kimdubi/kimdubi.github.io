@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>PostgreSQL configure 설정</title>
+        
+        <style>
+
+    html body {
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">PostgreSQL configure 설정</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>PostgreSQL configure 설정</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>yum 설치가 아닌 source make 설치라 디렉토리 구성 등이 다를 수 있습니다.</p>
+<h3 id="bashprofile">bash_profile</h3>
+<pre><code>$ vi ~/.bash_profile
+
+export POSTGRES_HOME=/home1/kimdubi/psql/engn/postgresql-11.7
+export PGLIB=$POSTGRES_HOME/lib
+export PGDATA=/home1/kimdubi/psql/engn/PGSQL
+export MANPATH=$MANPATH:$POSTGRES_HOME/man
+
+export PATH=$POSTGRES_HOME/bin:$PATH
+</code></pre><h3 id="postgresqlconf">postgresql.conf</h3>
+<pre><code>#------------------------------------------------------------------------------
+# CONNECTIONS AND AUTHENTICATION
+#------------------------------------------------------------------------------
+
+# - Connection Settings -
+listen_addresses = '*'
+port = 3000
+max_connections = 1000
+
+#------------------------------------------------------------------------------
+# RESOURCE USAGE (except WAL)
+#------------------------------------------------------------------------------
+
+# - Memory -
+shared_buffers = 1024MB    
+work_mem = 4MB   
+maintenance_work_mem = 512MB 
+
+dynamic_shared_memory_type = posix
+effective_io_concurrency = 200
+
+max_worker_processes=8
+max_parallel_workers_per_gather = 2
+max_parallel_workers = 8
+
+#------------------------------------------------------------------------------
+# WRITE AHEAD LOG
+#------------------------------------------------------------------------------
+
+# - Settings -
+wal_level = logical
+wal_buffers = 2MB
+max_wal_size = 1GB
+
+# - Archiving -
+archive_mode = on
+archive_command = 'cp %p /home1/kimdubi/psql/arch/testdb/%f'
+
+#------------------------------------------------------------------------------
+# QUERY TUNING
+#------------------------------------------------------------------------------
+
+random_page_cost = 1.1
+default_statistics_target = 100
+effective_cache_size = 3GB   # max. Physical M * 0.75
+
+#------------------------------------------------------------------------------
+# ERROR REPORTING AND LOGGING
+#------------------------------------------------------------------------------
+
+# - Where to Log -
+log_destination = 'stderr'
+logging_collector = on
+log_directory = '/home1/kimdubi/psql/logs/testdb/error_log'
+log_filename = 'alert_testdb.log'
+
+# - What to Log -
+log_line_prefix = '%t '
+
+#------------------------------------------------------------------------------
+# CLIENT CONNECTION DEFAULTS
+#------------------------------------------------------------------------------
+
+# - Statement Behavior -
+search_path = '&quot;$user&quot;'
+temp_tablespaces = 'TS_TEMP'
+
+timezone='Asia/Seoul'
+lc_messages = 'en_US.UTF-8' 
+lc_monetary = 'en_US.UTF-8' 
+lc_numeric = 'en_US.UTF-8' 
+lc_time = 'en_US.UTF-8' 
+default_text_search_config = 'pg_catalog.english'
+
+</code></pre><ul>
+<li>shared_buffer : data buffer , 전체 서버 메모리의 1/4 ~ 1/3 권장</li>
+<li>work_mem : sort,hash join 등 query 수행 시 사용하는 session memory, tempfile 생성이 많으면 더 크게 설정 필요</li>
+<li>maintenance_work_mem : vacuum, create index 에 사용되는 메모리, 전체 서버 메모리의 1/16 ~ 2GB(max)</li>
+<li>max_worker_processes : scan, group by, join 작업에 병렬처리를 지원함. parallel 처리를 수행하는 worker 프로세스의 최대 개수</li>
+<li>max_parallel_workers_per_gather : 하나의 쿼리 당 수행 가능한 최대 worker 프로세스 개수 (defalut 0 - parallel 처리 수행 안함)</li>
+<li>wal_level : WAL 파일에 기록되는 정보의 수준 설정 , mysql 로 비교하면 logical - ROW, replica - MIXED</li>
+<li>wal_buffers : 트랜잭션 로그(WAL log) 버퍼 , shared_buffers 의 1/32 권장</li>
+<li>archive_command : WAL file을 아카이브할 때 사용할 커맨드, %p 는 WAL 로그파일의 절대경로 %f 는 보관할 로그파일 이름</li>
+<li>random_page_cost : random I/O cost 추정값으로 높으면 풀스캔 선호, 상대적으로 줄이면 인덱스 스캔을 선호함 default 4.0</li>
+<li>effective_cache_size : query planner 에게 가용한 caching data의 크기를 알려줘서 cost 예측에 도움을 주는 설정.
+값이 높다고 그만큼 memory를 점유하진 않고 index scan을 할 가능성이 높아짐, 전체 메모리의 3/4 권장 default 4GB</li>
+</ul>
+<h3 id="pghbaconf">pg_hba.conf</h3>
+<pre><code># TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# &quot;local&quot; is for Unix domain socket connections only
+local   all             all                                     trust
+# IPv4 local connections:
+host    all             all             127.0.0.1/32            trust
+# IPv6 local connections:
+host    all             all             ::1/128                 trust
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+local   replication     all                                     trust
+host    replication     all             127.0.0.1/32            trust
+host    replication     all             ::1/128                 trust
+</code></pre><p>=&gt; postgresql 접속 인증 관련 설정으로 oracle 의 sqlnet.ora , cubrid의 broker.access &amp; iplist 파일, mysql의 user@host 와 같은 개념</p>
+<ul>
+<li>예시 1) local 에서 모든 유저가 패스워드없이 (trust) 모든 데이터베이스에 접속 허용</li>
+</ul>
+<pre><code># TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             all                                     trust
+</code></pre><ul>
+<li>예시 2) 111.111.11.x 대역의 모든 호스트는 testdb DB에 testuser 계정으로 md5 인증방식으로만 접속 허용</li>
+</ul>
+<pre><code># TYPE  DATABASE        USER            ADDRESS                 METHOD
+  host   testdb         testuser        111.111.11.0/24           md5
+</code></pre><h3 id="-">참고 사이트</h3>
+<ul>
+<li><a href="https://www.postgresql.org/docs/11/index.html">https://www.postgresql.org/docs/11/index.html</a></li>
+<li><a href="https://postgresql.kr/blog/simple_postgresql_conf.html">https://postgresql.kr/blog/simple_postgresql_conf.html</a></li>
+</ul>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

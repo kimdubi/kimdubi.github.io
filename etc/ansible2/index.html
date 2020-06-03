@@ -175,6 +175,8 @@ mysql
         - vars/main.yml
      tasks:
         - include: tasks/install.yml
+     handlers:
+        - include: handlers/main.yml
 </code></pre><h3 id="playbook----vars">playbook에서 사용할 변수 설정 (vars)</h3>
 <pre><code>$ vi roles/mysql/vars/main.yml
 
@@ -190,7 +192,7 @@ mysql_user: ansible
 mysql_user_password: qhdks123
 BufferPoolPct: 0.6
 </code></pre><h3 id="install-task-">install task 설정</h3>
-<pre><code>$ vi roles/mysql/tasks/main.yml
+<pre><code>$ vi roles/mysql/tasks/install.yml
 
 ---
     - name: install epel-release

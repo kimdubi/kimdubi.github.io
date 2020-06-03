@@ -5,15 +5,24 @@
     <description>Recent content on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 23 May 2020 15:04:30 +0900</lastBuildDate>
+    <lastBuildDate>Wed, 03 Jun 2020 17:49:11 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
+      <title>Postgresqls</title>
+      <link>https://kimdubi.github.io/postgresql/</link>
+      <pubDate>Wed, 03 Jun 2020 17:49:11 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>Etcs</title>
       <link>https://kimdubi.github.io/etc/</link>
-      <pubDate>Sat, 23 May 2020 15:04:30 +0900</pubDate>
+      <pubDate>Sat, 23 May 2020 15:04:31 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/etc/</guid>
       <description></description>
@@ -57,10 +66,10 @@
     
     <item>
       <title>Posts</title>
-      <link></link>
+      <link>https://kimdubi.github.io/post/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid></guid>
+      <guid>https://kimdubi.github.io/post/</guid>
       <description></description>
     </item>
     

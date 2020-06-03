@@ -1,0 +1,567 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Postgresqls on kimDuBiA</title>
+    <link>https://kimdubi.github.io/postgresql/</link>
+    <description>Recent content in Postgresqls on kimDuBiA</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 03 Jun 2020 17:49:11 +0900</lastBuildDate>
+    
+        <atom:link href="https://kimdubi.github.io/postgresql/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>PostgreSQL Replication 설정-Streaming Replication</title>
+      <link>https://kimdubi.github.io/postgresql/psql_replication/</link>
+      <pubDate>Wed, 03 Jun 2020 17:49:11 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/psql_replication/</guid>
+      <description>&lt;h2 id=&#34;replication-&#34;&gt;REPLICATION 방식&lt;/h2&gt;
+&lt;h3 id=&#34;log-shipping&#34;&gt;log shipping&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_repl1.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;file-based 복제로 master의 WAL file이 생성되면 이 파일을 scp를 통해 standby서버로 전달하여 반영함&lt;/li&gt;
+&lt;li&gt;wal file이 생길 때 까지 replication gap 이 발생할 수 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;logical-replication&#34;&gt;logical replication&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_repl2.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;pub / sub 구조로 양방향 replication 가능&lt;/li&gt;
+&lt;li&gt;특정 테이블만 복제하는 partial replication 가능&lt;/li&gt;
+&lt;li&gt;DDL 복제는 안되기 때문에 각각 수행해줘야함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;streaming-replication&#34;&gt;streaming replication&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_repl3.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Master는 standyby 에게 transaction log entires 를 전달하고 standby 는 WAL file을 기다리지 않고 record 단위로 복제 수행&lt;/li&gt;
+&lt;li&gt;일반적으로 가장 많이 사용되는 복제 방식&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;streaming-replication-&#34;&gt;streaming replication 설정&lt;/h2&gt;
+&lt;h3 id=&#34;1-replication--user--master&#34;&gt;1. replication 용 user 생성 (master)&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# create user repl replication password &#39;qhdks123&#39;;
+CREATE ROLE
+
+postgres=# \du
+                                   List of roles
+ Role name |                         Attributes                         | Member of
+-----------+------------------------------------------------------------+-----------
+ kimdubi    | Superuser, Create role, Create DB, Replication, Bypass RLS | {}
+ repl      | Replication                                                | {}
+ testuser  | No inheritance                                            +| {}
+           | Password valid until infinity                              |
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;2-postgresqlconf--master&#34;&gt;2. postgresql.conf 수정 (master)&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;vi /home1/kimdubi/psql/engn/PGSQL/postgresql.conf&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;wal_level = logical 또는 hot_standby
+archive_mode = on
+archive_command = &#39;cp %p /home1/kimdubi/psql/arch/testdb/%f&#39;
+#max_wal_senders = 10
+#max_replication_slots = 10 
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;쌓이는 archive logfile은 아래와 같이 정리 필요&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;pg_archivecleanup /home1/kimdubi/psql/arch/testdb 000000010000000000000081.00000028.backup
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt;  xxxx.backup 이전의 아카이브 파일 모두 삭제&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;postgresql.conf 수정 후 reload&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;pg_ctl reload -D /home1/kimdubi/psql/engn/PGSQL
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;3-pghbaconf--master&#34;&gt;3. pg_hba.conf 수정 (master)&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;vi /home1/kimdubi/psql/engn/PGSQL/postgresql.conf  아래 내용 추가&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;host    replication     repl             10.161.78.34/32            md5
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; standby server (10.161.78.34) 에서 repl USER로 replication을 위해 오는 커넥션 요청은 md5로 인증해서 허가함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;pg_hba.conf 수정 후 reload&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;pg_ctl reload -D /home1/kimdubi/psql/engn/PGSQL
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;4-replication-slot--master&#34;&gt;4. replication slot 생성 (master)&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;
+postgres=# SELECT * FROM pg_create_physical_replication_slot(&#39;repl_slot_01&#39;);
+  slot_name   | lsn
+--------------+-----
+ repl_slot_01 |
+(1 row)
+
+postgres=# select * from pg_replication_slots;
+  slot_name   | plugin | slot_type | datoid | database | temporary | active | active_pid | xmin | catalog_xmin | restart_lsn | confirme
+d_flush_lsn
+--------------+--------+-----------+--------+----------+-----------+--------+------------+------+--------------+-------------+---------
+------------
+ repl_slot_01 |        | physical  |        |          | f         | f      |            |      |              |             |
+(1 row)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; standby 서버가 replication을 따라가지 못하는 경우를 대비하여 WAL 로그를 replication_slot에 두고 보관하겠다는 의미&lt;br&gt;
+replication_slot을 사용하면 wal_keep_segments 설정이 필요없음&lt;/p&gt;
+&lt;h3 id=&#34;5-primary-db-server-copy-standby&#34;&gt;5. Primary DB server copy (standby)&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;### 기존 data 영역 삭제 
+[kimdubi@testserver2 15:37:09 ~/psql/engn ]$ rm -rf /home1/kimdubi/psql/engn/PGSQL
+
+### Primary server =&amp;gt; standby server copy
+
+[kimdubi@testserver2 15:40:06 ~/psql/engn ]$ pg_basebackup -h 11.111.11.11 -p3000 -D /home1/kimdubi/psql/engn/PGSQL -U repl -P -v -X stream
+Password:
+
+
+pg_basebackup: initiating base backup, waiting for checkpoint to complete
+pg_basebackup: checkpoint completed
+pg_basebackup: write-ahead log start point: 0/6000028 on timeline 1
+pg_basebackup: starting background WAL receiver
+pg_basebackup: created temporary replication slot &amp;quot;pg_basebackup_64119&amp;quot;
+31584/31584 kB (100%), 5/5 tablespaces
+pg_basebackup: write-ahead log end point: 0/60000F8
+pg_basebackup: waiting for background process to finish streaming ...
+pg_basebackup: base backup completed
+
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;pg_basebackup -h primary_host -p primary_port -D PGDATA -U replication user&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;6-recoveryconf--standby&#34;&gt;6. recovery.conf 설정 (standby)&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;vi /home1/kimdubi/psql/engn/PGSQL/recovery.conf&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;standby_mode = on
+primary_conninfo=&#39;host=11.111.11.11 port=3000 user=repl password=qhdks123&#39;
+primary_slot_name=&#39;repl_slot_01&#39;
+#trigger_file=&#39;/home1/kimdubi/psql/engn/PGSQL/failover_trigger&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;7-db--standby&#34;&gt;7. DB 기동 (standby)&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;[kimdubi@testserver2 15:45:23 ~/psql/engn/PGSQL ]$ pg_ctl -D /home1/kimdubi/psql/engn/PGSQL start
+
+waiting for server to start....2020-04-08 06:45:25 GMT LOG:  listening on IPv4 address &amp;quot;0.0.0.0&amp;quot;, port 3000
+2020-04-08 06:45:25 GMT LOG:  listening on IPv6 address &amp;quot;::&amp;quot;, port 3000
+2020-04-08 06:45:25 GMT LOG:  listening on Unix socket &amp;quot;/tmp/.s.PGSQL.3000&amp;quot;
+2020-04-08 06:45:25 GMT LOG:  redirecting log output to logging collector process
+2020-04-08 06:45:25 GMT HINT:  Future log output will appear in directory &amp;quot;/home1/kimdubi/psql/logs/testdb/error_log&amp;quot;.
+ done
+server started
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;8-replication-&#34;&gt;8. replication 확인&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;master&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# \x
+Expanded display is on.
+postgres=# select * from pg_stat_replication;
+-[ RECORD 1 ]----+-----------------------------
+pid              | 65010
+usesysid         | 16396
+usename          | repl
+application_name | walreceiver
+client_addr      | 22.222.22.22
+client_hostname  |
+client_port      | 56754
+backend_start    | 2020-04-08 16:05:07.00658+09
+backend_xmin     |
+state            | streaming
+sent_lsn         | 0/B015A10
+write_lsn        | 0/B015A10
+flush_lsn        | 0/B015A10
+replay_lsn       | 0/B015A10
+write_lag        |
+flush_lag        |
+replay_lag       |
+sync_priority    | 0
+sync_state       | async
+
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;slave&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### error_log 
+
+2020-04-08 07:05:07 GMT LOG:  started streaming WAL from primary at 0/B000000 on timeline 1
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;replication delay 확인 (slave에서 조회)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;SELECT CASE WHEN pg_last_wal_receive_lsn() = pg_last_wal_replay_lsn()
+THEN 0
+ELSE EXTRACT (EPOCH FROM now() - pg_last_xact_replay_timestamp())
+END AS log_delay;
+
+
+ log_delay
+-----------
+         0
+(1 row)
+
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;replication----&#34;&gt;replication 구성 중 발생가능 에러&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;standby =&amp;gt; primary 접근 권한 없을 때&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;2020-04-08 15:23:50.883 KST [44534] FATAL:  could not connect to the primary server: FATAL:  no pg_hba.conf entry for replication connection from host &amp;quot;22.222.22.22&amp;quot;, user &amp;quot;repl&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt;  primary server의 접근허용 리스트에 standby 서버 정보가 없는 경우 발생함
+primary에서 pg_hba.conf 에 standby 서버 추가 후 reload&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;standby 서버 초기화 안했을 때&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;2020-04-08 15:26:51.084 KST [44642] FATAL:  database system identifier differs between the primary and standby
+2020-04-08 15:26:51.084 KST [44642] DETAIL:  The primary&#39;s identifier is 6812776914427724112, the standby&#39;s identifier is 6813221629551992171.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; standby 서버 $PGDATA 영역 삭제 후 다시 pg_basebackup 수행&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL configure 설정</title>
+      <link>https://kimdubi.github.io/postgresql/psql_conf/</link>
+      <pubDate>Tue, 02 Jun 2020 16:30:28 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/psql_conf/</guid>
+      <description>&lt;p&gt;yum 설치가 아닌 source make 설치라 디렉토리 구성 등이 다를 수 있습니다.&lt;/p&gt;
+&lt;h3 id=&#34;bashprofile&#34;&gt;bash_profile&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ vi ~/.bash_profile
+
+export POSTGRES_HOME=/home1/kimdubi/psql/engn/postgresql-11.7
+export PGLIB=$POSTGRES_HOME/lib
+export PGDATA=/home1/kimdubi/psql/engn/PGSQL
+export MANPATH=$MANPATH:$POSTGRES_HOME/man
+
+export PATH=$POSTGRES_HOME/bin:$PATH
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;postgresqlconf&#34;&gt;postgresql.conf&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;#------------------------------------------------------------------------------
+# CONNECTIONS AND AUTHENTICATION
+#------------------------------------------------------------------------------
+
+# - Connection Settings -
+listen_addresses = &#39;*&#39;
+port = 3000
+max_connections = 1000
+
+#------------------------------------------------------------------------------
+# RESOURCE USAGE (except WAL)
+#------------------------------------------------------------------------------
+
+# - Memory -
+shared_buffers = 1024MB    
+work_mem = 4MB   
+maintenance_work_mem = 512MB 
+
+dynamic_shared_memory_type = posix
+effective_io_concurrency = 200
+
+max_worker_processes=8
+max_parallel_workers_per_gather = 2
+max_parallel_workers = 8
+
+#------------------------------------------------------------------------------
+# WRITE AHEAD LOG
+#------------------------------------------------------------------------------
+
+# - Settings -
+wal_level = logical
+wal_buffers = 2MB
+max_wal_size = 1GB
+
+# - Archiving -
+archive_mode = on
+archive_command = &#39;cp %p /home1/kimdubi/psql/arch/testdb/%f&#39;
+
+#------------------------------------------------------------------------------
+# QUERY TUNING
+#------------------------------------------------------------------------------
+
+random_page_cost = 1.1
+default_statistics_target = 100
+effective_cache_size = 3GB   # max. Physical M * 0.75
+
+#------------------------------------------------------------------------------
+# ERROR REPORTING AND LOGGING
+#------------------------------------------------------------------------------
+
+# - Where to Log -
+log_destination = &#39;stderr&#39;
+logging_collector = on
+log_directory = &#39;/home1/kimdubi/psql/logs/testdb/error_log&#39;
+log_filename = &#39;alert_testdb.log&#39;
+
+# - What to Log -
+log_line_prefix = &#39;%t &#39;
+
+#------------------------------------------------------------------------------
+# CLIENT CONNECTION DEFAULTS
+#------------------------------------------------------------------------------
+
+# - Statement Behavior -
+search_path = &#39;&amp;quot;$user&amp;quot;&#39;
+temp_tablespaces = &#39;TS_TEMP&#39;
+
+timezone=&#39;Asia/Seoul&#39;
+lc_messages = &#39;en_US.UTF-8&#39; 
+lc_monetary = &#39;en_US.UTF-8&#39; 
+lc_numeric = &#39;en_US.UTF-8&#39; 
+lc_time = &#39;en_US.UTF-8&#39; 
+default_text_search_config = &#39;pg_catalog.english&#39;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;shared_buffer : data buffer , 전체 서버 메모리의 1/4 ~ 1/3 권장&lt;/li&gt;
+&lt;li&gt;work_mem : sort,hash join 등 query 수행 시 사용하는 session memory, tempfile 생성이 많으면 더 크게 설정 필요&lt;/li&gt;
+&lt;li&gt;maintenance_work_mem : vacuum, create index 에 사용되는 메모리, 전체 서버 메모리의 1/16 ~ 2GB(max)&lt;/li&gt;
+&lt;li&gt;max_worker_processes : scan, group by, join 작업에 병렬처리를 지원함. parallel 처리를 수행하는 worker 프로세스의 최대 개수&lt;/li&gt;
+&lt;li&gt;max_parallel_workers_per_gather : 하나의 쿼리 당 수행 가능한 최대 worker 프로세스 개수 (defalut 0 - parallel 처리 수행 안함)&lt;/li&gt;
+&lt;li&gt;wal_level : WAL 파일에 기록되는 정보의 수준 설정 , mysql 로 비교하면 logical - ROW, replica - MIXED&lt;/li&gt;
+&lt;li&gt;wal_buffers : 트랜잭션 로그(WAL log) 버퍼 , shared_buffers 의 1/32 권장&lt;/li&gt;
+&lt;li&gt;archive_command : WAL file을 아카이브할 때 사용할 커맨드, %p 는 WAL 로그파일의 절대경로 %f 는 보관할 로그파일 이름&lt;/li&gt;
+&lt;li&gt;random_page_cost : random I/O cost 추정값으로 높으면 풀스캔 선호, 상대적으로 줄이면 인덱스 스캔을 선호함 default 4.0&lt;/li&gt;
+&lt;li&gt;effective_cache_size : query planner 에게 가용한 caching data의 크기를 알려줘서 cost 예측에 도움을 주는 설정.
+값이 높다고 그만큼 memory를 점유하진 않고 index scan을 할 가능성이 높아짐, 전체 메모리의 3/4 권장 default 4GB&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;pghbaconf&#34;&gt;pg_hba.conf&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# &amp;quot;local&amp;quot; is for Unix domain socket connections only
+local   all             all                                     trust
+# IPv4 local connections:
+host    all             all             127.0.0.1/32            trust
+# IPv6 local connections:
+host    all             all             ::1/128                 trust
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+local   replication     all                                     trust
+host    replication     all             127.0.0.1/32            trust
+host    replication     all             ::1/128                 trust
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; postgresql 접속 인증 관련 설정으로 oracle 의 sqlnet.ora , cubrid의 broker.access &amp;amp; iplist 파일, mysql의 user@host 와 같은 개념&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;예시 1) local 에서 모든 유저가 패스워드없이 (trust) 모든 데이터베이스에 접속 허용&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;# TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             all                                     trust
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;예시 2) 111.111.11.x 대역의 모든 호스트는 testdb DB에 testuser 계정으로 md5 인증방식으로만 접속 허용&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;# TYPE  DATABASE        USER            ADDRESS                 METHOD
+  host   testdb         testuser        111.111.11.0/24           md5
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;-&#34;&gt;참고 사이트&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.postgresql.org/docs/11/index.html&#34;&gt;https://www.postgresql.org/docs/11/index.html&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://postgresql.kr/blog/simple_postgresql_conf.html&#34;&gt;https://postgresql.kr/blog/simple_postgresql_conf.html&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL source compile install</title>
+      <link>https://kimdubi.github.io/postgresql/psql_install/</link>
+      <pubDate>Tue, 02 Jun 2020 16:23:46 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/psql_install/</guid>
+      <description>&lt;p&gt;간단하게 yum install 할 수도 있지만&lt;br&gt;
+디렉토리 구성 등을 기본 default 설정과는 다르게 구성하여 관리하고 싶어
+source 파일을 다운받아 컴파일 설치하는 식으로 구성해봤습니다.&lt;br&gt;
+때문에 여기서의 디렉토리는 default 설정이 아닌 제 임의로 설정한 구성입니다.&lt;/p&gt;
+&lt;h2 id=&#34;postgresql--&#34;&gt;postgresql 버전 확인&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.postgresql.org/ftp/source/&#34;&gt;https://www.postgresql.org/ftp/source/&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;heading&#34;&gt;설치&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;directory 생성 (kimdubi 계정)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mkdir -p /home1/kimdubi/psql/engn/    =&amp;gt; PostgreSQL engine 영역
+mkdir -p /home1/kimdubi/psql/data/testdb  =&amp;gt; tablespace 등data 저장공간
+mkdir -p /home1/kimdubi/psql/logs/testdb/error_log  =&amp;gt; error log 
+mkdir -p /home1/kimdubi/psql/arch/testdb  =&amp;gt; pg_wal 아카이빙하는 공간
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;11.7 버전 download &amp;amp; 압축해제&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[kimdubi@testserver 15:34:53 ~/psql/engn ]$ pwd
+/home1/kimdubi/psql/engn
+
+wget https://ftp.postgresql.org/pub/source/v11.7/postgresql-11.7.tar.gz
+tar zxvpf postgresql-11.7.tar.gz
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;make install&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[kimdubi@testserver 20:09:06 ~/psql/engn/postgresql-11.7 ]$ pwd
+/home1/kimdubi/psql/engn/postgresql-11.7
+
+
+./configure --prefix=/home1/kimdubi/psql/engn/postgresql-11.7/ --enable-depend --enable-nls=utf8 --with-python
+make
+make install
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;DB 설치&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[kimdubi@testserver 20:07:47 ~/psql/engn/postgresql-11.7/bin ]$ pwd
+/home1/kimdubi/psql/engn/postgresql-11.7/bin
+
+### initdb 커맨드 수행 -D datadir
+ ./initdb -E utf8 -D /home1/kimdubi/psql/engn/PGSQL/ 
+ 
+ 
+ ### 설치 수행 로그
+
+The files belonging to this database system will be owned by user &amp;quot;kimdubi&amp;quot;.
+This user must also own the server process.
+
+The database cluster will be initialized with locale &amp;quot;C&amp;quot;.
+The default text search configuration will be set to &amp;quot;english&amp;quot;.
+
+Data page checksums are disabled.
+
+fixing permissions on existing directory /home1/kimdubi/psql/engn/PGSQL ... ok
+creating subdirectories ... ok
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default timezone ... ROK
+selecting dynamic shared memory implementation ... posix
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+WARNING: enabling &amp;quot;trust&amp;quot; authentication for local connections
+You can change this by editing pg_hba.conf or using the option -A, or
+--auth-local and --auth-host, the next time you run initdb.
+
+Success. You can now start the database server using:
+
+    ./pg_ctl -D /home1/kimdubi/psql/engn/PGSQL/ -l logfile start
+
+
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;설치 확인 &amp;amp; 파라미터 수정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[kimdubi@testserver 10:39:21 ~/psql/engn/PGSQL ]$ pwd
+/home1/kimdubi/psql/engn/PGSQL
+
+[kimdubi@testserver 10:39:33 ~/psql/engn/PGSQL ]$ ls
+PG_VERSION  pg_commit_ts  pg_ident.conf  pg_notify    pg_snapshots  pg_subtrans  pg_wal                postgresql.conf
+base        pg_dynshmem   pg_logical     pg_replslot  pg_stat       pg_tblspc    pg_xact
+global      pg_hba.conf   pg_multixact   pg_serial    pg_stat_tmp   pg_twophase  postgresql.auto.conf
+
+
+vi postgresql.conf
+
+vi ~./bash_profile
+
+vi pg_hba.conf
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; oracle 설치와 비슷하게 엔진 설치 후 parameter 파일 설정 &amp;amp; DB 기동하는 순서&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;DB 기동&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[kimdubi@testserver 10:49:59 ~/psql/engn/postgresql-11.7/bin ]$ pg_ctl -D /home1/kimdubi/psql/engn/PGSQL/ start
+waiting for server to start....2020-04-07 01:50:00 GMT LOG:  listening on IPv4 address &amp;quot;0.0.0.0&amp;quot;, port 3000
+2020-04-07 01:50:00 GMT LOG:  listening on IPv6 address &amp;quot;::&amp;quot;, port 3000
+2020-04-07 01:50:00 GMT LOG:  listening on Unix socket &amp;quot;/tmp/.s.PGSQL.3000&amp;quot;
+2020-04-07 01:50:00 GMT LOG:  redirecting log output to logging collector process
+2020-04-07 01:50:00 GMT HINT:  Future log output will appear in directory &amp;quot;/home1/kimdubi/psql/logs/testdb/error_log&amp;quot;.
+ done
+server started
+
+[kimdubi@testserver 10:50:26 ~/psql/engn/postgresql-11.7/bin ]$ pg_ctl -D /home1/kimdubi/psql/engn/PGSQL/ status
+pg_ctl: server is running (PID: 13079)
+/home1/kimdubi/psql/engn/postgresql-11.7/bin/postgres &amp;quot;-D&amp;quot; &amp;quot;/home1/kimdubi/psql/engn/PGSQL&amp;quot;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;--&#34;&gt;생성 후 작업&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;tablespace / database 생성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### TABLESPACE 생성
+-. OS 디렉토리 생성
+mkdir -p /home1/kimdubi/psql/data/testdb/TS_USER
+mkdir -p /home1/kimdubi/psql/data/testdb/TS_TEMP
+mkdir -p /home1/kimdubi/psql/data/testdb/TS_TEST_D
+mkdir -p /home1/kimdubi/psql/indx/testdb/TS_TEST_I
+
+-. DB tablespace 생성
+postgres=# create tablespace TS_USER location &#39;/home1/kimdubi/psql/data/testdb/TS_USER&#39;;
+postgres=# create tablespace TS_TEMP location &#39;/home1/kimdubi/psql/data/testdb/TS_TEMP&#39;;
+postgres=# create tablespace TS_TEST_D location &#39;/home1/kimdubi/psql/data/testdb/TS_TEST_D&#39;;
+postgres=# create tablespace TS_TEST_I location &#39;/home1/kimdubi/psql/indx/testdb/TS_TEST_I&#39;;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;USER 생성
+=&amp;gt; 복잡하지만 서비스용 schema, user를 별도로 생성했습니다.&lt;br&gt;
+보안 및 권한으로 인한 장애를 막기 위함인데요&lt;br&gt;
+PostgreSQL은 ORACLE / MySQL 과 user,role,schema 개념이 조금 달라 헷갈릴 수 있습니다.
+이 부분은 다음 시간에 별도로 다루겠습니다.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### 서비스 계정
+
+create role testuser login password &#39;!dlatl00&#39; noinherit valid until &#39;infinity&#39;;
+create schema testuser authorization testuser;
+alter role testuser set default_tablespace=ts_test_d;
+grant create on tablespace ts_test_d to testuser;
+grant create on tablespace ts_test_i to testuser;
+grant create on tablespace ts_temp to testuser;
+
+###
+postgres=# create database testdb  tablespace=&#39;ts_test_d&#39; with owner kimdubi;
+CREATE DATABASE
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;권한 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### super user로 db 접속
+testdb=&amp;gt; \c testdb kimdubi
+
+### 다른 계정의 접근 차단 및 public schema 사용 권한 회수
+testdb=# revoke all on database testdb from public;
+testdb=# revoke all on schema public from public;
+
+### 서비스계정에 권한 추가
+testdb=# create schema testuser authorization testuser;
+
+grant connect,temporary on database testdb to testuser;
+grant usage on schema testuser to testuser;
+grant select,insert,update,delete on all tables in schema testuser to testuser;
+grant usage on all sequences in schema testuser to testuser;
+alter default privileges in schema testuser grant select,insert,update,delete on tables to testuser;
+alter default privileges in schema testuser grant usage on sequences to testuser;
+
+### 새로운 계정 추가되는 경우
+create role new_testuser login password &#39;!dlatl00&#39; noinherit valid until &#39;infinity&#39;;
+grant connect,temporary on database testdb to new_testuser;
+grant usage on schema testuser to new_testuser;
+grant select,insert,update,delete on all tables in schema testuser to new_testuser;
+
+DB 접속 권한 확인 =&amp;gt; schema usage 권한 확인 =&amp;gt; 각 개별 테이블 권한 확인
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL Architecture (PostgreSQL 시작하기)</title>
+      <link>https://kimdubi.github.io/postgresql/psql_architecture/</link>
+      <pubDate>Tue, 02 Jun 2020 15:50:45 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/psql_architecture/</guid>
+      <description>&lt;p&gt;postgresql은 프로세스 기반의 GIS 기능으로 유명한 오픈소스DB 입니다.&lt;br&gt;
+세계적인 인기(?) 에 비해 유독 우리나라에선 postgresql 을 사용하는 곳이 드문데&lt;br&gt;
+저도 아무것도 모르지만 설치부터 하나하나 공부해가는 마음으로 포스팅을 시작하겠습니다.&lt;br&gt;
+제가 구성하고자 하는 PostgreSQL 아키텍처는 아래와 같습니다.&lt;/p&gt;
+&lt;h2 id=&#34;-&#34;&gt;셋업 환경&lt;/h2&gt;
+&lt;h3 id=&#34;os--db&#34;&gt;OS &amp;amp; DB&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;OS : CentOS release 6.9&lt;/li&gt;
+&lt;li&gt;DB : PostgreSQL 11.7 (20.02 기준 postgresql 12 버전 출시되었으나 안정화된 11버전 설치)
+&lt;ul&gt;
+&lt;li&gt;replication : streaming-replication (master-standby)&lt;/li&gt;
+&lt;li&gt;auto-failover : pgpool-II&lt;/li&gt;
+&lt;li&gt;backup : pg_start_backup&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;아래는 위 아키텍처 요소들에 대한 간단한 설명입니다.&lt;/p&gt;
+&lt;h2 id=&#34;postgresql-&#34;&gt; PostgreSQL 아키텍처&lt;/h2&gt;
+&lt;h3 id=&#34;single&#34;&gt;single&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_architecture1.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;프로세스 기반 dbms로 oracle 과 전체적인 아키텍처가 유사함&lt;/li&gt;
+&lt;li&gt;1개의 connection 마다 1개의 background process 생성됨&lt;/li&gt;
+&lt;li&gt;postmaster : postgresql 기동 시 가장 먼저 시작되는 프로세스. 다른 background process를 기동하고 user와의 connection 생성하는 기능을 수행&lt;/li&gt;
+&lt;li&gt;shared buffer : 데이터 캐싱하는 메모리, 서버 메모리의 1/4 이상 권장됨&lt;/li&gt;
+&lt;li&gt;WAL buffer : 세션들이 수행하는 트랜잭션에 대한 변경 로그를 캐싱함 (redo log) shared buffer 의 1/32 이상 권장됨&lt;/li&gt;
+&lt;li&gt;CLOG buffer : commit log, 트랜잭션 상태를 캐싱하는 메모리 공간으로 트랜잭션이 commit 되었는지를 기록함&lt;/li&gt;
+&lt;li&gt;autovacuum : mvcc를 위해 update /delete 수행 시 db에 다중 버전의 레코드를 저장하는데 vacuum 을 통해 더이상 참조되지 않는 레코드를 정리함, 그 외에도 트랜잭션 ID (XID) 정리 , 테이블 통계작업 등을 수행함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;replication-streamingreplication&#34;&gt;replication (streaming-replication)&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_architecture2.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Master 에서 생성된 WAL log를 Slave DB로 실시간성으로 전달하여 정합성을 일치시키는 replication 방법&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;ha-with-auto-failover--pgpool-2&#34;&gt;HA with auto failover ( pgpool 2)&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_architecture3.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;pgpool 미들웨어를 앞단에 두어 load balancing , auto failover 기능을 수행함&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

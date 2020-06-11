@@ -13,11 +13,10 @@ main {
     margin: auto;
     padding: 25px;
     flex: 1 0 auto;
-    max-width: 750px;
 }
 
 img {
-    max-width: 100%;
+    max-width: 80%;
 }
 
 /* Homepage */

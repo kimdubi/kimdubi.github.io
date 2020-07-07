@@ -4,7 +4,21 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-06-03T17:49:11+09:00</lastmod>
+    <lastmod>2020-07-07T11:17:36+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/grafana_mysql/</loc>
+    <lastmod>2020-07-07T11:17:36+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/</loc>
+    <lastmod>2020-07-07T11:17:36+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
@@ -67,13 +81,6 @@
   
   <url>
     <loc>https://kimdubi.github.io/mysql/in-list/</loc>
-    <lastmod>2020-05-21T08:35:14+09:00</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://kimdubi.github.io/mysql/</loc>
     <lastmod>2020-05-21T08:35:14+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>

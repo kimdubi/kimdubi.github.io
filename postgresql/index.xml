@@ -5,10 +5,878 @@
     <description>Recent content in Postgresqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 03 Jun 2020 17:49:11 +0900</lastBuildDate>
+    <lastBuildDate>Tue, 07 Jul 2020 14:15:08 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/postgresql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>PostgreSQL migration tool pgloader 사용법</title>
+      <link>https://kimdubi.github.io/postgresql/pgloader/</link>
+      <pubDate>Tue, 07 Jul 2020 14:15:08 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/pgloader/</guid>
+      <description>&lt;h3 id=&#34;pgloader&#34;&gt;pgloader란?&lt;/h3&gt;
+&lt;p&gt;csv 같은 File이나 실제 DB로부터 데이터를 읽어와 target postgresql 로 데이터 migration을 지원해주는 툴&lt;br&gt;
+아래와 같은 단계로 source DB로 부터 데이터를 읽어와 target DB로 copy 수행&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Fetch meta data and catalogs&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### table, column metadata
+
+  select c.table_name, t.table_comment,
+         c.column_name, c.column_comment,
+         c.data_type, c.column_type, c.column_default,
+         c.is_nullable, c.extra
+    from information_schema.columns c
+         join information_schema.tables t using(table_schema, table_name)
+   where c.table_schema = &#39;source DB&#39; and t.table_type = &#39;BASE TABLE&#39;
+
+
+### FK 제약조건
+SELECT s.table_name, s.constraint_name, s.ft, s.cols, s.fcols,
+       rc.update_rule, rc.delete_rule
+FROM
+ (
+  SELECT tc.table_schema, tc.table_name,
+         tc.constraint_name, k.referenced_table_name ft,
+             group_concat(         k.column_name
+                          order by k.ordinal_position) as cols,
+             group_concat(         k.referenced_column_name
+                          order by k.position_in_unique_constraint) as fcols
+        FROM information_schema.table_constraints tc
+        LEFT JOIN information_schema.key_column_usage k
+               ON k.table_schema = tc.table_schema
+              AND k.table_name = tc.table_name
+              AND k.constraint_name = tc.constraint_name
+      WHERE     tc.table_schema = &#39;source DB&#39;
+            AND k.referenced_table_schema = &#39;source DB&#39;
+            AND tc.constraint_type = &#39;FOREIGN KEY&#39;
+   GROUP BY tc.table_schema, tc.table_name, tc.constraint_name, ft
+ ) s
+             JOIN information_schema.referential_constraints rc
+               ON rc.constraint_schema = s.table_schema
+              AND rc.constraint_name = s.constraint_name
+              AND rc.table_name = s.table_name
+              
+### index 구성
+  SELECT table_name, index_name, index_type,
+         sum(non_unique),
+         cast(GROUP_CONCAT(column_name order by seq_in_index) as char)
+    FROM information_schema.statistics
+   WHERE table_schema = &#39;source DB&#39;
+GROUP BY table_name, index_name, index_type
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; source DB(MySQL) 의 catalog를 쿼리하여 가져오는 단계&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Prepare the target PostgreSQL database&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;source DB의 catalog를 target postgresql의 catalog로 변환 후 schema를 생성하고
+casting rule 이 있다면 정의된 casting rule을 적용함 (column type 이나 default value 같은 설정)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;data copy&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;source db에서 data를 select하는 reader Threads 와
+target db로 data를 write하는 writer threads 로 나뉘어 migration 작업을 수행함
+parallel로 수행 가능
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;Create the indexes in parallel mode&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;object copy 후 index 생성하는 단계, parallel로 수행됨
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;제약조건 적용 및 pgloader 종료&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;PK, FK 제약조건 적용 후 migration 종료
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;pgloader-&#34;&gt;pgloader 설치&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;yum install -y sbcl git curl patch unzip devscripts pandoc libsqlite3-dev freetds-dev
+
+wget https://github.com/dimitri/pgloader/archive/v3.6.1.tar.gz
+tar xvf v3.6.1.tar.gz
+cd pgloader-3.6.1/
+make pgloader
+
+sudo mv ./build/bin/pgloader /usr/local/bin/
+
+pgloader --version
+pgloader version &amp;quot;3.6.2&amp;quot;
+compiled with SBCL 1.3.6
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;sbcl은 pgloader 3.6.1, centos6 기준 sbcl 1.3.6 이상 설치해야함!!&lt;/li&gt;
+&lt;li&gt;internet 연결안된 private 환경에서는 bundle 파일로 설치
+&lt;a href=&#34;https://github.com/dimitri/pgloader/releases&#34;&gt;https://github.com/dimitri/pgloader/releases&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;source-mysql-table-schema&#34;&gt;source MySQL table schema&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;CREATE TABLE `place` (
+  `place_seq` bigint(20) NOT NULL AUTO_INCREMENT,
+  `place_type_code` varchar(20) NOT NULL,
+  `nation_code` char(2) NOT NULL DEFAULT &#39;KR&#39;,
+  `name` varchar(200) NOT NULL,
+  `description` varchar(1000) DEFAULT NULL,
+  `latitude` decimal(11,8) NOT NULL,
+  `longitude` decimal(11,8) NOT NULL,
+  `area_info_seq` bigint(20) NOT NULL,
+  `region_sido_area_info_seq` int(11) NOT NULL DEFAULT &#39;0&#39;,
+  `region_sigungu_area_info_seq` int(11) NOT NULL DEFAULT &#39;0&#39;,
+  `region_upmyundong_area_info_seq` int(11) NOT NULL DEFAULT &#39;0&#39;,
+  `address_detail` varchar(400) NOT NULL,
+  `postcode` char(5) NOT NULL,
+  `homepage_url` varchar(1000) DEFAULT NULL,
+  `sns_urls` json DEFAULT NULL,
+  `telephone` varchar(30) DEFAULT NULL,
+  `telephone_display` varchar(30) DEFAULT NULL,
+  `main_image_url` varchar(1000) DEFAULT NULL,
+  `additional_info` varchar(1000) DEFAULT NULL,
+  `min_price` int(11) NOT NULL DEFAULT &#39;0&#39;,
+  `max_price` int(11) NOT NULL DEFAULT &#39;0&#39;,
+  `ad_yn` char(1) NOT NULL DEFAULT &#39;N&#39;,
+  `partner_yn` char(1) NOT NULL DEFAULT &#39;N&#39;,
+  `search_yn` char(1) NOT NULL DEFAULT &#39;Y&#39;,
+  `delete_yn` char(1) NOT NULL DEFAULT &#39;N&#39;,
+  `source_info` varchar(100) DEFAULT NULL,
+  `load_ymdt` datetime DEFAULT NULL,
+  `search_indexing_ymdt` datetime DEFAULT NULL,
+  `register_ymdt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `modify_ymdt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`place_seq`)
+) ENGINE=InnoDB AUTO_INCREMENT=293057 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;migtraion-test&#34;&gt;migtraion test&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;prepare&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### postgre schema 생성
+CREATE SCHEMA postgre authorization testuser;
+=&amp;gt;MySQL source DB가 postgresql 의 schema로 migration 되기 때문에 사전에 생성해둠
+
+### search_path 설정
+* DB level
+ALTER DATABASE &amp;quot;testdb&amp;quot; SET search_path TO testuser, postgre;
+* session level
+set search_path=testuser,postgre;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;pgloader 수행&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;pgloader mysql://[user[:password]@][netloc][:port][/dbname][?option=value&amp;amp;&amp;hellip;]  postgresql://[user[:password]@][netloc][:port][/dbname][?option=value&amp;amp;&amp;hellip;]&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;[irteam@testserver2 15:11:26 ~/psql/pgloader-bundle-3.6.2/bin ]$ pgloader mysql://mig_test:&#39;qhdks123&#39;@11.111.11.11:13306/postgre postgresql://testuser:&#39;&#39;@22.222.22.22:3000/testdb
+2020-05-30T15:16:58.031000+09:00 LOG pgloader version &amp;quot;3.6.2&amp;quot;
+2020-05-30T15:16:58.119000+09:00 LOG Migrating from #&amp;lt;MYSQL-CONNECTION mysql://mig_test@11.111.11.11:13306/postgre {100892E793}&amp;gt;
+2020-05-30T15:16:58.119000+09:00 LOG Migrating into #&amp;lt;PGSQL-CONNECTION pgsql://testuser@22.222.22.22:3000/testdb {1008B80E03}&amp;gt;
+
+
+2020-05-30T15:17:04.811000+09:00 ERROR PostgreSQL Database error 42501: must be owner of database testdb
+QUERY: ALTER DATABASE &amp;quot;testdb&amp;quot; SET search_path TO testuser, postgre;
+2020-05-30T15:17:04.815000+09:00 LOG report summary reset
+                     table name     errors       rows      bytes      total time
+-------------------------------  ---------  ---------  ---------  --------------
+                fetch meta data          0          7                     0.087s
+                 Create Schemas          0          0                     0.000s
+               Create SQL Types          0          0                     0.007s
+                  Create tables          0          6                     0.031s
+                 Set Table OIDs          0          3                     0.005s
+-------------------------------  ---------  ---------  ---------  --------------
+postgre.mobile_verification_log          0          0                     0.335s
+                  postgre.place          0     225127    69.7 MB          6.255s
+postgre.place_category_mappings          0     412454    19.7 MB          2.232s
+-------------------------------  ---------  ---------  ---------  --------------
+        COPY Threads Completion          0          4                     6.254s
+                 Create Indexes          0          4                     0.589s
+         Index Build Completion          0          4                     0.119s
+                Reset Sequences          0          2                     0.041s
+                   Primary Keys          0          3                     0.003s
+            Create Foreign Keys          0          0                     0.000s
+                Create Triggers          0          0                     0.000s
+                Set Search Path          1          0                     0.001s
+               Install Comments          0          0                     0.000s
+-------------------------------  ---------  ---------  ---------  --------------
+              Total import time          ?     637581    89.4 MB          7.007s
+
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;pgloader 결과&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;testdb=&amp;gt; \dt
+                  List of relations
+ Schema  |          Name           | Type  |  Owner
+---------+-------------------------+-------+----------
+ postgre | place                   | table | testuser
+ postgre | place_category_mappings | table | testuser
+(2 rows)
+
+testdb=&amp;gt; select count(*) from place;
+ count
+--------
+ 225127
+(1 row)
+
+testdb=&amp;gt; select count(*) from place_category_mappings;
+ count
+--------
+ 412454
+(1 row)
+
+
+testdb=&amp;gt; \d place
+                                                    Table &amp;quot;postgre.place&amp;quot;
+             Column              |           Type           | Collation | Nullable |                 Default
+---------------------------------+--------------------------+-----------+----------+------------------------------------------
+ place_seq                       | bigint                   |           | not null | nextval(&#39;place_place_seq_seq&#39;::regclass)
+ place_type_code                 | character varying(20)    |           | not null |
+ nation_code                     | character(2)             |           | not null | &#39;KR&#39;::bpchar
+ name                            | character varying(200)   |           | not null |
+ description                     | character varying(1000)  |           |          |
+ latitude                        | numeric(11,8)            |           | not null |
+ longitude                       | numeric(11,8)            |           | not null |
+ area_info_seq                   | bigint                   |           | not null |
+ region_sido_area_info_seq       | bigint                   |           | not null | &#39;0&#39;::bigint
+ region_sigungu_area_info_seq    | bigint                   |           | not null | &#39;0&#39;::bigint
+ region_upmyundong_area_info_seq | bigint                   |           | not null | &#39;0&#39;::bigint
+ address_detail                  | character varying(400)   |           | not null |
+ postcode                        | character(5)             |           | not null |
+ homepage_url                    | character varying(1000)  |           |          |
+ sns_urls                        | json                     |           |          |
+ telephone                       | character varying(30)    |           |          |
+ telephone_display               | character varying(30)    |           |          |
+ main_image_url                  | character varying(1000)  |           |          |
+ additional_info                 | character varying(1000)  |           |          |
+ min_price                       | bigint                   |           | not null | &#39;0&#39;::bigint
+ max_price                       | bigint                   |           | not null | &#39;0&#39;::bigint
+ ad_yn                           | character(1)             |           | not null | &#39;N&#39;::bpchar
+ partner_yn                      | character(1)             |           | not null | &#39;N&#39;::bpchar
+ search_yn                       | character(1)             |           | not null | &#39;Y&#39;::bpchar
+ delete_yn                       | character(1)             |           | not null | &#39;N&#39;::bpchar
+ source_info                     | character varying(100)   |           |          |
+ load_ymdt                       | timestamp with time zone |           |          |
+ search_indexing_ymdt            | timestamp with time zone |           |          |
+ register_ymdt                   | timestamp with time zone |           | not null | CURRENT_TIMESTAMP
+ modify_ymdt                     | timestamp with time zone |           | not null | CURRENT_TIMESTAMP
+Indexes:
+    &amp;quot;idx_49946_primary&amp;quot; PRIMARY KEY, btree (place_seq)
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 데이터 건 수 , schema 모두 정상적으로 이관 됨&lt;/p&gt;
+&lt;h3 id=&#34;pgloader---&#34;&gt;pgloader 옵션 주면서 수행하기&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;ORACLE parfile 처럼 export, import 설정을 파일에 저장해놓고 사용할 수 있음&lt;/li&gt;
+&lt;li&gt;Source / Target DB 에 대한 설정, pgloader 작업 전 / 후 의 작업도 설정가능함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ vi test.load
+
+LOAD DATABASE
+  FROM mysql://mig_test:&#39;qhdks123&#39;@11.111.11.11:13306/postgre
+  INTO postgresql://testuser:&#39;&#39;@22.222.22.22:3000/testdb
+
+  WITH on error stop, include drop, batch rows=10000, workers = 4, concurrency = 1,
+       multiple readers per thread,
+       max parallel create index =4 
+  SET MySQL PARAMETERS
+      net_read_timeout  = &#39;120&#39;,
+      net_write_timeout = &#39;120&#39;
+
+  BEFORE LOAD DO
+    $$ create schema if not exists testuser; $$
+
+  AFTER LOAD DO
+    $$ set search_path=testuser,postgre; $$
+;
+
+
+[irteam@testserver2 00:53:38 ~/psql/pgloader-bundle-3.6.2/bin ]$ pgloader test.load
+
+2020-05-31T00:53:42.044000+09:00 LOG pgloader version &amp;quot;3.6.2&amp;quot;
+2020-05-31T00:53:42.178000+09:00 LOG Migrating from #&amp;lt;MYSQL-CONNECTION mysql://mig_test@11.111.11.11:13306/postgre {1009750FE3}&amp;gt;
+2020-05-31T00:53:42.178000+09:00 LOG Migrating into #&amp;lt;PGSQL-CONNECTION pgsql://testuser@22.222.22.22:3000/testdb {10097523F3}&amp;gt;
+2020-05-31T00:53:48.688000+09:00 LOG report summary reset
+                     table name     errors       rows      bytes      total time
+-------------------------------  ---------  ---------  ---------  --------------
+                    before load          0          1                     0.017s
+                fetch meta data          0          7                     0.086s
+                 Create Schemas          0          0                     0.001s
+               Create SQL Types          0          0                     0.006s
+                  Create tables          0          6                     0.035s
+                 Set Table OIDs          0          3                     0.005s
+-------------------------------  ---------  ---------  ---------  --------------
+postgre.mobile_verification_log          0          0                     0.118s
+                  postgre.place          0     225127    69.7 MB          6.089s
+postgre.place_category_mappings          0     412454    19.7 MB          2.234s
+-------------------------------  ---------  ---------  ---------  --------------
+        COPY Threads Completion          0          4                     6.084s
+                 Create Indexes          0          4                     0.485s
+         Index Build Completion          0          4                     0.108s
+                Reset Sequences          0          2                     0.023s
+                   Primary Keys          0          3                     0.003s
+            Create Foreign Keys          0          0                     0.000s
+                Create Triggers          0          0                     0.000s
+               Install Comments          0          0                     0.000s
+                     after load          0          1                     0.014s
+-------------------------------  ---------  ---------  ---------  --------------
+              Total import time          ?     637581    89.4 MB          6.717s
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://pgloader.readthedocs.io/en/latest/ref/mysql.html&#34;&gt;https://pgloader.readthedocs.io/en/latest/ref/mysql.html&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://pgloader.readthedocs.io/en/latest/pgloader.html&#34;&gt;https://pgloader.readthedocs.io/en/latest/pgloader.html&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL 백업 복구 테스트</title>
+      <link>https://kimdubi.github.io/postgresql/psql_backup/</link>
+      <pubDate>Tue, 07 Jul 2020 14:06:54 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/psql_backup/</guid>
+      <description>&lt;h2 id=&#34;pgdump&#34;&gt;pg_dump&lt;/h2&gt;
+&lt;p&gt;PostgreSQL에서 기본 제공하는 logical backup 방식으로 mysqldump 와 같은 방법&lt;br&gt;
+백업 수행 시점의 스냅샷만 가능하며 시점복구는 불가함&lt;br&gt;
+pg_dump는 단일 DB backup, pg_dumpall은 전체 DB backup할 때 사용함&lt;/p&gt;
+&lt;h3 id=&#34;backup-script&#34;&gt;backup script&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;#!/bin/bash
+DEL_FILE=$(date -d &#39;2 day ago&#39; +&#39;%Y-%m-%d_&#39;)&amp;quot;*.dump&amp;quot;
+FILENAME=$(date +&amp;quot;%Y-%m-%d_%H%M&amp;quot;).dump
+BACKUP_DIR=/home1/irteam/psql/backup/testdb
+PG_USER=&amp;quot;irteam&amp;quot;
+PASSWORD=&amp;quot;&amp;quot;
+
+cd $BACKUP_DIR
+echo &amp;quot;DB backup start time : &amp;quot; $(date +&amp;quot;%Y-%m-%d %H:%M:%S&amp;quot;)
+pg_dumpall -h localhost -p 3000 -U $PG_USER -v -j 3 -f &amp;quot;${BACKUP_DIR}/${FILENAME}&amp;quot; &amp;gt;&amp;amp; &amp;quot;${BACKUP_DIR}/${FILENAME}&amp;quot;.log?
+echo &amp;quot;Successful db backup ( ${BACKUP_DIR}/DBNAME_${FILENAME} )&amp;quot;
+echo &amp;quot;Delete old file DBNAME_${DEL_FILE}&amp;quot;
+rm &amp;quot;${BACKUP_DIR}/DBNAME_${DEL_FILE}&amp;quot;
+echo &amp;quot;BACKUP - End time : &amp;quot; $(date +&amp;quot;%Y-%m-%d %H:%M:%S&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;-d, &amp;ndash;dbname : Backup할 Database 명&lt;/li&gt;
+&lt;li&gt;-h, &amp;ndash;host : Database 주소&lt;/li&gt;
+&lt;li&gt;-U, &amp;ndash;username : Database 접속 시 User ID&lt;/li&gt;
+&lt;li&gt;-f, &amp;ndash;file : Backup File Name&lt;/li&gt;
+&lt;li&gt;-t, &amp;ndash;table : 특정 Table만 Backup하려할 때 대상이 되는 Table 명&lt;/li&gt;
+&lt;li&gt;-j, &amp;ndash;jobs : Backup 시 병렬 처리&lt;/li&gt;
+&lt;li&gt;-v, &amp;ndash;verbose : 진행 과정 표시
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;restore-test&#34;&gt;restore test&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;psql -p 3000 -d postgres -f 2020-04-10_1431.dump
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;pg_dump 를 통한 백업은 pg_restore를 통해 복구함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;pgstartbackup&#34;&gt;pg_start_backup&lt;/h2&gt;
+&lt;p&gt;PostgreSQL 에서 제공하는 hot backup 기능, 백업 본 + WAL 로그 파일 replay 로 원하는 시점 복구 가능&lt;/p&gt;
+&lt;h3 id=&#34;hotbackupsh&#34;&gt;hot_backup.sh&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;#!/bin/bash
+
+### [set ENV.] ###########################################################
+export PG_PORT=3000
+export PG_DATA=/home1/irteam/psql/engn/PGSQL
+export PG_ARCH=/home1/irteam/psql/arch/testdb
+export PG_USER=irteam
+export PG_DB=testdb
+
+export BACKUP_DIR=/home1/irteam/psql/backup/testdb
+##########################################################################
+
+# Default ENV
+export LANG=C
+export CURRENT_DATE=`date &amp;quot;+%Y-%m-%d-%H:%M:%S&amp;quot;`
+export BULIST=${BACKUP_DIR}/LOG/.HOT-${PG_DB}-BULIST.dat
+export TMPFILE=${BACKUP_DIR}/LOG/HOT-${PG_DB}.log
+export LOGFILE=${BACKUP_DIR}/LOG/HOT-${PG_DB}-${CURRENT_DATE}.log
+
+# SQL LIST
+BACKUP_START=&amp;quot;SELECT pg_start_backup(&#39;full_backup&#39;);&amp;quot;
+BACKUP_STOP=&amp;quot;SELECT pg_stop_backup();&amp;quot;
+
+echo &amp;quot;########## [Step 1] `date &amp;quot;+%Y-%m-%d-%H:%M:%S&amp;quot;` BEGIN BACKUP ##########&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+
+psql -p ${PG_PORT} -d ${PG_DB} -U ${PG_USER} -c &amp;quot;${BACKUP_START}&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}  2&amp;gt;&amp;amp;1
+
+if [ $? -eq &amp;quot;0&amp;quot; ]
+then
+  echo &amp;quot;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt; `date &amp;quot;+%Y-%m-%d-%H:%M:%S&amp;quot;` Begin backup completed&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+else
+  echo &amp;quot;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt; `date &amp;quot;+%Y-%m-%d-%H:%M:%S&amp;quot;` Begin backup failed&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+  exit 1
+fi
+
+echo &amp;quot; &amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+echo &amp;quot;########## [Step 2] `date &amp;quot;+%Y-%m-%d-%H:%M:%S&amp;quot;` DATA COPY ##########&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+
+export TMP=${BACKUP_DIR}/LOG/.HOT-${PG_DB}.tmp
+
+psql -p ${PG_PORT} -d ${PG_DB} -U ${PG_USER} &amp;lt;&amp;lt;! &amp;gt; ${TMP}
+select distinct &#39;value&#39;, case when length(pg_tablespace_location(oid))=0 then (select setting from pg_settings where name=&#39;data_directory&#39;)
+else pg_tablespace_location(oid) end
+from pg_tablespace
+where spcname not in (&#39;ts_temp&#39;); \q
+!
+
+/bin/cat ${TMP} | /bin/awk &#39;$1 == &amp;quot;value&amp;quot; { print $3 }&#39; &amp;gt; ${BULIST}
+
+echo ${PG_ARCH} &amp;gt;&amp;gt; ${BULIST}
+IFS=$&#39;\n&#39; read -d &#39;&#39; -r -a lines &amp;lt; ${BULIST}
+
+
+echo &amp;quot;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt; Backup List&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+cat ${BULIST} &amp;gt;&amp;gt; ${TMPFILE}
+echo &amp;quot; &amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+
+echo ${lines[*]}
+#CHKPOINT=$(find /home1/irteam/psql/arch/testdb -type f -mtime +1 -name &#39;*backup&#39; -printf &#39;%f\n&#39; | sort -r | head -1)
+tar -cv  --exclude=&amp;quot;${PG_DATA}/pg_wal/*&amp;quot; \-f $BACKUP_DIR/backup.tar ${lines[*]}
+
+echo &amp;quot;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt; `date &amp;quot;+%Y-%m-%d-%H:%M:%S&amp;quot;` data copy completed&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+
+echo &amp;quot; &amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+echo &amp;quot;########## [Step 3] `date &amp;quot;+%Y-%m-%d-%H:%M:%S&amp;quot;` END BACKUP ##########&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+psql -p ${PG_PORT} -d ${PG_DB} -U ${PG_USER} -c &amp;quot;${BACKUP_STOP}&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}  2&amp;gt;&amp;amp;1
+
+if [ $? -eq &amp;quot;0&amp;quot; ]
+then
+  echo &amp;quot;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt; `date &amp;quot;+%Y-%m-%d-%H:%M:%S&amp;quot;`  Backup completed&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+  echo &amp;quot; &amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+#  psql -p ${PG_PORT} -d ${PG_DB} -U ${PG_USER} -c &amp;quot;select pg_switch_xlog();&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}  2&amp;gt;&amp;amp;1
+#  psql -p ${PG_PORT} -d ${PG_DB} -U ${PG_USER} -c &amp;quot;select pg_switch_xlog();&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}  2&amp;gt;&amp;amp;1
+  echo &amp;quot;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt; `date &amp;quot;+%Y-%m-%d-%H:%M:%S&amp;quot;` HOT Backup completed successfully!!!&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+  mv ${TMPFILE} ${LOGFILE}
+else
+  echo &amp;quot;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt; `date &amp;quot;+%Y-%m-%d-%H:%M:%S&amp;quot;` HOT Backup failed!!!&amp;quot; &amp;gt;&amp;gt; ${TMPFILE}
+  exit 1
+fi
+
+rm -rf ${BACKUP_DIR}/LOG/.*
+find ${BACKUP_DIR}/LOG -name &amp;quot;HOT-*.log&amp;quot; -mtime +2 -exec rm {} \;
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;restore-test1&#34;&gt;restore test&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;데이터 삭제 전&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# select now(), count(*) from tb_test;
+             now              | count
+------------------------------+--------
+ 2020-04-13 00:08:07.88325+09 | 100000
+(1 row)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;backup 수행&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### hotbackup.sh 수행
+
+### backup info 확인 
+[irteam@testserver1 00:21:24 ~/psql/arch/testdb ]$ cat 000000020000000100000030.00000028.backup
+
+START WAL LOCATION: 1/30000028 (file 000000020000000100000030)
+STOP WAL LOCATION: 1/30006338 (file 000000020000000100000030)
+CHECKPOINT LOCATION: 1/30006268
+BACKUP METHOD: pg_start_backup
+BACKUP FROM: master
+START TIME: 2020-04-12 15:10:52 GMT
+LABEL: full_backup
+START TIMELINE: 2
+STOP TIME: 2020-04-12 15:10:53 GMT
+STOP TIMELINE: 2
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt;  백업 수행 시 백업 시작과 완료 시점의 WAL LOCATION 정보가 남기 때문에 복구 시 모든 WAL archive 파일을 읽을 필요없음
+CHECKPOINT LOCATION: 1/30006268 까지의 data가 반영된 백업본이고 그 이후의 데이터는 (file 000000020000000100000030) wal logfile에서 반영하면 된다는 내용&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;data 삭제&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# call insert_test_data(10);
+CALL
+
+postgres=# select now(), count(*) from tb_test;
+             now              | count
+------------------------------+--------
+ 2020-04-13 00:12:54.00624+09 | 200000
+(1 row)
+
+
+postgres=# truncate public.tb_test;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt;truncate 직전 20만건으로 복구시도&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;backup 본으로 복구 수행&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### DB STOP
+
+### backup 본 $PGDATA 로 copy
+[irteam@testserver1 23:30:19 ~/psql/backup/testdb/home1/irteam/psql ]$ ls
+arch  data  engn  indx  testdb
+
+
+### $/PGDATA/recovery.conf 설정
+
+cat recovery.conf
+
+restore_command = &#39;cp /home1/irteam/psql/arch/testdb/%f %p&#39;
+recovery_target_time = &#39;2020-04-13 00:12:54&#39;
+
+==&amp;gt; wal archive logfile을 pg_wal 디렉토리로 가져오고 원하는 시간대로 복구하도록 설정  
+DB 기동 시 recovery.conf 를 읽고 필요한 아카이브 파일을 적용하게됨  
+
+### DB start
+
+
+### recovery 완료
+postgres=# select now(), count(*) from public.tb_test;
+              now              | count
+-------------------------------+--------
+ 2020-04-13 00:16:55.094237+09 | 200000
+(1 row)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;recovery log&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;2020-04-12 15:16:23 GMT LOG:  restored log file &amp;quot;00000002.history&amp;quot; from archive
+2020-04-12 15:16:23 GMT LOG:  restored log file &amp;quot;000000020000000100000030&amp;quot; from archive
+
+2020-04-12 15:16:23 GMT LOG:  redo starts at 1/30000028
+2020-04-12 15:16:23 GMT LOG:  consistent recovery state reached at 1/30006338
+=&amp;gt; 백업 진행 중 변경사항 적용
+
+2020-04-12 15:16:23 GMT LOG:  database system is ready to accept read only connections
+2020-04-12 15:16:24 GMT LOG:  restored log file &amp;quot;000000020000000100000031&amp;quot; from archive
+2020-04-12 15:16:24 GMT LOG:  restored log file &amp;quot;000000020000000100000032&amp;quot; from archive
+2020-04-12 15:16:24 GMT LOG:  recovery stopping before commit of transaction 1966, time 2020-04-13 00:13:19.690669+09
+2020-04-12 15:16:24 GMT LOG:  recovery has paused
+2020-04-12 15:16:24 GMT HINT:  Execute pg_wal_replay_resume() to continue.
+
+=&amp;gt; 백업 이후 ~ recovery_target_time  사이의 데이터 반영  
+archive 반영 후 데이터 복구는 완료 되어도 DB는 계속 recovery 상태 (read_only )이기 때문에 정상화 해야함
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;recovery 상태 해제&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# call insert_test_data(1);
+ERROR:  cannot execute INSERT in a read-only transaction
+
+
+postgres=# SELECT pg_wal_replay_resume();
+ pg_wal_replay_resume
+----------------------
+
+(1 row)
+
+postgres=# call insert_test_data(1);
+CALL
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL pgpool을 활용한 auto-failover 구성</title>
+      <link>https://kimdubi.github.io/postgresql/psql_pgpool/</link>
+      <pubDate>Tue, 07 Jul 2020 11:36:34 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/psql_pgpool/</guid>
+      <description>&lt;h2 id=&#34;pgpoolii-&#34;&gt;Pgpool-II 이란?&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/pgpool.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Pgpool-II 는 PostgreSQL DB서버와 클라이언트 사이에 위치하는 proxy 개념의 미들웨어로 아래의 세가지 기능을 제공함&lt;/li&gt;
+&lt;li&gt;connection pooling : DB서버와의 연결을 유지하고 동일한 속성(user,db,protocol) 을 가진 새로운 연결 요청이 오면 이를 재사용함&lt;/li&gt;
+&lt;li&gt;load balancing : replication 을 사용하는 서비스에서 DB서버의 편중된 load를 줄이기 위해 SELECT 쿼리를 처리 가능한 서버 간 배포하는 기능&lt;/li&gt;
+&lt;li&gt;automated failover : DB 서버 중 하나가 down되면 이를 차단하고 나머지 DB에서 서비스를 지속함, master down 될 시엔 다른 standby 서버를 승격시킴&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;pgpool-&#34;&gt;PGPool 구성방법&lt;/h2&gt;
+&lt;h3 id=&#34;pgpool-1&#34;&gt;pgpool 설치&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://pgpool.net/mediawiki/index.php/Main_Page&#34;&gt;https://pgpool.net/mediawiki/index.php/Main_Page&lt;/a&gt;
+2020.04 기준 최신 stable 버전인 4.0 사용&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;yum&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;yum install http://www.pgpool.net/yum/rpms/4.0/redhat/rhel-6-x86_64/pgpool-II-release-4.0-1.noarch.rpm
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;yum 안될 때&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;yum install -y memcached
+rpm -ivh pgpool-II-pg11-4.0.8-1pgdg.rhel6.x86_64.rpm
+rpm -ivh pgpool-II-pg11-debuginfo-4.0.8-1pgdg.rhel6.x86_64.rpm
+rpm -ivh pgpool-II-pg11-devel-4.0.8-1pgdg.rhel6.x86_64.rpm
+rpm -ivh pgpool-II-pg11-extensions-4.0.8-1pgdg.rhel6.x86_64.rpm
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;pgpoolconf-&#34;&gt;pgpool.conf 설정&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;vi /etc/pgpool-II/pgpool.conf&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;sudo cp /etc/pgpool-II/pgpool.conf.sample-stream pgpool.conf
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; pgpool.conf sample 파일을 이용하고 필요한 파라미터만 수정&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;conf 파일 수정 내용&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;...
+#------------------------------------------------------------------------------
+# CONNECTIONS
+#------------------------------------------------------------------------------
+
+# - pgpool Connection Settings -
+listen_addresses = &#39;*&#39;
+port = 4000
+socket_dir = &#39;/tmp/.s.PGSQL.3000&#39;
+...
+# - Backend Connection Settings -
+backend_hostname0 = &#39;PRIMARY IP address&#39;
+backend_port0 = 3000
+backend_weight0 = 1
+backend_data_directory0 = &#39;/home1/testuser/psql/engn/PGSQL&#39;
+backend_flag0 = &#39;ALLOW_TO_FAILOVER&#39;
+
+backend_hostname1 = &#39;STANDBY IP address&#39;
+backend_port1 = 3000
+backend_weight1 = 1
+backend_data_directory1 = &#39;/home1/testuser/psql/engn/PGSQL&#39;
+backend_flag1 = &#39;ALLOW_TO_FAILOVER&#39;
+...
+#------------------------------------------------------------------------------
+# FILE LOCATIONS
+#------------------------------------------------------------------------------
+pid_file_name = &#39;/var/run/pgpool.pid&#39;
+logdir = &#39;/home1/testuser/psql/logs/$시스템명/&#39;
+...
+#------------------------------------------------------------------------------
+# LOAD BALANCING MODE
+#------------------------------------------------------------------------------
+load_balance_mode = on
+...
+#------------------------------------------------------------------------------
+# MASTER/SLAVE MODE
+#------------------------------------------------------------------------------
+master_slave_mode = on
+master_slave_sub_mode = &#39;stream&#39;
+...
+# - Streaming -
+sr_check_period = 5
+sr_check_user = &#39;repl&#39;
+sr_check_password = &#39;qhdks123&#39;
+
+#------------------------------------------------------------------------------
+# FAILOVER AND FAILBACK
+#------------------------------------------------------------------------------
+
+failover_command = &#39;/usr/pgsql-11/share/failover.sh %d %H /home1/testuser/psql/engn/PGSQL/failover_trigger&#39;
+...
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;pgpool Connection Settings : 외부에서 pgpool로 접속할 때 사용할 접속 정보&lt;/li&gt;
+&lt;li&gt;Backend Connection Setting : Cluster에 속한 DB 정보 명시하는 부분, backend_weight : load-balancing 분산 비율 설정, backend_flag : failover 기능 사용 &amp;lsquo;ALLOW_TO_FAILOVER&#39;로 설정&lt;/li&gt;
+&lt;li&gt;LOAD BALANCING MODE :  load balance 기능 사용 설정&lt;/li&gt;
+&lt;li&gt;MASTER/SLAVE MODE : 현재 Streaming Replication을 사용하고 있기 때문에 master_slave_sub_mode는 &amp;lsquo;stream&#39;으로 설정&lt;/li&gt;
+&lt;li&gt;Streaming : Streaming Replication 상태 체크를 위한 설정으로 5초마다 repl 계정으로 상태 Check 함&lt;/li&gt;
+&lt;li&gt;failover_command : pgpool 에서 Cluster 내 DB 서버에 이상을 감지하면 실행하는 커맨드&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt; &#39;/usr/pgsql-9.6/share/failover.sh %d %H /var/lib/pgsql/9.6/data/failover_trigger&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; %d : 이상현상이 발생한 node id , %H : new master가 될 node id
+standby 서버에 failover_trigger 파일이 생기면 primary server 로 승격하겠다는 의미&lt;/p&gt;
+&lt;h3 id=&#34;failoversh--&#34;&gt;failover.sh 스크립트 작성&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;vi /usr/pgsql-11/share/failover.sh&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;if [ $# -ne 3 ]
+then
+        echo &amp;quot;failover failed_node new_master trigger_file&amp;quot;
+        exit 1
+fi
+ 
+FAILED_NODE=$1
+NEW_MASTER=$2
+TRIGGER_FILE=$3
+ 
+# Do nothing if standby server goes down
+if [$FAILED_NODE = 1]; then
+        echo &amp;quot;Standby Server is downed\n&amp;quot; &amp;gt;&amp;gt; /etc/pgpool-II/failover.log
+        exit 0
+fi
+ 
+echo &amp;quot;failover.sh FAILED_NODE:${FAILED_NODE}; NEW_MASTER:${NEW_MASTER}; at $(date)\n&amp;quot; &amp;gt;&amp;gt; /etc/pgpool-II/failover.log
+ 
+sudo -u testuser ssh -T testuser@$NEW_MASTER touch $TRIGGER_FILE
+ 
+exit 0
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; Primay 서버에 이상이 생기면 Standby 서버에 failover trigger 파일을 생성하여 standby 서버가 승격될 수 있도록 함&lt;/p&gt;
+&lt;h3 id=&#34;ssh-key-&#34;&gt;ssh key 설정&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;ssh-keygen -t rsa 수행 후
+서로의 id_rsa.pub &amp;gt;&amp;gt; authorized_keys 작업
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; failover.sh 스크립트에서 ssh 를 통해 trigger file을 생성하기 때문에 pgpool 서버 &amp;lt;-&amp;gt; DB 서버 간 ssh 인증 설정필요&lt;/p&gt;
+&lt;h3 id=&#34;pgpool-2&#34;&gt;pgpool 기동&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;pgpool 기동&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[testusersu@psql-server-1 15:38:26 /etc/pgpool-II ]$ sudo pgpool
+
+
+[testuser@psql-server-1 15:40:42 ~/psql/logs/testdb ]$ ps -ef | grep pgpool
+root     42462     1  0 15:38 ?        00:00:00 pgpool
+root     42463 42462  0 15:38 ?        00:00:00 pgpool: wait for connection request
+root     42464 42462  0 15:38 ?        00:00:00 pgpool: wait for connection request
+.
+.
+.
+root     42496 42462  0 15:38 ?        00:00:00 pgpool: PCP: wait for connection request
+root     42497 42462  0 15:38 ?        00:00:00 pgpool: worker process
+root     42498 42462  0 15:38 ?        00:00:00 pgpool: health check process(0)
+root     42499 42462  0 15:38 ?        00:00:00 pgpool: health check process(1)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;접속 테스트&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[testuser@psql-server-2 15:38:32 ~ ]$ psql -h &amp;lt;pgpool IP&amp;gt;  -p 4000 -d postgres
+psql (11.7)
+Type &amp;quot;help&amp;quot; for help.
+
+postgres=# \x
+Expanded display is on.
+
+postgres=# show pool_nodes;
+-[ RECORD 1 ]------+--------------------
+node_id            | 0
+hostname           | psql-server-1
+port               | 3000
+status             | up
+lb_weight          | 0.500000
+role               | primary
+select_cnt         | 16
+load_balance_node  | false
+replication_delay  | 0
+last_status_change | 2020-04-09 18:56:42
+-[ RECORD 2 ]------+--------------------
+node_id            | 1
+hostname           | psql-server-2
+port               | 3000
+status             | up
+lb_weight          | 0.500000
+role               | standby
+select_cnt         | 19
+load_balance_node  | true
+replication_delay  | 0
+last_status_change | 2020-04-09 18:56:42
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; client 는 pgpool의 ip/port 로 접속하며 load_balancing 설정에 의해 1:1 로 쿼리 분산됨&lt;/p&gt;
+&lt;h2 id=&#34;failover-test&#34;&gt;failover test&lt;/h2&gt;
+&lt;h3 id=&#34;--&#34;&gt;현재 상태 체크&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# show pool_nodes;
+-[ RECORD 1 ]------+--------------------
+node_id            | 0
+hostname           | psql-server-1
+port               | 3000
+status             | up
+lb_weight          | 0.500000
+role               | primary
+select_cnt         | 0
+load_balance_node  | true
+replication_delay  | 0
+last_status_change | 2020-04-10 10:11:15
+-[ RECORD 2 ]------+--------------------
+node_id            | 1
+hostname           | psql-server-2
+port               | 3000
+status             | up
+lb_weight          | 0.500000
+role               | standby
+select_cnt         | 0
+load_balance_node  | false
+replication_delay  | 0
+last_status_change | 2020-04-10 10:11:15
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;primary-stop---&#34;&gt;Primary stop &amp;amp; 로그 확인&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;primary stop&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[testuser@psql-server-1 10:10:48 ~ ]$ stop
+waiting for server to shut down.... done
+server stopped
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;standby log&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### error_log 
+
+2020-04-10 01:11:49 GMT LOG:  replication terminated by primary server
+2020-04-10 01:11:49 GMT DETAIL:  End of WAL reached on timeline 1 at 0/7C000098.
+2020-04-10 01:11:49 GMT FATAL:  could not send end-of-streaming message to primary: no COPY in progress
+2020-04-10 01:11:49 GMT LOG:  invalid record length at 0/7C000098: wanted 24, got 0
+2020-04-10 01:11:49 GMT FATAL:  could not connect to the primary server: server closed the connection unexpectedly
+                This probably means the server terminated abnormally
+                before or while processing the request.
+2020-04-10 01:11:54 GMT LOG:  trigger file found: /home1/testuser/psql/engn/PGSQL/failover_trigger
+2020-04-10 01:11:54 GMT LOG:  redo done at 0/7C000028
+2020-04-10 01:11:54 GMT LOG:  last completed transaction was at log time 2020-04-10 10:11:49.045489+09
+2020-04-10 01:11:54 GMT LOG:  selected new timeline ID: 2
+2020-04-10 01:11:54 GMT LOG:  archive recovery complete
+2020-04-10 01:11:54 GMT LOG:  database system is ready to accept connections
+
+### read_only ON=&amp;gt;OFF 
+postgres=# select name,setting from pg_settings where name like &#39;%read%&#39;;
+             name              | setting
+-------------------------------+---------
+ default_transaction_read_only | off
+ transaction_read_only         | off
+(2 rows)
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; primary 와 복제 끊긴 것 확인
+pgpool failover command 에 의해 생성된 failover trigerr file 확인
+recovery.conf failover_trigger 옵션에 의해 primary 로 승격시킴&lt;/p&gt;
+&lt;h3 id=&#34;failover--&#34;&gt;failover 정상 체크&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# show pool_nodes;
+-[ RECORD 1 ]------+--------------------
+node_id            | 0
+hostname           | psql-server-1
+port               | 3000
+status             | down
+lb_weight          | 0.500000
+role               | standby
+select_cnt         | 0
+load_balance_node  | false
+replication_delay  | 0
+last_status_change | 2020-04-10 10:11:54
+-[ RECORD 2 ]------+--------------------
+node_id            | 1
+hostname           | psql-server-2
+port               | 3000
+status             | up
+lb_weight          | 0.500000
+role               | primary
+select_cnt         | 2
+load_balance_node  | true
+replication_delay  | 0
+last_status_change | 2020-04-10 10:11:54
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;failover--1&#34;&gt;failover 후 추가작업&lt;/h3&gt;
+&lt;p&gt;failover 후 old master를 올려도 자동으로 slave 로 추가되는 기능은 제공되지 않기 때문에 아래와 같은 과정을 수동으로 진행한다&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;현재 상태&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# show pool_nodes;
+ node_id |     hostname      | port | status | lb_weight |  role   | select_cnt | load_balance_node | replication_delay | last_status_c
+hange
+---------+-------------------+------+--------+-----------+---------+------------+-------------------+-------------------+--------------
+-------
+ 0       | psql-server-1 | 3000 | down   | 0.500000  | standby | 0          | false             | 0                 | 2020-04-22 14
+:28:21
+ 1       | psql-server-2 | 3000 | up     | 0.500000  | primary | 0          | true              | 0                 | 2020-04-22 14
+:28:21
+(2 rows)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; old master t1801 서버가 failover 되어 t1802 가 new master 가 된 상황
+t1801 서버를 올려도 자동으로 slave로 추가되지 않으며 pgpool 은 이 서버를 인식하지 못하는 상태&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;old master slave로 재구성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;pg_basebackup -h new_master -p3000 -D /home1/testuser/psql/engn/PGSQL -U repl -P -v -X stream
+
+vi recovery.conf
+
+standby_mode = on
+primary_conninfo=&#39;host=new_master port=3000 user=repl password=qhdks123&#39;
+primary_slot_name=&#39;repl_slot_01&#39;
+trigger_file=&#39;/home1/testuser/psql/engn/PGSQL/failover_trigger&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;old master up&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;pg_ctl -D /home1/testuser/psql/engn/PGSQL start
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;pgpool node로 추가&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[testuser@psql-server-1 14:53:40 ~/psql/logs/testdb/error_log ]$ pcp_attach_node -n 0
+Password:
+pcp_attach_node -- Command Successful
+
+
+postgres=# show pool_nodes;
+ node_id |     hostname      | port | status | lb_weight |  role   | select_cnt | load_balance_node | replication_delay | last_status_c
+hange
+---------+-------------------+------+--------+-----------+---------+------------+-------------------+-------------------+--------------
+-------
+ 0       | psql-server-1 | 3000 | up     | 0.500000  | standby | 0          | true              | 0                 | 2020-04-22 14
+:55:26
+ 1       | psql-server-2 | 3000 | up     | 0.500000  | primary | 6          | false             | 0                 | 2020-04-22 14
+:28:21
+(2 rows)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; old master 가 new master의 slave node 로 추가됨&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>PostgreSQL Replication 설정-Streaming Replication</title>

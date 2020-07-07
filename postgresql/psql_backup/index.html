@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>PostgreSQL 백업 복구 테스트</title>
+        
+        <style>
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">PostgreSQL 백업 복구 테스트</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>PostgreSQL 백업 복구 테스트</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><h2 id="pgdump">pg_dump</h2>
+<p>PostgreSQL에서 기본 제공하는 logical backup 방식으로 mysqldump 와 같은 방법<br>
+백업 수행 시점의 스냅샷만 가능하며 시점복구는 불가함<br>
+pg_dump는 단일 DB backup, pg_dumpall은 전체 DB backup할 때 사용함</p>
+<h3 id="backup-script">backup script</h3>
+<pre><code>#!/bin/bash
+DEL_FILE=$(date -d '2 day ago' +'%Y-%m-%d_')&quot;*.dump&quot;
+FILENAME=$(date +&quot;%Y-%m-%d_%H%M&quot;).dump
+BACKUP_DIR=/home1/irteam/psql/backup/testdb
+PG_USER=&quot;irteam&quot;
+PASSWORD=&quot;&quot;
+
+cd $BACKUP_DIR
+echo &quot;DB backup start time : &quot; $(date +&quot;%Y-%m-%d %H:%M:%S&quot;)
+pg_dumpall -h localhost -p 3000 -U $PG_USER -v -j 3 -f &quot;${BACKUP_DIR}/${FILENAME}&quot; &gt;&amp; &quot;${BACKUP_DIR}/${FILENAME}&quot;.log?
+echo &quot;Successful db backup ( ${BACKUP_DIR}/DBNAME_${FILENAME} )&quot;
+echo &quot;Delete old file DBNAME_${DEL_FILE}&quot;
+rm &quot;${BACKUP_DIR}/DBNAME_${DEL_FILE}&quot;
+echo &quot;BACKUP - End time : &quot; $(date +&quot;%Y-%m-%d %H:%M:%S&quot;)
+</code></pre><ul>
+<li>-d, &ndash;dbname : Backup할 Database 명</li>
+<li>-h, &ndash;host : Database 주소</li>
+<li>-U, &ndash;username : Database 접속 시 User ID</li>
+<li>-f, &ndash;file : Backup File Name</li>
+<li>-t, &ndash;table : 특정 Table만 Backup하려할 때 대상이 되는 Table 명</li>
+<li>-j, &ndash;jobs : Backup 시 병렬 처리</li>
+<li>-v, &ndash;verbose : 진행 과정 표시
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted --></li>
+</ul>
+<h3 id="restore-test">restore test</h3>
+<pre><code>psql -p 3000 -d postgres -f 2020-04-10_1431.dump
+</code></pre><ul>
+<li>pg_dump 를 통한 백업은 pg_restore를 통해 복구함</li>
+</ul>
+<h2 id="pgstartbackup">pg_start_backup</h2>
+<p>PostgreSQL 에서 제공하는 hot backup 기능, 백업 본 + WAL 로그 파일 replay 로 원하는 시점 복구 가능</p>
+<h3 id="hotbackupsh">hot_backup.sh</h3>
+<pre><code>#!/bin/bash
+
+### [set ENV.] ###########################################################
+export PG_PORT=3000
+export PG_DATA=/home1/irteam/psql/engn/PGSQL
+export PG_ARCH=/home1/irteam/psql/arch/testdb
+export PG_USER=irteam
+export PG_DB=testdb
+
+export BACKUP_DIR=/home1/irteam/psql/backup/testdb
+##########################################################################
+
+# Default ENV
+export LANG=C
+export CURRENT_DATE=`date &quot;+%Y-%m-%d-%H:%M:%S&quot;`
+export BULIST=${BACKUP_DIR}/LOG/.HOT-${PG_DB}-BULIST.dat
+export TMPFILE=${BACKUP_DIR}/LOG/HOT-${PG_DB}.log
+export LOGFILE=${BACKUP_DIR}/LOG/HOT-${PG_DB}-${CURRENT_DATE}.log
+
+# SQL LIST
+BACKUP_START=&quot;SELECT pg_start_backup('full_backup');&quot;
+BACKUP_STOP=&quot;SELECT pg_stop_backup();&quot;
+
+echo &quot;########## [Step 1] `date &quot;+%Y-%m-%d-%H:%M:%S&quot;` BEGIN BACKUP ##########&quot; &gt;&gt; ${TMPFILE}
+
+psql -p ${PG_PORT} -d ${PG_DB} -U ${PG_USER} -c &quot;${BACKUP_START}&quot; &gt;&gt; ${TMPFILE}  2&gt;&amp;1
+
+if [ $? -eq &quot;0&quot; ]
+then
+  echo &quot;&gt;&gt;&gt;&gt;&gt; `date &quot;+%Y-%m-%d-%H:%M:%S&quot;` Begin backup completed&quot; &gt;&gt; ${TMPFILE}
+else
+  echo &quot;&gt;&gt;&gt;&gt;&gt; `date &quot;+%Y-%m-%d-%H:%M:%S&quot;` Begin backup failed&quot; &gt;&gt; ${TMPFILE}
+  exit 1
+fi
+
+echo &quot; &quot; &gt;&gt; ${TMPFILE}
+echo &quot;########## [Step 2] `date &quot;+%Y-%m-%d-%H:%M:%S&quot;` DATA COPY ##########&quot; &gt;&gt; ${TMPFILE}
+
+export TMP=${BACKUP_DIR}/LOG/.HOT-${PG_DB}.tmp
+
+psql -p ${PG_PORT} -d ${PG_DB} -U ${PG_USER} &lt;&lt;! &gt; ${TMP}
+select distinct 'value', case when length(pg_tablespace_location(oid))=0 then (select setting from pg_settings where name='data_directory')
+else pg_tablespace_location(oid) end
+from pg_tablespace
+where spcname not in ('ts_temp'); \q
+!
+
+/bin/cat ${TMP} | /bin/awk '$1 == &quot;value&quot; { print $3 }' &gt; ${BULIST}
+
+echo ${PG_ARCH} &gt;&gt; ${BULIST}
+IFS=$'\n' read -d '' -r -a lines &lt; ${BULIST}
+
+
+echo &quot;&gt;&gt;&gt;&gt;&gt; Backup List&quot; &gt;&gt; ${TMPFILE}
+cat ${BULIST} &gt;&gt; ${TMPFILE}
+echo &quot; &quot; &gt;&gt; ${TMPFILE}
+
+echo ${lines[*]}
+#CHKPOINT=$(find /home1/irteam/psql/arch/testdb -type f -mtime +1 -name '*backup' -printf '%f\n' | sort -r | head -1)
+tar -cv  --exclude=&quot;${PG_DATA}/pg_wal/*&quot; \-f $BACKUP_DIR/backup.tar ${lines[*]}
+
+echo &quot;&gt;&gt;&gt;&gt;&gt; `date &quot;+%Y-%m-%d-%H:%M:%S&quot;` data copy completed&quot; &gt;&gt; ${TMPFILE}
+
+echo &quot; &quot; &gt;&gt; ${TMPFILE}
+echo &quot;########## [Step 3] `date &quot;+%Y-%m-%d-%H:%M:%S&quot;` END BACKUP ##########&quot; &gt;&gt; ${TMPFILE}
+psql -p ${PG_PORT} -d ${PG_DB} -U ${PG_USER} -c &quot;${BACKUP_STOP}&quot; &gt;&gt; ${TMPFILE}  2&gt;&amp;1
+
+if [ $? -eq &quot;0&quot; ]
+then
+  echo &quot;&gt;&gt;&gt;&gt;&gt; `date &quot;+%Y-%m-%d-%H:%M:%S&quot;`  Backup completed&quot; &gt;&gt; ${TMPFILE}
+  echo &quot; &quot; &gt;&gt; ${TMPFILE}
+#  psql -p ${PG_PORT} -d ${PG_DB} -U ${PG_USER} -c &quot;select pg_switch_xlog();&quot; &gt;&gt; ${TMPFILE}  2&gt;&amp;1
+#  psql -p ${PG_PORT} -d ${PG_DB} -U ${PG_USER} -c &quot;select pg_switch_xlog();&quot; &gt;&gt; ${TMPFILE}  2&gt;&amp;1
+  echo &quot;&gt;&gt;&gt;&gt;&gt; `date &quot;+%Y-%m-%d-%H:%M:%S&quot;` HOT Backup completed successfully!!!&quot; &gt;&gt; ${TMPFILE}
+  mv ${TMPFILE} ${LOGFILE}
+else
+  echo &quot;&gt;&gt;&gt;&gt;&gt; `date &quot;+%Y-%m-%d-%H:%M:%S&quot;` HOT Backup failed!!!&quot; &gt;&gt; ${TMPFILE}
+  exit 1
+fi
+
+rm -rf ${BACKUP_DIR}/LOG/.*
+find ${BACKUP_DIR}/LOG -name &quot;HOT-*.log&quot; -mtime +2 -exec rm {} \;
+</code></pre><h3 id="restore-test1">restore test</h3>
+<ul>
+<li>데이터 삭제 전</li>
+</ul>
+<pre><code>postgres=# select now(), count(*) from tb_test;
+             now              | count
+------------------------------+--------
+ 2020-04-13 00:08:07.88325+09 | 100000
+(1 row)
+</code></pre><ul>
+<li>backup 수행</li>
+</ul>
+<pre><code>### hotbackup.sh 수행
+
+### backup info 확인 
+[irteam@testserver1 00:21:24 ~/psql/arch/testdb ]$ cat 000000020000000100000030.00000028.backup
+
+START WAL LOCATION: 1/30000028 (file 000000020000000100000030)
+STOP WAL LOCATION: 1/30006338 (file 000000020000000100000030)
+CHECKPOINT LOCATION: 1/30006268
+BACKUP METHOD: pg_start_backup
+BACKUP FROM: master
+START TIME: 2020-04-12 15:10:52 GMT
+LABEL: full_backup
+START TIMELINE: 2
+STOP TIME: 2020-04-12 15:10:53 GMT
+STOP TIMELINE: 2
+</code></pre><p>=&gt;  백업 수행 시 백업 시작과 완료 시점의 WAL LOCATION 정보가 남기 때문에 복구 시 모든 WAL archive 파일을 읽을 필요없음
+CHECKPOINT LOCATION: 1/30006268 까지의 data가 반영된 백업본이고 그 이후의 데이터는 (file 000000020000000100000030) wal logfile에서 반영하면 된다는 내용</p>
+<ul>
+<li>data 삭제</li>
+</ul>
+<pre><code>postgres=# call insert_test_data(10);
+CALL
+
+postgres=# select now(), count(*) from tb_test;
+             now              | count
+------------------------------+--------
+ 2020-04-13 00:12:54.00624+09 | 200000
+(1 row)
+
+
+postgres=# truncate public.tb_test;
+</code></pre><p>=&gt;truncate 직전 20만건으로 복구시도</p>
+<ul>
+<li>backup 본으로 복구 수행</li>
+</ul>
+<pre><code>### DB STOP
+
+### backup 본 $PGDATA 로 copy
+[irteam@testserver1 23:30:19 ~/psql/backup/testdb/home1/irteam/psql ]$ ls
+arch  data  engn  indx  testdb
+
+
+### $/PGDATA/recovery.conf 설정
+
+cat recovery.conf
+
+restore_command = 'cp /home1/irteam/psql/arch/testdb/%f %p'
+recovery_target_time = '2020-04-13 00:12:54'
+
+==&gt; wal archive logfile을 pg_wal 디렉토리로 가져오고 원하는 시간대로 복구하도록 설정  
+DB 기동 시 recovery.conf 를 읽고 필요한 아카이브 파일을 적용하게됨  
+
+### DB start
+
+
+### recovery 완료
+postgres=# select now(), count(*) from public.tb_test;
+              now              | count
+-------------------------------+--------
+ 2020-04-13 00:16:55.094237+09 | 200000
+(1 row)
+</code></pre><ul>
+<li>recovery log</li>
+</ul>
+<pre><code>2020-04-12 15:16:23 GMT LOG:  restored log file &quot;00000002.history&quot; from archive
+2020-04-12 15:16:23 GMT LOG:  restored log file &quot;000000020000000100000030&quot; from archive
+
+2020-04-12 15:16:23 GMT LOG:  redo starts at 1/30000028
+2020-04-12 15:16:23 GMT LOG:  consistent recovery state reached at 1/30006338
+=&gt; 백업 진행 중 변경사항 적용
+
+2020-04-12 15:16:23 GMT LOG:  database system is ready to accept read only connections
+2020-04-12 15:16:24 GMT LOG:  restored log file &quot;000000020000000100000031&quot; from archive
+2020-04-12 15:16:24 GMT LOG:  restored log file &quot;000000020000000100000032&quot; from archive
+2020-04-12 15:16:24 GMT LOG:  recovery stopping before commit of transaction 1966, time 2020-04-13 00:13:19.690669+09
+2020-04-12 15:16:24 GMT LOG:  recovery has paused
+2020-04-12 15:16:24 GMT HINT:  Execute pg_wal_replay_resume() to continue.
+
+=&gt; 백업 이후 ~ recovery_target_time  사이의 데이터 반영  
+archive 반영 후 데이터 복구는 완료 되어도 DB는 계속 recovery 상태 (read_only )이기 때문에 정상화 해야함
+</code></pre><ul>
+<li>recovery 상태 해제</li>
+</ul>
+<pre><code>postgres=# call insert_test_data(1);
+ERROR:  cannot execute INSERT in a read-only transaction
+
+
+postgres=# SELECT pg_wal_replay_resume();
+ pg_wal_replay_resume
+----------------------
+
+(1 row)
+
+postgres=# call insert_test_data(1);
+CALL
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

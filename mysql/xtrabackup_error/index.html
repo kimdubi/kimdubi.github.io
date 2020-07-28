@@ -179,9 +179,9 @@ InnoDB: Your database may be corrupt or you may have copied the InnoDB tablespac
 <ul>
 <li>ib_logfile이 너무 작아서 xtrabackup의 log-copy thread 가 crawling 하기 전에 덮어 씌워져 LSN 이 유실된 건 아닐까?</li>
 <li>기존 innodb-log-file-size 1GB =&gt; 2GB
-<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/logfile1.png" alt="">
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/logfile1.png" alt=""><br>
 =&gt; checkpoint age가 max checkpoint age에 근접하거나
-<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/logfile2.png" alt="">
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/logfile2.png" alt=""><br>
 =&gt; logfile에 쓰여지는 data양이 total logfile size보다 크면 logfile size 늘릴 필요가 있음</li>
 <li>xtrabackup source에서 log-copy-interval 수정
 <a href="https://github.com/percona/percona-xtrabackup/blob/8.0/storage/innobase/xtrabackup/src/xtrabackup.cc">https://github.com/percona/percona-xtrabackup/blob/8.0/storage/innobase/xtrabackup/src/xtrabackup.cc</a></li>

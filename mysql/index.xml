@@ -5,7 +5,7 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 28 Jul 2020 21:21:22 +0900</lastBuildDate>
+    <lastBuildDate>Tue, 28 Jul 2020 21:22:22 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
@@ -13,13 +13,13 @@
     <item>
       <title>MySQL innodb_rollback_on_timeout 설정</title>
       <link>https://kimdubi.github.io/mysql/rollback/</link>
-      <pubDate>Tue, 28 Jul 2020 21:21:22 +0900</pubDate>
+      <pubDate>Tue, 28 Jul 2020 21:22:22 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/mysql/rollback/</guid>
       <description>&lt;p&gt;흔히 transaction 이라 하면 자동적으로 떠오르는게 트랜잭션의 특성인 ACID 입니다.&lt;br&gt;
 MySQL의 Innodb도 transaction을 지원하는 storage engine으로 당연히 ACID 또한 지켜질텐데요.&lt;br&gt;
-이 ACID에도 예외사항이 있다는 사실을 알고 계셨나요?&lt;/p&gt;
-&lt;p&gt;그림1&lt;/p&gt;
+그런데 Innodb에서 이 ACID에도 예외사항이 있다는 사실을 알고 계셨나요?&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/rollback.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
 &lt;p&gt;공식 manual 의 문서대로 innodb는 timeout이 발생한 transaction에 대해&lt;br&gt;
 옵션에 따라 전체 트랜잭션을 rollback 하거나, 마지막 커맨드만 rollback (default)을 합니다.&lt;br&gt;
 그리고 이것을 결정 짓는 파라미터가 바로 innodb_rollback_on_timeout 인데요&lt;br&gt;

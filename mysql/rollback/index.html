@@ -134,8 +134,8 @@
 
     <div align="start" class="content"><p>흔히 transaction 이라 하면 자동적으로 떠오르는게 트랜잭션의 특성인 ACID 입니다.<br>
 MySQL의 Innodb도 transaction을 지원하는 storage engine으로 당연히 ACID 또한 지켜질텐데요.<br>
-이 ACID에도 예외사항이 있다는 사실을 알고 계셨나요?</p>
-<p>그림1</p>
+그런데 Innodb에서 이 ACID에도 예외사항이 있다는 사실을 알고 계셨나요?</p>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/rollback.png" alt=""></p>
 <p>공식 manual 의 문서대로 innodb는 timeout이 발생한 transaction에 대해<br>
 옵션에 따라 전체 트랜잭션을 rollback 하거나, 마지막 커맨드만 rollback (default)을 합니다.<br>
 그리고 이것을 결정 짓는 파라미터가 바로 innodb_rollback_on_timeout 인데요<br>

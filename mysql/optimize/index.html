@@ -216,27 +216,28 @@ optimize NO_WRITE_TO_BINLOG  table test.tb_test;
 INSERT INTO t1(c1) VALUES ('bbbbb');
 INSERT INTO t1(c1) VALUES ('cc');
 INSERT INTO t1(c1) VALUES ('dddddd');
-</code></pre><p>아주 간단하게 생각하면 아래처럼 순차적으로 저장된다고 생각할 수 있습니다.</p>
-<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page_1.png" alt="">
+</code></pre><p>아주 간단하게 생각하면 아래처럼 순차적으로 저장된다고 생각할 수 있습니다.<br>
+<!-- raw HTML omitted -->
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page_1.png" alt=""><br>
 <!-- raw HTML omitted -->
 이러면 문제가 &lsquo;bbbbb'의 위치를 어떻게 찾느냐 입니다. 그래서 추가되는 개념이 data header 입니다.</p>
-<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page_2.png" alt="">
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page_2.png" alt=""><br>
 <!-- raw HTML omitted -->
 각 데이터의 앞에 길이정보를 가지는 data header를 추가함으로써 data headr 크기 + aaa 길이 = bbbbb의 시작점<br>
 같은 방식으로 각 데이터의 위치를 찾을 수 있습니다.<br>
 <!-- raw HTML omitted -->
 그러면 이제 데이터를 지워보겠습니다.</p>
 <pre><code>DELETE FROM t1 WHERE c1 = 'cc';
-</code></pre><p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page3.png" alt="">
+</code></pre><p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page3.png" alt=""><br>
 <!-- raw HTML omitted -->
 is_del 이라는 삭제 플래그를 두고 추가 insert 등이 발생할 땐 삭제 처리 된 이 영역을 재사용하게 됩니다.<br>
 이미 page 단위로 공간이 할당되었기 때문에 이 삭제된 공간만 따로 회수할 수는 없고 이 공간을 재사용하게 되는 것이죠.<br>
 이런 공간이 많을 수록 위에서 본 것처럼 OS에서 실제 차지하는 공간과 db 내에서 인식되는 공간간의 차이,<br>
 즉 fragmentation 현상이 확인 되는 것입니다.<br>
 optimzie 같은 최적화 작업은 데이터를 전부 새로 다시 부어주는 과정이기 때문에 이런 삭제처리된 공간을 회수 할 수 있게 되는 것입니다.<br>
-<!-- raw HTML omitted -->
+<!-- raw HTML omitted --><!-- raw HTML omitted -->
 참고로 위와 같은 page 구조는 아주 단순하게 살펴본 구조로 실제로는 아래와 같은 slot page 형태로 이루어지게 됩니다.<br>
-<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page_4.png" alt="">
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page_4.png" alt=""><br>
 <!-- raw HTML omitted -->
 page header에 위치하던 data header가 페이지 끝으로 이동했고<br>
 page header에는 현재 페이지에 몇 개의 data header가 있는지를 (slot 개수) 나타내는 정보 등이 기록됩니다.<br>

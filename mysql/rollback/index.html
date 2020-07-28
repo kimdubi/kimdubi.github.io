@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL innodb_rollback_on_timeout 설정</title>
+        
+        <style>
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL innodb_rollback_on_timeout 설정</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL innodb_rollback_on_timeout 설정</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>흔히 transaction 이라 하면 자동적으로 떠오르는게 트랜잭션의 특성인 ACID 입니다.<br>
+MySQL의 Innodb도 transaction을 지원하는 storage engine으로 당연히 ACID 또한 지켜질텐데요.<br>
+이 ACID에도 예외사항이 있다는 사실을 알고 계셨나요?</p>
+<p>그림1</p>
+<p>공식 manual 의 문서대로 innodb는 timeout이 발생한 transaction에 대해<br>
+옵션에 따라 전체 트랜잭션을 rollback 하거나, 마지막 커맨드만 rollback (default)을 합니다.<br>
+그리고 이것을 결정 짓는 파라미터가 바로 innodb_rollback_on_timeout 인데요<br>
+지금부터 innodb_rollback_on_timeout 설정에 따른 rollback 테스트를 살펴보겠습니다.</p>
+<h2 id="innodbrollbackontimeoutoff-default">innodb_rollback_on_timeout=off (default)</h2>
+<p>test 는 아래와 같이 진행했습니다.</p>
+<ul>
+<li>세션 두개 준비</li>
+<li>세션1에서 update rollback_test set name='kimdubi2&rsquo; where a=2 수행</li>
+<li>세션2에서 update rollback_test set name='kimdubi3&rsquo; where a=3 수행</li>
+<li>세션1에서 update rollback_test set name='kimdubi2&rsquo; where a=3 수행해서 세션2와 락 경합 유발</li>
+<li>세션1에서 innodb_lock_timeout 발생하면 commit 수행</li>
+<li>트랜잭션 반영 결과 살펴보기</li>
+</ul>
+<pre><code>mysql&gt; show variables like 'innodb_rollback_on_timeout';
++----------------------------+-------+
+| Variable_name              | Value |
++----------------------------+-------+
+| innodb_rollback_on_timeout | OFF   |
++----------------------------+-------+
+1 row in set (0.00 sec)
+
+### 세션 1
+
+mysql&gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; update rollback_test set name='kimdubi2' where a=2;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+
+### 세션 2
+
+mysql&gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; update rollback_test set name='kimdubi3' where a=3;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+
+### 세션 1
+
+mysql&gt; update rollback_test set name='kimdubi2' where a=3;
+ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction
+
+### 세션 1
+
+mysql&gt; commit;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql&gt; select * from rollback_test;
++---+----------+
+| a | name     |
++---+----------+
+| 1 | parkdubi |
+| 2 | kimdubi2 |
+| 3 | leedubi  |
++---+----------+
+3 rows in set (0.00 sec)
+</code></pre><p>=&gt; innodb_rollback_on_timeout = off 일 때는<br>
+lock timeout 으로 실패한 세션 1의 update rollback_test set name='kimdubi2&rsquo; where a=3;<br>
+커맨드만 rollback 수행하고 update rollback_test set name='kimdubi2&rsquo; where a=2; 는 반영되었습니다.<br>
+timeout 발생한 transaction 에서는 All or Nothing 이라는 transaction의 특성과는 다른 예외상황이 발생하였습니다.</p>
+<h2 id="innodbrollbackontimeouton">innodb_rollback_on_timeout=on</h2>
+<pre><code>mysql&gt; set global innodb_rollback_on_timeout=on;
+ERROR 1238 (HY000): Variable 'innodb_rollback_on_timeout' is a read only variable
+
+=&gt; dynamic 변수가 아니므로 my.cnf 에서 변경 후 재기동 합니다.
+
+mysql&gt; show variables like 'innodb_rollback_on_timeout';
++----------------------------+-------+
+| Variable_name              | Value |
++----------------------------+-------+
+| innodb_rollback_on_timeout | ON    |
++----------------------------+-------+
+1 row in set (0.02 sec)
+
+
+### 세션 1
+
+mysql&gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; update rollback_test set name='kimdubi2' where a=2;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+### 세션 2
+
+mysql&gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; update rollback_test set name='kimdubi3' where a=3;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+### 세션 1
+
+mysql&gt; update rollback_test set name='kimdubi2' where a=3;
+ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction
+
+### 세션 1
+
+mysql&gt; commit;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; select * from rollback_test;
++---+----------+
+| a | name     |
++---+----------+
+| 1 | parkdubi |
+| 2 | choidubi |
+| 3 | leedubi  |
++---+----------+
+3 rows in set (0.00 sec)
+</code></pre><p>=&gt; innodb_rollback_on_timeout = on 일 때는<br>
+off 일때와 달리 timeout 발생한 트랜잭션에서도 모두 rollback 되는 All or Nothing 이 지켜지는 트랜잭션의 결과를 확인할 수 있었습니다.<br>
+<!-- raw HTML omitted -->
+이렇게 별 생각도 못했던 사실을 살펴보았는데요<br>
+아무리 innodb_rollback_on_timeout=off 가 default 설정이라고는 하지만 어플리케이션 단에서 트랜잭션의 일부가 실패했는데 commit 이 수행되는 그런 로직은 없어야겠죠?</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

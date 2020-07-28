@@ -5,15 +5,150 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 26 Jul 2020 20:42:15 +0900</lastBuildDate>
+    <lastBuildDate>Tue, 28 Jul 2020 21:21:22 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
+      <title>MySQL innodb_rollback_on_timeout 설정</title>
+      <link>https://kimdubi.github.io/mysql/rollback/</link>
+      <pubDate>Tue, 28 Jul 2020 21:21:22 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/rollback/</guid>
+      <description>&lt;p&gt;흔히 transaction 이라 하면 자동적으로 떠오르는게 트랜잭션의 특성인 ACID 입니다.&lt;br&gt;
+MySQL의 Innodb도 transaction을 지원하는 storage engine으로 당연히 ACID 또한 지켜질텐데요.&lt;br&gt;
+이 ACID에도 예외사항이 있다는 사실을 알고 계셨나요?&lt;/p&gt;
+&lt;p&gt;그림1&lt;/p&gt;
+&lt;p&gt;공식 manual 의 문서대로 innodb는 timeout이 발생한 transaction에 대해&lt;br&gt;
+옵션에 따라 전체 트랜잭션을 rollback 하거나, 마지막 커맨드만 rollback (default)을 합니다.&lt;br&gt;
+그리고 이것을 결정 짓는 파라미터가 바로 innodb_rollback_on_timeout 인데요&lt;br&gt;
+지금부터 innodb_rollback_on_timeout 설정에 따른 rollback 테스트를 살펴보겠습니다.&lt;/p&gt;
+&lt;h2 id=&#34;innodbrollbackontimeoutoff-default&#34;&gt;innodb_rollback_on_timeout=off (default)&lt;/h2&gt;
+&lt;p&gt;test 는 아래와 같이 진행했습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;세션 두개 준비&lt;/li&gt;
+&lt;li&gt;세션1에서 update rollback_test set name=&#39;kimdubi2&amp;rsquo; where a=2 수행&lt;/li&gt;
+&lt;li&gt;세션2에서 update rollback_test set name=&#39;kimdubi3&amp;rsquo; where a=3 수행&lt;/li&gt;
+&lt;li&gt;세션1에서 update rollback_test set name=&#39;kimdubi2&amp;rsquo; where a=3 수행해서 세션2와 락 경합 유발&lt;/li&gt;
+&lt;li&gt;세션1에서 innodb_lock_timeout 발생하면 commit 수행&lt;/li&gt;
+&lt;li&gt;트랜잭션 반영 결과 살펴보기&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; show variables like &#39;innodb_rollback_on_timeout&#39;;
++----------------------------+-------+
+| Variable_name              | Value |
++----------------------------+-------+
+| innodb_rollback_on_timeout | OFF   |
++----------------------------+-------+
+1 row in set (0.00 sec)
+
+### 세션 1
+
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; update rollback_test set name=&#39;kimdubi2&#39; where a=2;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+
+### 세션 2
+
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; update rollback_test set name=&#39;kimdubi3&#39; where a=3;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+
+### 세션 1
+
+mysql&amp;gt; update rollback_test set name=&#39;kimdubi2&#39; where a=3;
+ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction
+
+### 세션 1
+
+mysql&amp;gt; commit;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql&amp;gt; select * from rollback_test;
++---+----------+
+| a | name     |
++---+----------+
+| 1 | parkdubi |
+| 2 | kimdubi2 |
+| 3 | leedubi  |
++---+----------+
+3 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; innodb_rollback_on_timeout = off 일 때는&lt;br&gt;
+lock timeout 으로 실패한 세션 1의 update rollback_test set name=&#39;kimdubi2&amp;rsquo; where a=3;&lt;br&gt;
+커맨드만 rollback 수행하고 update rollback_test set name=&#39;kimdubi2&amp;rsquo; where a=2; 는 반영되었습니다.&lt;br&gt;
+timeout 발생한 transaction 에서는 All or Nothing 이라는 transaction의 특성과는 다른 예외상황이 발생하였습니다.&lt;/p&gt;
+&lt;h2 id=&#34;innodbrollbackontimeouton&#34;&gt;innodb_rollback_on_timeout=on&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; set global innodb_rollback_on_timeout=on;
+ERROR 1238 (HY000): Variable &#39;innodb_rollback_on_timeout&#39; is a read only variable
+
+=&amp;gt; dynamic 변수가 아니므로 my.cnf 에서 변경 후 재기동 합니다.
+
+mysql&amp;gt; show variables like &#39;innodb_rollback_on_timeout&#39;;
++----------------------------+-------+
+| Variable_name              | Value |
++----------------------------+-------+
+| innodb_rollback_on_timeout | ON    |
++----------------------------+-------+
+1 row in set (0.02 sec)
+
+
+### 세션 1
+
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; update rollback_test set name=&#39;kimdubi2&#39; where a=2;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+### 세션 2
+
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; update rollback_test set name=&#39;kimdubi3&#39; where a=3;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+### 세션 1
+
+mysql&amp;gt; update rollback_test set name=&#39;kimdubi2&#39; where a=3;
+ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction
+
+### 세션 1
+
+mysql&amp;gt; commit;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; select * from rollback_test;
++---+----------+
+| a | name     |
++---+----------+
+| 1 | parkdubi |
+| 2 | choidubi |
+| 3 | leedubi  |
++---+----------+
+3 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; innodb_rollback_on_timeout = on 일 때는&lt;br&gt;
+off 일때와 달리 timeout 발생한 트랜잭션에서도 모두 rollback 되는 All or Nothing 이 지켜지는 트랜잭션의 결과를 확인할 수 있었습니다.&lt;br&gt;
+&lt;!-- raw HTML omitted --&gt;
+이렇게 별 생각도 못했던 사실을 살펴보았는데요&lt;br&gt;
+아무리 innodb_rollback_on_timeout=off 가 default 설정이라고는 하지만 어플리케이션 단에서 트랜잭션의 일부가 실패했는데 commit 이 수행되는 그런 로직은 없어야겠죠?&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
       <title>MySQL fragmentation 원인과 해결방법</title>
       <link>https://kimdubi.github.io/mysql/optimize/</link>
-      <pubDate>Sun, 26 Jul 2020 20:42:15 +0900</pubDate>
+      <pubDate>Sun, 26 Jul 2020 20:43:15 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/mysql/optimize/</guid>
       <description>&lt;p&gt;MySQL에서 테이블 fragmentation 현상을 경험해보신 적 있으신가요?&lt;br&gt;
@@ -100,27 +235,28 @@ optimize NO_WRITE_TO_BINLOG  table test.tb_test;
 INSERT INTO t1(c1) VALUES (&#39;bbbbb&#39;);
 INSERT INTO t1(c1) VALUES (&#39;cc&#39;);
 INSERT INTO t1(c1) VALUES (&#39;dddddd&#39;);
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;아주 간단하게 생각하면 아래처럼 순차적으로 저장된다고 생각할 수 있습니다.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page_1.png&#34; alt=&#34;&#34;&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;아주 간단하게 생각하면 아래처럼 순차적으로 저장된다고 생각할 수 있습니다.&lt;br&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page_1.png&#34; alt=&#34;&#34;&gt;&lt;br&gt;
 &lt;!-- raw HTML omitted --&gt;
 이러면 문제가 &amp;lsquo;bbbbb&#39;의 위치를 어떻게 찾느냐 입니다. 그래서 추가되는 개념이 data header 입니다.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page_2.png&#34; alt=&#34;&#34;&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page_2.png&#34; alt=&#34;&#34;&gt;&lt;br&gt;
 &lt;!-- raw HTML omitted --&gt;
 각 데이터의 앞에 길이정보를 가지는 data header를 추가함으로써 data headr 크기 + aaa 길이 = bbbbb의 시작점&lt;br&gt;
 같은 방식으로 각 데이터의 위치를 찾을 수 있습니다.&lt;br&gt;
 &lt;!-- raw HTML omitted --&gt;
 그러면 이제 데이터를 지워보겠습니다.&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;DELETE FROM t1 WHERE c1 = &#39;cc&#39;;
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page3.png&#34; alt=&#34;&#34;&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page3.png&#34; alt=&#34;&#34;&gt;&lt;br&gt;
 &lt;!-- raw HTML omitted --&gt;
 is_del 이라는 삭제 플래그를 두고 추가 insert 등이 발생할 땐 삭제 처리 된 이 영역을 재사용하게 됩니다.&lt;br&gt;
 이미 page 단위로 공간이 할당되었기 때문에 이 삭제된 공간만 따로 회수할 수는 없고 이 공간을 재사용하게 되는 것이죠.&lt;br&gt;
 이런 공간이 많을 수록 위에서 본 것처럼 OS에서 실제 차지하는 공간과 db 내에서 인식되는 공간간의 차이,&lt;br&gt;
 즉 fragmentation 현상이 확인 되는 것입니다.&lt;br&gt;
 optimzie 같은 최적화 작업은 데이터를 전부 새로 다시 부어주는 과정이기 때문에 이런 삭제처리된 공간을 회수 할 수 있게 되는 것입니다.&lt;br&gt;
-&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;&lt;!-- raw HTML omitted --&gt;
 참고로 위와 같은 page 구조는 아주 단순하게 살펴본 구조로 실제로는 아래와 같은 slot page 형태로 이루어지게 됩니다.&lt;br&gt;
-&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page_4.png&#34; alt=&#34;&#34;&gt;
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/page_4.png&#34; alt=&#34;&#34;&gt;&lt;br&gt;
 &lt;!-- raw HTML omitted --&gt;
 page header에 위치하던 data header가 페이지 끝으로 이동했고&lt;br&gt;
 page header에는 현재 페이지에 몇 개의 data header가 있는지를 (slot 개수) 나타내는 정보 등이 기록됩니다.&lt;br&gt;

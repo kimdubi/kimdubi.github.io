@@ -5,10 +5,308 @@
     <description>Recent content in Postgresqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 07 Jul 2020 14:15:08 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 08 Aug 2020 23:06:27 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/postgresql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>PostgreSQL 유용한 command</title>
+      <link>https://kimdubi.github.io/postgresql/command/</link>
+      <pubDate>Sat, 08 Aug 2020 23:06:27 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/command/</guid>
+      <description>&lt;p&gt;새로운 dbms를 공부할 때 가장 불편한 것 중에 하나는 ORACLE의 dba_ , v$ 테이블 같은 메타데이터 조회나 mysql의 &amp;ldquo;show tables&amp;rdquo; 같은&lt;br&gt;
+유용하고 편리한 쿼리들을 어떻게 사용하는지 모른다는 것입니다.&lt;br&gt;
+postgresql 에도 물론 메타데이터 조회나 쉽고 편한 명령어들이 많은데 이번 글에서는 그 커맨드들을 확인해보겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;db---&#34;&gt;DB 접속 &amp;amp; 입출력&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ psql -d DBNAME
+$ psql -d DBNAME -U USERNAME
+=&amp;gt; OS에서 DB 접속
+
+
+\c DBNAME
+\c DBNAME USER 
+\c DBNAME USER HOST 
+\c DBNAME USER HOST PORT
+=&amp;gt; DB내에서 database, user switching
+
+\conninfo : 현재 커넥션의 정보 표시
+\encoding [ENCODING] : 클라이언트의 인코딩을 셋팅 또는 표시
+
+\timing 소요시간 표시
+
+\p : 쿼리 버퍼 조회
+\r : 쿼리 버퍼 리셋
+\s : 이력 조회
+\g : 버퍼의 쿼리 수행
+\w : 쿼리 버퍼를 파일에 쓰기
+\i : 파일 수행
+\o [파일명] : 결과를 파일로 저장
+\qecho : \o로 열었던 파일에 echo 수행
+\o : 파일 닫기 (다시 결과를 standard output 으로 전달)
+
+\set 변수 설정
+\unset 변수 설정 해제
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;#############################################&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;date 조회
+postgres=# select now();
+now&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;p&gt;2020-08-08 13:35:52.006784+00
+(1 row)&lt;/p&gt;
+&lt;p&gt;#############################################&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;쿼리 버퍼 조회 =&amp;gt; 바로 전에 수행한 쿼리만 남는듯
+postgres=# \p
+select now();&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;해당 세션 쿼리 수행 히스토리
+postgres=# \s
+\l
+\dn
+\dn+
+\dt&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;#############################################&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;재수행
+postgres=# \g
+now&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;p&gt;2020-08-08 13:38:23.966627+00
+(1 row)&lt;/p&gt;
+&lt;p&gt;#############################################&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;query buffer 내 쿼리 파일로 떨구기
+postgres=# \w test.sql&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;#############################################&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;쿼리 확인
+postgres=# ! cat test.sql
+select now();
+#############################################&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;query file Input&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;now&#34;&gt;postgres-# \i test.sql
+now&lt;/h2&gt;
+&lt;p&gt;2020-08-08 13:41:23.455211+00
+(1 row)&lt;/p&gt;
+&lt;p&gt;#############################################&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;수행한 쿼리 결과를 파일로 떨구기&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;postgres=# \o test.txt
+postgres=# \qecho ##### OUTPUT TEST #####
+postgres=# select now();
+postgres=# ! cat test.txt&lt;/p&gt;
+&lt;h5 id=&#34;output-test&#34;&gt;OUTPUT TEST&lt;/h5&gt;
+&lt;pre&gt;&lt;code&gt;          now
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr&gt;
+&lt;p&gt;2020-08-08 13:43:43.644294+00
+(1 row)
+postgres=# \o&lt;/p&gt;
+&lt;p&gt;#############################################&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;변수 설정
+postgres=# \set test 10
+postgres=# select :test;
+?column?&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;pre&gt;&lt;code&gt;   10
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;(1 row)&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;
+### DB 내 테이블 ,인덱스 같은 오브젝트들을 조회하는 방법
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;\l[+]   [PATTERN]      list databases&lt;/p&gt;
+&lt;p&gt;\d[S+]                 list tables, views, and sequences
+\d[S+]  NAME           describe table, view, sequence, or index&lt;/p&gt;
+&lt;p&gt;\du[S+] [PATTERN]      list roles
+\dx[+]  [PATTERN]      list extensions
+\dn[S+] [PATTERN]      list schemas
+\db[+]  [PATTERN]      list tablespaces&lt;/p&gt;
+&lt;p&gt;\dt[S+] [PATTERN]      list tables
+\ds[S+] [PATTERN]      list sequences
+\di[S+] [PATTERN]      list indexes
+\dv[S+] [PATTERN]      list views
+\dm[S+] [PATTERN]      list materialized views
+\dy     [PATTERN]      list event triggers&lt;/p&gt;
+&lt;h3 id=&#34;system-table--s-&#34;&gt;system table들을 조회하려면 S+를 붙여야함&lt;/h3&gt;
+&lt;p&gt;postgres=# \d
+List of relations
+Schema | Name | Type  |  Owner
+&amp;mdash;&amp;mdash;&amp;ndash;+&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;-+&amp;mdash;&amp;mdash;&amp;mdash;-
+public | test | table | postgres
+(1 row)&lt;/p&gt;
+&lt;p&gt;=&amp;gt; 일반 service 테이블만 조회됨&lt;/p&gt;
+&lt;p&gt;postgres=# \dS+
+List of relations
+Schema   |              Name               | Type  |  Owner   |    Size    | Description
+&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;-+&amp;mdash;&amp;mdash;&amp;mdash;-+&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;+&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;-
+pg_catalog | pg_aggregate                    | table | postgres | 56 kB      |
+pg_catalog | pg_am                           | table | postgres | 40 kB      |
+pg_catalog | pg_amop                         | table | postgres | 80 kB      |
+pg_catalog | pg_amproc                       | table | postgres | 56 kB      |
+pg_catalog | pg_attrdef                      | table | postgres | 8192 bytes |
+.
+.
+.
+=&amp;gt; 시스템 테이블도 조회하려면 S or S+ 를 붙여야함&lt;/p&gt;
+&lt;p&gt;postgres=# \dn
+List of schemas
+Name  |  Owner
+&amp;mdash;&amp;mdash;&amp;ndash;+&amp;mdash;&amp;mdash;&amp;mdash;-
+public | postgres
+(1 row)&lt;/p&gt;
+&lt;p&gt;postgres=# \dnS
+List of schemas
+Name        |  Owner
+&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;mdash;&amp;ndash;+&amp;mdash;&amp;mdash;&amp;mdash;-
+information_schema | postgres
+pg_catalog         | postgres
+pg_temp_1          | postgres
+pg_toast           | postgres
+pg_toast_temp_1    | postgres
+public             | postgres
+(6 rows)&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;
+
+### 전체 커맨드
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;postgres-# ?&lt;/p&gt;
+&lt;p&gt;General
+\copyright             show PostgreSQL usage and distribution terms
+\crosstabview [COLUMNS] execute query and display results in crosstab
+\errverbose            show most recent error message at maximum verbosity
+\g [FILE] or ;         execute query (and send results to file or |pipe)
+\gdesc                 describe result of query, without executing it
+\gexec                 execute query, then execute each value in its result
+\gset [PREFIX]         execute query and store results in psql variables
+\gx [FILE]             as \g, but forces expanded output mode
+\q                     quit psql
+\watch [SEC]           execute query every SEC seconds
+Help
+? [commands]          show help on backslash commands
+? options             show help on psql command-line options
+? variables           show help on special variables
+\h [NAME]              help on syntax of SQL commands, * for all commands
+Query Buffer
+\e [FILE] [LINE]       edit the query buffer (or file) with external editor
+\ef [FUNCNAME [LINE]]  edit function definition with external editor
+\ev [VIEWNAME [LINE]]  edit view definition with external editor
+\p                     show the contents of the query buffer
+\r                     reset (clear) the query buffer
+\s [FILE]              display history or save it to file
+\w FILE                write query buffer to file
+Input/Output
+\copy &amp;hellip;              perform SQL COPY with data stream to the client host
+\echo [STRING]         write string to standard output
+\i FILE                execute commands from file
+\ir FILE               as \i, but relative to location of current script
+\o [FILE]              send all query results to file or |pipe
+\qecho [STRING]        write string to query output stream (see \o)
+Conditional
+\if EXPR               begin conditional block
+\elif EXPR             alternative within current conditional block
+\else                  final alternative within current conditional block
+\endif                 end conditional block
+Informational
+(options: S = show system objects, + = additional detail)
+\d[S+]                 list tables, views, and sequences
+\d[S+]  NAME           describe table, view, sequence, or index
+\da[S]  [PATTERN]      list aggregates
+\dA[+]  [PATTERN]      list access methods
+\db[+]  [PATTERN]      list tablespaces
+\dc[S+] [PATTERN]      list conversions
+\dC[+]  [PATTERN]      list casts
+\dd[S]  [PATTERN]      show object descriptions not displayed elsewhere
+\dD[S+] [PATTERN]      list domains
+\ddp    [PATTERN]      list default privileges
+\dE[S+] [PATTERN]      list foreign tables
+\det[+] [PATTERN]      list foreign tables
+\des[+] [PATTERN]      list foreign servers
+\deu[+] [PATTERN]      list user mappings
+\dew[+] [PATTERN]      list foreign-data wrappers
+\df[anptw][S+] [PATRN] list [only agg/normal/procedures/trigger/window] functions
+\dF[+]  [PATTERN]      list text search configurations
+\dFd[+] [PATTERN]      list text search dictionaries
+\dFp[+] [PATTERN]      list text search parsers
+\dFt[+] [PATTERN]      list text search templates
+\dg[S+] [PATTERN]      list roles
+\di[S+] [PATTERN]      list indexes
+\dl                    list large objects, same as \lo_list
+\dL[S+] [PATTERN]      list procedural languages
+\dm[S+] [PATTERN]      list materialized views
+\dn[S+] [PATTERN]      list schemas
+\do[S]  [PATTERN]      list operators
+\dO[S+] [PATTERN]      list collations
+\dp     [PATTERN]      list table, view, and sequence access privileges
+\drds [PATRN1 [PATRN2]] list per-database role settings
+\dRp[+] [PATTERN]      list replication publications
+\dRs[+] [PATTERN]      list replication subscriptions
+\ds[S+] [PATTERN]      list sequences
+\dt[S+] [PATTERN]      list tables
+\dT[S+] [PATTERN]      list data types
+\du[S+] [PATTERN]      list roles
+\dv[S+] [PATTERN]      list views
+\dx[+]  [PATTERN]      list extensions
+\dy     [PATTERN]      list event triggers
+\l[+]   [PATTERN]      list databases
+\sf[+]  FUNCNAME       show a function&#39;s definition
+\sv[+]  VIEWNAME       show a view&#39;s definition
+\z      [PATTERN]      same as \dp
+Formatting
+\a                     toggle between unaligned and aligned output mode
+\C [STRING]            set table title, or unset if none
+\f [STRING]            show or set field separator for unaligned query output
+\H                     toggle HTML output mode (currently off)
+\pset [NAME [VALUE]]   set table output option
+(NAME := {border|columns|expanded|fieldsep|fieldsep_zero|
+footer|format|linestyle|null|numericlocale|pager|
+pager_min_lines|recordsep|recordsep_zero|tableattr|title|
+tuples_only|unicode_border_linestyle|
+unicode_column_linestyle|unicode_header_linestyle})
+\t [on|off]            show only rows (currently off)
+\T [STRING]            set HTML &lt;!-- raw HTML omitted --&gt; tag attributes, or unset if none
+\x [on|off|auto]       toggle expanded output (currently off)
+Connection
+\c[onnect] {[DBNAME|- USER|- HOST|- PORT|-] | conninfo}
+connect to new database (currently &amp;ldquo;naverdb&amp;rdquo;)
+\conninfo              display information about current connection
+\encoding [ENCODING]   show or set client encoding
+\password [USERNAME]   securely change the password for a user
+Operating System
+\cd [DIR]              change the current working directory
+\setenv NAME [VALUE]   set or unset environment variable
+\timing [on|off]       toggle timing of commands (currently on)
+! [COMMAND]           execute command in shell or start interactive shell
+Variables
+\prompt [TEXT] NAME    prompt user to set internal variable
+\set [NAME [VALUE]]    set internal variable, or list all if no parameters
+\unset NAME            unset (delete) internal variable
+Large Objects
+\lo_export LOBOID FILE
+\lo_import FILE [COMMENT]
+\lo_list
+\lo_unlink LOBOID      large object operations&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;
+
+
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>PostgreSQL migration tool pgloader 사용법</title>

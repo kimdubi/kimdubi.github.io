@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>PostgreSQL 유용한 command</title>
+        
+        <style>
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">PostgreSQL 유용한 command</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>PostgreSQL 유용한 command</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>새로운 dbms를 공부할 때 가장 불편한 것 중에 하나는 ORACLE의 dba_ , v$ 테이블 같은 메타데이터 조회나 mysql의 &ldquo;show tables&rdquo; 같은<br>
+유용하고 편리한 쿼리들을 어떻게 사용하는지 모른다는 것입니다.<br>
+postgresql 에도 물론 메타데이터 조회나 쉽고 편한 명령어들이 많은데 이번 글에서는 그 커맨드들을 확인해보겠습니다.</p>
+<h3 id="db---">DB 접속 &amp; 입출력</h3>
+<pre><code>$ psql -d DBNAME
+$ psql -d DBNAME -U USERNAME
+=&gt; OS에서 DB 접속
+
+
+\c DBNAME
+\c DBNAME USER 
+\c DBNAME USER HOST 
+\c DBNAME USER HOST PORT
+=&gt; DB내에서 database, user switching
+
+\conninfo : 현재 커넥션의 정보 표시
+\encoding [ENCODING] : 클라이언트의 인코딩을 셋팅 또는 표시
+
+\timing 소요시간 표시
+
+\p : 쿼리 버퍼 조회
+\r : 쿼리 버퍼 리셋
+\s : 이력 조회
+\g : 버퍼의 쿼리 수행
+\w : 쿼리 버퍼를 파일에 쓰기
+\i : 파일 수행
+\o [파일명] : 결과를 파일로 저장
+\qecho : \o로 열었던 파일에 echo 수행
+\o : 파일 닫기 (다시 결과를 standard output 으로 전달)
+
+\set 변수 설정
+\unset 변수 설정 해제
+</code></pre><p>#############################################</p>
+<ul>
+<li>date 조회
+postgres=# select now();
+now</li>
+</ul>
+<hr>
+<p>2020-08-08 13:35:52.006784+00
+(1 row)</p>
+<p>#############################################</p>
+<ul>
+<li>
+<p>쿼리 버퍼 조회 =&gt; 바로 전에 수행한 쿼리만 남는듯
+postgres=# \p
+select now();</p>
+</li>
+<li>
+<p>해당 세션 쿼리 수행 히스토리
+postgres=# \s
+\l
+\dn
+\dn+
+\dt</p>
+</li>
+</ul>
+<p>#############################################</p>
+<ul>
+<li>재수행
+postgres=# \g
+now</li>
+</ul>
+<hr>
+<p>2020-08-08 13:38:23.966627+00
+(1 row)</p>
+<p>#############################################</p>
+<ul>
+<li>query buffer 내 쿼리 파일로 떨구기
+postgres=# \w test.sql</li>
+</ul>
+<p>#############################################</p>
+<ul>
+<li>
+<p>쿼리 확인
+postgres=# ! cat test.sql
+select now();
+#############################################</p>
+</li>
+<li>
+<p>query file Input</p>
+</li>
+</ul>
+<h2 id="now">postgres-# \i test.sql
+now</h2>
+<p>2020-08-08 13:41:23.455211+00
+(1 row)</p>
+<p>#############################################</p>
+<ul>
+<li>수행한 쿼리 결과를 파일로 떨구기</li>
+</ul>
+<p>postgres=# \o test.txt
+postgres=# \qecho ##### OUTPUT TEST #####
+postgres=# select now();
+postgres=# ! cat test.txt</p>
+<h5 id="output-test">OUTPUT TEST</h5>
+<pre><code>          now
+</code></pre>
+<hr>
+<p>2020-08-08 13:43:43.644294+00
+(1 row)
+postgres=# \o</p>
+<p>#############################################</p>
+<ul>
+<li>변수 설정
+postgres=# \set test 10
+postgres=# select :test;
+?column?</li>
+</ul>
+<hr>
+<pre><code>   10
+</code></pre>
+<p>(1 row)</p>
+<pre><code>
+### DB 내 테이블 ,인덱스 같은 오브젝트들을 조회하는 방법
+
+</code></pre><p>\l[+]   [PATTERN]      list databases</p>
+<p>\d[S+]                 list tables, views, and sequences
+\d[S+]  NAME           describe table, view, sequence, or index</p>
+<p>\du[S+] [PATTERN]      list roles
+\dx[+]  [PATTERN]      list extensions
+\dn[S+] [PATTERN]      list schemas
+\db[+]  [PATTERN]      list tablespaces</p>
+<p>\dt[S+] [PATTERN]      list tables
+\ds[S+] [PATTERN]      list sequences
+\di[S+] [PATTERN]      list indexes
+\dv[S+] [PATTERN]      list views
+\dm[S+] [PATTERN]      list materialized views
+\dy     [PATTERN]      list event triggers</p>
+<h3 id="system-table--s-">system table들을 조회하려면 S+를 붙여야함</h3>
+<p>postgres=# \d
+List of relations
+Schema | Name | Type  |  Owner
+&mdash;&mdash;&ndash;+&mdash;&mdash;+&mdash;&mdash;-+&mdash;&mdash;&mdash;-
+public | test | table | postgres
+(1 row)</p>
+<p>=&gt; 일반 service 테이블만 조회됨</p>
+<p>postgres=# \dS+
+List of relations
+Schema   |              Name               | Type  |  Owner   |    Size    | Description
+&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;-+&mdash;&mdash;&mdash;-+&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;-
+pg_catalog | pg_aggregate                    | table | postgres | 56 kB      |
+pg_catalog | pg_am                           | table | postgres | 40 kB      |
+pg_catalog | pg_amop                         | table | postgres | 80 kB      |
+pg_catalog | pg_amproc                       | table | postgres | 56 kB      |
+pg_catalog | pg_attrdef                      | table | postgres | 8192 bytes |
+.
+.
+.
+=&gt; 시스템 테이블도 조회하려면 S or S+ 를 붙여야함</p>
+<p>postgres=# \dn
+List of schemas
+Name  |  Owner
+&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;-
+public | postgres
+(1 row)</p>
+<p>postgres=# \dnS
+List of schemas
+Name        |  Owner
+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;-
+information_schema | postgres
+pg_catalog         | postgres
+pg_temp_1          | postgres
+pg_toast           | postgres
+pg_toast_temp_1    | postgres
+public             | postgres
+(6 rows)</p>
+<pre><code>
+
+### 전체 커맨드
+</code></pre><p>postgres-# ?</p>
+<p>General
+\copyright             show PostgreSQL usage and distribution terms
+\crosstabview [COLUMNS] execute query and display results in crosstab
+\errverbose            show most recent error message at maximum verbosity
+\g [FILE] or ;         execute query (and send results to file or |pipe)
+\gdesc                 describe result of query, without executing it
+\gexec                 execute query, then execute each value in its result
+\gset [PREFIX]         execute query and store results in psql variables
+\gx [FILE]             as \g, but forces expanded output mode
+\q                     quit psql
+\watch [SEC]           execute query every SEC seconds
+Help
+? [commands]          show help on backslash commands
+? options             show help on psql command-line options
+? variables           show help on special variables
+\h [NAME]              help on syntax of SQL commands, * for all commands
+Query Buffer
+\e [FILE] [LINE]       edit the query buffer (or file) with external editor
+\ef [FUNCNAME [LINE]]  edit function definition with external editor
+\ev [VIEWNAME [LINE]]  edit view definition with external editor
+\p                     show the contents of the query buffer
+\r                     reset (clear) the query buffer
+\s [FILE]              display history or save it to file
+\w FILE                write query buffer to file
+Input/Output
+\copy &hellip;              perform SQL COPY with data stream to the client host
+\echo [STRING]         write string to standard output
+\i FILE                execute commands from file
+\ir FILE               as \i, but relative to location of current script
+\o [FILE]              send all query results to file or |pipe
+\qecho [STRING]        write string to query output stream (see \o)
+Conditional
+\if EXPR               begin conditional block
+\elif EXPR             alternative within current conditional block
+\else                  final alternative within current conditional block
+\endif                 end conditional block
+Informational
+(options: S = show system objects, + = additional detail)
+\d[S+]                 list tables, views, and sequences
+\d[S+]  NAME           describe table, view, sequence, or index
+\da[S]  [PATTERN]      list aggregates
+\dA[+]  [PATTERN]      list access methods
+\db[+]  [PATTERN]      list tablespaces
+\dc[S+] [PATTERN]      list conversions
+\dC[+]  [PATTERN]      list casts
+\dd[S]  [PATTERN]      show object descriptions not displayed elsewhere
+\dD[S+] [PATTERN]      list domains
+\ddp    [PATTERN]      list default privileges
+\dE[S+] [PATTERN]      list foreign tables
+\det[+] [PATTERN]      list foreign tables
+\des[+] [PATTERN]      list foreign servers
+\deu[+] [PATTERN]      list user mappings
+\dew[+] [PATTERN]      list foreign-data wrappers
+\df[anptw][S+] [PATRN] list [only agg/normal/procedures/trigger/window] functions
+\dF[+]  [PATTERN]      list text search configurations
+\dFd[+] [PATTERN]      list text search dictionaries
+\dFp[+] [PATTERN]      list text search parsers
+\dFt[+] [PATTERN]      list text search templates
+\dg[S+] [PATTERN]      list roles
+\di[S+] [PATTERN]      list indexes
+\dl                    list large objects, same as \lo_list
+\dL[S+] [PATTERN]      list procedural languages
+\dm[S+] [PATTERN]      list materialized views
+\dn[S+] [PATTERN]      list schemas
+\do[S]  [PATTERN]      list operators
+\dO[S+] [PATTERN]      list collations
+\dp     [PATTERN]      list table, view, and sequence access privileges
+\drds [PATRN1 [PATRN2]] list per-database role settings
+\dRp[+] [PATTERN]      list replication publications
+\dRs[+] [PATTERN]      list replication subscriptions
+\ds[S+] [PATTERN]      list sequences
+\dt[S+] [PATTERN]      list tables
+\dT[S+] [PATTERN]      list data types
+\du[S+] [PATTERN]      list roles
+\dv[S+] [PATTERN]      list views
+\dx[+]  [PATTERN]      list extensions
+\dy     [PATTERN]      list event triggers
+\l[+]   [PATTERN]      list databases
+\sf[+]  FUNCNAME       show a function's definition
+\sv[+]  VIEWNAME       show a view's definition
+\z      [PATTERN]      same as \dp
+Formatting
+\a                     toggle between unaligned and aligned output mode
+\C [STRING]            set table title, or unset if none
+\f [STRING]            show or set field separator for unaligned query output
+\H                     toggle HTML output mode (currently off)
+\pset [NAME [VALUE]]   set table output option
+(NAME := {border|columns|expanded|fieldsep|fieldsep_zero|
+footer|format|linestyle|null|numericlocale|pager|
+pager_min_lines|recordsep|recordsep_zero|tableattr|title|
+tuples_only|unicode_border_linestyle|
+unicode_column_linestyle|unicode_header_linestyle})
+\t [on|off]            show only rows (currently off)
+\T [STRING]            set HTML <!-- raw HTML omitted --> tag attributes, or unset if none
+\x [on|off|auto]       toggle expanded output (currently off)
+Connection
+\c[onnect] {[DBNAME|- USER|- HOST|- PORT|-] | conninfo}
+connect to new database (currently &ldquo;naverdb&rdquo;)
+\conninfo              display information about current connection
+\encoding [ENCODING]   show or set client encoding
+\password [USERNAME]   securely change the password for a user
+Operating System
+\cd [DIR]              change the current working directory
+\setenv NAME [VALUE]   set or unset environment variable
+\timing [on|off]       toggle timing of commands (currently on)
+! [COMMAND]           execute command in shell or start interactive shell
+Variables
+\prompt [TEXT] NAME    prompt user to set internal variable
+\set [NAME [VALUE]]    set internal variable, or list all if no parameters
+\unset NAME            unset (delete) internal variable
+Large Objects
+\lo_export LOBOID FILE
+\lo_import FILE [COMMENT]
+\lo_list
+\lo_unlink LOBOID      large object operations</p>
+<pre><code>
+
+
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

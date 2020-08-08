@@ -5,10 +5,347 @@
     <description>Recent content in Postgresqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 08 Aug 2020 23:06:27 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 08 Aug 2020 23:52:20 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/postgresql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>PostgreSQL background process 살펴보기</title>
+      <link>https://kimdubi.github.io/postgresql/postgresql_bg_process/</link>
+      <pubDate>Sat, 08 Aug 2020 23:52:20 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/postgresql_bg_process/</guid>
+      <description>&lt;h2 id=&#34;heading&#34;&gt;시작하며&lt;/h2&gt;
+&lt;p&gt;PostgreSQL의 background process는 기본 프로세스인 Postmaster에서 fork() 된 프로세스들입니다.&lt;br&gt;
+각 fork() 된 background process들은 DBMS 운영을 위해 각자 맡은 역할을 수행하게 되는데요.&lt;br&gt;
+지난 글에서 PostgreSQL의 architecture에 대해 살펴보며 간략하게 말씀드렸지만&lt;br&gt;
+이번 글에서는 PostgreSQL의 background process들에 대해 좀 더 자세히 살펴보겠습니다.&lt;/p&gt;
+&lt;h2 id=&#34;postgresql-background-process&#34;&gt;PostgreSQL background process&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_bgprocess.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;postmaster&#34;&gt;Postmaster&lt;/h3&gt;
+&lt;p&gt;Postmaster 는 모든 background process들을 제어하고 client =&amp;gt; DBMS로의 connection을 생성하고 닫아주는 최초의 프로세스입니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;DB 기동 시 Postmaster는 다른 background process를 fork() 하는 역할과&lt;/li&gt;
+&lt;li&gt;client가 PostgreSQL DBMS에 connection을 요청하면 Postmaster는 설정된 인증방법(pg_hba.conf)에 따라 사용자를 인증하고&lt;br&gt;
+인증을 통과하면 사용자에게 서비스를 제공하기 위한 새로운 session을 fork() 하는 역할을 합니다.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;bgwriter&#34;&gt;BgWriter&lt;/h3&gt;
+&lt;p&gt;BgWriter 프로세스는 Shared Memory 내 dirty page를 디스크에 내려쓰는 프로세스입니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;shared buffer의 dirty page를 디스크로 주기적으로 flush 수행&lt;/li&gt;
+&lt;li&gt;주기적인 checkpoint 발생 시 모든 dirty page를 디스크에 기록&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;이 중 첫번째 작업은 dirty page를 미리 조금씩 flush 해놔서 checkpoint 동작 때 I/O가 몰리지 않도록 하자&lt;br&gt;
+즉, 시스템 I/O load 의 부담을 줄이기 위한 동작이라고 볼 수 있습니다.&lt;/p&gt;
+&lt;h4 id=&#34;-parameter&#34;&gt;관련 parameter&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;#bgwriter_delay = 200ms                 # 10-10000ms between rounds
+#bgwriter_lru_maxpages = 100            # max buffers written/round, 0 disables
+#bgwriter_lru_multiplier = 2.0          # 0-10.0 multiplier on buffers scanned/round
+#bgwriter_flush_after = 512kB           # measured in pages, 0 disables
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;bgwriter_delay : 두 번의 연속적인 flush 동작 간 delay 설정&lt;/li&gt;
+&lt;li&gt;bgwriter_lru_maxpages : bgwriter가 한번에 내려쓰는 데이터 단위로 dirty page가 100 보다 더 많으면 서버 프로세스에서 처리됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;walwriter&#34;&gt;WalWriter&lt;/h3&gt;
+&lt;p&gt;Write Ahead Logging의 개념은 데이터 파일의 수정은 변경 사항이 로그에 먼저 기록 된 후에만 이루어져야한다는 것입니다.&lt;br&gt;
+이 메커니즘을 사용하면 디스크에 데이터를 자주 내려 쓰지 않고 disk I/O를 줄일 수 있습니다.&lt;br&gt;
+또한 WAL 로그를 사용하여 dbms 를 최근 시점까지도 복구할 수 있습니다.&lt;/p&gt;
+&lt;h4 id=&#34;-&#34;&gt;관련 파라미터&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;#------------------------------------------------------------------------------
+# WRITE-AHEAD LOG
+#------------------------------------------------------------------------------
+
+# - Settings -
+
+wal_level = logical                     # minimal, replica, or logical
+                                        # (change requires restart)
+#fsync = on                             # flush data to disk for crash safety
+                                        # (turning this off can cause
+                                        # unrecoverable data corruption)
+#synchronous_commit = on                # synchronization level;
+                                        # off, local, remote_write, remote_apply, or on
+#wal_sync_method = fsync                # the default is the first option
+                                        # supported by the operating system:
+                                        #   open_datasync
+                                        #   fdatasync (default on Linux)
+                                        #   fsync
+                                        #   fsync_writethrough
+                                        #   open_sync
+#full_page_writes = on                  # recover from partial page writes
+#wal_compression = off                  # enable compression of full-page writes
+#wal_log_hints = off                    # also do full page writes of non-critical updates
+                                        # (change requires restart)
+#wal_init_zero = on                     # zero-fill new WAL files
+#wal_recycle = on                       # recycle WAL files
+#wal_buffers = -1                       # min 32kB, -1 sets based on shared_buffers
+                                        # (change requires restart)
+#wal_writer_delay = 200ms               # 1-10000 milliseconds
+#wal_writer_flush_after = 1MB           # measured in pages, 0 disables
+
+#commit_delay = 0                       # range 0-100000, in microseconds
+#commit_siblings = 5                    # range 1-1000
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;wal_level : WAL logfile에 기록되는 정보의 수준, 기본값인 replica 부터 streaming replication 과 hot standby를 사용할 수 있음&lt;/li&gt;
+&lt;li&gt;fsync : 변경사항을 WAL logfile 로 내려쓰겠다는 설정, off 설정 시 성능 상 이점이 있으나 crash 발생하면 데이터 손실남&lt;/li&gt;
+&lt;li&gt;synchronous_commit : ON 설정 시 변경사항이 WAL logfile 에 기록되어야 트랜잭션 완료&lt;/li&gt;
+&lt;li&gt;wal_sync_method : 변경사항을 WAL logfile로 내려쓰는 방법, fsync, fdatasync 등이 있음&lt;/li&gt;
+&lt;li&gt;full_page_writes : 전체 data page를 WAL log에 쓰도록 설정&lt;/li&gt;
+&lt;li&gt;wal_buffers : WAL log를 저장하는 데 사용되는 메모리 공간, wal_writer_delay, commit_delay 설정에 영향받을 수 있음&lt;/li&gt;
+&lt;li&gt;wal_writer_delay : walwriter 프로세스의 동작 간격 설정으로, 시간이 너무 길면 WAL buffer가 부족할 수 있으며 시간이 너무 짧으면 WAL을 계속 쓰게되어 디스크 I/O 부담이 증가할 수 있음&lt;/li&gt;
+&lt;li&gt;commit_delay : commit 이후 WAL flush 되기 전 WAL buffer에서 대기하는 시간, group commit 과 같은 효과&lt;/li&gt;
+&lt;li&gt;commit_siblings : commit delay 설정을 수행하기 전, 필요한 최소 동시 트랜잭션 수, 트랜잭션 수가 commit_siblings 보다 적은 경우 바로 WAL flush 됨.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;pgarch-&#34;&gt;PgArch 프로세스&lt;/h3&gt;
+&lt;p&gt;WAL logfile은 재활용 되기 때문에 과거의 WAL logifle은 새로운 log로 덮어 씌여집니다.&lt;br&gt;
+중간에 WAL logfile이 유실되는 경우 원하는 시점으로 시점복구가 어려울 수 있기 때문에 PostgreSQL에서는
+WAL logfile을 백업해놓을 수 있는데 이때 역할을 수행하는 프로세스가 PgArch 프로세스입니다.&lt;/p&gt;
+&lt;h4 id=&#34;-1&#34;&gt;관련 파라미터&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;# - Archiving -
+
+#archive_mode = off             # enables archiving; off, on, or always
+                                # (change requires restart)
+#archive_command = &#39;&#39;           # command to use to archive a logfile segment
+                                # placeholders: %p = path of file to archive
+                                #               %f = file name only
+                                # e.g. &#39;test ! -f /mnt/server/archivedir/%f &amp;amp;&amp;amp; cp %p /mnt/server/archivedir/%f&#39;
+#archive_timeout = 0            # force a logfile segment switch after this
+                                # number of seconds; 0 disables
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;archive_mode : WAL logfile을 백업하는 archive_mode 설정 여부&lt;/li&gt;
+&lt;li&gt;archive_command : WAL 로그를 백업하기 위해 실행 될 명령어. %p : 아카이브해야하는 WAL logfile의 경로, %f : 파일 이름&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;autovacuum-&#34;&gt;AutoVacuum 프로세스&lt;/h3&gt;
+&lt;p&gt;PostgreSQL 은 UPDATE, DELETE 작업을 수행 한 후 이전 버전의 데이터를 즉시 삭제하지 않고 레코드에 저장해 놓습니다.&lt;br&gt;
+대신, 데이터는 PostgreSQL의 MVCC 메커니즘에 의해 삭제 된 것으로 표시하고 이전 버전의 데이터에 다른 트랜잭션이 액세스하는 경우 임시로 유지합니다.&lt;br&gt;
+트랜잭션이 commit 된 후에는 이전 버전의 데이터가 더 이상 필요하지 않으므로 (데드 튜플) PostgreSQL은 공간 및 xid 확보를 위해 데이터를 정리해야합니다.&lt;br&gt;
+이 작업은 AutoVacuum 프로세스에서 수행됩니다.&lt;/p&gt;
+&lt;h4 id=&#34;-2&#34;&gt;관련 파라미터&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;#------------------------------------------------------------------------------
+# AUTOVACUUM
+#------------------------------------------------------------------------------
+
+#autovacuum = on                        # Enable autovacuum subprocess?  &#39;on&#39;
+                                        # requires track_counts to also be on.
+#log_autovacuum_min_duration = -1       # -1 disables, 0 logs all actions and
+                                        # their durations, &amp;gt; 0 logs only
+                                        # actions running at least this number
+                                        # of milliseconds.
+#autovacuum_max_workers = 3             # max number of autovacuum subprocesses
+                                        # (change requires restart)
+#autovacuum_naptime = 1min              # time between autovacuum runs
+#autovacuum_vacuum_threshold = 50       # min number of row updates before
+                                        # vacuum
+#autovacuum_analyze_threshold = 50      # min number of row updates before
+                                        # analyze
+#autovacuum_vacuum_scale_factor = 0.2   # fraction of table size before vacuum
+#autovacuum_analyze_scale_factor = 0.1  # fraction of table size before analyze
+#autovacuum_freeze_max_age = 200000000  # maximum XID age before forced vacuum
+                                        # (change requires restart)
+#autovacuum_multixact_freeze_max_age = 400000000        # maximum multixact age
+                                        # before forced vacuum
+                                        # (change requires restart)
+#autovacuum_vacuum_cost_delay = 2ms     # default vacuum cost delay for
+                                        # autovacuum, in milliseconds;
+                                        # -1 means use vacuum_cost_delay
+#autovacuum_vacuum_cost_limit = -1      # default vacuum cost limit for
+                                        # autovacuum, -1 means use
+                                        # vacuum_cost_limit
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;autovacuum : autovacuum 프로세스를 사용할지 여부&lt;/li&gt;
+&lt;li&gt;autovacuum_max_workers : autovacuum 을 병렬로 수행할 최대 서브 프로세스 수 설정&lt;/li&gt;
+&lt;li&gt;autovacuum_naptime : 두 autovacuum 프로세스 사이의 간격 시간을 설정&lt;/li&gt;
+&lt;li&gt;autovacuum_vacuum_threshold / autovacuum_analyze_threshold : 테이블에서 업데이트 된 튜플 수의 임계 값 설정 , 튜플 업데이트 수가 이 값을 초과하면 vacuum / analyze 수행 필요&lt;/li&gt;
+&lt;li&gt;autovacuum_vacuum_scale_factor / autovacuum_analyze_scale_factor : 설정한 배율만큼 테이블 내 데이터 변경 시, autovacuum이 수행될 테이블로 추가됨&lt;/li&gt;
+&lt;li&gt;autovacuum_freeze_max_age : 테이블의 최대 유효 xid, 이 값 이상으로 xid가 커지지 않도록 vacuum 수행함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-3&#34;&gt;통계 수집기&lt;/h3&gt;
+&lt;p&gt;PostgreSQL optimizer의 쿼리 최적화를 위해 테이블 메타정보, 삭제 / 업데이트 수, 데이터 블록 수, 인덱스 변경 등과 같은 데이터베이스 작업 중 통계 정보를 수집하는 프로세스입니다.&lt;/p&gt;
+&lt;h4 id=&#34;-4&#34;&gt;관련 파라미터&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;#------------------------------------------------------------------------------
+# STATISTICS
+#------------------------------------------------------------------------------
+
+# - Query and Index Statistics Collector -
+
+#track_activities = on
+#track_counts = on
+#track_io_timing = off
+#track_functions = none                 # none, pl, all
+#track_activity_query_size = 1024       # (change requires restart)
+#stats_temp_directory = &#39;pg_stat_tmp&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;track_activities : 세션에서 현재 실행중인 명령에 대한 통계 정보 수집 기능을 사용할지 여부&lt;/li&gt;
+&lt;li&gt;track_counts : 데이터베이스 내 모든 작업에 대한 통계 정보 수집 기능을 사용할지 여부&lt;/li&gt;
+&lt;li&gt;track_io_timing : 쿼리 수행 시 I/O 소요시간을 수집함&lt;/li&gt;
+&lt;li&gt;track_functions : 함수 호출 수 및 수행 시간 수집&lt;/li&gt;
+&lt;li&gt;track_activity_query_size : 각 세션에서 현재 실행 중인 커맨드의 텍스트를 저장하는데 사용할 메모리&lt;/li&gt;
+&lt;li&gt;stats_temp_directory : OS 상 통계 정보의 임시 저장 경로&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;checkpointer&#34;&gt;checkpointer&lt;/h3&gt;
+&lt;p&gt;checkpoint는 DBMS가 설정하는 트랜잭션 포인트입니다. checkpoint가 실행되면 checkpoint 이전의 모든 변경사항이 디스크로 flush 됩니다.&lt;br&gt;
+DBMS가 crash 된 후 복구할 때도 checkpoint 이후 시점의 WAL log를 반영하여 복구하게됩니다.&lt;/p&gt;
+&lt;h4 id=&#34;-5&#34;&gt;관련 파라미터&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;# - Checkpoints -
+
+#checkpoint_timeout = 5min              # range 30s-1d
+max_wal_size = 1GB
+min_wal_size = 80MB
+#checkpoint_completion_target = 0.5     # checkpoint target duration, 0.0 - 1.0
+#checkpoint_flush_after = 256kB         # measured in pages, 0 disables
+#checkpoint_warning = 30s               # 0 disables
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;checkpoint_timeout : 설정한 시간 마다 checkpoint 수행&lt;/li&gt;
+&lt;li&gt;max_wal_size : WAL logfile 의 사이즈가 1GB 이상 되면 checkpoint 수행&lt;/li&gt;
+&lt;li&gt;min_wal_size : WAL logfile 사이즈가 해당 값 미만이면 checkpoint 발생시 WAL logfile을 지우지 않고 재활용함&lt;/li&gt;
+&lt;li&gt;checkpoint_completion_target : 다음 checkpoint 가 발생하기 전 checkpoint_timeout * checkpoint_completion_target 시간 안에 checkpoint 완료되도록 목표 지정하는 설정&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL을 소개합니다</title>
+      <link>https://kimdubi.github.io/postgresql/psql_intro/</link>
+      <pubDate>Sat, 08 Aug 2020 23:27:44 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/psql_intro/</guid>
+      <description>&lt;h2 id=&#34;heading&#34;&gt;시작하며&lt;/h2&gt;
+&lt;p&gt;세상엔 저마다의 특징과 장점을 뽐내는 다양한 DBMS들이 있습니다.&lt;br&gt;
+이들 각각의 특장점이 무엇인지 파악하고 자신의 서비스에서 어떤 DBMS가 최고의 퍼포먼스를 낼 수 있는지 파악하는 것이 중요하기 때문에&lt;br&gt;
+다양한 DBMS 에 대한 이해가 점점 중요해지고 있습니다.&lt;/p&gt;
+&lt;p&gt;ORACLE은 강력한 엔터프라이즈 개발 기능과 안정성을, MySQL은 대표적인 오픈소스 DB로 뛰어난 OLTP 성능을 보여주고, CUBRID는 뛰어난 부하 분산 기능을 자랑하는 DBMS입니다.&lt;br&gt;
+그리고 이 글에서 소개해드릴 PostgreSQL은 GIS 지리 정보 처리와 엔터프라이즈급 DBMS의 기능을 제공하는 오픈소스 DBMS입니다.&lt;/p&gt;
+&lt;p&gt;PostgreSQL은 이미 북미와 일본쪽에서는 굉장히 인기가 많은 DB로 자리잡은데 비해&lt;br&gt;
+우리나라에서는 GIS 용도로 굳어버린 이미지 때문인지 활용도가 높은 DB는 아닌데요.&lt;br&gt;
+GIS 외에도 기능과 성능면에서 굉장히 뛰어난 오픈소스 DB이기 때문에 알아둘 가치가 충분한 DB입니다.&lt;/p&gt;
+&lt;p&gt;이번 글에서는 PostgreSQL의 Architecture에 대해 다루면서 이게 어떤 DBMS인지 알아보겠습니다.&lt;/p&gt;
+&lt;h2 id=&#34;postgresql&#34;&gt;PostgreSQL&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_0808_1.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;PostgreSQL&lt;/strong&gt;은 객체관계형 데이터베이스 (ORDBMS) 로 엔터프라이즈급 DBMS의 기능과 뛰어난 GIS 기능으로 유명한 오픈소스DB입니다.&lt;br&gt;
+객체지향 모델을 지원하기 때문에 개발자 스스로 어플리케이션에 필요한 data type과 method를 정의할 수 있습니다.&lt;br&gt;
+PostgreSQL이 GIS 분야에서 뛰어난 이유도 ORDBMS의 특성을 살려 Native 수준으로 Spatial SQL 요소들을 구현한 &lt;strong&gt;PostGIS&lt;/strong&gt; 라는 Add-on 이 있기 때문입니다.&lt;/p&gt;
+&lt;p&gt;1986년부터 30년이상 활발하게 개발되고 있는 PostgreSQL은 현재 13.1 beta 버전이 출시되었으며&lt;br&gt;
+MVCC, 트랜잭션 ACID 등 기본적인 RDBMS 기능 뿐만 아니라 &lt;strong&gt;extension&lt;/strong&gt;이라 불리는 확장 모듈 API를 통해 다양한 기능을 제공하고 있습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;PostgreSQL 소개 : &lt;a href=&#34;https://www.postgresql.org/about/&#34;&gt;https://www.postgresql.org/about/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;PostgreSQL extension list : &lt;a href=&#34;https://postgresql.kr/docs/current/contrib.html&#34;&gt;https://postgresql.kr/docs/current/contrib.html&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;postgresql-architecture&#34;&gt;PostgreSQL Architecture&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_0808_2.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;PostgreSQL의 아키텍처입니다&lt;/p&gt;
+&lt;p&gt;ORACLE 아키텍처에 대해 공부해보신 분이라면 바로 느끼시겠지만 전체적인 아키텍처가 ORACLE과 굉장히 유사합니다.&lt;br&gt;
+&lt;strong&gt;Shared Memory&lt;/strong&gt;라는 공유메모리가 있고 PostgreSQL 운영에 필요한 &lt;strong&gt;Background process&lt;/strong&gt;들과 &lt;strong&gt;Data file&lt;/strong&gt;들로 구성됩니다.&lt;/p&gt;
+&lt;h3 id=&#34;shared-memory&#34;&gt;&lt;strong&gt;Shared Memory&lt;/strong&gt;&lt;/h3&gt;
+&lt;p&gt;Shared Memory에서 가장 중요한 요소는 &lt;strong&gt;Shared Buffer&lt;/strong&gt;와 &lt;strong&gt;WAL buffer&lt;/strong&gt;입니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Shared Buffer : Disk IO를 최소화하기 위해 데이터를 캐싱하는 공간&lt;/li&gt;
+&lt;li&gt;WAL buffer : &lt;strong&gt;Write Ahead Logging&lt;/strong&gt; 을 위한 공간으로 데이터베이스의 변경 사항을 WAL file로 내리기 전까지 보관&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;PostgreSQL은 데이터를 변경하기 전에 항상 변경 로그부터 기록하는데요&lt;br&gt;
+Shared Buffer의 데이터를 변경하기 전에 먼저 WAL buffer에 로그를 기록하고,  writer process 가 dirty block 을 disk로 내려쓰기 전에&lt;br&gt;
+WAL writer process가 WAL logfile로 내려쓰는 작업을 먼저 하는데 변경 로그부터 작업한다하여 이를 &lt;strong&gt;Write Ahead Logging&lt;/strong&gt; 이라고 부릅니다.&lt;/p&gt;
+&lt;p&gt;Shared Memory에서 가장 중요한 공간인만큼 관련 parameter의 적절한 설정도 중요한데요&lt;br&gt;
+권장값과 관련 설정은 이전 글을 참고하시기 바랍니다.&lt;br&gt;
+&lt;a href=&#34;https://kimdubi.github.io/postgresql/psql_conf/&#34;&gt;https://kimdubi.github.io/postgresql/psql_conf/&lt;/a&gt;&lt;/p&gt;
+&lt;h3 id=&#34;postgresql-process&#34;&gt;&lt;strong&gt;PostgreSQL Process&lt;/strong&gt;&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Postmaster Process&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Shared Memory 위에 보이는 &lt;strong&gt;Postmaster process&lt;/strong&gt; 는 PostgreSQL을 기동할 때 가장 먼저 시작되는 Daemon 프로세스로&lt;br&gt;
+DB 기동 시에 recovery 작업, Shared Memory 초기화 작업 그리고 다른 background process 구동 작업을 수행하는 역할을 합니다.&lt;br&gt;
+또한 클라이언트 프로세스(JDBC,ODBC등..)의 접속 요청이 있을 때 backend process 를 fork하여 client process와 연결시켜주는 역할을 합니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Background Process&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;운영에 필요한 &lt;strong&gt;PostgreSQL background process&lt;/strong&gt;는 아래와 같습니다.&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Process 명&lt;/th&gt;
+&lt;th&gt;역할&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;writer&lt;/td&gt;
+&lt;td&gt;주기적으로 Shared Buffers 내 dirty 버퍼를 data file로 내려씁니다&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;WAL writer&lt;/td&gt;
+&lt;td&gt;WAL buffer 내용을 WAL file에 기록합니다&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Checkpointer&lt;/td&gt;
+&lt;td&gt;체크포인트 발생 시 dirty 버퍼를 data file에 기록합니다&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Archiver&lt;/td&gt;
+&lt;td&gt;Archive log 모드 일 때 WAL 파일을 지정된 archive 디렉토리에 복사합니다&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Logging collector&lt;/td&gt;
+&lt;td&gt;error 메시지를 log file에 기록합니다&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Stats collector&lt;/td&gt;
+&lt;td&gt;DBMS의 세션 정보, 테이블 통계 같은 정보를 수집합니다&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Autovaccum&lt;/td&gt;
+&lt;td&gt;vacuum이 필요한 시점에 autovacuum worker를 fork하여 vacuum 작업을 수행합니다&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;p&gt;vacuum 을 이해하기 위해서는 PostgreSQL의 MVCC 모델 구현방식에 대한 이해가 필요합니다.&lt;br&gt;
+vacuum에 대해서는 PostgreSQL MVCC 모델에 대해 말씀드리며 간단히 설명드리도록 하겠습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Backend Process&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Backend process&lt;/strong&gt; 는 client process 의 쿼리 요청을 수행하고 그 결과를 전송하는 프로세스입니다.&lt;br&gt;
+이 때 쿼리 수행에 필요한 메모리가 필요한데 이를 backend process의 &lt;strong&gt;local memory&lt;/strong&gt;라고 부릅니다.&lt;br&gt;
+Shared Memory와 마찬가지로 적절한 parameter 튜닝을 통해 성능을 최적화하는 것이 중요합니다.&lt;/p&gt;
+&lt;p&gt;여기까지 PostgreSQL의 Architecture에 대해 살펴보았는데 어떠신가요?&lt;br&gt;
+개인적으로는 ORACLE의 아키텍처와 유사해서 친숙하기도 했고 혹시 차이점은 없읕까 더 궁금하기도 했습니다.&lt;br&gt;
+다음으로는 제가 생각하는 ORACLE과 PostgreSQL의 가장 큰 차이점을 살펴보며 PostgreSQL Architecture에 대해 조금 더 알아보도록 하겠습니다.&lt;/p&gt;
+&lt;h2 id=&#34;oracle-postgresql-architecture-&#34;&gt;ORACLE과 PostgreSQL Architecture 차이점&lt;/h2&gt;
+&lt;h4 id=&#34;mvcc--&#34;&gt;&lt;strong&gt;MVCC 모델 구현&lt;/strong&gt;&lt;/h4&gt;
+&lt;p&gt;대다수의 RDBMS는 동시성을 위해 MVCC(Multi-Version Concurrency Control) 기능을 제공합니다.&lt;br&gt;
+MVCC란, 쿼리 수행 시점의 데이터를 제공하는 기법으로 기본 원리는 쿼리가 시작된 시점의 트랜잭션ID와 같거나 작은 데이터 버전을 읽는 것 입니다.&lt;/p&gt;
+&lt;p&gt;ORACLE과 MySQL 같은 경우에는 &lt;strong&gt;UNDO segment&lt;/strong&gt;를 사용하며 쿼리가 시작된 이후에&lt;br&gt;
+다른 트랜잭션에 의해 변경된 블록을 만나면 원본 블록으로부터 복사본 블록 (CR copy)를 만들고&lt;br&gt;
+그 복사본 블록에 UNDO segment를 적용하여 쿼리가 시작된 시점으로 되돌려서 읽는 방식을 사용합니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_0808_3.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;[ORACLE 의 UNDO 동작방식]&lt;/p&gt;
+&lt;p&gt;반면에 PostgreSQL은 &lt;strong&gt;데이터 페이지 내에 변경되기 이전 레코드를 저장&lt;/strong&gt; 하고&lt;br&gt;
+레코드 별로 생성된 시점과 변경된 시점을 기록 및 비교하는 방식 으로 MVCC를 제공합니다.&lt;br&gt;
+이 방식은 ORACLE의 UNDO segment 같은 복잡성 없이 MVCC를 매우 단순하게 구현할 수 있도록 하는 장점이 있습니다.&lt;/p&gt;
+&lt;p&gt;다만 이전 데이터와 현재의 데이터를 동일한 테이블 내에 저장하기 때문에 &lt;strong&gt;테이블 공간이 비효율적&lt;/strong&gt;으로 사용될 수 있습니다.&lt;br&gt;
+또한 사용할 수 있는 트랜잭션 ID가 고갈되고 덮어써져 (wrap around) &lt;strong&gt;오래된 데이터가 손실될 가능성&lt;/strong&gt;이 있습니다.&lt;/p&gt;
+&lt;p&gt;PostgreSQL에서는 이전의 데이터와 현재의 데이터를 구분하고 시점에 맞는 데이터를 사용하기 위해서는 레코드별로 트랜잭션ID (이하 XID)가 필요한데&lt;br&gt;
+PostgreSQL에서는 XID를 위해 4바이트를 사용하고 있어 최대 43억건의 XID를 표현할수 있습니다.&lt;br&gt;
+만약 43억건 이후 XID 를 1부터 다시 시작하게 되면 어떻게 될까요?&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_0808_4.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;아래의 새로 시작된 XID 1은 43억보다 이후의 트랜잭션이지만&lt;br&gt;
+XID가 작아서 더 오래된 트랜잭션으로 인식되어 순서가 꼬여버리는 치명적인 문제가 발생할 수 있습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;불필요한 데이터로 인한 테이블 공간 사용의 비효율성&lt;/li&gt;
+&lt;li&gt;XID를 4bytes 로 관리함에 따른 XID 고갈&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;이 두가지 이슈를 해결하기 위한 PostgreSQL의 내부 동작이 &lt;strong&gt;vacuum&lt;/strong&gt; 입니다.&lt;br&gt;
+위에서 언급한 &lt;strong&gt;autovacuum&lt;/strong&gt; 백그라운드 프로세스는 테이블에 일정량 이상의 변경이 발생한 경우&lt;br&gt;
+자동으로 vacuum을 수행하면서 더 이상 사용하지 않는 dead-rows 를 회수하고 오래된 XID 를 정리하는 역할을 수행합니다.&lt;/p&gt;
+&lt;p&gt;즉 vacuum은 PostgreSQL 특유의 MVCC 모델에서 비롯될 수 있는 문제점을 해결하기 위해 나온 개념인 것입니다.&lt;/p&gt;
+&lt;h4 id=&#34;shared-pool-&#34;&gt;&lt;strong&gt;Shared Pool의 부재&lt;/strong&gt;&lt;/h4&gt;
+&lt;p&gt;PostgreSQL은 ORACLE의 Shared Pool같은 기능을 제공하지 않습니다.&lt;br&gt;
+Shared pool은 수행한 쿼리의 Parse tree나 Execution plan, 데이터베이스 내 오브젝트 정보를 갖고 있는 공간으로&lt;br&gt;
+ORACLE에서는 굉장히 중요한 구성요소이기 때문에 개인적으로 놀라운 부분이기도 했는데요.&lt;/p&gt;
+&lt;p&gt;PostgreSQL은 공유 메모리 레벨이 아닌 프로세스 레벨에서 SQL 정보를 공유합니다.&lt;br&gt;
+이를 통해 Shared pool 리소스나 Shared pool latch 경합 같은 관리 포인트를 줄일 수 있지만 신규 커넥션 마다 수행하는 SQL에 대해 최초 1회는 hard-parsing 이 필요하게 됩니다.&lt;br&gt;
+그렇기 때문에 Connection pool 기능을 사용하면 도움이 되겠죠?&lt;/p&gt;
+&lt;p&gt;Pgpool-II , PGbouncer 같이 connection pooling, load balancing 등을 지원하는 PostgreSQL 오픈소스 툴을 도입해서 사용하면 더 좋은 성능을 이끌어 낼 수 있습니다.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>PostgreSQL 유용한 command</title>

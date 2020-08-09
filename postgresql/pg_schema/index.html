@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>PostgreSQL schema 의미 및 권한관리</title>
+        
+        <style>
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">PostgreSQL schema 의미 및 권한관리</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>PostgreSQL schema 의미 및 권한관리</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>MySQL이나 ORACLE 을 다루다가 PostgreSQL을 처음 다룰 때 가장 헷갈리는 것 중에 하나는 바로 schema의 개념입니다.<br>
+ORACLE에서는 오브젝트를 가진 USER, MySQL은 논리DB를 schema 라고 하는 반면에<br>
+PostgreSQL 에서는 database , schema , user 의 개념이 모두 있기 때문에 처음엔 헷갈릴 수 있는데요<br>
+이번 글에서는 PostgreSQL의 schema 와 권한 관리에 대해 알아보겠습니다.</p>
+<h2 id="postgresql-schema">PostgreSQL Schema</h2>
+<p>MySQL에서는 논리 Database를 schema 와 같은 의미로 사용합니다.
+반면 PostgreSQL에서는 database와 schema 두가지 개념 모두 사용되며 database는 schema의 상위 개념이라 할 수 있습니다.<br>
+table의 집합을 schema 라고 표현하며 이 schema는 하나의 database를 논리적으로 나누는 개념입니다. 즉, MySQL에서의 논리 database는 PostgreSQL에서의 schema라고 할 수 있습니다.</p>
+<p>이런 차이점 때문에 PostgreSQL에서는 하나의 DB instance에 있다해도 서로 다른 database에 있는 테이블 간에는 서로 JOIN 연산을 할 수 없습니다.<br>
+대신 서로 다른 schema의 테이블 간에는 JOIN 연산이 가능합니다.</p>
+<p>PostgreSQL에서 database 와 schema를 생성해보면서 더 자세히 확인해보겠습니다.</p>
+<pre><code>### testdb의 owner가 될 testuser 생성
+postgres=# create user testuser with password 'qhdks123';
+CREATE ROLE
+
+### testdb 생성
+
+postgres=# create database testdb with owner testuser;
+CREATE DATABASE
+postgres=# \l+
+                                                                   List of databases
+   Name    |  Owner   | Encoding |  Collate   |   Ctype    |   Access privileges   |  Size   | Tablespace |                Description
+-----------+----------+----------+------------+------------+-----------------------+---------+------------+--------------------------------------------
+ postgres  | postgres | UTF8     | en_US.utf8 | en_US.utf8 |                       | 7945 kB | pg_default | default administrative connection database
+ template0 | postgres | UTF8     | en_US.utf8 | en_US.utf8 | =c/postgres          +| 7801 kB | pg_default | unmodifiable empty database
+           |          |          |            |            | postgres=CTc/postgres |         |            |
+ template1 | postgres | UTF8     | en_US.utf8 | en_US.utf8 | =c/postgres          +| 7801 kB | pg_default | default template for new databases
+           |          |          |            |            | postgres=CTc/postgres |         |            |
+ testdb    | testuser | UTF8     | en_US.utf8 | en_US.utf8 |                       | 7801 kB | pg_default |
+(4 rows)
+
+### testuser 계정으로 testdb 접속
+
+postgres-# \c testdb testuser
+You are now connected to database &quot;testdb&quot; as user &quot;testuser&quot;.
+
+### testdb 내 testdb , testdb_log schema 생성
+
+testdb=&gt; create schema testdb authorization testuser;
+CREATE SCHEMA
+
+testdb=&gt; create schema testdb_log authorization testuser;
+CREATE SCHEMA
+
+testdb=&gt; \dn+
+                            List of schemas
+    Name    |  Owner   |  Access privileges   |      Description
+------------+----------+----------------------+------------------------
+ public     | postgres | postgres=UC/postgres+| standard public schema
+            |          | =UC/postgres         |
+ testdb     | testuser |                      |
+ testdb_log | testuser |                      |
+(3 rows)
+
+</code></pre><p>=&gt; testdb 라는 database 를 생성하고 그 안에 testdb , testdb_log 라는 schema를 생성했습니다.<br>
+그리고 schema 리스트를 확인해보니 public 이라는 schema 가 보이는데 이는 default로 생성되는 schema로 별다른 schema를 지정하지 않으면<br>
+이 public schema에 오브젝트를 사용하게 됩니다. public schema에 오브젝트를 생성하게 되면 보안 관리가 안되기 때문에 public schema 권한을 revoke 하는데요<br>
+이 부분은 이따 권한 관리 부분에서 살펴보겠습니다.</p>
+<p>schema를 생성했으니 해당 schema에 오브젝트를 생성해 보겠습니다.</p>
+<pre><code>testdb=&gt; create table tb_test (a int);
+CREATE TABLE
+testdb=&gt; \dt
+          List of relations
+ Schema |  Name   | Type  |  Owner
+--------+---------+-------+----------
+ public | tb_test | table | testuser
+(1 row)
+
+</code></pre><p>=&gt; 위와 같이 단순히 create table을 하게 되면 public schema에 생성됩니다.<br>
+postgresql에는 search_path 라는 테이블을 어떤 schema에서 우선적으로 찾으면 되는지 설정하는 기능이 있으므로 이 부분을 설정해보겠습니다.<br>
+MySQL에서 <strong>use database ;</strong> 커맨드와 동일한 기능입니다.</p>
+<pre><code>### search_path 를 testdb schema 로 설정
+
+testdb=&gt; set search_path to &quot;$user&quot;,testdb;
+SET
+
+testdb=&gt; create table tb_test (a int);
+CREATE TABLE
+
+testdb=&gt; \dt
+          List of relations
+ Schema |  Name   | Type  |  Owner
+--------+---------+-------+----------
+ testdb | tb_test | table | testuser
+(1 row)
+</code></pre><p>지금까지 수행한 PostgreSQL의 커맨드들은 MySQL과 비교하면 아래와 같습니다.</p>
+<ul>
+<li>create database</li>
+<li>create schema</li>
+</ul>
+<pre><code>### PostgreSQL
+testdb=&gt; create schema testdb authorization testuser;
+CREATE SCHEMA
+
+testdb=&gt; \dn+
+                            List of schemas
+    Name    |  Owner   |  Access privileges   |      Description
+------------+----------+----------------------+------------------------
+ public     | postgres | postgres=UC/postgres+| standard public schema
+            |          | =UC/postgres         |
+ testdb     | testuser |                      |
+
+### MySQL
+mysql&gt; create database testdb;
+Query OK, 1 row affected (0.01 sec)
+
+mysql&gt; show databases;
++--------------------+
+| Database           |
++--------------------+
+| testdb             |
++--------------------+
+</code></pre><ul>
+<li>set search_path</li>
+</ul>
+<pre><code>### PostgreSQL
+testdb=&gt; show search_path;
+ search_path
+-------------
+ public
+(1 row)
+
+testdb=&gt; set search_path to testdb;
+SET
+
+testdb=&gt; show search_path;
+ search_path
+-------------
+ testdb
+(1 row)
+
+testdb=&gt; \dt
+          List of relations
+ Schema |   Name   | Type  |  Owner
+--------+----------+-------+----------
+ testdb | tb_test  | table | testuser
+ testdb | tb_test2 | table | testuser
+ testdb | tb_test3 | table | testuser
+(3 rows)
+
+### MySQL
+mysql&gt; use testdb;
+Database changed
+
+mysql&gt; show tables;
++------------------+
+| Tables_in_testdb |
++------------------+
+| gtid_test        |
+| tb_test          |
++------------------+
+2 rows in set (0.00 sec)
+
+</code></pre><h2 id="postgresql--">PostgreSQL 권한 관리</h2>
+<p>PostgreSQL은 MySQL 과 database, schema 개념이 약간 다르다보니 권한관리 하는 범위도 다릅니다.<br>
+서비스와 상관 없는 다른 user들의 접근을 막고, DDL 가능 계정, 서비스용도의 DML 계정으로 권한을 관리해보겠습니다.</p>
+<h3 id="-user--">다른 USER 접근 막기</h3>
+<pre><code>postgres=# create user newuser with password 'qhdks123';
+CREATE ROLE
+
+postgres=# \c testdb newuser
+You are now connected to database &quot;testdb&quot; as user &quot;newuser&quot;.
+
+testdb=&gt; create table tb_test10 (a int);
+CREATE TABLE
+testdb=&gt; \dt
+           List of relations
+ Schema |   Name    | Type  |  Owner
+--------+-----------+-------+----------
+ public | tb_test   | table | testuser
+ public | tb_test10 | table | newuser
+(2 rows)
+
+testdb=&gt; create table testdb.tb_test10 (a int);
+ERROR:  permission denied for schema testdb
+
+</code></pre><p>=&gt; testdb 서비스와 상관없는 newuser가 testdb 에 접근 및 public schema에 오브젝트도 생성할 수 있는 상황<br>
+testdb schema에는 권한이 없음</p>
+<pre><code>testdb=# \c postgres postgres
+You are now connected to database &quot;postgres&quot; as user &quot;postgres&quot;.
+
+postgres=# revoke all on database testdb from PUBLIC;
+REVOKE
+
+postgres=# \c testdb newuser
+FATAL:  permission denied for database &quot;testdb&quot;
+DETAIL:  User does not have CONNECT privilege.
+Previous connection kept
+
+postgres=# \c testdb testuser
+You are now connected to database &quot;testdb&quot; as user &quot;testuser&quot;.
+</code></pre><p>=&gt; 소유자가 아닌 계정의 접근을 막음</p>
+<h3 id="ddl--dml--">DDL / DML 계정 분리</h3>
+<p>DDL용 계정은 SERVICE_OWNER<br>
+DML용 계정 : SERVICE_USER<br>
+서비스 DB : DBNAME<br>
+서비스 schema : SERVICE_OWNER</p>
+<ul>
+<li>신규 유저 생성</li>
+</ul>
+<pre><code>psql -d postgres -U postgres -c &quot;create user ${SERVICE_OWNER} with password 'qhdks123'&quot;
+psql -d postgres -U postgres -c &quot;create user ${SERVICE_USER} with password 'qhdks123'&quot;
+</code></pre><ul>
+<li>신규 DB 생성</li>
+</ul>
+<pre><code>psql -d postgres -U postgres -c &quot;create database ${DBNAME} with OWNER=${SERVICE_OWNER}&quot;
+</code></pre><ul>
+<li>db 접근 권한 및 public schema 접근 권한 revoke</li>
+</ul>
+<pre><code>psql -d ${DBNAME} -U ${SERVICE_OWNER} -c &quot;revoke all on database ${DBNAME} from public&quot;
+psql -d ${DBNAME} -U postgres    -c &quot;revoke all on schema public from public&quot;
+</code></pre><ul>
+<li>신규db에 schema 생성</li>
+</ul>
+<pre><code>psql -d ${DBNAME} -U ${SERVICE_OWNER} -c &quot;create schema ${SERVICE_OWNER} authorization ${SERVICE_OWNER}&quot;
+</code></pre><ul>
+<li>서비스용 유저에 최소한의 권한만 부여</li>
+</ul>
+<pre><code>psql -d ${DBNAME} -U ${SERVICE_OWNER} -c &quot;grant connect,TEMPORARY on database ${DBNAME} to ${SERVICE_USER}&quot;
+psql -d ${DBNAME} -U ${SERVICE_OWNER} -c &quot;grant usage on schema ${SERVICE_OWNER} to ${SERVICE_USER}&quot;
+psql -d ${DBNAME} -U ${SERVICE_OWNER}  -c &quot;alter role ${SERVICE_USER} set search_path to ${SERVICE_OWNER}&quot;
+psql -d ${DBNAME} -U ${SERVICE_OWNER}  -c &quot;grant select, insert, update, delete on all tables in schema ${SERVICE_OWNER} to ${SERVICE_USER}&quot;
+psql -d ${DBNAME} -U ${SERVICE_OWNER}  -c &quot;alter default privileges in schema ${SERVICE_OWNER} grant select, insert, update, delete on tables to ${SERVICE_USER}&quot;
+psql -d ${DBNAME} -U ${SERVICE_OWNER}  -c &quot;grant usage on all sequences in schema ${SERVICE_OWNER} to ${SERVICE_USER}&quot;
+psql -d ${DBNAME} -U ${SERVICE_OWNER}  -c &quot;alter default privileges in schema ${SERVICE_OWNER} grant usage on sequences to ${SERVICE_USER}&quot;
+</code></pre><ul>
+<li>참고
+<a href="https://m.blog.naver.com/hanccii/221701395102">https://m.blog.naver.com/hanccii/221701395102</a></li>
+</ul>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

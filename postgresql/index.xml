@@ -5,10 +5,248 @@
     <description>Recent content in Postgresqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 08 Aug 2020 23:52:20 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 09 Aug 2020 15:01:43 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/postgresql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>PostgreSQL schema 의미 및 권한관리</title>
+      <link>https://kimdubi.github.io/postgresql/pg_schema/</link>
+      <pubDate>Sun, 09 Aug 2020 15:01:43 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/pg_schema/</guid>
+      <description>&lt;p&gt;MySQL이나 ORACLE 을 다루다가 PostgreSQL을 처음 다룰 때 가장 헷갈리는 것 중에 하나는 바로 schema의 개념입니다.&lt;br&gt;
+ORACLE에서는 오브젝트를 가진 USER, MySQL은 논리DB를 schema 라고 하는 반면에&lt;br&gt;
+PostgreSQL 에서는 database , schema , user 의 개념이 모두 있기 때문에 처음엔 헷갈릴 수 있는데요&lt;br&gt;
+이번 글에서는 PostgreSQL의 schema 와 권한 관리에 대해 알아보겠습니다.&lt;/p&gt;
+&lt;h2 id=&#34;postgresql-schema&#34;&gt;PostgreSQL Schema&lt;/h2&gt;
+&lt;p&gt;MySQL에서는 논리 Database를 schema 와 같은 의미로 사용합니다.
+반면 PostgreSQL에서는 database와 schema 두가지 개념 모두 사용되며 database는 schema의 상위 개념이라 할 수 있습니다.&lt;br&gt;
+table의 집합을 schema 라고 표현하며 이 schema는 하나의 database를 논리적으로 나누는 개념입니다. 즉, MySQL에서의 논리 database는 PostgreSQL에서의 schema라고 할 수 있습니다.&lt;/p&gt;
+&lt;p&gt;이런 차이점 때문에 PostgreSQL에서는 하나의 DB instance에 있다해도 서로 다른 database에 있는 테이블 간에는 서로 JOIN 연산을 할 수 없습니다.&lt;br&gt;
+대신 서로 다른 schema의 테이블 간에는 JOIN 연산이 가능합니다.&lt;/p&gt;
+&lt;p&gt;PostgreSQL에서 database 와 schema를 생성해보면서 더 자세히 확인해보겠습니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;### testdb의 owner가 될 testuser 생성
+postgres=# create user testuser with password &#39;qhdks123&#39;;
+CREATE ROLE
+
+### testdb 생성
+
+postgres=# create database testdb with owner testuser;
+CREATE DATABASE
+postgres=# \l+
+                                                                   List of databases
+   Name    |  Owner   | Encoding |  Collate   |   Ctype    |   Access privileges   |  Size   | Tablespace |                Description
+-----------+----------+----------+------------+------------+-----------------------+---------+------------+--------------------------------------------
+ postgres  | postgres | UTF8     | en_US.utf8 | en_US.utf8 |                       | 7945 kB | pg_default | default administrative connection database
+ template0 | postgres | UTF8     | en_US.utf8 | en_US.utf8 | =c/postgres          +| 7801 kB | pg_default | unmodifiable empty database
+           |          |          |            |            | postgres=CTc/postgres |         |            |
+ template1 | postgres | UTF8     | en_US.utf8 | en_US.utf8 | =c/postgres          +| 7801 kB | pg_default | default template for new databases
+           |          |          |            |            | postgres=CTc/postgres |         |            |
+ testdb    | testuser | UTF8     | en_US.utf8 | en_US.utf8 |                       | 7801 kB | pg_default |
+(4 rows)
+
+### testuser 계정으로 testdb 접속
+
+postgres-# \c testdb testuser
+You are now connected to database &amp;quot;testdb&amp;quot; as user &amp;quot;testuser&amp;quot;.
+
+### testdb 내 testdb , testdb_log schema 생성
+
+testdb=&amp;gt; create schema testdb authorization testuser;
+CREATE SCHEMA
+
+testdb=&amp;gt; create schema testdb_log authorization testuser;
+CREATE SCHEMA
+
+testdb=&amp;gt; \dn+
+                            List of schemas
+    Name    |  Owner   |  Access privileges   |      Description
+------------+----------+----------------------+------------------------
+ public     | postgres | postgres=UC/postgres+| standard public schema
+            |          | =UC/postgres         |
+ testdb     | testuser |                      |
+ testdb_log | testuser |                      |
+(3 rows)
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; testdb 라는 database 를 생성하고 그 안에 testdb , testdb_log 라는 schema를 생성했습니다.&lt;br&gt;
+그리고 schema 리스트를 확인해보니 public 이라는 schema 가 보이는데 이는 default로 생성되는 schema로 별다른 schema를 지정하지 않으면&lt;br&gt;
+이 public schema에 오브젝트를 사용하게 됩니다. public schema에 오브젝트를 생성하게 되면 보안 관리가 안되기 때문에 public schema 권한을 revoke 하는데요&lt;br&gt;
+이 부분은 이따 권한 관리 부분에서 살펴보겠습니다.&lt;/p&gt;
+&lt;p&gt;schema를 생성했으니 해당 schema에 오브젝트를 생성해 보겠습니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;testdb=&amp;gt; create table tb_test (a int);
+CREATE TABLE
+testdb=&amp;gt; \dt
+          List of relations
+ Schema |  Name   | Type  |  Owner
+--------+---------+-------+----------
+ public | tb_test | table | testuser
+(1 row)
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 위와 같이 단순히 create table을 하게 되면 public schema에 생성됩니다.&lt;br&gt;
+postgresql에는 search_path 라는 테이블을 어떤 schema에서 우선적으로 찾으면 되는지 설정하는 기능이 있으므로 이 부분을 설정해보겠습니다.&lt;br&gt;
+MySQL에서 &lt;strong&gt;use database ;&lt;/strong&gt; 커맨드와 동일한 기능입니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;### search_path 를 testdb schema 로 설정
+
+testdb=&amp;gt; set search_path to &amp;quot;$user&amp;quot;,testdb;
+SET
+
+testdb=&amp;gt; create table tb_test (a int);
+CREATE TABLE
+
+testdb=&amp;gt; \dt
+          List of relations
+ Schema |  Name   | Type  |  Owner
+--------+---------+-------+----------
+ testdb | tb_test | table | testuser
+(1 row)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;지금까지 수행한 PostgreSQL의 커맨드들은 MySQL과 비교하면 아래와 같습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;create database&lt;/li&gt;
+&lt;li&gt;create schema&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### PostgreSQL
+testdb=&amp;gt; create schema testdb authorization testuser;
+CREATE SCHEMA
+
+testdb=&amp;gt; \dn+
+                            List of schemas
+    Name    |  Owner   |  Access privileges   |      Description
+------------+----------+----------------------+------------------------
+ public     | postgres | postgres=UC/postgres+| standard public schema
+            |          | =UC/postgres         |
+ testdb     | testuser |                      |
+
+### MySQL
+mysql&amp;gt; create database testdb;
+Query OK, 1 row affected (0.01 sec)
+
+mysql&amp;gt; show databases;
++--------------------+
+| Database           |
++--------------------+
+| testdb             |
++--------------------+
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;set search_path&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### PostgreSQL
+testdb=&amp;gt; show search_path;
+ search_path
+-------------
+ public
+(1 row)
+
+testdb=&amp;gt; set search_path to testdb;
+SET
+
+testdb=&amp;gt; show search_path;
+ search_path
+-------------
+ testdb
+(1 row)
+
+testdb=&amp;gt; \dt
+          List of relations
+ Schema |   Name   | Type  |  Owner
+--------+----------+-------+----------
+ testdb | tb_test  | table | testuser
+ testdb | tb_test2 | table | testuser
+ testdb | tb_test3 | table | testuser
+(3 rows)
+
+### MySQL
+mysql&amp;gt; use testdb;
+Database changed
+
+mysql&amp;gt; show tables;
++------------------+
+| Tables_in_testdb |
++------------------+
+| gtid_test        |
+| tb_test          |
++------------------+
+2 rows in set (0.00 sec)
+
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;postgresql--&#34;&gt;PostgreSQL 권한 관리&lt;/h2&gt;
+&lt;p&gt;PostgreSQL은 MySQL 과 database, schema 개념이 약간 다르다보니 권한관리 하는 범위도 다릅니다.&lt;br&gt;
+서비스와 상관 없는 다른 user들의 접근을 막고, DDL 가능 계정, 서비스용도의 DML 계정으로 권한을 관리해보겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;-user--&#34;&gt;다른 USER 접근 막기&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# create user newuser with password &#39;qhdks123&#39;;
+CREATE ROLE
+
+postgres=# \c testdb newuser
+You are now connected to database &amp;quot;testdb&amp;quot; as user &amp;quot;newuser&amp;quot;.
+
+testdb=&amp;gt; create table tb_test10 (a int);
+CREATE TABLE
+testdb=&amp;gt; \dt
+           List of relations
+ Schema |   Name    | Type  |  Owner
+--------+-----------+-------+----------
+ public | tb_test   | table | testuser
+ public | tb_test10 | table | newuser
+(2 rows)
+
+testdb=&amp;gt; create table testdb.tb_test10 (a int);
+ERROR:  permission denied for schema testdb
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; testdb 서비스와 상관없는 newuser가 testdb 에 접근 및 public schema에 오브젝트도 생성할 수 있는 상황&lt;br&gt;
+testdb schema에는 권한이 없음&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;testdb=# \c postgres postgres
+You are now connected to database &amp;quot;postgres&amp;quot; as user &amp;quot;postgres&amp;quot;.
+
+postgres=# revoke all on database testdb from PUBLIC;
+REVOKE
+
+postgres=# \c testdb newuser
+FATAL:  permission denied for database &amp;quot;testdb&amp;quot;
+DETAIL:  User does not have CONNECT privilege.
+Previous connection kept
+
+postgres=# \c testdb testuser
+You are now connected to database &amp;quot;testdb&amp;quot; as user &amp;quot;testuser&amp;quot;.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 소유자가 아닌 계정의 접근을 막음&lt;/p&gt;
+&lt;h3 id=&#34;ddl--dml--&#34;&gt;DDL / DML 계정 분리&lt;/h3&gt;
+&lt;p&gt;DDL용 계정은 SERVICE_OWNER&lt;br&gt;
+DML용 계정 : SERVICE_USER&lt;br&gt;
+서비스 DB : DBNAME&lt;br&gt;
+서비스 schema : SERVICE_OWNER&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;신규 유저 생성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;psql -d postgres -U postgres -c &amp;quot;create user ${SERVICE_OWNER} with password &#39;qhdks123&#39;&amp;quot;
+psql -d postgres -U postgres -c &amp;quot;create user ${SERVICE_USER} with password &#39;qhdks123&#39;&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;신규 DB 생성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;psql -d postgres -U postgres -c &amp;quot;create database ${DBNAME} with OWNER=${SERVICE_OWNER}&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;db 접근 권한 및 public schema 접근 권한 revoke&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;psql -d ${DBNAME} -U ${SERVICE_OWNER} -c &amp;quot;revoke all on database ${DBNAME} from public&amp;quot;
+psql -d ${DBNAME} -U postgres    -c &amp;quot;revoke all on schema public from public&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;신규db에 schema 생성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;psql -d ${DBNAME} -U ${SERVICE_OWNER} -c &amp;quot;create schema ${SERVICE_OWNER} authorization ${SERVICE_OWNER}&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;서비스용 유저에 최소한의 권한만 부여&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;psql -d ${DBNAME} -U ${SERVICE_OWNER} -c &amp;quot;grant connect,TEMPORARY on database ${DBNAME} to ${SERVICE_USER}&amp;quot;
+psql -d ${DBNAME} -U ${SERVICE_OWNER} -c &amp;quot;grant usage on schema ${SERVICE_OWNER} to ${SERVICE_USER}&amp;quot;
+psql -d ${DBNAME} -U ${SERVICE_OWNER}  -c &amp;quot;alter role ${SERVICE_USER} set search_path to ${SERVICE_OWNER}&amp;quot;
+psql -d ${DBNAME} -U ${SERVICE_OWNER}  -c &amp;quot;grant select, insert, update, delete on all tables in schema ${SERVICE_OWNER} to ${SERVICE_USER}&amp;quot;
+psql -d ${DBNAME} -U ${SERVICE_OWNER}  -c &amp;quot;alter default privileges in schema ${SERVICE_OWNER} grant select, insert, update, delete on tables to ${SERVICE_USER}&amp;quot;
+psql -d ${DBNAME} -U ${SERVICE_OWNER}  -c &amp;quot;grant usage on all sequences in schema ${SERVICE_OWNER} to ${SERVICE_USER}&amp;quot;
+psql -d ${DBNAME} -U ${SERVICE_OWNER}  -c &amp;quot;alter default privileges in schema ${SERVICE_OWNER} grant usage on sequences to ${SERVICE_USER}&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;참고
+&lt;a href=&#34;https://m.blog.naver.com/hanccii/221701395102&#34;&gt;https://m.blog.naver.com/hanccii/221701395102&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>PostgreSQL background process 살펴보기</title>

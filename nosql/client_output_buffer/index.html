@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Redis client_output_buffer_limit</title>
+        
+        <style>
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Redis client_output_buffer_limit</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Redis client_output_buffer_limit</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>Master - Slave 구성으로 운영중인 서비스가 있습니다. maxmemory, key ttl, hash key 하나에 너무 많은 value 넣지 않기 등<br>
+운영 표준을 잘 지켜가며 안정적으로 운영중인 서비스인데 어느 순간부터인지 이런 로그들이 떨어지면서 Master - Slave 연결이 자꾸 끊어지는 현상이 발생했습니다.</p>
+<pre><code>replconf scheduled to be closed ASAP for overcoming of output buffer limits.
+Connection with replica 10.111.111.111:6379 lost.
+
+psync scheduled to be closed ASAP for overcoming of output buffer limits.
+</code></pre><p>output buffer limits 라는 부분이 눈에 띄는데 redis에는 client-output-buffer-limit 라는 설정이 있습니다.<br>
+client에게 요청에 대한 resultset 을 전달하려는데 그 output의 크기나 작업시간이 설정값보다 크게 되면 연결을 끊어버리는 설정입니다.</p>
+<pre><code>### redis.conf default
+
+client-output-buffer-limit normal 0 0 0
+client-output-buffer-limit slave 256mb 64mb 60
+client-output-buffer-limit pubsub 32mb 8mb 60
+</code></pre><p>각각 [type] [hard limit] [soft limit] [time] 을 의미하며</p>
+<ul>
+<li>hard limit : 이 값 이상 사용하게 되면 해당 연결을 종료시킴 ex) 256mb 이상 사용하게 되면 바로 컽</li>
+<li>soft limit : 이 값 이상으로 time 만큼 세션이 지속되면 해당 연결을 종료시킴 ex) 64mb이상 60초 넘게쓰면 컽</li>
+</ul>
+<p>이 설정을 default로 사용할 때 처음에는 데이터가 많지 않기 때문에 별 이슈가 없지만 master에 데이터가 많이 유입될 때 문제가 생깁니다.<br>
+master에는 제한 없이 데이터가 유입되지만 이를 slave (replica)로 복제를 위해 전달할 때 client-output-buffer-limit slave 256mb 64mb 60<br>
+이 설정에 영향을 받게되는데 데이터가 크면 이 제한에 걸려 연결이 끊어져 버릴 수 있습니다.<br>
+그래서 위에서 봤던 로그와 함께 Master - Slave 연결이 끊어져 버리는 것입니다.</p>
+<pre><code>replconf scheduled to be closed ASAP for overcoming of output buffer limits.
+Connection with replica 10.111.111.111:6379 lost.
+</code></pre><p>연결이 끊어지면 무엇이 문제일까요?<br>
+Slave는 다시 Master에게 동기화를 요구하게 되고 이를 위해 Master 는 RDB dump file을 떨구게 됩니다.<br>
+연결이 자꾸 빈번하게 끊어져 계속 rdb 가 발생하게 되면 Master는 자신이 해야할일을 하지 못하게되고 부하로 인해 서비스가 느려지거나<br>
+sentinel , replication 같은 구성에서 ping check에 영향이 갈 수도 있습니다.</p>
+<p>그렇다고 client-output-buffer-limit 설정을 안하거나<br>
+client-output-buffer-limit slave 0 0 0 으로 설정하는 게 안전할까요?<br>
+이렇게 설정하게 되면 Master에 데이터가 몰려 redis server가 터지는 경우 slave도 바로 터져버리게 되기 때문에 오히려 HA 구성의 이점을 전혀 이용할 수 없게 됩니다.<br>
+그래서 아래와 같은 redis-benchmark 스크립트를 돌려가며 적절한 client-output-buffer-limit 값을 찾는게 중요합니다.</p>
+<pre><code>$ /usr/local/bin/redis-benchmark -h 10.111.111.111 -t set -d 2000000 -c 3000 -q -l -r 10000000000
+</code></pre><p>참고로 AWS의 elasticache의 경우 인스턴스 타입마다 다르지만 maxmemory의 1/10 을 client-output-buffer-limit으로 설정한 모습입니다.<br>
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_client_output_buffer.png" alt=""></p>
+<p>그래서 아래와 같이 정리할 수 있습니다.</p>
+<pre><code>* client-output-buffer-limit 설정을 maxmemory와 서비스 사용량 고려 없이 default로 사용하는 경우 이 값에 따라서 커넥션이 끊어질 수 있다
+* Master - Slave 커넥션이 너무 빈번하게 끊어지면 마스터에 부하가 가고 서비스에 장애가 생길 수 있다.
+* maxmemory 나 서비스 사용량등을 고려하여 이 값을 증가시키는 것이 좋다.
+* 간단하게는 maxmemory의 1/10 정도로 설정하면 된다
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

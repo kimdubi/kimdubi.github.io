@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL FK 1215 error</title>
+        
+        <style>
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL FK 1215 error</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL FK 1215 error</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>얼마전 담당하는 MySQL 서비스의 복제본 한벌을 더 추가 구성하게 되었습니다.<br>
+single-transaction + dump-slave 혹은 single-transaction + master-data 옵션으로 mysqldump 를 받은 뒤<br>
+새 서버에 반영해주고 dumpfile에 dump-slave / master-data 옵션으로 인해 딸려온 change master to 구문을 확인하여<br>
+replication을 맺어주면 되는 아주 간단한 작업인데요</p>
+<p>그런데 실패했습니다&hellip;</p>
+<ul>
+<li>replication error log</li>
+</ul>
+<pre><code>show slave status\G;
+.
+.
+
+Last_Errno: 1146
+   Last_Error: Error 'Table 'xxxxx.xxxx' doesn't exist' on query. Default database: 'xxxxxxxxxxxx'. Query: 'UPDATE xxxx SET lastused = NOW(), lingertime = 7 WHERE siteid = 'xxxxxxxxxxx''
+.
+.
+Last_IO_Errno: 0
+Last_IO_Error:
+Last_SQL_Errno: 1146
+Last_SQL_Error: Error 'Table 'xxxxxxxx.xxxxx' doesn't exist' on query. Default database: 'xxxxxxx'. Query: 'UPDATE xxxxx SET lastused = NOW(), lingertime = 7 WHERE siteid = 'xxxxxxxxxx''
+Replicate_Ignore_Server_Ids:
+Master_Server_Id: 1
+</code></pre><p>이전에도 종종 해본 작업이고 mysqldump 를 그대로 import 하고 백업받을 때 master의 binary log position 도 정확히 잘 찍어놔서<br>
+데이터가 유실될 일은 없을 터인데..<br>
+dump 복원 과정에서 무려 테이블이 유실되어 당혹스러웠는데요<br>
+Import 에러 로그부터 dump file의 내용까지 천천히 확인해보니 이유를 알 수 있었습니다.</p>
+<ul>
+<li>import error log</li>
+</ul>
+<pre><code>line 5048  ERROR 1215 (HY000): Cannot add foreign key constraint
+</code></pre><p>정확하진 않지만 대략 위 에러문구였습니다. mysqldump file을 반영하다가 line 5048번에서 FK 생성 에러가 발생했습니다.<br>
+보통 mysqldump을 별다른 옵션없이 수행하면 아래처럼 FK check 옵션을 끄고 테이블 생성 &amp; 데이터 적재 후 모든작업을 마치고<br>
+마지막에 다시 FK 옵션을 원복해줍니다.(이전에 off였든 on이었든)</p>
+<pre><code>### dumpfile 시작부분
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+
+### dumpfile 끝부분
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+</code></pre><p>이 FOREIGN_KEY_CHECKS=0 옵션 덕에 parent table 보다 child table이 먼저 생성되는 경우나<br>
+데이터 dml 순서도 FK제한없이 처리될 수 있습니다. 그런데도 왜 FK에러가 났느냐?<br>
+위 import error log 에러에서 나온 mysqldump file의 5048 line을 살펴보니 아래와 같은 테이블 생성구문이었습니다.</p>
+<ul>
+<li>생성 실패한 table</li>
+</ul>
+<pre><code>CREATE TABLE `tb_test_child` (
+  `id` varchar(64) NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `column_fk` varchar(64) DEFAULT NULL,
+  `col2` tinyint(1) NOT NULL,
+  `col3` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx1` (`name`),
+  KEY `idx2` (`column_fk`),
+  CONSTRAINT `tb_test_child_fk1` FOREIGN KEY (`column_fk`) REFERENCES `tb_test_parent` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+</code></pre><p>=&gt; 에러로그에서 FK를 생성하는데 실패했다고 했기 때문에 tb_test_parent 테이블의 id 컬럼을 reference 하여 FK 생성에 실패한 것이 되는데요<br>
+그래서 tb_test_parent 테이블의 생성구문을 확인해봤습니다.</p>
+<ul>
+<li>parent table</li>
+</ul>
+<pre><code>CREATE TABLE `tb_test_parent` (
+  `id` varchar(64) CHARACTER SET utf8mb4 NOT NULL DEFAULT '',
+  `name` varchar(255) DEFAULT NULL,
+.
+.
+  `create_time` datetime DEFAULT NULL,
+  `deleted_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `tb_test_parent_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+</code></pre><p>=&gt; tb_test_child의 tb_test_child_fk1 FK는 tb_test_parent의 id를 refernce 합니다.<br>
+이때 FK 생성 조건에는 아래와 같은 조건 등이 있습니다.</p>
+<ul>
+<li>참조하는 컬럼이 FK 컬럼과 동일한 타입, length를 가져야한다</li>
+<li>참조하는 컬럼은 해당 테이블에서 어떤 종류던 key여야한다</li>
+<li>parent , child의 해당 컬럼의 charset과 collation은 동일해야한다</li>
+</ul>
+<p>이번 에러는 어떤 이유에서인지 dumpfile에서 FK 컬럼의 charset과 collation이 parent / child 간 상이했습니다.</p>
+<pre><code># parent
+`id` varchar(64) CHARACTER SET utf8mb4 NOT NULL DEFAULT '',
+
+# child 
+`column_fk` varchar(64) DEFAULT NULL,
+CONSTRAINT `tb_test_child_fk1` FOREIGN KEY (`column_fk`) REFERENCES `tb_test_parent` (`id`)
+</code></pre><p>그래서 child 테이블의 column_fk 컬럼을 parent의 id컬럼과 동일하게 CHARACTER SET utf8mb4로 맞춰 생성 후 정상화 되었습니다.</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

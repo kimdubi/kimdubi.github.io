@@ -5,10 +5,274 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 28 Jul 2020 21:22:22 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 16 Aug 2020 17:15:24 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL8.0 SKIP LOCKED / NOWAIT 활용하기</title>
+      <link>https://kimdubi.github.io/mysql/skip_locked/</link>
+      <pubDate>Sun, 16 Aug 2020 17:15:24 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/skip_locked/</guid>
+      <description>&lt;p&gt;MySQL 8.0 버전부터는 읽기 일관성을 위한 read lock 에 대해 두가지 옵션이 추가되었습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;NOWAIT : 쿼리를 실행 후 읽으려는 row에 lock이 걸려있으면 바로 트랜잭션 실패 처리 (innodb_lock_wait_timeout 만큼 기다리지 않고 바로)&lt;/li&gt;
+&lt;li&gt;SKIP LOCKED : 쿼리를 실행 후 읽으려는 row에 lock 이 걸려있으면 해당 row skip 하고 resultset return&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;동시성 이슈를 해결하기 위해 select ~ for update , select ~ for shared mode 같은 쿼리를 수행할 때 위 옵션을 줄 수 있는데 언제 사용하면 좋을까요?&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;batch 작업 등으로 테이블 내 데이터를 일괄 변경할 때&lt;/li&gt;
+&lt;li&gt;티켓 예매 서비스 처럼 사용자들이 동시에 몰리는 데이터를 다룰 때&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;이 두가지 예제로 살펴보겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;-1--batch-&#34;&gt;예제 1 - batch 작업&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;아래 작업을 여러 thread에서 병렬로 수행&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;* progress=&#39;PREPARE&#39; 인 데이터를 정렬하여 3건씩 가져옴
+* 한건씩 progress=&#39;DONE&#39; 으로 update
+* 다음 처리 대상 3건 가져오기
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;test data&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;CREATE TABLE progress (
+  seq INT PRIMARY KEY,
+  progress ENUM(&#39;PREPARE&#39;, &#39;DONE&#39;) DEFAULT &#39;PREPARE&#39;
+);
+
+
+INSERT INTO progress (seq)
+WITH RECURSIVE my_cte AS
+(
+SELECT 1 AS n
+UNION ALL
+SELECT 1+n FROM my_cte WHERE n&amp;lt;10
+)
+SELECT * FROM my_cte;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;skip locked 없이 수행했을 때&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### session 1
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt;  select * from progress where progress=&#39;PREPARE&#39; order by seq limit 3 for update ;
++-----+----------+
+| seq | progress |
++-----+----------+
+|   1 | PREPARE  |
+|   2 | PREPARE  |
+|   3 | PREPARE  |
++-----+----------+
+3 rows in set (0.01 sec)
+
+
+### session 2
+
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+mysql&amp;gt;  select * from progress where progress=&#39;PREPARE&#39; order by seq limit 3 for update ;
+
+ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; select for update로 인해 row lock이 걸려 다른 세션에서는 데이터를 가져올 수가 없습니다.&lt;br&gt;
+결국 lock 대기하게 되어 병렬 수행이 아무런 의미가 없어지게 됩니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;skip locked&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### session 1
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; select * from progress where progress=&#39;PREPARE&#39; order by seq limit 3 for update ;
++-----+----------+
+| seq | progress |
++-----+----------+
+|   1 | PREPARE  |
+|   2 | PREPARE  |
+|   3 | PREPARE  |
++-----+----------+
+3 rows in set (0.00 sec)
+
+
+### session 2 
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; select * from progress where progress=&#39;PREPARE&#39; order by seq limit 3 for update skip locked;
++-----+----------+
+| seq | progress |
++-----+----------+
+|   4 | PREPARE  |
+|   5 | PREPARE  |
+|   6 | PREPARE  |
++-----+----------+
+3 rows in set (0.00 sec)
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 위처럼 select for update 에 의해 row lock 걸린 row는 skip 하고 다음 row들을 읽어옵니다.&lt;br&gt;
+다른 세션에 의해 데이터 변경이 잦지 않고 데이터를 일괄로 변경하는 특성이 있는 batch 작업들은 skip locked 옵션을 통해 병렬로 수행하기가 굉장히 쉬워졌습니다.&lt;/p&gt;
+&lt;h3 id=&#34;-2------&#34;&gt;예제 2 - 동시성 요구되는 데이터 화면 (티켓)&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;시나리오&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;* 사용자가 티켓을 예매하려고함
+* 여러 좌석 중에 앉을 좌석을 선택하고 결제 진행 중
+* 예매 시작~결제성공 할 때까지 사용자가 선택한 좌석이 다른 사용자들에게는 사용불가능한 좌석으로 표시되어야함
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;test data&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;CREATE TABLE seats (
+  seat_no INT PRIMARY KEY,
+  booked ENUM(&#39;YES&#39;, &#39;NO&#39;) DEFAULT &#39;NO&#39;
+);
+ 
+# generate 100 sample rows
+INSERT INTO seats (seat_no)
+WITH RECURSIVE my_cte AS
+(
+SELECT 1 AS n
+UNION ALL
+SELECT 1+n FROM my_cte WHERE n&amp;lt;100
+)
+SELECT * FROM my_cte;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;skip locked 없이 사용했을 때
+=&amp;gt; 위 seats 테이블에 status (sold, available, pending) 같은 컬럼과 데이터를 추가하여 예매 중인 좌석은 따로 pending으로 update 수행하고&lt;br&gt;
+화면단에는 pending 상태인 좌석은 표시하지 않는 로직이 필요할 것입니다. 결제 중에 취소된 pending상태의 좌석은 어플리케이션에서 설정한 timeout 후&lt;br&gt;
+다시 available로 update 하는 로직도 필요하게 되는 등 생각해야 할 부분이 많을 것입니다.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;skip locked&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### session 1  1~90번 좌석을 예매 중
+
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; SELECT * FROM seats WHERE seat_no BETWEEN 1 AND 90 AND booked = &#39;NO&#39; FOR UPDATE ;
+
+### session 2 
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; SELECT * FROM seats where booked = &#39;NO&#39; for update skip locked;
++---------+--------+
+| seat_no | booked |
++---------+--------+
+|      92 | NO     |
+|      93 | NO     |
+|      94 | NO     |
+|      95 | NO     |
+|      96 | NO     |
+|      97 | NO     |
+|      98 | NO     |
+|      99 | NO     |
+|     100 | NO     |
++---------+--------+
+9 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; skip locked 옵션을 사용하면 status (sold, available, pending) 관리 같은 로직이 없어도&lt;br&gt;
+트랜잭션이 진행중인 (예매중인) row는 skip 해서 보여주기 때문에 훨씬 간단한 코드로 동일한 효과를 볼 수 있습니다.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>MySQL FK 1215 error</title>
+      <link>https://kimdubi.github.io/mysql/fk/</link>
+      <pubDate>Sat, 15 Aug 2020 02:44:53 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/fk/</guid>
+      <description>&lt;p&gt;얼마전 담당하는 MySQL 서비스의 복제본 한벌을 더 추가 구성하게 되었습니다.&lt;br&gt;
+single-transaction + dump-slave 혹은 single-transaction + master-data 옵션으로 mysqldump 를 받은 뒤&lt;br&gt;
+새 서버에 반영해주고 dumpfile에 dump-slave / master-data 옵션으로 인해 딸려온 change master to 구문을 확인하여&lt;br&gt;
+replication을 맺어주면 되는 아주 간단한 작업인데요&lt;/p&gt;
+&lt;p&gt;그런데 실패했습니다&amp;hellip;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;replication error log&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;show slave status\G;
+.
+.
+
+Last_Errno: 1146
+   Last_Error: Error &#39;Table &#39;xxxxx.xxxx&#39; doesn&#39;t exist&#39; on query. Default database: &#39;xxxxxxxxxxxx&#39;. Query: &#39;UPDATE xxxx SET lastused = NOW(), lingertime = 7 WHERE siteid = &#39;xxxxxxxxxxx&#39;&#39;
+.
+.
+Last_IO_Errno: 0
+Last_IO_Error:
+Last_SQL_Errno: 1146
+Last_SQL_Error: Error &#39;Table &#39;xxxxxxxx.xxxxx&#39; doesn&#39;t exist&#39; on query. Default database: &#39;xxxxxxx&#39;. Query: &#39;UPDATE xxxxx SET lastused = NOW(), lingertime = 7 WHERE siteid = &#39;xxxxxxxxxx&#39;&#39;
+Replicate_Ignore_Server_Ids:
+Master_Server_Id: 1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;이전에도 종종 해본 작업이고 mysqldump 를 그대로 import 하고 백업받을 때 master의 binary log position 도 정확히 잘 찍어놔서&lt;br&gt;
+데이터가 유실될 일은 없을 터인데..&lt;br&gt;
+dump 복원 과정에서 무려 테이블이 유실되어 당혹스러웠는데요&lt;br&gt;
+Import 에러 로그부터 dump file의 내용까지 천천히 확인해보니 이유를 알 수 있었습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;import error log&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;line 5048  ERROR 1215 (HY000): Cannot add foreign key constraint
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;정확하진 않지만 대략 위 에러문구였습니다. mysqldump file을 반영하다가 line 5048번에서 FK 생성 에러가 발생했습니다.&lt;br&gt;
+보통 mysqldump을 별다른 옵션없이 수행하면 아래처럼 FK check 옵션을 끄고 테이블 생성 &amp;amp; 데이터 적재 후 모든작업을 마치고&lt;br&gt;
+마지막에 다시 FK 옵션을 원복해줍니다.(이전에 off였든 on이었든)&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;### dumpfile 시작부분
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+
+### dumpfile 끝부분
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;이 FOREIGN_KEY_CHECKS=0 옵션 덕에 parent table 보다 child table이 먼저 생성되는 경우나&lt;br&gt;
+데이터 dml 순서도 FK제한없이 처리될 수 있습니다. 그런데도 왜 FK에러가 났느냐?&lt;br&gt;
+위 import error log 에러에서 나온 mysqldump file의 5048 line을 살펴보니 아래와 같은 테이블 생성구문이었습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;생성 실패한 table&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;CREATE TABLE `tb_test_child` (
+  `id` varchar(64) NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `column_fk` varchar(64) DEFAULT NULL,
+  `col2` tinyint(1) NOT NULL,
+  `col3` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx1` (`name`),
+  KEY `idx2` (`column_fk`),
+  CONSTRAINT `tb_test_child_fk1` FOREIGN KEY (`column_fk`) REFERENCES `tb_test_parent` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 에러로그에서 FK를 생성하는데 실패했다고 했기 때문에 tb_test_parent 테이블의 id 컬럼을 reference 하여 FK 생성에 실패한 것이 되는데요&lt;br&gt;
+그래서 tb_test_parent 테이블의 생성구문을 확인해봤습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;parent table&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;CREATE TABLE `tb_test_parent` (
+  `id` varchar(64) CHARACTER SET utf8mb4 NOT NULL DEFAULT &#39;&#39;,
+  `name` varchar(255) DEFAULT NULL,
+.
+.
+  `create_time` datetime DEFAULT NULL,
+  `deleted_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `tb_test_parent_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; tb_test_child의 tb_test_child_fk1 FK는 tb_test_parent의 id를 refernce 합니다.&lt;br&gt;
+이때 FK 생성 조건에는 아래와 같은 조건 등이 있습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;참조하는 컬럼이 FK 컬럼과 동일한 타입, length를 가져야한다&lt;/li&gt;
+&lt;li&gt;참조하는 컬럼은 해당 테이블에서 어떤 종류던 key여야한다&lt;/li&gt;
+&lt;li&gt;parent , child의 해당 컬럼의 charset과 collation은 동일해야한다&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;이번 에러는 어떤 이유에서인지 dumpfile에서 FK 컬럼의 charset과 collation이 parent / child 간 상이했습니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# parent
+`id` varchar(64) CHARACTER SET utf8mb4 NOT NULL DEFAULT &#39;&#39;,
+
+# child 
+`column_fk` varchar(64) DEFAULT NULL,
+CONSTRAINT `tb_test_child_fk1` FOREIGN KEY (`column_fk`) REFERENCES `tb_test_parent` (`id`)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;그래서 child 테이블의 column_fk 컬럼을 parent의 id컬럼과 동일하게 CHARACTER SET utf8mb4로 맞춰 생성 후 정상화 되었습니다.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>MySQL innodb_rollback_on_timeout 설정</title>

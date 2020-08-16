@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL8.0 SKIP LOCKED / NOWAIT 활용하기</title>
+        
+        <style>
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL8.0 SKIP LOCKED / NOWAIT 활용하기</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL8.0 SKIP LOCKED / NOWAIT 활용하기</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>MySQL 8.0 버전부터는 읽기 일관성을 위한 read lock 에 대해 두가지 옵션이 추가되었습니다.</p>
+<ul>
+<li>NOWAIT : 쿼리를 실행 후 읽으려는 row에 lock이 걸려있으면 바로 트랜잭션 실패 처리 (innodb_lock_wait_timeout 만큼 기다리지 않고 바로)</li>
+<li>SKIP LOCKED : 쿼리를 실행 후 읽으려는 row에 lock 이 걸려있으면 해당 row skip 하고 resultset return</li>
+</ul>
+<p>동시성 이슈를 해결하기 위해 select ~ for update , select ~ for shared mode 같은 쿼리를 수행할 때 위 옵션을 줄 수 있는데 언제 사용하면 좋을까요?</p>
+<ul>
+<li>batch 작업 등으로 테이블 내 데이터를 일괄 변경할 때</li>
+<li>티켓 예매 서비스 처럼 사용자들이 동시에 몰리는 데이터를 다룰 때</li>
+</ul>
+<p>이 두가지 예제로 살펴보겠습니다.</p>
+<h3 id="-1--batch-">예제 1 - batch 작업</h3>
+<ul>
+<li>아래 작업을 여러 thread에서 병렬로 수행</li>
+</ul>
+<pre><code>* progress='PREPARE' 인 데이터를 정렬하여 3건씩 가져옴
+* 한건씩 progress='DONE' 으로 update
+* 다음 처리 대상 3건 가져오기
+</code></pre><ul>
+<li>test data</li>
+</ul>
+<pre><code>CREATE TABLE progress (
+  seq INT PRIMARY KEY,
+  progress ENUM('PREPARE', 'DONE') DEFAULT 'PREPARE'
+);
+
+
+INSERT INTO progress (seq)
+WITH RECURSIVE my_cte AS
+(
+SELECT 1 AS n
+UNION ALL
+SELECT 1+n FROM my_cte WHERE n&lt;10
+)
+SELECT * FROM my_cte;
+
+</code></pre><ul>
+<li>skip locked 없이 수행했을 때</li>
+</ul>
+<pre><code>### session 1
+mysql&gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt;  select * from progress where progress='PREPARE' order by seq limit 3 for update ;
++-----+----------+
+| seq | progress |
++-----+----------+
+|   1 | PREPARE  |
+|   2 | PREPARE  |
+|   3 | PREPARE  |
++-----+----------+
+3 rows in set (0.01 sec)
+
+
+### session 2
+
+mysql&gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+mysql&gt;  select * from progress where progress='PREPARE' order by seq limit 3 for update ;
+
+ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction
+
+</code></pre><p>=&gt; select for update로 인해 row lock이 걸려 다른 세션에서는 데이터를 가져올 수가 없습니다.<br>
+결국 lock 대기하게 되어 병렬 수행이 아무런 의미가 없어지게 됩니다.</p>
+<ul>
+<li>skip locked</li>
+</ul>
+<pre><code>### session 1
+mysql&gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; select * from progress where progress='PREPARE' order by seq limit 3 for update ;
++-----+----------+
+| seq | progress |
++-----+----------+
+|   1 | PREPARE  |
+|   2 | PREPARE  |
+|   3 | PREPARE  |
++-----+----------+
+3 rows in set (0.00 sec)
+
+
+### session 2 
+mysql&gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; select * from progress where progress='PREPARE' order by seq limit 3 for update skip locked;
++-----+----------+
+| seq | progress |
++-----+----------+
+|   4 | PREPARE  |
+|   5 | PREPARE  |
+|   6 | PREPARE  |
++-----+----------+
+3 rows in set (0.00 sec)
+
+</code></pre><p>=&gt; 위처럼 select for update 에 의해 row lock 걸린 row는 skip 하고 다음 row들을 읽어옵니다.<br>
+다른 세션에 의해 데이터 변경이 잦지 않고 데이터를 일괄로 변경하는 특성이 있는 batch 작업들은 skip locked 옵션을 통해 병렬로 수행하기가 굉장히 쉬워졌습니다.</p>
+<h3 id="-2------">예제 2 - 동시성 요구되는 데이터 화면 (티켓)</h3>
+<ul>
+<li>시나리오</li>
+</ul>
+<pre><code>* 사용자가 티켓을 예매하려고함
+* 여러 좌석 중에 앉을 좌석을 선택하고 결제 진행 중
+* 예매 시작~결제성공 할 때까지 사용자가 선택한 좌석이 다른 사용자들에게는 사용불가능한 좌석으로 표시되어야함
+</code></pre><ul>
+<li>test data</li>
+</ul>
+<pre><code>CREATE TABLE seats (
+  seat_no INT PRIMARY KEY,
+  booked ENUM('YES', 'NO') DEFAULT 'NO'
+);
+ 
+# generate 100 sample rows
+INSERT INTO seats (seat_no)
+WITH RECURSIVE my_cte AS
+(
+SELECT 1 AS n
+UNION ALL
+SELECT 1+n FROM my_cte WHERE n&lt;100
+)
+SELECT * FROM my_cte;
+</code></pre><ul>
+<li>
+<p>skip locked 없이 사용했을 때
+=&gt; 위 seats 테이블에 status (sold, available, pending) 같은 컬럼과 데이터를 추가하여 예매 중인 좌석은 따로 pending으로 update 수행하고<br>
+화면단에는 pending 상태인 좌석은 표시하지 않는 로직이 필요할 것입니다. 결제 중에 취소된 pending상태의 좌석은 어플리케이션에서 설정한 timeout 후<br>
+다시 available로 update 하는 로직도 필요하게 되는 등 생각해야 할 부분이 많을 것입니다.</p>
+</li>
+<li>
+<p>skip locked</p>
+</li>
+</ul>
+<pre><code>### session 1  1~90번 좌석을 예매 중
+
+mysql&gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; SELECT * FROM seats WHERE seat_no BETWEEN 1 AND 90 AND booked = 'NO' FOR UPDATE ;
+
+### session 2 
+mysql&gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; SELECT * FROM seats where booked = 'NO' for update skip locked;
++---------+--------+
+| seat_no | booked |
++---------+--------+
+|      92 | NO     |
+|      93 | NO     |
+|      94 | NO     |
+|      95 | NO     |
+|      96 | NO     |
+|      97 | NO     |
+|      98 | NO     |
+|      99 | NO     |
+|     100 | NO     |
++---------+--------+
+9 rows in set (0.00 sec)
+</code></pre><p>=&gt; skip locked 옵션을 사용하면 status (sold, available, pending) 관리 같은 로직이 없어도<br>
+트랜잭션이 진행중인 (예매중인) row는 skip 해서 보여주기 때문에 훨씬 간단한 코드로 동일한 효과를 볼 수 있습니다.</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

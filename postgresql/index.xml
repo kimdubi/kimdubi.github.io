@@ -5,10 +5,112 @@
     <description>Recent content in Postgresqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 09 Aug 2020 15:01:43 +0900</lastBuildDate>
+    <lastBuildDate>Thu, 20 Aug 2020 15:19:06 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/postgresql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>pg_replication_slot 사용 시 wal logfile이 계속 쌓일때</title>
+      <link>https://kimdubi.github.io/postgresql/pg_slot_issue/</link>
+      <pubDate>Thu, 20 Aug 2020 15:19:06 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/pg_slot_issue/</guid>
+      <description>&lt;p&gt;PostgreSQL 의 복제구성으로 가장 널리 쓰이는 방법은 streaming replication + physical replication slot 입니다.&lt;br&gt;
+특히 physical replication slot 을 사용하는 경우에는 DB에서 slave 가 필요로 하는 WAL logfile 정보를 관리하기 때문에&lt;br&gt;
+운영자가 wal_keep_segments , max_wal_size 같은 WAL 보관 설정에 대해 고민할 필요가 없습니다.&lt;br&gt;
+&lt;!-- raw HTML omitted --&gt;&lt;br&gt;
+그러나 이 편리한 replication slot 기능에도 예외상황이 있는데요&lt;br&gt;
+slave DB가 계속 replication 을 받지 못하는 상황이거나, 사용하지 않는 replication slot이 방치 된 경우&lt;br&gt;
+DB는 WAL logfile들이 나중엔 반영될 거라고 보기 때문에 계속~ 무한정 ~ file들을 저장하게 됩니다. 때문에 서버 디스크 이슈가 발생할 수 있습니다.&lt;/p&gt;
+&lt;h3 id=&#34;wal---&#34;&gt;WAL 보관 설정 확인&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# select name,setting from pg_settings where name in (&#39;max_wal_size&#39;,&#39;min_wal_size&#39;,&#39;wal_keep_segments&#39;,&#39;wal_segment_size&#39;);
+       name        | setting
+-------------------+----------
+ max_wal_size      | 128
+ min_wal_size      | 128
+ wal_keep_segments | 0
+ wal_segment_size  | 16777216
+(4 rows)
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;replication-slot---&#34;&gt;replication slot 비활성 상태일 때&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;CREATE TABLE t(id INT, pad CHAR(200)); 
+CREATE INDEX t_id ON t (id); 
+INSERT INTO t SELECT generate_series(1,1000000) AS id, md5((random()*1000000)::text) AS pad;
+
+UPDATE t SET pad = md5((random()*1000000)::text);  &amp;lt;== 반복 수행
+
+
+$ du -sh pg_wal
+129M    pg_wal
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 대량의 WAL log를 떨구는 커맨드를 수행해도 max_wal_size 설정을 초과해서 파일이 쌓이지 않습니다.&lt;/p&gt;
+&lt;h3 id=&#34;replication-slot-----&#34;&gt;replication slot이 활성 상태지만, 복제는 안되는 상황일때&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# select * from pg_replication_slots;
+-[ RECORD 1 ]-------+-------------
+slot_name           | repl_slot_01
+plugin              |
+slot_type           | physical
+datoid              |
+database            |
+temporary           | f
+active              | f
+active_pid          |
+xmin                |
+catalog_xmin        |
+restart_lsn         | 4/F90000D0
+confirmed_flush_lsn |
+
+=&amp;gt; active f , active_pid NULL ,
+
+postgres=# UPDATE t SET pad = md5((random()*1000000)::text);
+UPDATE 1000000
+
+
+$ du -sh pg_wal
+145M    pg_wal
+$ du -sh pg_wal
+209M    pg_wal
+.
+.
+$ du -sh pg_wal
+2.0G    pg_wal
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; replication_slot 활성화 상태라서 slave 에 반영안된 wal logfile들을 쭉 보관하게됩니다&lt;br&gt;
+이때는 max_wal_size, wal_keep_segments 설정과는 상관없으며 이처럼 replication_slot 이 활성화 된 상태에서&lt;br&gt;
+replication 만 안되는 상황에서는 디스크 용량 이슈가 발생할 수 있습니다.&lt;/p&gt;
+&lt;h3 id=&#34;replication-slot-----1&#34;&gt;replication slot이 활성 상태, 복제도 정상인 상황일때&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# SELECT redo_lsn, slot_name,restart_lsn,
+round((redo_lsn-restart_lsn) / 1024 / 1024 / 1024, 2) AS GB_behind
+FROM pg_control_checkpoint(), pg_replication_slots;
+-[ RECORD 1 ]-------------
+redo_lsn    | 5/732000B0
+slot_name   | repl_slot_01
+restart_lsn | 4/F90000D0
+gb_behind   | 1.91
+
+=&amp;gt; slave 에 반영안되어서 보관하고 있는 wal logfile 이 2GB
+
+slave) pg_ctl -D /home1/irteam/psql/engn/PGSQL start
+
+
+postgres=# SELECT redo_lsn, slot_name,restart_lsn,
+round((redo_lsn-restart_lsn) / 1024 / 1024 / 1024, 2) AS GB_behind
+FROM pg_control_checkpoint(), pg_replication_slots;
+-[ RECORD 1 ]-------------
+redo_lsn    | 5/9A1FEB88
+slot_name   | repl_slot_01
+restart_lsn | 5/A0C6A000
+gb_behind   | -0.10
+
+=&amp;gt; 기동 후 wal logfile을 반영하면서 보관 중이던 wal logfile도 정리됨
+
+$ du -sh pg_wal
+129M    pg_wal
+
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;heading&#34;&gt;정리&lt;/h3&gt;
+&lt;p&gt;pg_replication_slots 기능은 DB가 필요한 wal logfile을 관리해주기 때문에 편리한 기능이지만&lt;br&gt;
+replication_slot이 구성된 slave db의 다운 상태가 길어질 수록 예기치 못한 디스크 용량 이슈가 발생할 수 있어 주의가 필요합니다.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>PostgreSQL schema 의미 및 권한관리</title>

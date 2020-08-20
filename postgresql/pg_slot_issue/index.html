@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>pg_replication_slot 사용 시 wal logfile이 계속 쌓일때</title>
+        
+        <style>
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">pg_replication_slot 사용 시 wal logfile이 계속 쌓일때</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>pg_replication_slot 사용 시 wal logfile이 계속 쌓일때</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>PostgreSQL 의 복제구성으로 가장 널리 쓰이는 방법은 streaming replication + physical replication slot 입니다.<br>
+특히 physical replication slot 을 사용하는 경우에는 DB에서 slave 가 필요로 하는 WAL logfile 정보를 관리하기 때문에<br>
+운영자가 wal_keep_segments , max_wal_size 같은 WAL 보관 설정에 대해 고민할 필요가 없습니다.<br>
+<!-- raw HTML omitted --><br>
+그러나 이 편리한 replication slot 기능에도 예외상황이 있는데요<br>
+slave DB가 계속 replication 을 받지 못하는 상황이거나, 사용하지 않는 replication slot이 방치 된 경우<br>
+DB는 WAL logfile들이 나중엔 반영될 거라고 보기 때문에 계속~ 무한정 ~ file들을 저장하게 됩니다. 때문에 서버 디스크 이슈가 발생할 수 있습니다.</p>
+<h3 id="wal---">WAL 보관 설정 확인</h3>
+<pre><code>postgres=# select name,setting from pg_settings where name in ('max_wal_size','min_wal_size','wal_keep_segments','wal_segment_size');
+       name        | setting
+-------------------+----------
+ max_wal_size      | 128
+ min_wal_size      | 128
+ wal_keep_segments | 0
+ wal_segment_size  | 16777216
+(4 rows)
+</code></pre><h3 id="replication-slot---">replication slot 비활성 상태일 때</h3>
+<pre><code>CREATE TABLE t(id INT, pad CHAR(200)); 
+CREATE INDEX t_id ON t (id); 
+INSERT INTO t SELECT generate_series(1,1000000) AS id, md5((random()*1000000)::text) AS pad;
+
+UPDATE t SET pad = md5((random()*1000000)::text);  &lt;== 반복 수행
+
+
+$ du -sh pg_wal
+129M    pg_wal
+</code></pre><p>=&gt; 대량의 WAL log를 떨구는 커맨드를 수행해도 max_wal_size 설정을 초과해서 파일이 쌓이지 않습니다.</p>
+<h3 id="replication-slot-----">replication slot이 활성 상태지만, 복제는 안되는 상황일때</h3>
+<pre><code>postgres=# select * from pg_replication_slots;
+-[ RECORD 1 ]-------+-------------
+slot_name           | repl_slot_01
+plugin              |
+slot_type           | physical
+datoid              |
+database            |
+temporary           | f
+active              | f
+active_pid          |
+xmin                |
+catalog_xmin        |
+restart_lsn         | 4/F90000D0
+confirmed_flush_lsn |
+
+=&gt; active f , active_pid NULL ,
+
+postgres=# UPDATE t SET pad = md5((random()*1000000)::text);
+UPDATE 1000000
+
+
+$ du -sh pg_wal
+145M    pg_wal
+$ du -sh pg_wal
+209M    pg_wal
+.
+.
+$ du -sh pg_wal
+2.0G    pg_wal
+
+</code></pre><p>=&gt; replication_slot 활성화 상태라서 slave 에 반영안된 wal logfile들을 쭉 보관하게됩니다<br>
+이때는 max_wal_size, wal_keep_segments 설정과는 상관없으며 이처럼 replication_slot 이 활성화 된 상태에서<br>
+replication 만 안되는 상황에서는 디스크 용량 이슈가 발생할 수 있습니다.</p>
+<h3 id="replication-slot-----1">replication slot이 활성 상태, 복제도 정상인 상황일때</h3>
+<pre><code>postgres=# SELECT redo_lsn, slot_name,restart_lsn,
+round((redo_lsn-restart_lsn) / 1024 / 1024 / 1024, 2) AS GB_behind
+FROM pg_control_checkpoint(), pg_replication_slots;
+-[ RECORD 1 ]-------------
+redo_lsn    | 5/732000B0
+slot_name   | repl_slot_01
+restart_lsn | 4/F90000D0
+gb_behind   | 1.91
+
+=&gt; slave 에 반영안되어서 보관하고 있는 wal logfile 이 2GB
+
+slave) pg_ctl -D /home1/irteam/psql/engn/PGSQL start
+
+
+postgres=# SELECT redo_lsn, slot_name,restart_lsn,
+round((redo_lsn-restart_lsn) / 1024 / 1024 / 1024, 2) AS GB_behind
+FROM pg_control_checkpoint(), pg_replication_slots;
+-[ RECORD 1 ]-------------
+redo_lsn    | 5/9A1FEB88
+slot_name   | repl_slot_01
+restart_lsn | 5/A0C6A000
+gb_behind   | -0.10
+
+=&gt; 기동 후 wal logfile을 반영하면서 보관 중이던 wal logfile도 정리됨
+
+$ du -sh pg_wal
+129M    pg_wal
+
+</code></pre><h3 id="heading">정리</h3>
+<p>pg_replication_slots 기능은 DB가 필요한 wal logfile을 관리해주기 때문에 편리한 기능이지만<br>
+replication_slot이 구성된 slave db의 다운 상태가 길어질 수록 예기치 못한 디스크 용량 이슈가 발생할 수 있어 주의가 필요합니다.</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

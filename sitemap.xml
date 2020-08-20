@@ -4,7 +4,21 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-08-17T02:07:58+09:00</lastmod>
+    <lastmod>2020-08-20T15:19:06+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/postgresql/pg_slot_issue/</loc>
+    <lastmod>2020-08-20T15:19:06+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/postgresql/</loc>
+    <lastmod>2020-08-20T15:19:06+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
@@ -46,13 +60,6 @@
   
   <url>
     <loc>https://kimdubi.github.io/postgresql/pg_schema/</loc>
-    <lastmod>2020-08-09T15:01:43+09:00</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://kimdubi.github.io/postgresql/</loc>
     <lastmod>2020-08-09T15:01:43+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>

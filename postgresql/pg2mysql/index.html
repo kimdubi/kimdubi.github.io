@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>PostgreSQL to MySQL Migration</title>
+        
+        <style>
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">PostgreSQL to MySQL Migration</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>PostgreSQL to MySQL Migration</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>MySQL을 PostgreSQL 로 이관하는 방법은 PostgreSQL에서 제공하는 기능인 pgloader 를 사용하면 오브젝트부터 데이터까지 쉽게 이관할 수 있지만<br>
+반대인 PostgreSQL -&gt; MySQL 은 적당한 툴도 없고, 두 DB의 schema 개념도 달라 사전에 알아둬야 할 점이 많습니다.<br>
+이번에 이관했던 서비스를 예시로 PostgreSQL =&gt; MySQL 이관 방법을 정리해보았습니다.<br>
+<!-- raw HTML omitted --></p>
+<h2 id="postgresql--mysql-schema-">PostgreSQL 과 MySQL schema 차이</h2>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/p1-5.png" alt=""></p>
+<ul>
+<li>PostgreSQL에서는 테이블의 집합이 schema ( 위 그림에서 public, myschema )</li>
+<li>schema 의 집합이 database ( 위 그림에서 postgres , mydb )</li>
+<li>테이블의 집합 =  schema 가 곧 논리 database 인 MySQL과는 개념이 다름</li>
+<li>단 아래와 같이 DB 내에 사용하는 schema 가 단 하나일 땐 PostgreSQL database -&gt; MySQL database 1:1 매핑이 가능함</li>
+</ul>
+<pre><code>amon=# \dn
+          List of schemas
+        Name        |    Owner
+--------------------+--------------
+ information_schema | testuser
+ pg_catalog         | testuser
+ pg_toast           | testuser
+ pg_toast_temp_1    | testuser
+ public             | testuser
+(5 rows)
+
+=&gt; public 을 제외한 나머지 schema는 시스템 관련 스키마, pulic은 모든 schema가 접근 가능한 default schema  
+
+test=# select count(*) from information_schema.tables where table_schema='public';
+ count
+-------
+   100
+(1 row)
+
+=&gt; 해당 서비스에서는 다른 서비스용 schema 를 생성하지 않고 기본 public schema에 오브젝트를 생성하였음
+</code></pre><h2 id="-">이관대상 확인</h2>
+<h3 id="database">database</h3>
+<pre><code>postgres=# \l+
+                                                                  List of databases
+   Name    |    Owner     | Encoding | Collation  |   Ctype    |         Access privileges         |  Size   | Tablespace |        Description
+-----------+--------------+----------+------------+------------+-----------------------------------+---------+------------+---------------------------
+ test1      | testuser      | UTF8     | en_US.UTF8 | en_US.UTF8 |                                   | 13 MB   | pg_default |
+ test2      | testuser      | UTF8     | en_US.UTF8 | en_US.UTF8 |                                   | 172 MB  | pg_default |
+                                                               : 
+
+ template0 | postres        | UTF8     | en_US.UTF8 | en_US.UTF8 | =c/&quot;testuser&quot;                 | 5408 kB | pg_default |
+                                                               : &quot;testuser&quot;=CTc/&quot;testuser&quot;
+ template1 | postgres       | UTF8     | en_US.UTF8 | en_US.UTF8 | =c/&quot;testuser&quot;                 | 5408 kB | pg_default | default template database
+                                                               : &quot;testuser&quot;=CTc/&quot;testuser&quot;
+</code></pre><ul>
+<li>이관 대상 PostgreSQL DB 서버 내에 여러 database 들이 존재하는 상황임</li>
+<li>원래 개념대로라면 위의 database 하나하나가 MySQL의 DB instance 로 매핑되지만
+아래와 같이 각 database 내에서 schema 를 public schema 하나만 사용하고 있어 PostgreSQL 과 MySQL 1:1 매핑이 가능함</li>
+</ul>
+<h3 id="schema">schema</h3>
+<pre><code>test1=# \dn
+          List of schemas
+        Name        |    Owner
+--------------------+--------------
+ information_schema | testuser
+ pg_catalog         | testuser
+ pg_toast           | testuser
+ pg_toast_temp_1    | testuser
+ public             | testuser
+(5 rows)
+
+test1=# select count(*) from information_schema.tables where table_schema='public';
+ count
+-------
+    100
+(1 row)
+
+test1=# \dn
+          List of schemas
+        Name        |    Owner
+--------------------+--------------
+ information_schema | testuser
+ pg_catalog         | testuser
+ pg_toast           | testuser
+ pg_toast_temp_1    | testuser
+ public             | testuser
+(5 rows)
+
+
+test2=# select count(*) from information_schema.tables where table_schema='public';
+ count
+-------
+    84
+(1 row)
+</code></pre><h3 id="user">user</h3>
+<pre><code>postgres=# select * from pg_catalog.pg_roles;
+   rolname    | rolsuper | rolinherit | rolcreaterole | rolcreatedb | rolcatupdate | rolcanlogin | rolconnlimit | rolpassword | rolvaliduntil | rolconfig |  oid
+--------------+----------+------------+---------------+-------------+--------------+-------------+--------------+-------------+---------------+-----------+-------
+ testuser     | t        | t          | t             | t           | t            | t           |           -1 | ********    |               |           |    10
+.
+.
+
+</code></pre><h2 id="pg2mysql">pg2mysql</h2>
+<p>PostgreSQL dump 파일을 MySQL 쿼리로 변환해주는 툴로 더이상 개발되지 않아 실사용 하기위해 몇가지 부분을 추가하였음</p>
+<h3 id="pg2mysql----">pg2mysql  이슈 및 수정사항</h3>
+<ul>
+<li>테이블 정의 중 Constraint 부분을 의도적으로 생략하는 이슈
+<ul>
+<li>foreign , unique constraint 생성 구문 변환되도록 수정</li>
+</ul>
+</li>
+<li>Unique key가 일반인덱스로 생성 되는 이슈
+<ul>
+<li>Unique key로 생성되도록 수정</li>
+</ul>
+</li>
+<li>engine 변환 구문 오류
+<ul>
+<li>default로  InnoDB engine 으로 생성하도록 수정</li>
+</ul>
+</li>
+<li>메모리 제한 이슈
+<ul>
+<li>pg2mysql 프로그램이 사용할 수 있는 최대 메모리 limit 을 512MB로 제한</li>
+</ul>
+</li>
+<li>이관했던 서비스가 테이블, 컬럼을 모두 대문자로 사용하여 생성구문을 모두 대문자로 생성하도록 strtoupper 함수를 추가했음
+소문자로 사용하는 경우 strtoupper 함수부분을 제거해야함</li>
+<li>cidr, inet 컬럼 미지원
+<ul>
+<li>PostgreSQL에는 IP를 표현하는 cidr, inet 컬럼 타입이 있으나 MySQL에는 없음, 이부분은 MySQL에서 big int + inet_aton, inet_ation으로 구현할지 varchar 타입으로 전환할지 결정이 필요하여 수정하지 않았음.
+참고로, varchar 로 전환시 order by 결과값이 inet 과는 다름</li>
+</ul>
+</li>
+<li>FK option
+<ul>
+<li>PostgreSQL에는 DEFERRABLE INITIALLY DEFERRED ( 제약조건을 트랜잭션 종료할 때 검사하는 설정) 같은  MySQL에서는 지원하지 않는 기능이 있음. 경우에 따라 fk 조건을 삭제하거나 트랜잭션 시작시에 set foreign_key_checks = 0 ;  설정을 주도록 개발팀과 협의가 필요하기 때문에 변환과정에서 생략하지 않고 포함하도록함</li>
+</ul>
+</li>
+</ul>
+<h3 id="heading">사용방법</h3>
+<ul>
+<li>php 설치</li>
+</ul>
+<pre><code>$ php --version
+PHP 5.3.3 (cli) (built: Mar 22 2017 12:27:09)
+</code></pre><ul>
+<li>첨부파일의 pg2mysql tar 파일을 품</li>
+</ul>
+<pre><code>$ ls -ltr
+total 44
+-rw-r--r-- 1 irteam irteam 15145 May 26  2006 gpl.txt
+-rw-r--r-- 1 irteam irteam  2370 Jul 21  2011 pg2mysql.php
+-rw-r--r-- 1 irteam irteam  1534 Jul 21  2011 pg2mysql_cli.php
+-rw-r--r-- 1 irteam irteam  2985 Jul 21  2011 README
+-rw-rw-r-- 1 irteam irteam 13204 Aug 10 20:44 pg2mysql.inc.php.org
+-rw-r--r-- 1 irteam irteam 13235 Aug 10 20:44 pg2mysql.inc.php
+</code></pre><ul>
+<li>이관 대상 PostgreSQL dump 파일 준비</li>
+</ul>
+<pre><code>### schema only
+pg_dump -p port -U username -S dbname  --format p -f dbname_schema.sql
+
+### data only, insert 구문으로
+pg_dump -p port -U username -a dbname --inserts --format p -f dbname_data.sql
+
+### schema+ data
+pg_dump -p port -U username  dbname --inserts --format p -f dbname_full.sql
+</code></pre><ul>
+<li>MySQL 쿼리로 변환</li>
+</ul>
+<pre><code>php pg2mysql_cli.php dbname_full.sql mysql_dbname.sql 
+</code></pre><h3 id="--count-">데이터 검증 (count 확인)</h3>
+<ul>
+<li>PostgreSQL</li>
+</ul>
+<pre><code>#!/bin/bash
+database=database_name
+user=postgres
+echo &quot;Database : $database&quot;
+PGCOMMAND=&quot; psql -U $user -d $database -At -c \&quot;
+            SELECT   table_name
+            FROM     information_schema.tables
+            WHERE    table_type='BASE TABLE'
+            AND      table_schema='public'
+            \&quot;&quot;
+
+TABLENAMES=$(export PGPASSWORD=패스워드; eval &quot;$PGCOMMAND&quot;)
+
+for TABLENAME in $TABLENAMES; do
+    PGCOMMAND=&quot; psql -U $user -d $database -At -c \&quot;  
+                SELECT   '$TABLENAME',  
+                         count(*)   
+                FROM     $TABLENAME  
+                \&quot;&quot;
+    eval &quot;$PGCOMMAND&quot;
+done
+</code></pre><ul>
+<li>MySQL</li>
+</ul>
+<pre><code>#!/bin/bash
+database=database_name
+for name in `mys $database -B -e &quot;show tables&quot;`;
+do
+   mys -B --vertical $database -e &quot;select count(*) as $name from $name&quot; | grep -v '^\*' | replace &quot;: &quot; &quot;|&quot;
+done
+</code></pre><ul>
+<li>index count</li>
+</ul>
+<pre><code>* index count
+
+# MySQL
+select table_name,count(distinct index_name) from information_schema.STATISTICS where index_schema='amon' group by 1 order by 1;
+
+# PostgreSQL
+select tablename,count(*) from pg_indexes where schemaname='public' group by 1 order by 1;
+</code></pre><p>=&gt; MySQL로 변환되면서 Auto-increment 컬럼이 PK 가 되기 때문에 MySQL 이 인덱스가 더 많을 수 있음</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

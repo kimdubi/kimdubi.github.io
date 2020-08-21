@@ -5,10 +5,228 @@
     <description>Recent content in Postgresqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 20 Aug 2020 15:19:06 +0900</lastBuildDate>
+    <lastBuildDate>Fri, 21 Aug 2020 22:13:24 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/postgresql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>PostgreSQL to MySQL Migration</title>
+      <link>https://kimdubi.github.io/postgresql/pg2mysql/</link>
+      <pubDate>Fri, 21 Aug 2020 22:13:24 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/pg2mysql/</guid>
+      <description>&lt;p&gt;MySQL을 PostgreSQL 로 이관하는 방법은 PostgreSQL에서 제공하는 기능인 pgloader 를 사용하면 오브젝트부터 데이터까지 쉽게 이관할 수 있지만&lt;br&gt;
+반대인 PostgreSQL -&amp;gt; MySQL 은 적당한 툴도 없고, 두 DB의 schema 개념도 달라 사전에 알아둬야 할 점이 많습니다.&lt;br&gt;
+이번에 이관했던 서비스를 예시로 PostgreSQL =&amp;gt; MySQL 이관 방법을 정리해보았습니다.&lt;br&gt;
+&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;h2 id=&#34;postgresql--mysql-schema-&#34;&gt;PostgreSQL 과 MySQL schema 차이&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/p1-5.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;PostgreSQL에서는 테이블의 집합이 schema ( 위 그림에서 public, myschema )&lt;/li&gt;
+&lt;li&gt;schema 의 집합이 database ( 위 그림에서 postgres , mydb )&lt;/li&gt;
+&lt;li&gt;테이블의 집합 =  schema 가 곧 논리 database 인 MySQL과는 개념이 다름&lt;/li&gt;
+&lt;li&gt;단 아래와 같이 DB 내에 사용하는 schema 가 단 하나일 땐 PostgreSQL database -&amp;gt; MySQL database 1:1 매핑이 가능함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;amon=# \dn
+          List of schemas
+        Name        |    Owner
+--------------------+--------------
+ information_schema | testuser
+ pg_catalog         | testuser
+ pg_toast           | testuser
+ pg_toast_temp_1    | testuser
+ public             | testuser
+(5 rows)
+
+=&amp;gt; public 을 제외한 나머지 schema는 시스템 관련 스키마, pulic은 모든 schema가 접근 가능한 default schema  
+
+test=# select count(*) from information_schema.tables where table_schema=&#39;public&#39;;
+ count
+-------
+   100
+(1 row)
+
+=&amp;gt; 해당 서비스에서는 다른 서비스용 schema 를 생성하지 않고 기본 public schema에 오브젝트를 생성하였음
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;-&#34;&gt;이관대상 확인&lt;/h2&gt;
+&lt;h3 id=&#34;database&#34;&gt;database&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# \l+
+                                                                  List of databases
+   Name    |    Owner     | Encoding | Collation  |   Ctype    |         Access privileges         |  Size   | Tablespace |        Description
+-----------+--------------+----------+------------+------------+-----------------------------------+---------+------------+---------------------------
+ test1      | testuser      | UTF8     | en_US.UTF8 | en_US.UTF8 |                                   | 13 MB   | pg_default |
+ test2      | testuser      | UTF8     | en_US.UTF8 | en_US.UTF8 |                                   | 172 MB  | pg_default |
+                                                               : 
+
+ template0 | postres        | UTF8     | en_US.UTF8 | en_US.UTF8 | =c/&amp;quot;testuser&amp;quot;                 | 5408 kB | pg_default |
+                                                               : &amp;quot;testuser&amp;quot;=CTc/&amp;quot;testuser&amp;quot;
+ template1 | postgres       | UTF8     | en_US.UTF8 | en_US.UTF8 | =c/&amp;quot;testuser&amp;quot;                 | 5408 kB | pg_default | default template database
+                                                               : &amp;quot;testuser&amp;quot;=CTc/&amp;quot;testuser&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;이관 대상 PostgreSQL DB 서버 내에 여러 database 들이 존재하는 상황임&lt;/li&gt;
+&lt;li&gt;원래 개념대로라면 위의 database 하나하나가 MySQL의 DB instance 로 매핑되지만
+아래와 같이 각 database 내에서 schema 를 public schema 하나만 사용하고 있어 PostgreSQL 과 MySQL 1:1 매핑이 가능함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;schema&#34;&gt;schema&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;test1=# \dn
+          List of schemas
+        Name        |    Owner
+--------------------+--------------
+ information_schema | testuser
+ pg_catalog         | testuser
+ pg_toast           | testuser
+ pg_toast_temp_1    | testuser
+ public             | testuser
+(5 rows)
+
+test1=# select count(*) from information_schema.tables where table_schema=&#39;public&#39;;
+ count
+-------
+    100
+(1 row)
+
+test1=# \dn
+          List of schemas
+        Name        |    Owner
+--------------------+--------------
+ information_schema | testuser
+ pg_catalog         | testuser
+ pg_toast           | testuser
+ pg_toast_temp_1    | testuser
+ public             | testuser
+(5 rows)
+
+
+test2=# select count(*) from information_schema.tables where table_schema=&#39;public&#39;;
+ count
+-------
+    84
+(1 row)
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;user&#34;&gt;user&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# select * from pg_catalog.pg_roles;
+   rolname    | rolsuper | rolinherit | rolcreaterole | rolcreatedb | rolcatupdate | rolcanlogin | rolconnlimit | rolpassword | rolvaliduntil | rolconfig |  oid
+--------------+----------+------------+---------------+-------------+--------------+-------------+--------------+-------------+---------------+-----------+-------
+ testuser     | t        | t          | t             | t           | t            | t           |           -1 | ********    |               |           |    10
+.
+.
+
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;pg2mysql&#34;&gt;pg2mysql&lt;/h2&gt;
+&lt;p&gt;PostgreSQL dump 파일을 MySQL 쿼리로 변환해주는 툴로 더이상 개발되지 않아 실사용 하기위해 몇가지 부분을 추가하였음&lt;/p&gt;
+&lt;h3 id=&#34;pg2mysql----&#34;&gt;pg2mysql  이슈 및 수정사항&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;테이블 정의 중 Constraint 부분을 의도적으로 생략하는 이슈
+&lt;ul&gt;
+&lt;li&gt;foreign , unique constraint 생성 구문 변환되도록 수정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;Unique key가 일반인덱스로 생성 되는 이슈
+&lt;ul&gt;
+&lt;li&gt;Unique key로 생성되도록 수정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;engine 변환 구문 오류
+&lt;ul&gt;
+&lt;li&gt;default로  InnoDB engine 으로 생성하도록 수정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;메모리 제한 이슈
+&lt;ul&gt;
+&lt;li&gt;pg2mysql 프로그램이 사용할 수 있는 최대 메모리 limit 을 512MB로 제한&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;이관했던 서비스가 테이블, 컬럼을 모두 대문자로 사용하여 생성구문을 모두 대문자로 생성하도록 strtoupper 함수를 추가했음
+소문자로 사용하는 경우 strtoupper 함수부분을 제거해야함&lt;/li&gt;
+&lt;li&gt;cidr, inet 컬럼 미지원
+&lt;ul&gt;
+&lt;li&gt;PostgreSQL에는 IP를 표현하는 cidr, inet 컬럼 타입이 있으나 MySQL에는 없음, 이부분은 MySQL에서 big int + inet_aton, inet_ation으로 구현할지 varchar 타입으로 전환할지 결정이 필요하여 수정하지 않았음.
+참고로, varchar 로 전환시 order by 결과값이 inet 과는 다름&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;FK option
+&lt;ul&gt;
+&lt;li&gt;PostgreSQL에는 DEFERRABLE INITIALLY DEFERRED ( 제약조건을 트랜잭션 종료할 때 검사하는 설정) 같은  MySQL에서는 지원하지 않는 기능이 있음. 경우에 따라 fk 조건을 삭제하거나 트랜잭션 시작시에 set foreign_key_checks = 0 ;  설정을 주도록 개발팀과 협의가 필요하기 때문에 변환과정에서 생략하지 않고 포함하도록함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;heading&#34;&gt;사용방법&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;php 설치&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ php --version
+PHP 5.3.3 (cli) (built: Mar 22 2017 12:27:09)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;첨부파일의 pg2mysql tar 파일을 품&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ ls -ltr
+total 44
+-rw-r--r-- 1 irteam irteam 15145 May 26  2006 gpl.txt
+-rw-r--r-- 1 irteam irteam  2370 Jul 21  2011 pg2mysql.php
+-rw-r--r-- 1 irteam irteam  1534 Jul 21  2011 pg2mysql_cli.php
+-rw-r--r-- 1 irteam irteam  2985 Jul 21  2011 README
+-rw-rw-r-- 1 irteam irteam 13204 Aug 10 20:44 pg2mysql.inc.php.org
+-rw-r--r-- 1 irteam irteam 13235 Aug 10 20:44 pg2mysql.inc.php
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;이관 대상 PostgreSQL dump 파일 준비&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### schema only
+pg_dump -p port -U username -S dbname  --format p -f dbname_schema.sql
+
+### data only, insert 구문으로
+pg_dump -p port -U username -a dbname --inserts --format p -f dbname_data.sql
+
+### schema+ data
+pg_dump -p port -U username  dbname --inserts --format p -f dbname_full.sql
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;MySQL 쿼리로 변환&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;php pg2mysql_cli.php dbname_full.sql mysql_dbname.sql 
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;--count-&#34;&gt;데이터 검증 (count 확인)&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;PostgreSQL&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;#!/bin/bash
+database=database_name
+user=postgres
+echo &amp;quot;Database : $database&amp;quot;
+PGCOMMAND=&amp;quot; psql -U $user -d $database -At -c \&amp;quot;
+            SELECT   table_name
+            FROM     information_schema.tables
+            WHERE    table_type=&#39;BASE TABLE&#39;
+            AND      table_schema=&#39;public&#39;
+            \&amp;quot;&amp;quot;
+
+TABLENAMES=$(export PGPASSWORD=패스워드; eval &amp;quot;$PGCOMMAND&amp;quot;)
+
+for TABLENAME in $TABLENAMES; do
+    PGCOMMAND=&amp;quot; psql -U $user -d $database -At -c \&amp;quot;  
+                SELECT   &#39;$TABLENAME&#39;,  
+                         count(*)   
+                FROM     $TABLENAME  
+                \&amp;quot;&amp;quot;
+    eval &amp;quot;$PGCOMMAND&amp;quot;
+done
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;MySQL&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;#!/bin/bash
+database=database_name
+for name in `mys $database -B -e &amp;quot;show tables&amp;quot;`;
+do
+   mys -B --vertical $database -e &amp;quot;select count(*) as $name from $name&amp;quot; | grep -v &#39;^\*&#39; | replace &amp;quot;: &amp;quot; &amp;quot;|&amp;quot;
+done
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;index count&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;* index count
+
+# MySQL
+select table_name,count(distinct index_name) from information_schema.STATISTICS where index_schema=&#39;amon&#39; group by 1 order by 1;
+
+# PostgreSQL
+select tablename,count(*) from pg_indexes where schemaname=&#39;public&#39; group by 1 order by 1;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; MySQL로 변환되면서 Auto-increment 컬럼이 PK 가 되기 때문에 MySQL 이 인덱스가 더 많을 수 있음&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>pg_replication_slot 사용 시 wal logfile이 계속 쌓일때</title>

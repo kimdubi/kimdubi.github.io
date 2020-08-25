@@ -279,31 +279,25 @@ LABEL: full_backup
 START TIMELINE: 2
 STOP TIME: 2020-04-12 15:10:53 GMT
 STOP TIMELINE: 2
-</code></pre><p>=&gt;</p>
+</code></pre><ul>
+<li>START WAL LOCATION : 복구를 위한 시작점</li>
+<li>CHECKPOINT LOCATION : pg_start_backup를 실행했을 때 발생한 체크포인트가 기록된 LSN 위치</li>
+</ul>
+<pre><code>postgres=# select pg_walfile_name ('1/30006268');
+     pg_walfile_name
+--------------------------
+ 000000020000000100000031
+(1 row)
+</code></pre><ul>
+<li>BACKUP METHOD : 백업 방식에 대한 설명. pg_start_backup 또는 pg_basebackup 값을 갖는다</li>
+<li>BACKUP FROM : 백업이 primary와 standby 중에 어디에서 발생했는지 기록한다</li>
+<li>START TIME : pg_start_backup가 실행된 시간</li>
+<li>LABEL : pg_start_backup 실행시 입력한 라벨 값</li>
+</ul>
+<p>백업 수행 시 백업 시작과 완료 시점의 WAL LOCATION 정보가 남기 때문에 복구 시 모든 WAL archive 파일을 읽을 필요없음 <br>
+START WAL LOCATION 부터 recover_target_time 에 해당하는 WAL logfile 까지 필요함</p>
 <ul>
-<li>
-<p>CHECKPOINT LOCATION : pg_start_backup를 실행했을 때 발생한 체크포인트가 기록된 LSN 위치</p>
-</li>
-<li>
-<p>START WAL LOCATION : PITR시에 사용되는 값은 아니고 SR시에 사용된다</p>
-</li>
-<li>
-<p>BACKUP METHOD : 백업 방식에 대한 설명. pg_start_backup 또는 pg_basebackup 값을 갖는다</p>
-</li>
-<li>
-<p>BACKUP FROM : 백업이 primary와 standby 중에 어디에서 발생했는지 기록한다</p>
-</li>
-<li>
-<p>START TIME : pg_start_backup가 실행된 시간</p>
-</li>
-<li>
-<p>LABEL : pg_start_backup 실행시 입력한 라벨 값
-백업 수행 시 백업 시작과 완료 시점의 WAL LOCATION 정보가 남기 때문에 복구 시 모든 WAL archive 파일을 읽을 필요없음<br>
-CHECKPOINT LOCATION: 1/30006268 까지의 data가 반영된 백업본이고 그 이후의 데이터는 (file 000000020000000100000030) wal logfile에서 반영하면 된다는 내용</p>
-</li>
-<li>
-<p>data 삭제</p>
-</li>
+<li>data 삭제</li>
 </ul>
 <pre><code>postgres=# call insert_test_data(10);
 CALL

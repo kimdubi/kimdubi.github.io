@@ -5,10 +5,119 @@
     <description>Recent content in Postgresqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 21 Aug 2020 22:13:24 +0900</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2020 22:38:57 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/postgresql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>PostgreSQL replication을 위한 WAL 전달과정</title>
+      <link>https://kimdubi.github.io/postgresql/pg_repl-1/</link>
+      <pubDate>Tue, 25 Aug 2020 22:38:57 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/pg_repl-1/</guid>
+      <description>&lt;p&gt;ORACLE의 RAC 처럼 공유디스크를 사용하지 않는 이상 DBMS는 Master - Slave 구성을 위해 어떤 방식으로든 Master에서 수행한 트랜잭션을 Slave로 전파해야 합니다.&lt;br&gt;
+MySQL은 SQL 커맨드를 전파하는 방식으로 하는 반면, PostgreSQL은 트랜잭션 로그를 전달하는 방식으로 replication을 수행합니다.&lt;br&gt;
+이 두개의 방식은 비슷한듯, 아래와 같이 다르게 조금은 동작합니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;MySQL
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/mysql_repl.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;PostgreSQL
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/postgre_repl.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;왜 이런 차이가 발생하는 건지 이번 글에서는 PostgreSQL의 Streaming Replication 기준으로 복제 방식을 살펴보겠습니다.&lt;br&gt;
+MySQL의 replication 방식은 아래 글을 참고해주세요&lt;br&gt;
+&lt;a href=&#34;https://kimdubi.github.io/mysql/semi_sync/&#34;&gt;https://kimdubi.github.io/mysql/semi_sync/&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;postgresql-wal--&#34;&gt;PostgreSQL WAL 전파 과정&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/postgre_repl2.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;위 그림은 Primary(local) 에서 standby (remote) 로 WAL을 전달하는 과정을 나타내는데 총 5가지 단계가 있습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;WAL inserts : WAL record는 wal_buffer 에 먼저 생성 되고 wal_buffer 로의 WAL record 생성은 여러 백그라운드 프로세스에 의해 지속적으로 기록됩니다.&lt;/li&gt;
+&lt;li&gt;WAL writes &amp;amp; WAL flush : transaction commit / rollback , wal_buffer 사용량 이나 walwriter process 에 의해 WAL logfile로 flush 됩니다.(default 200ms 마다)&lt;/li&gt;
+&lt;li&gt;Remote Write : 위 세가지 상황에서 wal_sender 는 WAL record를 remote 의 wal_receiver에게 전달합니다.&lt;/li&gt;
+&lt;li&gt;Remote flush : 전달받은 wal record 가 standby 의 디스크에 flush 됩니다.&lt;/li&gt;
+&lt;li&gt;Remote apply : 위 wal record를 standby 서버에 적용하여 데이터를 반영합니다.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;streaming-replication-&#34;&gt;Streaming replication 테스트&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;primary 서버&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### auto commit off
+
+postgres=# \set AUTOCOMMIT off
+postgres=# \echo :AUTOCOMMIT
+off
+
+### DML 전 lsn 
+
+postgres=# select pg_current_wal_lsn();
+ pg_current_wal_lsn
+--------------------
+ 7/2D0219E0
+(1 row)
+
+
+### DML 수행
+
+postgres=# \timing on
+Timing is on.
+postgres=# INSERT INTO repl_test SELECT generate_series(1,10000000) AS id, md5((random()*10000000)::text) AS pad;
+INSERT 0 10000000
+Time: 32596.670 ms (00:32.597)
+
+
+### DML 후 lsn
+
+postgres=# select pg_current_wal_lsn();
+ pg_current_wal_lsn
+--------------------
+ 7/3CCA51E0
+(1 row)
+
+
+### walsender 확인
+$ ps -ef | grep walsender
+postgres: walsender repl 22.222.22.22(34856) streaming 7/3CCA51E0
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; commit을 안찍었음에도 replication에 필요한 WAL 을 이미 standby 로 넘기고 Standby에서 WAL 을 재생하고 있는 상태입니다.&lt;br&gt;
+commit 을 찍어야 Standby에서 replication data를 반영하는 MySQL과는 차이가 있습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;standby&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### Primary 에서 insert 중에 실시간으로 WAL 받고 있음 
+$ ps -ef | grep wal
+postgres: walreceiver   streaming 7/A0000000
+
+$ ps -ef | grep wal
+postgres: walreceiver   streaming 7/A4000000
+
+$ ps -ef | grep wal
+postgres: walreceiver   streaming 7/A7C00000
+
+$ ps -ef | grep wal
+postgres: walreceiver   streaming 7/AAC00000
+
+### Primary 
+
+postgres=# commit;
+COMMIT
+Time: 0.113 ms
+
+### Standby
+postgres=# select count(*) from repl_test;
+  count
+----------
+ 10000000
+(1 row)
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; Primary 에서 insert 를 완료하는데 30초 가량 걸렸지만 commit 하자마자 Standby에서도 데이터가 모두 반영된것을 확인 할 수 있습니다.&lt;br&gt;
+이렇듯 PostgreSQL은 MySQL 처럼 binlog로 SQL 커맨드를 전달하는 게 아니라 트랜잭션 로그인 WAL 을 전달하기 때문에 거의 실시간으로 replication에 필요한 데이터를 전달하고 반영할 수 있습니다.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>PostgreSQL to MySQL Migration</title>

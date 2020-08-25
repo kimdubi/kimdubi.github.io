@@ -132,16 +132,14 @@
 
     </div>
 
-    <div align="start" class="content"><p>MySQL은 ORACLE 과는 HighAvailibility를 충족시키는 방법이 다릅니다.
-하나의 스토리지에 데이터를 이중화,삼중화해서 저장하고 이를 여러 인스턴스가 공유하는 ORACLE의 RAC와는 달리
-MySQL은 Master-Slave의 개념으로 Master의 데이터를 Slave 서버로 복제하고 MHA나 MMM 같은 솔루션을 통해
-Master가 down 되었을 때 실시간으로 복제해둔 Slave를 Master로 승격시키는 방식입니다.
+    <div align="start" class="content"><p>MySQL은 ORACLE 과는 HighAvailibility를 충족시키는 방법이 다릅니다.<br>
+하나의 스토리지에 데이터를 이중화,삼중화해서 저장하고 이를 여러 인스턴스가 공유하는 ORACLE의 RAC와는 달리<br>
+MySQL은 Master-Slave의 개념으로 Master의 데이터를 Slave 서버로 복제하고 MHA나 MMM 같은 솔루션을 통해 Master가 down 되었을 때 실시간으로 복제해둔 Slave를 Master로 승격시키는 방식입니다.<br>
 <!-- raw HTML omitted -->
-이 방식에는 한가지 문제점이 있는데요.
-바로 Slave가 Master의 데이터를 모두 복제하지 못한채로 Master로 승격이 되는 경우입니다.
-이 문제점을 해결하기 위해서는 단순하게는 Sync 방식으로 복제를 해오면 되겠지만 Slave에도 반영이 되어야
-Master의 트랜잭션도 처리가 된다는 점에서 성능 이슈가 발생할 수 있습니다.
-그래서 MySQL은 5.5버전부터 Semi-sync라는 방식을 지원하고 5.7버전에는 lossless semi-sync라는 거창한 이름의 복제방식이 나왔는데요.
+이 방식에는 한가지 문제점이 있는데요.<br>
+바로 Slave가 Master의 데이터를 모두 복제하지 못한채로 Master로 승격이 되는 경우입니다.<br>
+이 문제점을 해결하기 위해서는 단순하게는 Sync 방식으로 복제를 해오면 되겠지만 Slave에도 반영이 되어야 Master의 트랜잭션도 처리가 된다는 점에서 성능 이슈가 발생할 수 있습니다.<br>
+그래서 MySQL은 5.5버전부터 Semi-sync라는 방식을 지원하고 5.7버전에는 lossless semi-sync라는 거창한 이름의 복제방식이 나왔는데요.<br>
 이번 글에서는 이전의 semi-sync와 lossless semi-sync방식의 차이점에 대해 알아보겠습니다.</p>
 <h2 id="-">기본 설정</h2>
 <ul>
@@ -309,7 +307,7 @@ mysql&gt; select max(id) from sbtest1;
 +---------+
 1 row in set (0.00 sec)
 </code></pre><h3 id="heading1">결론</h3>
-<p>AFTER_COMMIT 방식을 사용하는 5.7 이전의 semi-sync는 Slave로부터 ACK를 받기도 전에 engine commit을 처리하기 때문에 도중에 Master가 crash 되면 Slave data 유실 되는 케이스가 종종 발생합니다.
+<p>AFTER_COMMIT 방식을 사용하는 5.7 이전의 semi-sync는 Slave로부터 ACK를 받기도 전에 engine commit을 처리하기 때문에 도중에 Master가 crash 되면 Slave data 유실 되는 케이스가 종종 발생합니다.<br>
 이를 AFTER_SYNC 방식의 lossless semi-sync 로 변경하면 Slave로 부터 ACK를 받은 후 engine commit이 발생하기 때문에 Slave의 data 유실이 발생하지 않습니다.</p>
 </div>
 

@@ -136,15 +136,13 @@
 MySQL은 SQL 커맨드를 전파하는 방식으로 하는 반면, PostgreSQL은 트랜잭션 로그를 전달하는 방식으로 replication을 수행합니다.<br>
 이 두개의 방식은 비슷한듯, 아래와 같이 다르게 조금은 동작합니다.</p>
 <ul>
-<li>
-<p>MySQL
-<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/mysql_repl.png" alt=""></p>
-</li>
-<li>
-<p>PostgreSQL
-<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/postgre_repl.png" alt=""></p>
-</li>
+<li>MySQL</li>
 </ul>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/mysql_repl.png" alt=""></p>
+<ul>
+<li>PostgreSQL</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/postgre_repl.png" alt=""></p>
 <p>왜 이런 차이가 발생하는 건지 이번 글에서는 PostgreSQL의 Streaming Replication 기준으로 복제 방식을 살펴보겠습니다.<br>
 MySQL의 replication 방식은 아래 글을 참고해주세요<br>
 <a href="https://kimdubi.github.io/mysql/semi_sync/">https://kimdubi.github.io/mysql/semi_sync/</a></p>

@@ -5,10 +5,147 @@
     <description>Recent content in Postgresqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2020 22:38:57 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 29 Aug 2020 13:19:43 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/postgresql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>PostgreSQL service 등록하기</title>
+      <link>https://kimdubi.github.io/postgresql/psql_service/</link>
+      <pubDate>Sat, 29 Aug 2020 13:19:43 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/psql_service/</guid>
+      <description>&lt;p&gt;yum 설치가 아닌 source 설치를 했을 때는 postgresql 기동 관련 service 설정을 따로해줘야합니다.&lt;br&gt;
+이번 글에서는 centos6 / 7 에서 각각 service 등록하는 방법을 알아보겠습니다.&lt;br&gt;
+설치한 path는 환경에 맞게 수정하시면 됩니다.&lt;/p&gt;
+&lt;h2 id=&#34;postgres-service---centos6&#34;&gt;postgres service 등록 - centos6&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;irteamsu) sudo vi /etc/init.d/postgres
+
+#!/bin/bash
+# chkconfig:2345 90 20
+
+# Installation prefix
+
+prefix=/home1/irteam/psql/engn/postgresql-11.7
+
+# Data directory
+PGDATA=&amp;quot;/home1/irteam/psql/engn/PGSQL&amp;quot;
+
+# Who to run the postmaster as, usually &amp;quot;postgres&amp;quot;. (NOT &amp;quot;root&amp;quot;)
+PGUSER=irteam
+
+# Where to keep a log file
+PGLOG=&amp;quot;/home1/irteam/psql/logs/testdb/error_log/alert_testdb.log&amp;quot;
+
+# Check for echo -n vs echo \c
+if echo &#39;\c&#39; | grep -s c &amp;gt;/dev/null 2&amp;gt;&amp;amp;1 ; then
+        ECHO_N=&amp;quot;echo -n&amp;quot;
+        ECHO_C=&amp;quot;&amp;quot;
+else
+        ECHO_N=&amp;quot;echo&amp;quot;
+        ECHO_C=&#39;\c&#39;
+fi
+
+# The path that is to be used for the script
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/home1/irteam/psql/engn/postgresql-11.7/bin/
+
+# What to use to start up the postmaster (we do NOT use pg_ctl for this,
+# as it adds no value and can cause the postmaster to misrecognize a stale
+# lock file)
+
+DAEMON=&amp;quot;$prefix/bin/postmaster&amp;quot;
+
+# What to use to shut down the postmaster
+PGCTL=&amp;quot;$prefix/bin/pg_ctl&amp;quot;
+
+set -e
+
+# Only start if we can find the postmaster.
+test -x $DAEMON || exit 0
+
+# Parse command line parameters.
+case $1 in
+        start)
+                $ECHO_N &amp;quot;Starting PostgreSQL: &amp;quot;$ECHO_C
+                su - $PGUSER -c &amp;quot;$DAEMON -i -D $PGDATA&amp;quot; &amp;gt;&amp;gt;$PGLOG 2&amp;gt;&amp;amp;1 &amp;amp;
+                echo &amp;quot;ok&amp;quot;
+                ;;
+        stop)
+                echo -n &amp;quot;Stopping PostgreSQL: &amp;quot;
+                su - $PGUSER -c &amp;quot;$PGCTL stop -D &#39;$PGDATA&#39; -s -m fast&amp;quot;
+                echo &amp;quot;ok&amp;quot;
+                ;;
+        restart)
+                echo -n &amp;quot;Restarting PostgreSQL: &amp;quot;
+                su - $PGUSER -c &amp;quot;$PGCTL stop -D &#39;$PGDATA&#39; -s -m fast -w&amp;quot;
+                su - $PGUSER -c &amp;quot;$DAEMON -D $PGDATA&amp;quot; &amp;gt;&amp;gt;$PGLOG 2&amp;gt;&amp;amp;1 &amp;amp;
+                echo &amp;quot;ok&amp;quot;
+                ;;
+        reload)
+                echo -n &amp;quot;Reload PostgreSQL: &amp;quot;
+                su - $PGUSER -c &amp;quot;$PGCTL reload -D &#39;$PGDATA&#39; -s&amp;quot;
+                echo &amp;quot;ok&amp;quot;
+                ;;
+        status)
+                su - $PGUSER -c &amp;quot;$PGCTL status -D &#39;$PGDATA&#39;&amp;quot;
+                ;;
+        *)
+                # Print help
+                echo &amp;quot;Usage: $0 {start|stop|restart|reload|status}&amp;quot; 1&amp;gt;&amp;amp;2
+                exit 1
+                ;;
+esac
+exit $?
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;postgresql-systemctl---centos7&#34;&gt;postgresql systemctl 등록 - centos7&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;irteamsu) sudo vi /usr/lib/systemd/system/postgresql.service
+
+[Unit]
+Description=PostgreSQL 9.6.19
+After=syslog.target
+After=network.target
+
+[Service]
+Type=forking
+
+User=irteam
+Group=irteam
+
+# Note: avoid inserting whitespace in these Environment= lines, or you may
+# break postgresql-setup.
+
+# Location of database directory
+Environment=PGDATA=/home1/irteam/psql/engn/PGSQL
+Environment=POSTGRES_HOME=/home1/irteam/psql/engn/postgresql-9.6.19
+
+# Where to send early-startup messages from the server (before the logging
+# options of postgresql.conf take effect)
+# This is normally controlled by the global default set by systemd
+# StandardOutput=syslog
+
+# Disable OOM kill on the postmaster
+OOMScoreAdjust=-1000
+
+ExecStart=/home1/irteam/psql/engn/postgresql-9.6.19/bin/pg_ctl start -D &amp;quot;${PGDATA}&amp;quot; -s -w -t 300
+ExecStop=/home1/irteam/psql/engn/postgresql-9.6.19/bin/pg_ctl stop -D &amp;quot;${PGDATA}&amp;quot; -s -m fast
+ExecReload=/home1/irteam/psql/engn/postgresql-9.6.19/bin/pg_ctl reload -D &amp;quot;${PGDATA}&amp;quot; -s
+
+# Give a reasonable amount of time for the server to start up/shut down
+TimeoutSec=300
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+### systemctl enable
+
+$ sudo systemctl enable postgresql.service
+$ sudo systemctl start postgresql.service
+$ sudo systemctl stop postgresql.service
+
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>PostgreSQL replication을 위한 WAL 전달과정</title>

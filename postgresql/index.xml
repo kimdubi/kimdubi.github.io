@@ -5,10 +5,75 @@
     <description>Recent content in Postgresqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 29 Aug 2020 13:19:43 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 30 Aug 2020 18:36:48 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/postgresql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>PostgreSQL synchronus_commitc</title>
+      <link>https://kimdubi.github.io/postgresql/psql_sync/</link>
+      <pubDate>Sun, 30 Aug 2020 18:36:48 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/psql_sync/</guid>
+      <description>&lt;p&gt;replication 구성에서 중요하게 생각할 부분 중 하나로 sync 방식이 있습니다. MySQL의 경우 sync,async,semi sync 방식으로 설정할 수 있는데요.&lt;br&gt;
+이번 글에서는 PostgreSQL의 sync replication 설정과 주의사항에 대해서 알아보겠습니다.&lt;/p&gt;
+&lt;h2 id=&#34;wal---ack&#34;&gt;WAL 전달에 따른 ACK&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_ack.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;(1) 백엔드 프로세스는 XLogInsert () 및 XLogFlush () 함수를 실행하여 WAL 세그먼트 파일에 WAL 데이터를 쓰고 플러시 합니다.&lt;br&gt;
+(2) Primary의 walsender 프로세스는 WAL 세그먼트에 기록 된 WAL 데이터를 Standby의 walreceiver 프로세스로 보냅니다.&lt;br&gt;
+(3) WAL 데이터를 보낸 후 백엔드 프로세스는 Standby의 ACK 응답을 계속 대기합니다. 보다 정확하게는 백엔드 프로세스는 내부 함수 SyncRepWaitForLSN () 을 실행하여 래치를 얻고 해제 될 때까지 기다립니다.&lt;br&gt;
+(4) Standby의 walreceiver는 write () 시스템 호출을 사용하여 받은 WAL 데이터를 WAL 세그먼트에 쓰고 ACK 응답을 Primary의 walsender에게 반환합니다.&lt;br&gt;
+(5) Standby의 walreceiver는 fsync () 와 같은 시스템 호출을 사용하여 WAL 데이터를 WAL 세그먼트로 플러시하고 Primary의 walsender에게 또 다른 ACK 응답을 반환 후 업데이트 된 WAL 데이터에 대해 startup 프로세스에 알립니다.&lt;br&gt;
+(6) startup 프로세스는 WAL 세그먼트에 기록 된 WAL 데이터를 재생합니다.&lt;br&gt;
+(7) Primary의 walsender는 Standby의 walreceiver로부터 ACK 응답을 받으면 백엔드 프로세스의 latch를 해제하면서 백엔드 프로세스의 커밋 또는 중단 작업이 완료됩니다.&lt;/p&gt;
+&lt;h2 id=&#34;synchronouscommit-&#34;&gt;synchronous_commit 설정&lt;/h2&gt;
+&lt;p&gt;위 단계 중 (7)에서 latch를 해제하는 타이밍은 synchronous_commit 설정에 따라 다릅니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_sync3.png&#34; alt=&#34;&#34;&gt; &lt;br&gt;
+(예시 : synchronous_commit=on)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;off : Primary에서 커밋 수행 시 바로 client에게 commit 완료했다고 보냄. 실제 WAL record가 WAL segment에 쓰여지기 까지는 딜레이가 존재하여 서버 crash 발생 시 트랜잭션 손실 가능 ( 최대 wal_writer_delay(200ms)의 세배 )&lt;/li&gt;
+&lt;li&gt;local : WAL record가 Primary의 WAL segment 까지 write된 것을 보장, asynchronus replication&lt;/li&gt;
+&lt;li&gt;remote_write : Standby가 WAL record를 받아서 OS buffer까지 write 한 것을 보장하는 설정, ( disk에 write는 보장하지 않음) 위 그림에서는 (4) 단계에 해당하는 설정으로 Semi-synchronus replication 개념임&lt;/li&gt;
+&lt;li&gt;on : WAL record가 Standby의 WAL segment (disk) 까지 write 되는 것을 보장, 위 그림에서는 (5) 단계에 해당하는 설정으로 Semi-synchronus replication 개념임&lt;/li&gt;
+&lt;li&gt;remote_apply : Standby 에서 WAL을 replay 까지 완료하는 것을 보장, 가장 강한 synchronus replication 개념&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;synchronouscommit---&#34;&gt;synchronous_commit 설정 시 주의사항&lt;/h2&gt;
+&lt;p&gt;데이터의 안정성을 위해 synchronous_commit = remote_write 이상으로 설정 시엔 주의사항이 있습니다.&lt;br&gt;
+바로 Standby 서버에 문제가 생겨 Primary의 walsender에게 ACK 를 주지 못하면 Primary의 트랜잭션도 완료가 안되는 것인데요&lt;br&gt;
+이런 경우 MySQL 처럼 semi sync -&amp;gt; async 로 자동으로 변경하는 설정이 없어 조치가 없다면 Primary 에선 트랜잭션을 수행할 수 없는 상태가 지속됩니다.&lt;br&gt;
+이를 위해 두가지 방법이 있습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;수동으로 asynchronus replication 전환&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;postgres=# SELECT application_name AS host,client_addr
+         sync_priority, sync_state FROM pg_stat_replication;
+-[ RECORD 1 ]-+-------------
+host          | standby1
+sync_priority | 10.161.78.43
+sync_state    | sync
+
+postgres=# alter system set synchronous_standby_names = &#39;&#39; ;
+
+postgres=# select pg_reload_conf();
+
+postgres=# SELECT application_name AS host,client_addr
+         sync_priority, sync_state FROM pg_stat_replication;
+-[ RECORD 1 ]-+-------------
+host          | standby1
+sync_priority | 10.161.78.43
+sync_state    | async
+
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;Standby 서버를 여러대 붙이기&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_sync1.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;=&amp;gt; Primary 에 여러대의 replication 서버가 있을 때 Primary는 sync_priority 가 높은 (숫자가 1에 가까울수록, 0은 async) standby 서버의 ACK를 최우선으로 합니다.&lt;br&gt;
+위 그림에서는 sync_priority=2 인 standby2 의 ACK가 Priamry 로 먼저 도착했지만 Primary는 sync_priority=1 인 standby1 의 ACK를 기다린 후 트랜잭션을 완료했습니다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_sync2.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;=&amp;gt; 만약 sync_priority=1 인 standby1 이 wal_sender_timeout (60s) 만큼 기다린 후 응답이 없으면 이상을 감지하고 standby2 를 sync 방식의 standby 로 승격 시킨 후 운영하게 됩니다.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>PostgreSQL service 등록하기</title>

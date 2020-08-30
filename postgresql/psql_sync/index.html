@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>PostgreSQL synchronus_commitc</title>
+        
+        <style>
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">PostgreSQL synchronus_commitc</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>PostgreSQL synchronus_commitc</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>replication 구성에서 중요하게 생각할 부분 중 하나로 sync 방식이 있습니다. MySQL의 경우 sync,async,semi sync 방식으로 설정할 수 있는데요.<br>
+이번 글에서는 PostgreSQL의 sync replication 설정과 주의사항에 대해서 알아보겠습니다.</p>
+<h2 id="wal---ack">WAL 전달에 따른 ACK</h2>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_ack.png" alt=""></p>
+<p>(1) 백엔드 프로세스는 XLogInsert () 및 XLogFlush () 함수를 실행하여 WAL 세그먼트 파일에 WAL 데이터를 쓰고 플러시 합니다.<br>
+(2) Primary의 walsender 프로세스는 WAL 세그먼트에 기록 된 WAL 데이터를 Standby의 walreceiver 프로세스로 보냅니다.<br>
+(3) WAL 데이터를 보낸 후 백엔드 프로세스는 Standby의 ACK 응답을 계속 대기합니다. 보다 정확하게는 백엔드 프로세스는 내부 함수 SyncRepWaitForLSN () 을 실행하여 래치를 얻고 해제 될 때까지 기다립니다.<br>
+(4) Standby의 walreceiver는 write () 시스템 호출을 사용하여 받은 WAL 데이터를 WAL 세그먼트에 쓰고 ACK 응답을 Primary의 walsender에게 반환합니다.<br>
+(5) Standby의 walreceiver는 fsync () 와 같은 시스템 호출을 사용하여 WAL 데이터를 WAL 세그먼트로 플러시하고 Primary의 walsender에게 또 다른 ACK 응답을 반환 후 업데이트 된 WAL 데이터에 대해 startup 프로세스에 알립니다.<br>
+(6) startup 프로세스는 WAL 세그먼트에 기록 된 WAL 데이터를 재생합니다.<br>
+(7) Primary의 walsender는 Standby의 walreceiver로부터 ACK 응답을 받으면 백엔드 프로세스의 latch를 해제하면서 백엔드 프로세스의 커밋 또는 중단 작업이 완료됩니다.</p>
+<h2 id="synchronouscommit-">synchronous_commit 설정</h2>
+<p>위 단계 중 (7)에서 latch를 해제하는 타이밍은 synchronous_commit 설정에 따라 다릅니다.</p>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_sync3.png" alt=""> <br>
+(예시 : synchronous_commit=on)</p>
+<ul>
+<li>off : Primary에서 커밋 수행 시 바로 client에게 commit 완료했다고 보냄. 실제 WAL record가 WAL segment에 쓰여지기 까지는 딜레이가 존재하여 서버 crash 발생 시 트랜잭션 손실 가능 ( 최대 wal_writer_delay(200ms)의 세배 )</li>
+<li>local : WAL record가 Primary의 WAL segment 까지 write된 것을 보장, asynchronus replication</li>
+<li>remote_write : Standby가 WAL record를 받아서 OS buffer까지 write 한 것을 보장하는 설정, ( disk에 write는 보장하지 않음) 위 그림에서는 (4) 단계에 해당하는 설정으로 Semi-synchronus replication 개념임</li>
+<li>on : WAL record가 Standby의 WAL segment (disk) 까지 write 되는 것을 보장, 위 그림에서는 (5) 단계에 해당하는 설정으로 Semi-synchronus replication 개념임</li>
+<li>remote_apply : Standby 에서 WAL을 replay 까지 완료하는 것을 보장, 가장 강한 synchronus replication 개념</li>
+</ul>
+<h2 id="synchronouscommit---">synchronous_commit 설정 시 주의사항</h2>
+<p>데이터의 안정성을 위해 synchronous_commit = remote_write 이상으로 설정 시엔 주의사항이 있습니다.<br>
+바로 Standby 서버에 문제가 생겨 Primary의 walsender에게 ACK 를 주지 못하면 Primary의 트랜잭션도 완료가 안되는 것인데요<br>
+이런 경우 MySQL 처럼 semi sync -&gt; async 로 자동으로 변경하는 설정이 없어 조치가 없다면 Primary 에선 트랜잭션을 수행할 수 없는 상태가 지속됩니다.<br>
+이를 위해 두가지 방법이 있습니다.</p>
+<ul>
+<li>수동으로 asynchronus replication 전환</li>
+</ul>
+<pre><code>postgres=# SELECT application_name AS host,client_addr
+         sync_priority, sync_state FROM pg_stat_replication;
+-[ RECORD 1 ]-+-------------
+host          | standby1
+sync_priority | 10.161.78.43
+sync_state    | sync
+
+postgres=# alter system set synchronous_standby_names = '' ;
+
+postgres=# select pg_reload_conf();
+
+postgres=# SELECT application_name AS host,client_addr
+         sync_priority, sync_state FROM pg_stat_replication;
+-[ RECORD 1 ]-+-------------
+host          | standby1
+sync_priority | 10.161.78.43
+sync_state    | async
+
+</code></pre><ul>
+<li>Standby 서버를 여러대 붙이기</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_sync1.png" alt=""></p>
+<p>=&gt; Primary 에 여러대의 replication 서버가 있을 때 Primary는 sync_priority 가 높은 (숫자가 1에 가까울수록, 0은 async) standby 서버의 ACK를 최우선으로 합니다.<br>
+위 그림에서는 sync_priority=2 인 standby2 의 ACK가 Priamry 로 먼저 도착했지만 Primary는 sync_priority=1 인 standby1 의 ACK를 기다린 후 트랜잭션을 완료했습니다.</p>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/psql_sync2.png" alt=""></p>
+<p>=&gt; 만약 sync_priority=1 인 standby1 이 wal_sender_timeout (60s) 만큼 기다린 후 응답이 없으면 이상을 감지하고 standby2 를 sync 방식의 standby 로 승격 시킨 후 운영하게 됩니다.</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

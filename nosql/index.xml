@@ -22,8 +22,10 @@
 Connection with replica 10.111.111.111:6379 lost.
 
 psync scheduled to be closed ASAP for overcoming of output buffer limits.
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;output buffer limits 라는 부분이 눈에 띄는데 redis에는 client-output-buffer-limit 라는 설정이 있습니다.&lt;br&gt;
-client에게 요청에 대한 resultset 을 전달하려는데 그 output의 크기나 작업시간이 설정값보다 크게 되면 연결을 끊어버리는 설정입니다.&lt;/p&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;output buffer limits 라는 부분이 눈에 띄는데 redis에는 client-output-buffer-limit 라는 설정이 있습니다.&lt;/p&gt;
+&lt;p&gt;redis는 클라이언트의 요청을 처리하기 위해 클라이언트를 normal, slave, pubsub으로 나누어 buffer를 할당합니다.&lt;br&gt;
+따로 할당되는 repl-backlog-size 와는 달리 client buffer는 redis의 maxmemory에서 할당되는데 buffer를 무한정 크게 사용하거나 오랜시간 동안 사용하면&lt;br&gt;
+redis memory에 직접적으로 영향을 줄 수 있기 때문에 limit 을 두고 관리하고 이 limit 에 관한 설정이 바로 client-output-buffer-limit 입니다.&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;### redis.conf default
 
 client-output-buffer-limit normal 0 0 0
@@ -35,7 +37,7 @@ client-output-buffer-limit pubsub 32mb 8mb 60
 &lt;li&gt;soft limit : 이 값 이상으로 time 만큼 세션이 지속되면 해당 연결을 종료시킴 ex) 64mb이상 60초 넘게쓰면 컽&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;이 설정을 default로 사용할 때 처음에는 데이터가 많지 않기 때문에 별 이슈가 없지만 master에 데이터가 많이 유입될 때 문제가 생깁니다.&lt;br&gt;
-master에는 제한 없이 데이터가 유입되지만 이를 slave (replica)로 복제를 위해 전달할 때 client-output-buffer-limit slave 256mb 64mb 60&lt;br&gt;
+master에는 제한 없이 데이터가 유입되지만(normal 0 0 0)  이를 slave (replica)로 복제를 위해 전달할 때 client-output-buffer-limit slave 256mb 64mb 60&lt;br&gt;
 이 설정에 영향을 받게되는데 데이터가 크면 이 제한에 걸려 연결이 끊어져 버릴 수 있습니다.&lt;br&gt;
 그래서 위에서 봤던 로그와 함께 Master - Slave 연결이 끊어져 버리는 것입니다.&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;replconf scheduled to be closed ASAP for overcoming of output buffer limits.

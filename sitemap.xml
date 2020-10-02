@@ -4,7 +4,21 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-10-02T21:52:17+09:00</lastmod>
+    <lastmod>2020-10-02T22:54:15+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/postgresql/postgres_monitoring/</loc>
+    <lastmod>2020-10-02T22:54:15+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/postgresql/</loc>
+    <lastmod>2020-10-02T22:54:15+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
@@ -25,13 +39,6 @@
   
   <url>
     <loc>https://kimdubi.github.io/postgresql/psql_hot/</loc>
-    <lastmod>2020-09-20T21:45:34+09:00</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://kimdubi.github.io/postgresql/</loc>
     <lastmod>2020-09-20T21:45:34+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>

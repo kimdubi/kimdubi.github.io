@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>PostgreSQL pgpool-II recovery_node</title>
+        
+        <style>
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">PostgreSQL pgpool-II recovery_node</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>PostgreSQL pgpool-II recovery_node</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>PostgreSQL의 auto-failover 솔루션인 pgpool 은 multi-master 를 지원하지 않기 때문에 MySQL의 MMM 처럼 failover 된 OLD Master 를 자동으로 cluster의 slave 로 포함시키는 기능이 없습니다.<br>
+그래서 old master 를 new master의 slave 로 재구성하는 작업을 수작업으로 해야만 하는데 이 과정을 pgpool 의 recovery_node 기능을 통해 자동화 할 수 있습니다.<br>
+pgpool 구성 방법은 아래 내용 참고</p>
+<ul>
+<li><a href="https://kimdubi.github.io/postgresql/psql_pgpool/">https://kimdubi.github.io/postgresql/psql_pgpool/</a></li>
+</ul>
+<h2 id="-">자동화 설정</h2>
+<h3 id="-1">수행 과정</h3>
+<ul>
+<li>db down</li>
+<li>pgpool failover 감지
+<ul>
+<li>failover command 수행 됨</li>
+</ul>
+</li>
+<li>failover 완료 후 pcp_recovery_node -n node-id ( new slave 노드 ) 커맨드 수행
+<ul>
+<li>pgpool.conf의 recovery_1st_stage_command = &lsquo;recover.sh&rsquo;  설정에 따라 recover.sh 수행 됨</li>
+<li>old master를 slave 로 재구성 후</li>
+<li>old master 가 pgpool cluster로 attach 됨</li>
+</ul>
+</li>
+</ul>
+<p>아래 extension 설치 , pgpool 설정, 스크립트를 모든 노드에 동일하게 설정한다</p>
+<h3 id="pgpoolrecovery-extension-">pgpool_recovery extension 설치</h3>
+<pre><code>cp /usr/pgsql-11/lib/pgpool* /home1/testuser/psql/engn/postgresql-11.7/lib/
+cp /usr/pgsql-11/share/extension/pgpool* /home1/testuser/psql/engn/postgresql-11.7/share/extension
+
+postgres=# create extension pgpool_recovery;
+CREATE EXTENSION
+postgres=# select * from pg_extension;
+      extname       | extowner | extnamespace | extrelocatable | extversion | extconfig | extcondition
+--------------------+----------+--------------+----------------+------------+-----------+--------------
+ plpgsql            |       10 |           11 | f              | 1.0        |           |
+ pg_stat_statements |       10 |         2200 | t              | 1.6        |           |
+ pgpool_recovery    |       10 |         2200 | t              | 1.2        |           |
+(3 rows)
+
+postgres=# \c template1
+You are now connected to database &quot;template1&quot; as user &quot;testuser&quot;.
+
+template1=# create extension pgpool_recovery;
+CREATE EXTENSION
+template1=# select * from pg_extension;
+      extname       | extowner | extnamespace | extrelocatable | extversion | extconfig | extcondition
+--------------------+----------+--------------+----------------+------------+-----------+--------------
+ plpgsql            |       10 |           11 | f              | 1.0        |           |
+ pg_stat_statements |       10 |         2200 | t              | 1.6        |           |
+ pgpool_recovery    |       10 |         2200 | t              | 1.2        |           |
+(3 rows)
+
+
+postgres=# select proname,pronamespace,prosrc from pg_proc where proname like '%pgpool%';
+       proname       | pronamespace |       prosrc
+---------------------+--------------+---------------------
+ pgpool_recovery     |         2200 | pgpool_recovery
+ pgpool_recovery     |         2200 | pgpool_recovery
+ pgpool_recovery     |         2200 | pgpool_recovery
+ pgpool_remote_start |         2200 | pgpool_remote_start
+ pgpool_pgctl        |         2200 | pgpool_pgctl
+ pgpool_switch_xlog  |         2200 | pgpool_switch_xlog
+(6 rows)
+</code></pre><p>=&gt; pgpool_recovery extension 을 postgres , template1 database 에 설치</p>
+<h3 id="pgpool-">pgpool 설정</h3>
+<pre><code>[testuser@testserver2 12:04:52 ~/psql/scripts ]$ vi /etc/pgpool-II/pgpool.conf
+
+#------------------------------------------------------------------------------
+# ONLINE RECOVERY
+#------------------------------------------------------------------------------
+
+recovery_user = 'testuser'
+recovery_password = 'qhdks123'
+recovery_1st_stage_command = 'recover.sh'
+</code></pre><h3 id="script-">script 생성</h3>
+<pre><code>[testuser@testserver2 11:59:52 ~/psql/scripts ]$ pwd
+/home1/testuser/psql/scripts
+[testuser@testserver2 11:59:57 ~/psql/scripts ]$ ls -ltr
+total 16
+-rwx------ 1 testuser testuser 177 Sep 26 20:49 start_instance.sh
+-rwx------ 1 testuser testuser 280 Sep 26 20:49 rewind.sh
+-rwx------ 1 testuser testuser 146 Sep 26 20:49 stop_instance.sh
+-rwx------ 1 testuser testuser 724 Sep 26 23:31 failover.sh
+</code></pre><ul>
+<li>stop_instance.sh</li>
+</ul>
+<pre><code>#!/bin/bash
+PGDATA=&quot;/home1/testuser/psql/engn/PGSQL&quot;
+PATH=&quot;/home1/testuser/psql/engn/postgresql-11.7/bin/:$PATH&quot;
+pg_ctl -D $PGDATA stop -m immediate
+</code></pre><ul>
+<li>start_instance.sh</li>
+</ul>
+<pre><code>
+#!/bin/bash
+PGDATA=&quot;/home1/testuser/psql/engn/PGSQL&quot;
+PATH=&quot;/home1/testuser/psql/engn/postgresql-11.7/bin/:$PATH&quot;
+pg_ctl -w -s -D $PGDATA start 2&gt;/dev/null 1&gt;/dev/null &lt; /dev/null &amp;
+</code></pre><ul>
+<li>rewind.sh</li>
+</ul>
+<pre><code>#!/bin/bash
+master_node_host_name=$1
+PGDATA=&quot;/home1/testuser/psql/engn/PGSQL&quot;
+PATH=&quot;/home1/testuser/psql/engn/postgresql-11.7/bin/:$PATH&quot;
+pg_rewind --target-pgdata=${PGDATA} --source-server=&quot;port=3000 user=testuser dbname=postgres host=${master_node_host_name}&quot; &gt;&gt; /var/tmp/recover.log
+</code></pre><ul>
+<li>failover.sh</li>
+</ul>
+<pre><code>#!/bin/bash
+if [ $# -ne 3 ]
+then
+        echo &quot;failover failed_node new_master trigger_file&quot;
+        exit 1
+fi
+
+FAILED_NODE=$1
+NEW_MASTER=$2
+TRIGGER_FILE=$3
+
+# Do nothing if standby server goes down
+if [$FAILED_NODE = 1]; then
+        echo &quot;Standby Server is downed\n&quot; &gt;&gt; /etc/pgpool-II/failover.log
+        exit 0
+fi
+
+echo &quot;failover.sh FAILED_NODE:${FAILED_NODE}; NEW_MASTER:${NEW_MASTER}; at $(date)\n&quot; &gt;&gt; /etc/pgpool-II/failover.log
+
+#sudo -u testuser ssh -T testuser@$NEW_MASTER touch $TRIGGER_FILE
+su - testuser -c &quot;ssh -T testuser@$NEW_MASTER touch $TRIGGER_FILE&quot;
+su - testuser -c &quot;ssh -T testuser@$NEW_MASTER 'psql -p 3000 -d postgres -c &quot;\&quot;&quot;select * from pg_create_physical_replication_slot('\''repl_slot_01'\'')&quot;\&quot;&quot;'&quot;
+
+
+exit 0
+</code></pre><ul>
+<li>recover.sh
+=&gt; recover.sh 는 반드시 $PGDATA 아래에 있어야 함, pgpool 에 path가 하드코딩 되어있음</li>
+</ul>
+<pre><code>#!/bin/sh
+set -x
+master_node_host_name=`hostname`
+master_db_cluster=$1
+recovery_node_hostname=$2
+recovery_db_cluster=$3
+tmp=/tmp/mytemp$$
+trap &quot;rm -f $tmp&quot; 0 1 2 3 15
+
+PGDATA=&quot;/home1/testuser/psql/engn/PGSQL&quot;
+PATH=&quot;/home1/testuser/psql/engn/postgresql-11.7/bin/:$PATH&quot;
+
+export PATH PGDATA
+
+# make sure the old master is down
+ssh -T $recovery_node_hostname /home1/testuser/psql/scripts/stop_instance.sh
+# rewind the old master
+ssh -T ${recovery_node_hostname} /home1/testuser/psql/scripts/rewind.sh ${master_node_host_name}
+
+cat &gt; $tmp &lt;&lt;EOF
+standby_mode = 'on'
+primary_conninfo = 'host=$master_node_host_name port=3000 user=testuser'
+primary_slot_name = 'repl_slot_01'
+recovery_target_timeline = 'latest'
+trigger_file='/home1/testuser/psql/engn/PGSQL/failover_trigger'
+EOF
+
+scp $tmp $recovery_node_hostname:$recovery_db_cluster/recovery.conf
+
+ssh -T ${recovery_node_hostname} /home1/testuser/psql/scripts/start_instance.sh
+</code></pre><ul>
+<li>pgpool_remote_start
+=&gt; recover.sh 수행 후 $PGDATA/pgpool_remote_start 커맨드도 수행되도록 pgpool 에 하드코딩 되어있음
+new slave 기동하는 커맨드를 recover.sh 에 포함했으므로 파일 생성만 함, $PGDATA 아래에 생성해야함</li>
+</ul>
+<pre><code>[testuser@testserver2 12:51:01 ~/psql/engn/PGSQL ]$ cat pgpool_remote_start
+exit 0
+</code></pre><h2 id="heading">테스트</h2>
+<ul>
+<li>status</li>
+</ul>
+<pre><code>postgres=# show pool_nodes;
+ node_id |     hostname      | port | status | lb_weight |  role   | select_cnt | load_balance_node | replication_delay | last_status_change
+---------+-------------------+------+--------+-----------+---------+------------+-------------------+-------------------+---------------------
+ 0       | testserver1 | 3000 | up     | 0.500000  | standby | 688        | true              | 0                 | 2020-09-27 11:42:00
+ 1       | testserver2 | 3000 | up     | 0.500000  | primary | 2632       | false             | 0                 | 2020-09-27 10:23:29
+</code></pre><p>=&gt; t1802 가 primary 인 상황</p>
+<ul>
+<li>primary db down</li>
+</ul>
+<pre><code>[testuser@testserver2 12:19:45 ~/psql/scripts ]$ stop
+waiting for server to shut down.... done
+server stopped
+</code></pre><ul>
+<li>failover 확인</li>
+</ul>
+<pre><code>[testuser@testserver1 12:20:02 ~ ]$ psql -p 4000 -d postgres
+psql (11.7)
+Type &quot;help&quot; for help.
+
+postgres=# show pool_nodes;
+ node_id |     hostname      | port | status | lb_weight |  role   | select_cnt | load_balance_node | replication_delay | last_status_change
+---------+-------------------+------+--------+-----------+---------+------------+-------------------+-------------------+---------------------
+ 0       | testserver1 | 3000 | up     | 0.500000  | primary | 826        | true              | 0                 | 2020-09-27 12:20:17
+ 1       | testserver2 | 3000 | down   | 0.500000  | standby | 2596       | false             | 0                 | 2020-09-27 12:20:17
+(2 rows)
+
+</code></pre><p>=&gt; t1801로 failover 완료</p>
+<ul>
+<li>pcp_recovery_node 커맨드 수행</li>
+</ul>
+<pre><code>[testuser@testserver1 12:20:42 ~/psql/scripts ]$ pcp_recovery_node -n 1
+Password:
+pcp_recovery_node -- Command Successful
+
+
+
+2020-09-27 12:21:04: pid 48880: DEBUG:  PCP: processing recovery request
+2020-09-27 12:21:04: pid 48880: DETAIL:  start online recovery
+2020-09-27 12:21:04: pid 48880: LOG:  starting recovering node 1
+2020-09-27 12:21:04: pid 48880: LOG:  executing recovery
+2020-09-27 12:21:04: pid 48880: DETAIL:  starting recovery command: &quot;SELECT pgpool_recovery('recover.sh', 'testserver2', '/home1/testuser/psql/engn/PGSQL', '3000', 1)&quot;
+2020-09-27 12:21:04: pid 48880: LOG:  executing recovery
+2020-09-27 12:21:04: pid 48880: DETAIL:  disabling statement_timeout
+2020-09-27 12:21:04: pid 48880: DEBUG:  executing recovery, start recovery
+2020-09-27 12:21:04: pid 48880: DEBUG:  executing recovery, finish recovery
+2020-09-27 12:21:04: pid 48880: LOG:  node recovery, 1st stage is done
+2020-09-27 12:21:04: pid 48880: DEBUG:  executing remote start
+2020-09-27 12:21:04: pid 48880: DETAIL:  start pgpool_remote_start
+2020-09-27 12:21:05: pid 48880: DEBUG:  executing remote start
+2020-09-27 12:21:05: pid 48880: DETAIL:  finish pgpool_remote_start
+</code></pre><p>=&gt; t1801, t1802 아무 노드나 pgpool 살아있는 곳에서 수행하면 됨</p>
+<ul>
+<li>클러스터 확인</li>
+</ul>
+<pre><code>[testuser@testserver1 12:21:00 ~/psql/engn/PGSQL ]$ psql -p 4000 -d postgres
+psql (11.7)
+Type &quot;help&quot; for help.
+
+postgres=# show pool_nodes;
+ node_id |     hostname      | port | status | lb_weight |  role   | select_cnt | load_balance_node | replication_delay | last_status_change
+---------+-------------------+------+--------+-----------+---------+------------+-------------------+-------------------+---------------------
+ 0       | testserver1 | 3000 | up     | 0.500000  | primary | 868        | false             | 0                 | 2020-09-27 12:21:10
+ 1       | testserver2 | 3000 | up     | 0.500000  | standby | 2602       | true              | 0                 | 2020-09-27 12:21:10
+(2 rows)
+</code></pre><p>=&gt; old master인 t1802 가 slave 로 재구성 후 cluster 에 자동으로 포함된 것 확인</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

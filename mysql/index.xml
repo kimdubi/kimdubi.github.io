@@ -5,10 +5,127 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 16 Aug 2020 17:15:24 +0900</lastBuildDate>
+    <lastBuildDate>Fri, 02 Oct 2020 21:52:17 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>mysqladmin utility로 간단하게 모니터링</title>
+      <link>https://kimdubi.github.io/mysql/mysqladmin/</link>
+      <pubDate>Fri, 02 Oct 2020 21:52:17 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/mysqladmin/</guid>
+      <description>&lt;p&gt;운영환경의 MySQL 서버들은 보통 prometheus 와 grafana 등을 통해 구축된 모니터링 시스템으로 모니터링 및 로깅을 하고 있습니다.&lt;br&gt;
+그러나 외부 프로젝트 등으로 이러한 모니터링 시스템을 활용할 수 없는 경우에는 어떻게 해야할까요?&lt;br&gt;
+OS 상태는 iostat, vmstat 등으로 로깅할 수 있겠고 MySQL은 show global status 와 show processlist 등을 로깅하는 프로그램을 짤 수 있겠죠?&lt;br&gt;
+이 방법보다 더 간단한 방법이 있는데 바로 mysqladmin utility 입니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mysqladmin processlist status extended-status -uroot -pxxx --sleep=10 --count=1000 --relative
+
+  -c, --count=#       Number of iterations to make. This works with -i
+                      (--sleep) only.
+  -r, --relative      Show difference between current and previous values when
+                      used with -i. Currently only works with extended-status.
+  status                Gives a short status message from the server
+  extended-status       Gives an extended status message from the server  
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;MySQL 서버에 대한 정보를 10초에 한번씩 1000번 뽑아내라는 명령어 입니다.&lt;br&gt;
+relative 옵션은 sleep 과 extended-status 옵션과 함께 사용할 때 이전의 status 결과를 바탕으로 현재값과의 차이를 나타냅니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$ mysqladmin processlist status extended-status -uroot -pxxxx -S /home/db/mysql/tmp/mysql.sock --sleep=10 --count=100 --relative
+
+### processlist
+mysqladmin: [Warning] Using a password on the command line interface can be insecure.
++--------+-------+--------------------+----+-------------+--------+---------------------------------------------------------------+------------------+
+| Id     | User  | Host               | db | Command     | Time   | State                                                         | Info             |
++--------+-------+--------------------+----+-------------+--------+---------------------------------------------------------------+------------------+
+| 440551 | repl  | 10.161.78.43:51888 |    | Binlog Dump | 186032 | Master has sent all binlog to slave; waiting for more updates |                  |
+| 542415 | admin | localhost          |    | Query       | 0      | starting                                                      | show processlist |
++--------+-------+--------------------+----+-------------+--------+---------------------------------------------------------------+------------------+
+Uptime: 977900  Threads: 2  Questions: 34882248  Slow queries: 38  Opens: 1001  Flush tables: 10  Open tables: 10  Queries per second avg: 35.670
+
+### global status
++-----------------------------------------------+--------------------------------------------------+
+| Variable_name                                 | Value                                            |
++-----------------------------------------------+--------------------------------------------------+
+| Aborted_clients                               | 13                                               |
+| Aborted_connects                              | 12                                               |
+| Binlog_cache_disk_use                         | 1089                                             |
+| Binlog_cache_use                              | 12306                                            |
+| Binlog_stmt_cache_disk_use                    | 0                                                |
+| Binlog_stmt_cache_use                         | 588                                              |
+| Bytes_received                                | 12048278946                                      |
+| Bytes_sent                                    | 29560239107                                      |
+| Com_admin_commands                            | 40934                                            |
+| Com_assign_to_keycache                        | 0                                                |
+| Com_alter_db                                  | 0                                                |
+| Com_alter_db_upgrade                          | 0                                                |
+| Com_alter_event                               | 0                                                |
+| Com_alter_function                            | 0                                                |
+| Com_alter_instance                            | 0                                                |
+| Com_alter_procedure                           | 0                                                |
+| Com_alter_server                              | 0                                                |
+.
+.
+.
+.
+### 10초 후 processlist
+
++--------+-------+--------------------+----+-------------+--------+---------------------------------------------------------------+------------------+
+| Id     | User  | Host               | db | Command     | Time   | State                                                         | Info             |
++--------+-------+--------------------+----+-------------+--------+---------------------------------------------------------------+------------------+
+| 440551 | repl  | 10.161.78.43:51888 |    | Binlog Dump | 186052 | Master has sent all binlog to slave; waiting for more updates |                  |
+| 542415 | admin | localhost          |    | Query       | 0      | starting                                                      | show processlist |
++--------+-------+--------------------+----+-------------+--------+---------------------------------------------------------------+------------------+
+Uptime: 977920  Threads: 2  Questions: 34882303  Slow queries: 38  Opens: 1002  Flush tables: 10  Open tables: 11  Queries per second avg: 35.669
+
+### 10초 후 global status , 앞의 결과와 diff 값만 출력 
+
++-----------------------------------------------+--------------------------------------------------+
+| Variable_name                                 | Value                                            |
++-----------------------------------------------+--------------------------------------------------+
+| Aborted_clients                               | 0                                                |
+| Aborted_connects                              | 0                                                |
+| Binlog_cache_disk_use                         | 0                                                |
+| Binlog_cache_use                              | 0                                                |
+| Binlog_stmt_cache_disk_use                    | 0                                                |
+| Binlog_stmt_cache_use                         | 0                                                |
+| Bytes_received                                | 5008                                             |
+| Bytes_sent                                    | 66755                                            |
+| Com_admin_commands                            | 2                                                |
+| Com_assign_to_keycache                        | 0                                                |
+| Com_alter_db                                  | 0                                                |
+| Com_alter_db_upgrade                          | 0                                                |
+| Com_alter_event                               | 0                                                |
+| Com_alter_function                            | 0                                                |
+| Com_alter_instance                            | 0                                                |
+| Com_alter_procedure                           | 0                                                |
+| Com_alter_server                              | 0                                                |
+| Com_alter_table                               | 0                                                |
+| Com_alter_tablespace                          | 0                                                |
+| Com_alter_user                                | 0                                                |
+
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;이런 식으로 간단하게 MySQL 서버 상황을 로깅할 수 있습니다.&lt;br&gt;
+만약 MySQL innodb_buffer_pool size를 늘린 후 효과가 있는지, disk에서 읽어오던 데이터가 적어졌는지 확인하고 싶다면 아래와 같이 모니터링을 하면 간단하게 확인할 수 있습니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mysqladmin -r -i 1 -c 60 extended-status | egrep &amp;quot;Innodb_buffer_pool_read_requests|Innodb_buffer_pool_reads&amp;quot;
+| Innodb_buffer_pool_read_requests | 99937722883 |
+| Innodb_buffer_pool_reads         | 599056712   |
+| Innodb_buffer_pool_read_requests | 293642      |
+| Innodb_buffer_pool_reads         | 1           |
+| Innodb_buffer_pool_read_requests | 296248      |
+| Innodb_buffer_pool_reads         | 0           |
+| Innodb_buffer_pool_read_requests | 294409      |
+| Innodb_buffer_pool_reads         | 0           |
+| Innodb_buffer_pool_read_requests | 296394      |
+| Innodb_buffer_pool_reads         | 6           |
+| Innodb_buffer_pool_read_requests | 303379      |
+| Innodb_buffer_pool_reads         | 0           |
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;Innodb_buffer_pool_read_requests : innodb_buffer_pool 에서 읽어올 때&lt;/li&gt;
+&lt;li&gt;Innodb_buffer_pool_reads : disk에서 읽어올 때&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>MySQL8.0 SKIP LOCKED / NOWAIT 활용하기</title>

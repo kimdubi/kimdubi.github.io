@@ -5,10 +5,19 @@
     <description>Recent content on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 20 Sep 2020 21:45:34 +0900</lastBuildDate>
+    <lastBuildDate>Fri, 02 Oct 2020 21:52:17 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Mysqls</title>
+      <link>https://kimdubi.github.io/mysql/</link>
+      <pubDate>Fri, 02 Oct 2020 21:52:17 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>Postgresqls</title>
@@ -25,15 +34,6 @@
       <pubDate>Mon, 17 Aug 2020 02:07:58 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/nosql/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Mysqls</title>
-      <link>https://kimdubi.github.io/mysql/</link>
-      <pubDate>Sun, 16 Aug 2020 17:15:24 +0900</pubDate>
-      
-      <guid>https://kimdubi.github.io/mysql/</guid>
       <description></description>
     </item>
     

@@ -4,7 +4,21 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-09-20T21:45:34+09:00</lastmod>
+    <lastmod>2020-10-02T21:52:17+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/mysqladmin/</loc>
+    <lastmod>2020-10-02T21:52:17+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/</loc>
+    <lastmod>2020-10-02T21:52:17+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
@@ -74,13 +88,6 @@
   
   <url>
     <loc>https://kimdubi.github.io/mysql/skip_locked/</loc>
-    <lastmod>2020-08-16T17:15:24+09:00</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://kimdubi.github.io/mysql/</loc>
     <lastmod>2020-08-16T17:15:24+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>

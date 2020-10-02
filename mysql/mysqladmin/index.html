@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>mysqladmin utility로 간단하게 모니터링</title>
+        
+        <style>
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">mysqladmin utility로 간단하게 모니터링</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>mysqladmin utility로 간단하게 모니터링</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>운영환경의 MySQL 서버들은 보통 prometheus 와 grafana 등을 통해 구축된 모니터링 시스템으로 모니터링 및 로깅을 하고 있습니다.<br>
+그러나 외부 프로젝트 등으로 이러한 모니터링 시스템을 활용할 수 없는 경우에는 어떻게 해야할까요?<br>
+OS 상태는 iostat, vmstat 등으로 로깅할 수 있겠고 MySQL은 show global status 와 show processlist 등을 로깅하는 프로그램을 짤 수 있겠죠?<br>
+이 방법보다 더 간단한 방법이 있는데 바로 mysqladmin utility 입니다.</p>
+<pre><code>mysqladmin processlist status extended-status -uroot -pxxx --sleep=10 --count=1000 --relative
+
+  -c, --count=#       Number of iterations to make. This works with -i
+                      (--sleep) only.
+  -r, --relative      Show difference between current and previous values when
+                      used with -i. Currently only works with extended-status.
+  status                Gives a short status message from the server
+  extended-status       Gives an extended status message from the server  
+
+</code></pre><p>MySQL 서버에 대한 정보를 10초에 한번씩 1000번 뽑아내라는 명령어 입니다.<br>
+relative 옵션은 sleep 과 extended-status 옵션과 함께 사용할 때 이전의 status 결과를 바탕으로 현재값과의 차이를 나타냅니다.</p>
+<pre><code>$ mysqladmin processlist status extended-status -uroot -pxxxx -S /home/db/mysql/tmp/mysql.sock --sleep=10 --count=100 --relative
+
+### processlist
+mysqladmin: [Warning] Using a password on the command line interface can be insecure.
++--------+-------+--------------------+----+-------------+--------+---------------------------------------------------------------+------------------+
+| Id     | User  | Host               | db | Command     | Time   | State                                                         | Info             |
++--------+-------+--------------------+----+-------------+--------+---------------------------------------------------------------+------------------+
+| 440551 | repl  | 10.161.78.43:51888 |    | Binlog Dump | 186032 | Master has sent all binlog to slave; waiting for more updates |                  |
+| 542415 | admin | localhost          |    | Query       | 0      | starting                                                      | show processlist |
++--------+-------+--------------------+----+-------------+--------+---------------------------------------------------------------+------------------+
+Uptime: 977900  Threads: 2  Questions: 34882248  Slow queries: 38  Opens: 1001  Flush tables: 10  Open tables: 10  Queries per second avg: 35.670
+
+### global status
++-----------------------------------------------+--------------------------------------------------+
+| Variable_name                                 | Value                                            |
++-----------------------------------------------+--------------------------------------------------+
+| Aborted_clients                               | 13                                               |
+| Aborted_connects                              | 12                                               |
+| Binlog_cache_disk_use                         | 1089                                             |
+| Binlog_cache_use                              | 12306                                            |
+| Binlog_stmt_cache_disk_use                    | 0                                                |
+| Binlog_stmt_cache_use                         | 588                                              |
+| Bytes_received                                | 12048278946                                      |
+| Bytes_sent                                    | 29560239107                                      |
+| Com_admin_commands                            | 40934                                            |
+| Com_assign_to_keycache                        | 0                                                |
+| Com_alter_db                                  | 0                                                |
+| Com_alter_db_upgrade                          | 0                                                |
+| Com_alter_event                               | 0                                                |
+| Com_alter_function                            | 0                                                |
+| Com_alter_instance                            | 0                                                |
+| Com_alter_procedure                           | 0                                                |
+| Com_alter_server                              | 0                                                |
+.
+.
+.
+.
+### 10초 후 processlist
+
++--------+-------+--------------------+----+-------------+--------+---------------------------------------------------------------+------------------+
+| Id     | User  | Host               | db | Command     | Time   | State                                                         | Info             |
++--------+-------+--------------------+----+-------------+--------+---------------------------------------------------------------+------------------+
+| 440551 | repl  | 10.161.78.43:51888 |    | Binlog Dump | 186052 | Master has sent all binlog to slave; waiting for more updates |                  |
+| 542415 | admin | localhost          |    | Query       | 0      | starting                                                      | show processlist |
++--------+-------+--------------------+----+-------------+--------+---------------------------------------------------------------+------------------+
+Uptime: 977920  Threads: 2  Questions: 34882303  Slow queries: 38  Opens: 1002  Flush tables: 10  Open tables: 11  Queries per second avg: 35.669
+
+### 10초 후 global status , 앞의 결과와 diff 값만 출력 
+
++-----------------------------------------------+--------------------------------------------------+
+| Variable_name                                 | Value                                            |
++-----------------------------------------------+--------------------------------------------------+
+| Aborted_clients                               | 0                                                |
+| Aborted_connects                              | 0                                                |
+| Binlog_cache_disk_use                         | 0                                                |
+| Binlog_cache_use                              | 0                                                |
+| Binlog_stmt_cache_disk_use                    | 0                                                |
+| Binlog_stmt_cache_use                         | 0                                                |
+| Bytes_received                                | 5008                                             |
+| Bytes_sent                                    | 66755                                            |
+| Com_admin_commands                            | 2                                                |
+| Com_assign_to_keycache                        | 0                                                |
+| Com_alter_db                                  | 0                                                |
+| Com_alter_db_upgrade                          | 0                                                |
+| Com_alter_event                               | 0                                                |
+| Com_alter_function                            | 0                                                |
+| Com_alter_instance                            | 0                                                |
+| Com_alter_procedure                           | 0                                                |
+| Com_alter_server                              | 0                                                |
+| Com_alter_table                               | 0                                                |
+| Com_alter_tablespace                          | 0                                                |
+| Com_alter_user                                | 0                                                |
+
+
+</code></pre><p>이런 식으로 간단하게 MySQL 서버 상황을 로깅할 수 있습니다.<br>
+만약 MySQL innodb_buffer_pool size를 늘린 후 효과가 있는지, disk에서 읽어오던 데이터가 적어졌는지 확인하고 싶다면 아래와 같이 모니터링을 하면 간단하게 확인할 수 있습니다.</p>
+<pre><code>mysqladmin -r -i 1 -c 60 extended-status | egrep &quot;Innodb_buffer_pool_read_requests|Innodb_buffer_pool_reads&quot;
+| Innodb_buffer_pool_read_requests | 99937722883 |
+| Innodb_buffer_pool_reads         | 599056712   |
+| Innodb_buffer_pool_read_requests | 293642      |
+| Innodb_buffer_pool_reads         | 1           |
+| Innodb_buffer_pool_read_requests | 296248      |
+| Innodb_buffer_pool_reads         | 0           |
+| Innodb_buffer_pool_read_requests | 294409      |
+| Innodb_buffer_pool_reads         | 0           |
+| Innodb_buffer_pool_read_requests | 296394      |
+| Innodb_buffer_pool_reads         | 6           |
+| Innodb_buffer_pool_read_requests | 303379      |
+| Innodb_buffer_pool_reads         | 0           |
+</code></pre><ul>
+<li>Innodb_buffer_pool_read_requests : innodb_buffer_pool 에서 읽어올 때</li>
+<li>Innodb_buffer_pool_reads : disk에서 읽어올 때</li>
+</ul>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

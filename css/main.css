@@ -1,5 +1,6 @@
 html, body {
-    height: 100%;
+    max-width: auto;
+    height: auto;
 }
 
 body {

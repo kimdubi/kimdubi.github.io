@@ -1,24 +1,27 @@
 html, body {
-    height: 50%;
+    height: 100%;
 }
 
 body {
     padding-top: 55px;
     display: flex;
     text-align: center;
+    margin-left: auto;
+    margin-right: auto;
     flex-direction: column;
 }
 
 main {
-    margin: auto;
+    margin-left: auto;
+    margin-right: auto;
     padding: 25px;
     flex: 1 0 auto;
 }
-
 img {
     margin-left: auto;
     margin-right: auto;
-    max-width: 10%;
+    max-width: 40%;
+    height: 40%;
 }
 
 /* Homepage */

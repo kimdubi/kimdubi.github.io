@@ -1,5 +1,4 @@
 html, body {
-    max-width: auto;
     height: auto;
 }
 
@@ -11,7 +10,7 @@ body {
 }
 
 main {
-    text-aligh: center;
+    text-align: center;
     margin-left: auto;
     margin-right: auto;
     padding: 25px;

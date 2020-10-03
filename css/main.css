@@ -11,8 +11,6 @@ body {
 
 main {
     text-align: center;
-    margin-left: auto;
-    margin-right: auto;
     padding: 25px;
     flex: 1 0 auto;
 }

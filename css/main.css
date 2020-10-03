@@ -10,6 +10,8 @@ body {
 }
 
 main {
+    margin-left: auto;
+    margin-right: auto;
     padding: 25px;
     flex: 1 0 auto;
 }
@@ -17,7 +19,6 @@ img {
     margin-left: auto;
     margin-right: auto;
     max-width: 50%;
-    height: 50%;
 }
 
 /* Homepage */

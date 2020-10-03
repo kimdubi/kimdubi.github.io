@@ -10,7 +10,6 @@ body {
 }
 
 main {
-    text-align: center;
     padding: 25px;
     flex: 1 0 auto;
 }

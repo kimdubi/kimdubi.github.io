@@ -3367,7 +3367,7 @@ primary에서 pg_hba.conf 에 standby 서버 추가 후 reload&lt;/p&gt;
     <item>
       <title>PostgreSQL configure 설정</title>
       <link>https://kimdubi.github.io/postgresql/psql_conf/</link>
-      <pubDate>Tue, 02 Jun 2020 16:30:28 +0900</pubDate>
+      <pubDate>Tue, 02 Jun 2020 16:30:29 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/postgresql/psql_conf/</guid>
       <description>&lt;p&gt;yum 설치가 아닌 source make 설치라 디렉토리 구성 등이 다를 수 있습니다.&lt;/p&gt;
@@ -3457,7 +3457,8 @@ default_text_search_config = &#39;pg_catalog.english&#39;
 
 &lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
 &lt;li&gt;shared_buffer : data buffer , 전체 서버 메모리의 1/4 ~ 1/3 권장&lt;/li&gt;
-&lt;li&gt;work_mem : sort,hash join 등 query 수행 시 사용하는 session memory, tempfile 생성이 많으면 더 크게 설정 필요&lt;/li&gt;
+&lt;li&gt;work_mem : sort,hash join 등 query 수행 시 사용하는 memory, tempfile 생성이 많으면 더 크게 설정 필요, session 마다 먹는 메모리가 아니라 각 쿼리 내 sort,hash join 작업 만큼 사용되는 메모리&lt;br&gt;
+ex) 한 쿼리 내 sorting , hash join 이 한번 씩 발생하면 최대 work_mem * 2 만큼 메모리 사용됨&lt;/li&gt;
 &lt;li&gt;maintenance_work_mem : vacuum, create index 에 사용되는 메모리, 전체 서버 메모리의 1/16 ~ 2GB(max)&lt;/li&gt;
 &lt;li&gt;max_worker_processes : scan, group by, join 작업에 병렬처리를 지원함. parallel 처리를 수행하는 worker 프로세스의 최대 개수&lt;/li&gt;
 &lt;li&gt;max_parallel_workers_per_gather : 하나의 쿼리 당 수행 가능한 최대 worker 프로세스 개수 (defalut 0 - parallel 처리 수행 안함)&lt;/li&gt;

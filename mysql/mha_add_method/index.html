@@ -134,7 +134,7 @@
 
     </div>
 
-    <div align="start" class="content"><p>지난 event 관련 글에서 보았던 것 처럼 MHA 구성 환경에서 failover 발생 시<br>
+    <div align="start" class="content" text-align="center"><p>지난 event 관련 글에서 보았던 것 처럼 MHA 구성 환경에서 failover 발생 시<br>
 slave-&gt;master db로 승격은 되지만 그에 따라 event의 status는 변경이 되지 않았고 수동으로 상태를 설정해야 합니다.<br>
 현재 운영하는 maria db들은 모두 master에서만 event를 수행하고 있기 때문에<br>
 MHA failover 발생 시 event status도 enable 시키는 기능이 있으면 좋겠다는 생각에 MHA 스크립트를 수정해보았습니다.<br>

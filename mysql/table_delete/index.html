@@ -134,7 +134,7 @@
 
     </div>
 
-    <div align="start" class="content"><p>대용량 테이블의 과거 데이터를 지우는 작업을 종종 할 때가 있는데요<br>
+    <div align="start" class="content" text-align="center"><p>대용량 테이블의 과거 데이터를 지우는 작업을 종종 할 때가 있는데요<br>
 파티션 테이블의 경우에는 exchange partition 를 통해서 손쉽게 작업을 할 수 있지만<br>
 일반 테이블의 경우에는 repetable-read 일 때 next key lock 영향을 최소화 하기위해<br>
 pk를 기준으로 row 단위로 끊어서 삭제하는 방법이 필요합니다.<br>

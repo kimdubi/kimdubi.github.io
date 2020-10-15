@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL online으로 일반테이블 파티셔닝 전환하기</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL online으로 일반테이블 파티셔닝 전환하기</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL online으로 일반테이블 파티셔닝 전환하기</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content"><p>기존 일반테이블을 파티셔닝 테이블로 변환할 때 pt-osc 를 활용하여 온라인 작업으로 할 수 없을까 검색하던 중<br>
+카카오에서는 아래의 내용처럼 pt-osc를 수정하여 사용한다는 것을 알게 되었습니다<br>
+<a href="http://small-dbtalk.blogspot.com/2014/04/pt-online-schema-change-modified-pt.html">http://small-dbtalk.blogspot.com/2014/04/pt-online-schema-change-modified-pt.html</a>
+<!-- raw HTML omitted --></p>
+<p>간단하게 요약하자면</p>
+<p>MySQL에서 하나의 ALTER 문으로 처리하지 못하는 DDL작업들을 pt-osc에서도 처리하지 못했는데요.<br>
+대표적으로 일반테이블을 파티션테이블로 전환하는 경우<br>
+PK 구성 변경과 파티셔닝 커맨드를 하나의 ALTER문으로 표현할 수 없기 때문에 pt-osc를 활용할 수 없습니다.</p>
+<p>이런 점을 개선하기 위해<br>
+<strong>&ndash;prompt-before-copy</strong> 라는 커맨드를 추가하여<br>
+새로운 테이블에 데이터를 복사하기 전에 pt-osc 의 작업을 멈추고 사용자의 확인을 받는 단계를 추가했습니다.</p>
+<p>일반테이블-&gt;파티셔닝 테이블 전환처럼 추가로 변경해야 하는 사항이 있으면 이 옵션을 활성화해서<br>
+PK변경작업을 pt-osc를 통해 먼저 수행한 후 pt-osc가 사용자 확인을 기다리는 동안<br>
+다른 세션으로 파티셔닝 작업을 하고 pt-osc로 돌아와 data copy 단계를 마저 진행하면 됩니다.</p>
+<p>다만 위 링크의 pt-osc와 팀에서 사용하는 pt-osc의 버전이 달라 pt-osc patch 파일을 팀에서 사용하는 버전에 맞게 수정했습니다.
+(카카오 : 2.2.7  / 팀에서 사용하는 버전 : 3.0.13)</p>
+<h2 id="ptosc-">pt-osc 패치</h2>
+<ul>
+<li>ptosc.patch 파일 준비</li>
+</ul>
+<pre><code>@@ -8464,6 +8464,14 @@
+          or warn &quot;Cannot reopen STDOUT to /dev/null: $OS_ERROR&quot;;
+    }
+
++  ## Added
++
++   if($o-&gt;has('prompt-before-copy') &amp;&amp; defined $o-&gt;get('prompt-before-copy')){
++       print &quot;  &gt;&gt; prompting user operation : Yes\n&quot;;
++   }else{
++       print &quot;  &gt;&gt; prompting user operation : No\n&quot;;
++   }
++
+    # ########################################################################
+    # Connect to MySQL.
+    # ########################################################################
+@@ -11159,3 +11163,18 @@
+
++   ## Added - Prompt and Waiting user custom operation
++   if($o-&gt;has('prompt-before-copy') &amp;&amp; defined $o-&gt;get('prompt-before-copy')){
++      my $tmp_user_input = &quot;&quot;;
++      print &quot;\n&quot;;
++      print &quot;Table copy operation is paused temporarily by user request '--prompt-before-copy'.\n&quot;;
++      print &quot;pt-online-schema-change utility created new table, but not triggers.\n&quot;;
++      print &quot;   ==&gt; new table name : $new_tbl-&gt;{name} \n\n&quot;;
++      print &quot;So if you have any custom operation on new table, do it now.\n&quot;;
++      print &quot;Type 'yes', when you ready to go.\n&quot;;
++      do{
++         print &quot;Should I continue to copy [Yes] ? : &quot;;
++         chomp ($tmp_user_input = &lt;STDIN&gt;);
++      }while( !($tmp_user_input =~ m/^yes$/i) );
++   }
++
+   my @trigger_names;
+   @drop_trigger_sqls = ();
+@@ -11948,6 +11971,10 @@
+
+ Prompt for a password when connecting to MySQL.
+
++=item --prompt-before-copy
++
++Prompt before data copy to new temporary table for user custom operation
++
+ =item --charset
+
+ short form: -A; type: string
+</code></pre><ul>
+<li>패치파일 적용</li>
+</ul>
+<pre><code>$ patch pt-online-schema-change &lt; ptosc.patch
+patching file pt-online-schema-change
+Hunk #2 succeeded at 11167 with fuzz 2.
+</code></pre><ul>
+<li>추가된 &ndash;prompt-before-copy 옵션 확인</li>
+</ul>
+<pre><code>$ pt-online-schema-change --help | grep prompt
+  --prompt-before-copy             Prompt before data copy to new temporary
+  --prompt-before-copy             FALSE
+</code></pre><h2 id="ptosc----">pt-osc 로 파티셔닝 전환 해보자</h2>
+<ul>
+<li>아래와 같은 순서로 작업</li>
+</ul>
+<pre><code>1. pt-osc 로 PK 구성 변경 (--prompt-before-copy 옵션)
+2. data copy 전 확인 단계에서 다른 세션으로 new 테이블에 파티셔닝 작업 수행
+3. pt-osc로 돌아와 data copy 마저 진행
+</code></pre><ul>
+<li>전환 대상 테이블</li>
+</ul>
+<pre><code>CREATE TABLE `tb_test` (
+  `orders_id` bigint(20) NOT NULL,
+  `shipping_address_seq` int(11) DEFAULT NULL,
+  `name` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `contact` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `zip_code` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `address` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `address_detail` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `delete_yn` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'N',
+  `reg_ymdt` datetime NOT NULL,
+  `mod_ymdt` datetime NOT NULL,
+  PRIMARY KEY (`orders_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+</code></pre><ul>
+<li>pt-osc 커맨드 ( PK 변경)</li>
+</ul>
+<pre><code>$  pt-online-schema-change --alter &quot;DROP PRIMARY KEY, ADD PRIMARY KEY(orders_id,reg_ymdt)&quot; D=testdb,t=tb_test \
+&gt; --no-drop-old-table \
+&gt; --no-drop-new-table \
+&gt; --chunk-size=1000 \
+&gt; --defaults-file=/home1/testuser/db/mysql/my.cnf \
+&gt; --port=3306 \
+&gt; --user=testuser \
+&gt; --password=test123 \
+&gt; --progress=time,30 \
+&gt; --max-load=&quot;Threads_running=100&quot; \
+&gt; --critical-load=&quot;Threads_running=200&quot; \
+&gt; --chunk-index=PRIMARY \
+&gt; --charset=utf8mb4 \
+&gt; --set-vars=&quot;innodb_lock_wait_timeout=1,lock_wait_timeout=1&quot; \
+&gt; --no-check-alter \
+&gt; --prompt-before-copy \
+&gt; --execute
+  &gt;&gt; prompting user operation : Yes
+No slaves found.  See --recursion-method if host testserver1 has slaves.
+Not checking slave lag because no slaves were found and --check-slave-lag was not specified.
+Operation, tries, wait:
+  analyze_table, 10, 1
+  copy_rows, 10, 0.25
+  create_triggers, 10, 1
+  drop_triggers, 10, 1
+  swap_tables, 10, 1
+  update_foreign_keys, 10, 1
+Altering `testdb`.`tb_test`...
+Creating new table...
+Created new table testdb._tb_test_new OK.
+Altering new table...
+Altered `testdb`.`_tb_test_new` OK.
+2020-06-19T16:46:13 Creating triggers...
+
+Table copy operation is paused temporarily by user request '--prompt-before-copy'.
+pt-online-schema-change utility created new table, but not triggers.
+   ==&gt; new table name : `testdb`.`_tb_test_new`
+
+So if you have any custom operation on new table, do it now.
+Type 'yes', when you ready to go.
+Should I continue to copy [Yes] ? :
+</code></pre><p>=&gt; 새로운 PK가 구성된 _tb_test_new 테이블 생성 후 , 트리거 생성 전 멈춥니다.<br>
+<!-- raw HTML omitted --></p>
+<pre><code>Table copy operation is paused temporarily by user request '--prompt-before-copy'.
+pt-online-schema-change utility created new table, but not triggers.
+   ==&gt; new table name : `testdb`.`_tb_test_new`
+
+So if you have any custom operation on new table, do it now.
+Type 'yes', when you ready to go.
+Should I continue to copy [Yes] ? :
+</code></pre><p>yes 타이핑 전까지 pt-osc는 더이상 진행되지 않습니다. 이제 다른 세션에서 new 테이블에 파티셔닝을 해봅니다<br>
+<!-- raw HTML omitted --></p>
+<ul>
+<li>다른 세션에서 파티셔닝 작업 수행하기</li>
+</ul>
+<pre><code>mysql&gt; alter table _tb_test_new partition by range COLUMNS (reg_ymdt)
+    -&gt; ( partition p202001 values less than ('2020-02-01'),
+    -&gt; partition p202002 values less than ('2020-03-01'),
+    -&gt; partition p202003 values less than ('2020-04-01'),
+    -&gt; partition p202004 values less than ('2020-05-01'),
+    -&gt; partition p202005 values less than ('2020-06-01'),
+    -&gt; partition p202006 values less than ('2020-07-01'),
+    -&gt; partition pMAXVALUE values less than (MAXVALUE));
+Query OK, 0 rows affected (0.09 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+</code></pre><p>=&gt; 창 하나 더 띄워 다른 세션에서 new 테이블에다 파티셔닝 작업을 해줍니다</p>
+<ul>
+<li>pt-osc 계속 진행하기</li>
+</ul>
+<pre><code>.
+.
+.
+Should I continue to copy [Yes] ? :yes
+2020-06-19T16:55:37 Created triggers OK.
+2020-06-19T16:55:37 Copying approximately 1 rows...
+2020-06-19T16:55:37 Copied rows OK.
+2020-06-19T16:55:37 Analyzing new table...
+2020-06-19T16:55:37 Swapping tables...
+2020-06-19T16:55:37 Swapped original and new tables OK.
+Not dropping old table because --no-drop-old-table was specified.
+2020-06-19T16:55:37 Dropping triggers...
+2020-06-19T16:55:37 Dropped triggers OK.
+Successfully altered `testdbb`.`tb_test`.
+</code></pre><p>=&gt; pt-osc는 계속 기다리고 있었습니다,,<br>
+yes 를 입력하면 insert,update, delete  trigger 생성 후 data-copy 과정을 진행합니다.</p>
+<ul>
+<li>결과 확인</li>
+</ul>
+<pre><code>mysql&gt; show tables like '%test%';
++-------------------------------------+
+| Tables_in_testdb (%test%) |
++-------------------------------------+
+| _tb_test_old                        |
+| tb_test                             |
++-------------------------------------+
+2 rows in set (0.00 sec)
+
+
+CREATE TABLE `tb_test` (
+  `orders_id` bigint(20) NOT NULL,
+  `shipping_address_seq` int(11) DEFAULT NULL,
+  `name` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `contact` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `zip_code` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `address` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `address_detail` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `delete_yn` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'N',
+  `reg_ymdt` datetime NOT NULL,
+  `mod_ymdt` datetime NOT NULL,
+  PRIMARY KEY (`orders_id`,`reg_ymdt`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+/*!50500 PARTITION BY RANGE  COLUMNS(reg_ymdt)
+(PARTITION p202001 VALUES LESS THAN ('2020-02-01') ENGINE = InnoDB,
+ PARTITION p202002 VALUES LESS THAN ('2020-03-01') ENGINE = InnoDB,
+ PARTITION p202003 VALUES LESS THAN ('2020-04-01') ENGINE = InnoDB,
+ PARTITION p202004 VALUES LESS THAN ('2020-05-01') ENGINE = InnoDB,
+ PARTITION p202005 VALUES LESS THAN ('2020-06-01') ENGINE = InnoDB,
+ PARTITION p202006 VALUES LESS THAN ('2020-07-01') ENGINE = InnoDB,
+ PARTITION pMAXVALUE VALUES LESS THAN (MAXVALUE) ENGINE = InnoDB)
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

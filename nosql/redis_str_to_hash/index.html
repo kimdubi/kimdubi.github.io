@@ -136,11 +136,11 @@
 
     <div align="start" class="content" text-align="center"><p>Redis 에 값을 저장할 때 key 하나 하나에 들어가는 overhead는  50 bytes 정도 (Redis 3.2 기준) 로 생각보다 큽니다.<br>
 만약 관리의 편리성 때문에 String type 을 많이 쓰는 서비스가 있다면 다른 자료구조를 사용할 때 보다 많은 Key를 사용하게 될 것인데<br>
-이때 String 을 Hash 로 바꾸면 데이터는 온전히 보전하면서 Key 자체 개수를 줄여 메모리를 좀 더 효율적으로 쓸 수 있지 않을까? 하는 생각에 테스트를 해보게 되었습니다. <br>
-( 사실 이거 보고 궁금해져서..  <a href="http://redisgate.kr/redis/configuration/server_memory.php">http://redisgate.kr/redis/configuration/server_memory.php</a> )</p>
+이때 String 을 Hash 로 바꾸면 데이터는 온전히 보전하면서 Key 자체 개수를 줄여 메모리를 좀 더 효율적으로 쓸 수 있지 않을까? 하는 생각에 테스트를 해보게 되었습니다.</p>
 <h3 id="data-type--key-memory-usage">data Type 별 Key Memory usage</h3>
 <p>아래는 Redis 5.0.8 기준으로 테스트 진행했습니다.<br>
-Key Overhead는 Redis 버전마다 다르고 5.0.8 에서는 정확한 수치는 찾을 수 없었지만 대략 40 byte 라고 가정했습니다.</p>
+Key Overhead는 Redis 버전마다 다르고 5.0.8 에서는 정확한 수치는 찾을 수 없었지만 대략 40 byte 라고 가정했습니다.<br>
+계산식은 <a href="http://redisgate.kr/redis/configuration/server_memory.php">http://redisgate.kr/redis/configuration/server_memory.php</a> 을 참고했습니다.</p>
 <ul>
 <li>String</li>
 </ul>

@@ -5,24 +5,211 @@
     <description>Recent content in Nosqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 17 Oct 2020 15:43:10 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 18 Oct 2020 00:36:16 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/nosql/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
+      <title>Redis memory 분석 툴 RMA</title>
+      <link>https://kimdubi.github.io/nosql/redis_rma/</link>
+      <pubDate>Sun, 18 Oct 2020 00:36:16 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/nosql/redis_rma/</guid>
+      <description>&lt;p&gt;Redis Memory 분석 툴은 대상 Redis 서버에 각 data type 별 key 개수는 어떻게 되는지, 메모리 사용량은 어떻게 되는지 등을 파악하기 위해 사용되며&lt;br&gt;
+분석 방법에 따라 크게 두가지로 나뉘고 대표적인 제품은 아래와 같습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Live data Scan : RMA (Redis Memory Analyzer), Redis sampler&lt;/li&gt;
+&lt;li&gt;rdb file : RDB tools&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;이 중에서 온라인 중에 scan 을 통해 안전하게 분석이 가능하고 detail한 정보를 보여주는 RMA 라는 tool 에 대해 알아보겠습니다.&lt;/p&gt;
+&lt;h2 id=&#34;install&#34;&gt;Install&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Pre-Requisites&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;python &amp;gt;= 3.5 and pip.
+redis-py
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;아래 두가지 방법 중 택 1&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Install from pip&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;pip install rma
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;source 설치&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;pip install git+https://github.com/gamenet/redis-memory-analyzer@v0.2.0
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;command&#34;&gt;command&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;&amp;gt;rma --help
+usage: rma [-h] [-s HOST] [-p PORT] [-a PASSWORD] [-d DB] [-m MATCH] [-l LIMIT]
+           [-b BEHAVIOUR] [-t TYPES]
+
+RMA is used to scan Redis key space in and aggregate memory usage statistic by
+key patterns.
+
+optional arguments:
+  -h, --help                 show this help message and exit
+  -s, --server HOST          Redis Server hostname. Defaults to 127.0.0.1
+  -p, --port PORT            Redis Server port. Defaults to 6379
+  -a, --password PASSWORD    Password to use when connecting to the server
+  -d, --db DB                Database number, defaults to 0
+  -m, --match MATCH          Keys pattern to match
+  -l, --limit LIMIT          Get max key matched by pattern
+  -b, --behaviour BEHAVIOUR  Specify application working mode. Allowed values
+                             are all, scanner, ram, global
+  -t, --type TYPES           Data types to include. Possible values are string,
+                             hash, list, set. Multiple types can be provided. If
+                             not specified, all data types will be returned.
+                             Allowed values arestring, hash, list, set, zset
+  -f --format TYPE           Output type format: json or text (by default)
+  -x --separator SEPARATOR   Specify namespace separator. Default is &#39;:&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;-b, &amp;ndash;behaviour : Memory 분석의 수준을 정하는 옵션
+&lt;ul&gt;
+&lt;li&gt;all : scanner, ram , global 분석 정보를 모두 포함함 (default)&lt;/li&gt;
+&lt;li&gt;scanner : data type 과 key 개수 정도의 간단한 정보, namespace 도 간략화 되어 a:b:1, a:c:1 같은 데이터는 a:* 으로 통합하여 보여줌&lt;/li&gt;
+&lt;li&gt;ram : key size, value size , key+value memory size, TTL, object 정보 등 자세한 정보를 보여줌&lt;/li&gt;
+&lt;li&gt;global: 전체 key 개수, info memory 같은 정보, 특이한 건 key space overhead 를 알려줌&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;match : key 에 대해 Pattern 검색하는 옵션&lt;/li&gt;
+&lt;li&gt;limit : large dataset을 scan 하는 것은 오래 걸리기 때문에 scan 하는 key 개수 limit 을 설정하는 옵션&lt;/li&gt;
+&lt;li&gt;-t, &amp;ndash;type : 특정 data type의 key 만 memory 분석 수행&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;rma-&#34;&gt;RMA 예시&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;
+AL01542225:~ nhn$ rma -s localhost -p 6379 -a qhdks123 
+
+Match *: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100602/100602 [00:00&amp;lt;00:00, 13348.56it/s]
+Processing String patterns:  17%|████████████████████
+
+
+Nodes
+
+#### behaviour : global 수준의 정보 
+
+| Stat                               | Value          |
+|:-----------------------------------|:---------------|
+| info used_memory                   | 35683616       |
+| info used_memory_human             | 34.03M         |
+| info used_memory_rss               | 44531712       |
+| info used_memory_rss_human         | 42.47M         |
+| info used_memory_peak              | 35755632       |
+| info used_memory_peak_human        | 34.10M         |
+| info used_memory_peak_perc         | 99.80%         |
+| info used_memory_overhead          | 5931176        |
+| info used_memory_startup           | 791416         |
+| info used_memory_dataset           | 29752440       |
+| info used_memory_dataset_perc      | 85.27%         |
+| info allocator_allocated           | 35772056       |
+| info allocator_active              | 38588416       |
+| info allocator_resident            | 41447424       |
+| info total_system_memory           | 6239903744     |
+| info total_system_memory_human     | 5.81G          |
+| info used_memory_lua               | 1249280        |
+| info used_memory_lua_human         | 1.19M          |
+| info used_memory_scripts           | 488            |
+| info used_memory_scripts_human     | 488B           |
+| info number_of_cached_scripts      | 1              |
+| info maxmemory                     | 1000000000     |
+| info maxmemory_human               | 953.67M        |
+| info maxmemory_policy              | volatile-lru   |
+| info allocator_frag_ratio          | 1.08           |
+| info allocator_frag_bytes          | 2816360        |
+| info allocator_rss_ratio           | 1.07           |
+| info allocator_rss_bytes           | 2859008        |
+| info rss_overhead_ratio            | 1.07           |
+| info rss_overhead_bytes            | 3084288        |
+| info mem_fragmentation_ratio       | 1.25           |
+| info mem_fragmentation_bytes       | 8874792        |
+| info mem_not_counted_for_evict     | 0              |
+| info mem_replication_backlog       | 0              |
+| info mem_clients_slaves            | 0              |
+| info mem_clients_normal            | 66616          |
+| info mem_aof_buffer                | 0              |
+| info mem_allocator                 | jemalloc-5.1.0 |
+| info active_defrag_running         | 0              |
+| info lazyfree_pending_objects      | 0              |
+| used proto-max-bulk-len            | 536870912      |
+| used active-defrag-max-scan-fields | 1000           |
+| used hash-max-ziplist-entries      | 512            |
+| used hash-max-ziplist-value        | 64             |
+| used list-max-ziplist-size         | -2             |
+| used set-max-intset-entries        | 512            |
+| used zset-max-ziplist-entries      | 128            |
+| used zset-max-ziplist-value        | 64             |
+| totalKeys                          | 100602         |
+| redisKeySpaceOverhead              | 3149824        |
+
+
+### behaviour scanner 수준의 정보
+
+Keys by types
+
+| name           |   count | type   | percent   |
+|:---------------|--------:|:-------|:----------|
+| kimdubi_str:*  |  100000 | string | 99.40%    |
+| dori_hash:*    |     200 | hash   | 0.19%     |
+| kimdubi_hash:* |     200 | hash   | 0.19%     |
+| heedo_hash:*   |     200 | hash   | 0.19%     |
+| kimdubi_list   |       1 | list   | 0.00%     |
+| kimdubi_set    |       1 | set    | 0.00%     |
+
+
+
+### behaviour ram 수준의 정보
+
+Keys statistic
+
+Stat by &amp;lt;string&amp;gt;
+
+| Match         |   Count |   Useful |   Free |    Real |   Ratio | Encoding        |   Min |   Max |   Avg |   TTL Min |   TTL Max |   TTL Avg |
+|:--------------|--------:|---------:|-------:|--------:|--------:|:----------------|------:|------:|------:|----------:|----------:|----------:|
+| kimdubi_str:* |  100000 |  4088890 |      0 | 9584000 |    2.34 | embstr [100.0%] |    37 |    41 | 40.89 |        -1 |        -1 |     -1.00 |
+| Total:        |  100000 |  4088890 |      0 | 9584000 |    0.00 |                 |     0 |     0 |  0.00 |        -1 |        -1 |    nan    |
+
+Stat by &amp;lt;hash&amp;gt;
+
+| Match          |   Count |   Avg field count |   Key mem |    Real |   Ratio |   Value mem |     Real |   Ratio |   System | Encoding         |   Total mem |   Total aligned |   TTL Min |   TTL Max |   TTL Avg. |
+|:---------------|--------:|------------------:|----------:|--------:|--------:|------------:|---------:|--------:|---------:|:-----------------|------------:|----------------:|----------:|----------:|-----------:|
+| dori_hash:*    |     200 |               500 |   1188890 | 1599920 |    1.35 |     4088890 |  4800000 |    1.17 |  2457600 | ziplist [100.0%] |     5277780 |         8857520 |        -1 |        -1 |      -1.00 |
+| kimdubi_hash:* |     200 |               500 |   1188890 | 1599920 |    1.35 |     4088890 |  4800000 |    1.17 |  2457600 | ziplist [100.0%] |     5277780 |         8857520 |        -1 |        -1 |      -1.00 |
+| heedo_hash:*   |     200 |               500 |   1188890 | 1599920 |    1.35 |     4088890 |  4800000 |    1.17 |  2457600 | ziplist [100.0%] |     5277780 |         8857520 |        -1 |        -1 |      -1.00 |
+| Total:         |     600 |                 0 |   3566670 | 4799760 |    0.00 |    12266670 | 14400000 |    0.00 |  7372800 |                  |    15833340 |        26572560 |        -1 |        -1 |     nan    |
+
+Stat by &amp;lt;list&amp;gt;
+
+| Match        |   Count |   Avg Count |   Min Count |   Max Count |   Stdev Count |   Value mem |   Real |   Ratio |   System | Encoding           |   Total |   TTL Min |   TTL Max |   TTL Avg |
+|:-------------|--------:|------------:|------------:|------------:|--------------:|------------:|-------:|--------:|---------:|:-------------------|--------:|----------:|----------:|----------:|
+| kimdubi_list |       1 |      100000 |      100000 |      100000 |             0 |      488890 | 800000 |    1.64 |  2101248 | quicklist [100.0%] | 2901248 |        -1 |        -1 |     -1.00 |
+| Total:       |       1 |           0 |           0 |           0 |             0 |      488890 | 800000 |    0.00 |  2101248 |                    | 2901248 |        -1 |        -1 |    nan    |
+
+Stat by &amp;lt;set&amp;gt;
+
+| Match       |   Count |   Avg Count |   Value mem |    Real |   Ratio |   System* | Encoding           |   Total |   TTL Min |   TTL Max |   TTL Avg. |
+|:------------|--------:|------------:|------------:|--------:|--------:|----------:|:-------------------|--------:|----------:|----------:|-----------:|
+| kimdubi_set |       1 |      100000 |      488890 | 3200000 |    6.55 |   3149824 | hashtable [100.0%] | 6349824 |        -1 |        -1 |      -1.00 |
+| Total:      |       1 |           0 |      488890 | 3200000 |    0.00 |   3149824 |                    | 6349824 |        -1 |        -1 |     nan    |
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;이 분석 결과에서 유용한 것은 data 별 메모리 사이즈 뿐만 아니라&lt;br&gt;
+global 영역에서 보여주는 redisKeySpaceOverhead  3149824 byte 정보도 중요할 수 있는데요. key를 생성하면서 할당되는 오버헤드의 총합으로, key의 개수가 많아질 수록 이 값도 커지게 됩니다.&lt;br&gt;
+위 분석 결과에서 총 Redis 사용 메모리 used_memory_human 34mb 중에 key 할당에만 사용된 overhead가 3mb 면 10%에 해당하는 값으로 생각보다 크다고 느껴졌습니다.&lt;br&gt;
+그래서 key를 줄이는게 Redis memory 사용량을 얼마나 절감시킬 수 있을까 테스트를 해보았습니다.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://kimdubi.github.io/nosql/redis_str_to_hash/&#34;&gt;https://kimdubi.github.io/nosql/redis_str_to_hash/&lt;/a&gt;&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
       <title>Redis data type 변경으로 Memory 아껴 써보자</title>
       <link>https://kimdubi.github.io/nosql/redis_str_to_hash/</link>
-      <pubDate>Sat, 17 Oct 2020 15:43:10 +0900</pubDate>
+      <pubDate>Sat, 17 Oct 2020 15:44:10 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/nosql/redis_str_to_hash/</guid>
       <description>&lt;p&gt;Redis 에 값을 저장할 때 key 하나 하나에 들어가는 overhead는  50 bytes 정도 (Redis 3.2 기준) 로 생각보다 큽니다.&lt;br&gt;
 만약 관리의 편리성 때문에 String type 을 많이 쓰는 서비스가 있다면 다른 자료구조를 사용할 때 보다 많은 Key를 사용하게 될 것인데&lt;br&gt;
-이때 String 을 Hash 로 바꾸면 데이터는 온전히 보전하면서 Key 자체 개수를 줄여 메모리를 좀 더 효율적으로 쓸 수 있지 않을까? 하는 생각에 테스트를 해보게 되었습니다. &lt;br&gt;
-( 사실 이거 보고 궁금해져서..  &lt;a href=&#34;http://redisgate.kr/redis/configuration/server_memory.php&#34;&gt;http://redisgate.kr/redis/configuration/server_memory.php&lt;/a&gt; )&lt;/p&gt;
+이때 String 을 Hash 로 바꾸면 데이터는 온전히 보전하면서 Key 자체 개수를 줄여 메모리를 좀 더 효율적으로 쓸 수 있지 않을까? 하는 생각에 테스트를 해보게 되었습니다.&lt;/p&gt;
 &lt;h3 id=&#34;data-type--key-memory-usage&#34;&gt;data Type 별 Key Memory usage&lt;/h3&gt;
 &lt;p&gt;아래는 Redis 5.0.8 기준으로 테스트 진행했습니다.&lt;br&gt;
-Key Overhead는 Redis 버전마다 다르고 5.0.8 에서는 정확한 수치는 찾을 수 없었지만 대략 40 byte 라고 가정했습니다.&lt;/p&gt;
+Key Overhead는 Redis 버전마다 다르고 5.0.8 에서는 정확한 수치는 찾을 수 없었지만 대략 40 byte 라고 가정했습니다.&lt;br&gt;
+계산식은 &lt;a href=&#34;http://redisgate.kr/redis/configuration/server_memory.php&#34;&gt;http://redisgate.kr/redis/configuration/server_memory.php&lt;/a&gt; 을 참고했습니다.&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;String&lt;/li&gt;
 &lt;/ul&gt;

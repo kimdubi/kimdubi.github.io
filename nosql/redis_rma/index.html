@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Redis memory 분석 툴 RMA</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Redis memory 분석 툴 RMA</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Redis memory 분석 툴 RMA</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><p>Redis Memory 분석 툴은 대상 Redis 서버에 각 data type 별 key 개수는 어떻게 되는지, 메모리 사용량은 어떻게 되는지 등을 파악하기 위해 사용되며<br>
+분석 방법에 따라 크게 두가지로 나뉘고 대표적인 제품은 아래와 같습니다.</p>
+<ul>
+<li>Live data Scan : RMA (Redis Memory Analyzer), Redis sampler</li>
+<li>rdb file : RDB tools</li>
+</ul>
+<p>이 중에서 온라인 중에 scan 을 통해 안전하게 분석이 가능하고 detail한 정보를 보여주는 RMA 라는 tool 에 대해 알아보겠습니다.</p>
+<h2 id="install">Install</h2>
+<ul>
+<li>Pre-Requisites</li>
+</ul>
+<pre><code>python &gt;= 3.5 and pip.
+redis-py
+</code></pre><p>아래 두가지 방법 중 택 1</p>
+<ul>
+<li>Install from pip</li>
+</ul>
+<pre><code>pip install rma
+</code></pre><ul>
+<li>source 설치</li>
+</ul>
+<pre><code>pip install git+https://github.com/gamenet/redis-memory-analyzer@v0.2.0
+</code></pre><h2 id="command">command</h2>
+<pre><code>&gt;rma --help
+usage: rma [-h] [-s HOST] [-p PORT] [-a PASSWORD] [-d DB] [-m MATCH] [-l LIMIT]
+           [-b BEHAVIOUR] [-t TYPES]
+
+RMA is used to scan Redis key space in and aggregate memory usage statistic by
+key patterns.
+
+optional arguments:
+  -h, --help                 show this help message and exit
+  -s, --server HOST          Redis Server hostname. Defaults to 127.0.0.1
+  -p, --port PORT            Redis Server port. Defaults to 6379
+  -a, --password PASSWORD    Password to use when connecting to the server
+  -d, --db DB                Database number, defaults to 0
+  -m, --match MATCH          Keys pattern to match
+  -l, --limit LIMIT          Get max key matched by pattern
+  -b, --behaviour BEHAVIOUR  Specify application working mode. Allowed values
+                             are all, scanner, ram, global
+  -t, --type TYPES           Data types to include. Possible values are string,
+                             hash, list, set. Multiple types can be provided. If
+                             not specified, all data types will be returned.
+                             Allowed values arestring, hash, list, set, zset
+  -f --format TYPE           Output type format: json or text (by default)
+  -x --separator SEPARATOR   Specify namespace separator. Default is ':'
+</code></pre><ul>
+<li>-b, &ndash;behaviour : Memory 분석의 수준을 정하는 옵션
+<ul>
+<li>all : scanner, ram , global 분석 정보를 모두 포함함 (default)</li>
+<li>scanner : data type 과 key 개수 정도의 간단한 정보, namespace 도 간략화 되어 a:b:1, a:c:1 같은 데이터는 a:* 으로 통합하여 보여줌</li>
+<li>ram : key size, value size , key+value memory size, TTL, object 정보 등 자세한 정보를 보여줌</li>
+<li>global: 전체 key 개수, info memory 같은 정보, 특이한 건 key space overhead 를 알려줌</li>
+</ul>
+</li>
+<li>match : key 에 대해 Pattern 검색하는 옵션</li>
+<li>limit : large dataset을 scan 하는 것은 오래 걸리기 때문에 scan 하는 key 개수 limit 을 설정하는 옵션</li>
+<li>-t, &ndash;type : 특정 data type의 key 만 memory 분석 수행</li>
+</ul>
+<h2 id="rma-">RMA 예시</h2>
+<pre><code>
+AL01542225:~ nhn$ rma -s localhost -p 6379 -a qhdks123 
+
+Match *: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100602/100602 [00:00&lt;00:00, 13348.56it/s]
+Processing String patterns:  17%|████████████████████
+
+
+Nodes
+
+#### behaviour : global 수준의 정보 
+
+| Stat                               | Value          |
+|:-----------------------------------|:---------------|
+| info used_memory                   | 35683616       |
+| info used_memory_human             | 34.03M         |
+| info used_memory_rss               | 44531712       |
+| info used_memory_rss_human         | 42.47M         |
+| info used_memory_peak              | 35755632       |
+| info used_memory_peak_human        | 34.10M         |
+| info used_memory_peak_perc         | 99.80%         |
+| info used_memory_overhead          | 5931176        |
+| info used_memory_startup           | 791416         |
+| info used_memory_dataset           | 29752440       |
+| info used_memory_dataset_perc      | 85.27%         |
+| info allocator_allocated           | 35772056       |
+| info allocator_active              | 38588416       |
+| info allocator_resident            | 41447424       |
+| info total_system_memory           | 6239903744     |
+| info total_system_memory_human     | 5.81G          |
+| info used_memory_lua               | 1249280        |
+| info used_memory_lua_human         | 1.19M          |
+| info used_memory_scripts           | 488            |
+| info used_memory_scripts_human     | 488B           |
+| info number_of_cached_scripts      | 1              |
+| info maxmemory                     | 1000000000     |
+| info maxmemory_human               | 953.67M        |
+| info maxmemory_policy              | volatile-lru   |
+| info allocator_frag_ratio          | 1.08           |
+| info allocator_frag_bytes          | 2816360        |
+| info allocator_rss_ratio           | 1.07           |
+| info allocator_rss_bytes           | 2859008        |
+| info rss_overhead_ratio            | 1.07           |
+| info rss_overhead_bytes            | 3084288        |
+| info mem_fragmentation_ratio       | 1.25           |
+| info mem_fragmentation_bytes       | 8874792        |
+| info mem_not_counted_for_evict     | 0              |
+| info mem_replication_backlog       | 0              |
+| info mem_clients_slaves            | 0              |
+| info mem_clients_normal            | 66616          |
+| info mem_aof_buffer                | 0              |
+| info mem_allocator                 | jemalloc-5.1.0 |
+| info active_defrag_running         | 0              |
+| info lazyfree_pending_objects      | 0              |
+| used proto-max-bulk-len            | 536870912      |
+| used active-defrag-max-scan-fields | 1000           |
+| used hash-max-ziplist-entries      | 512            |
+| used hash-max-ziplist-value        | 64             |
+| used list-max-ziplist-size         | -2             |
+| used set-max-intset-entries        | 512            |
+| used zset-max-ziplist-entries      | 128            |
+| used zset-max-ziplist-value        | 64             |
+| totalKeys                          | 100602         |
+| redisKeySpaceOverhead              | 3149824        |
+
+
+### behaviour scanner 수준의 정보
+
+Keys by types
+
+| name           |   count | type   | percent   |
+|:---------------|--------:|:-------|:----------|
+| kimdubi_str:*  |  100000 | string | 99.40%    |
+| dori_hash:*    |     200 | hash   | 0.19%     |
+| kimdubi_hash:* |     200 | hash   | 0.19%     |
+| heedo_hash:*   |     200 | hash   | 0.19%     |
+| kimdubi_list   |       1 | list   | 0.00%     |
+| kimdubi_set    |       1 | set    | 0.00%     |
+
+
+
+### behaviour ram 수준의 정보
+
+Keys statistic
+
+Stat by &lt;string&gt;
+
+| Match         |   Count |   Useful |   Free |    Real |   Ratio | Encoding        |   Min |   Max |   Avg |   TTL Min |   TTL Max |   TTL Avg |
+|:--------------|--------:|---------:|-------:|--------:|--------:|:----------------|------:|------:|------:|----------:|----------:|----------:|
+| kimdubi_str:* |  100000 |  4088890 |      0 | 9584000 |    2.34 | embstr [100.0%] |    37 |    41 | 40.89 |        -1 |        -1 |     -1.00 |
+| Total:        |  100000 |  4088890 |      0 | 9584000 |    0.00 |                 |     0 |     0 |  0.00 |        -1 |        -1 |    nan    |
+
+Stat by &lt;hash&gt;
+
+| Match          |   Count |   Avg field count |   Key mem |    Real |   Ratio |   Value mem |     Real |   Ratio |   System | Encoding         |   Total mem |   Total aligned |   TTL Min |   TTL Max |   TTL Avg. |
+|:---------------|--------:|------------------:|----------:|--------:|--------:|------------:|---------:|--------:|---------:|:-----------------|------------:|----------------:|----------:|----------:|-----------:|
+| dori_hash:*    |     200 |               500 |   1188890 | 1599920 |    1.35 |     4088890 |  4800000 |    1.17 |  2457600 | ziplist [100.0%] |     5277780 |         8857520 |        -1 |        -1 |      -1.00 |
+| kimdubi_hash:* |     200 |               500 |   1188890 | 1599920 |    1.35 |     4088890 |  4800000 |    1.17 |  2457600 | ziplist [100.0%] |     5277780 |         8857520 |        -1 |        -1 |      -1.00 |
+| heedo_hash:*   |     200 |               500 |   1188890 | 1599920 |    1.35 |     4088890 |  4800000 |    1.17 |  2457600 | ziplist [100.0%] |     5277780 |         8857520 |        -1 |        -1 |      -1.00 |
+| Total:         |     600 |                 0 |   3566670 | 4799760 |    0.00 |    12266670 | 14400000 |    0.00 |  7372800 |                  |    15833340 |        26572560 |        -1 |        -1 |     nan    |
+
+Stat by &lt;list&gt;
+
+| Match        |   Count |   Avg Count |   Min Count |   Max Count |   Stdev Count |   Value mem |   Real |   Ratio |   System | Encoding           |   Total |   TTL Min |   TTL Max |   TTL Avg |
+|:-------------|--------:|------------:|------------:|------------:|--------------:|------------:|-------:|--------:|---------:|:-------------------|--------:|----------:|----------:|----------:|
+| kimdubi_list |       1 |      100000 |      100000 |      100000 |             0 |      488890 | 800000 |    1.64 |  2101248 | quicklist [100.0%] | 2901248 |        -1 |        -1 |     -1.00 |
+| Total:       |       1 |           0 |           0 |           0 |             0 |      488890 | 800000 |    0.00 |  2101248 |                    | 2901248 |        -1 |        -1 |    nan    |
+
+Stat by &lt;set&gt;
+
+| Match       |   Count |   Avg Count |   Value mem |    Real |   Ratio |   System* | Encoding           |   Total |   TTL Min |   TTL Max |   TTL Avg. |
+|:------------|--------:|------------:|------------:|--------:|--------:|----------:|:-------------------|--------:|----------:|----------:|-----------:|
+| kimdubi_set |       1 |      100000 |      488890 | 3200000 |    6.55 |   3149824 | hashtable [100.0%] | 6349824 |        -1 |        -1 |      -1.00 |
+| Total:      |       1 |           0 |      488890 | 3200000 |    0.00 |   3149824 |                    | 6349824 |        -1 |        -1 |     nan    |
+</code></pre><p>이 분석 결과에서 유용한 것은 data 별 메모리 사이즈 뿐만 아니라<br>
+global 영역에서 보여주는 redisKeySpaceOverhead  3149824 byte 정보도 중요할 수 있는데요. key를 생성하면서 할당되는 오버헤드의 총합으로, key의 개수가 많아질 수록 이 값도 커지게 됩니다.<br>
+위 분석 결과에서 총 Redis 사용 메모리 used_memory_human 34mb 중에 key 할당에만 사용된 overhead가 3mb 면 10%에 해당하는 값으로 생각보다 크다고 느껴졌습니다.<br>
+그래서 key를 줄이는게 Redis memory 사용량을 얼마나 절감시킬 수 있을까 테스트를 해보았습니다.</p>
+<p><a href="https://kimdubi.github.io/nosql/redis_str_to_hash/">https://kimdubi.github.io/nosql/redis_str_to_hash/</a></p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

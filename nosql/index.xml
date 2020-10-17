@@ -5,10 +5,143 @@
     <description>Recent content in Nosqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 17 Aug 2020 02:07:58 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 17 Oct 2020 15:43:10 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/nosql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Redis data type 변경으로 Memory 아껴 써보자</title>
+      <link>https://kimdubi.github.io/nosql/redis_str_to_hash/</link>
+      <pubDate>Sat, 17 Oct 2020 15:43:10 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/nosql/redis_str_to_hash/</guid>
+      <description>&lt;p&gt;Redis 에 값을 저장할 때 key 하나 하나에 들어가는 overhead는  50 bytes 정도 (Redis 3.2 기준) 로 생각보다 큽니다.&lt;br&gt;
+만약 관리의 편리성 때문에 String type 을 많이 쓰는 서비스가 있다면 다른 자료구조를 사용할 때 보다 많은 Key를 사용하게 될 것인데&lt;br&gt;
+이때 String 을 Hash 로 바꾸면 데이터는 온전히 보전하면서 Key 자체 개수를 줄여 메모리를 좀 더 효율적으로 쓸 수 있지 않을까? 하는 생각에 테스트를 해보게 되었습니다. &lt;br&gt;
+( 사실 이거 보고 궁금해져서..  &lt;a href=&#34;http://redisgate.kr/redis/configuration/server_memory.php&#34;&gt;http://redisgate.kr/redis/configuration/server_memory.php&lt;/a&gt; )&lt;/p&gt;
+&lt;h3 id=&#34;data-type--key-memory-usage&#34;&gt;data Type 별 Key Memory usage&lt;/h3&gt;
+&lt;p&gt;아래는 Redis 5.0.8 기준으로 테스트 진행했습니다.&lt;br&gt;
+Key Overhead는 Redis 버전마다 다르고 5.0.8 에서는 정확한 수치는 찾을 수 없었지만 대략 40 byte 라고 가정했습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;String&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; set &amp;quot;&amp;quot; &amp;quot;&amp;quot;
+OK
+127.0.0.1:6001&amp;gt; type &amp;quot;&amp;quot;
+string
+127.0.0.1:6001&amp;gt; memory usage &amp;quot;&amp;quot;
+(integer) 46
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; (Key Overhead 40 Byte) + key size + (String Overhead ?? Byte) + value size&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;List&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; lpush &amp;quot;&amp;quot; &amp;quot;&amp;quot;
+(integer) 1
+127.0.0.1:6001&amp;gt; type &amp;quot;&amp;quot;
+list
+127.0.0.1:6001&amp;gt; memory usage &amp;quot;&amp;quot;
+(integer) 129
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; (Key Overhead 40 Byte) + key size + (List Overhead ?? Byte) + value size&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Set&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; sadd &amp;quot;&amp;quot; &amp;quot;&amp;quot;
+(integer) 1
+127.0.0.1:6001&amp;gt; type &amp;quot;&amp;quot;
+set
+127.0.0.1:6001&amp;gt; memory usage &amp;quot;&amp;quot;
+(integer) 200
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; (Key Overhead 40 Byte) + key size + (Set Overhead ?? Byte) + value size&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Hash&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; hset &amp;quot;&amp;quot; &amp;quot;&amp;quot; &amp;quot;&amp;quot;
+(integer) 1
+127.0.0.1:6001&amp;gt; type &amp;quot;&amp;quot;
+hash
+127.0.0.1:6001&amp;gt; memory usage &amp;quot;&amp;quot;
+(integer) 59
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; (Key Overhead 40 Byte) + key size + field size + (Hash Overhead ?? Byte) + value size&lt;/p&gt;
+&lt;p&gt;Redis data type 별로 overhead 가 달라 계산식은 다르지만 공통적으로 Key Overhead 가 꽤 크니&lt;br&gt;
+몇 억개의 String 을 쓰는 서비스가 Hash type으로 data type을 변경할 수 있다면 이에 따른 메모리 절감 효과가 있을 거라고 생각했습니다.&lt;/p&gt;
+&lt;h3 id=&#34;string-vs-hash-memory-usage-test&#34;&gt;String vs Hash Memory usage test&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;String&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; set kimdubi1 test1
+OK
+127.0.0.1:6001&amp;gt; set kimdubi2 test2
+OK
+
+127.0.0.1:6001&amp;gt; memory usage kimdubi1
+(integer) 57
+127.0.0.1:6001&amp;gt; memory usage kimdubi2
+(integer) 57
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; String type Key 두개 일 때 114 bytes 사용&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Hash&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6001&amp;gt; hset kimdubi kimdubi1 test1
+(integer) 1
+127.0.0.1:6001&amp;gt; memory usage kimdubi
+(integer) 77
+
+127.0.0.1:6001&amp;gt; hset kimdubi kimdubi2 test2
+(integer) 1
+
+127.0.0.1:6001&amp;gt; memory usage kimdubi
+(integer) 94
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; Hash type 사용 시 data 하나 저장했을 땐 Hash type 의 메모리 사용량이 더 컸지만 ( 57 &amp;lt; 77)&lt;br&gt;
+하나의 Key에 데이터를 두개 저장하면서부터 Hash type이 더 적은 메모리를 사용하는 것을 확인할 수 있습니다. ( 57*2 &amp;gt; 94)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;백만 건 비교&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import redis
+import uuid
+
+conn_redis = redis.Redis(host=&amp;quot;localhost&amp;quot;, port=6379, password=&amp;quot;qhdks123&amp;quot;,db=0)
+
+### String 
+for i in range(0,1000000):
+    conn_redis.set(&amp;quot;kimdubi&amp;quot;+str(i), str(uuid.uuid4())+str(i))
+
+### Hash
+value=0
+for i in range(0,2000):
+    for j in range(0,500):
+        conn_redis.hset(&amp;quot;kimdubi&amp;quot;+str(i),&amp;quot;kimdubi&amp;quot;+str(value),str(uuid.uuid4())+str(value))
+        value=value+1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 위와 같은 간단한 코드를 통해 String type, Hash type 에 각각 데이터 백만건을 넣었습니다.&lt;br&gt;
+Hash type 같은 경우에는 hash-max-ziplist-entries 512 설정에 의해 하나의 key에 field 개수가 512를 초과하는 경우&lt;br&gt;
+ziplist -&amp;gt; hashtable로 관리되어 사이즈가 커지는 것을 고려하여 하나의 key에 field 500개만 저장했으며 이를 직관적으로 구현하다보니&lt;br&gt;
+위의 코드처럼 String 과 Hash 간 key의 생김새가 조금 달라지게 되었지만 memory usage 비교하는데에는 큰 영향이 없습니다&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;String&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;# Keyspace
+db0:keys=1000000,expires=0,avg_ttl=0
+
+# Memory
+used_memory:113243808
+used_memory_human:108.00M
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;hash&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;# Keyspace
+db0:keys=2000,expires=0,avg_ttl=0
+
+# Memory
+used_memory:65704496
+used_memory_human:62.66M
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;String (108MB) 을 Hash (62.66MB) 로 저장 시 대략 40% 효과가 있었습니다.&lt;br&gt;
+물론 실제 서비스에서 적용하려면 Hash 로 완벽하게 호환이 되는지 여러가지 고려사항을 따져봐야겠지만&lt;br&gt;
+똑같은 데이터를 저장하더라도 data type에 의해 memory 사용량 차이가 크게 날 수 있다는 것을 고려하여 서비스 구축 시 잘 설계해야겠습니다.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Redis client_output_buffer_limit</title>

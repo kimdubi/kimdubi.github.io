@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>OUTER JOIN OR 조건 튜닝</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">OUTER JOIN OR 조건 튜닝</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>OUTER JOIN OR 조건 튜닝</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><p>쿼리 검수를 하는데 처음 접하는 쿼리를 보게 되어 당황스러웠던 경험이 있습니다.<br>
+바로 LEFT OUTER JOIN 의 JOIN 절에 OR 조건이 달려있는 쿼리였는데요.<br>
+항상 JOIN on a.id = b.id 같은 단일조건, 조건이 더 달려 봤자 AND 조건이었는데 OR 조건은 처음 접하는 경험이었는데요<br>
+저는 LEFT OUTER JOIN 절에 OR 조건이 포함되면 인덱스를 타지못해 성능이 좋지 않아 아래와 같이 쿼리를 튜닝했습니다.</p>
+<h3 id="-">쿼리 확인</h3>
+<pre><code>select
+  tb1.`ymdt` as col_0_0_,
+  tb1.`amount` as col_1_0_,
+.
+.
+.
+  tb4.`c_id` as col_10_0_,
+  tb4.`issue_id` as col_11_0_
+from
+  tb_test1 tb1
+  inner join tb_test2 tb2 on tb1.`order_no` = tb2.`order_no`
+  inner join `tb_test3` tb3 on tb1.`order_no` = tb3.`order_no`
+  left outer join tb_test4 tb4 on (
+    tb4.`no` = tb1.`no`
+    or tb4.`no` = tb1.`origin_no` )
+where
+  tb1.`ymdt` &gt;= ?
+  and tb1.`ymdt` &lt; ?
+  and exists (
+      select '1' from tb_test5 tb5 where tb5.`order_no` = tb1.`order_no`
+        and ( tb5.`coupon_id` in ( ? )) )
+order by 
+.
+.
+
+</code></pre><h3 id="heading">실행계획</h3>
+<pre><code>+----+-------------+-----------+------------+------+----------------------------------+---------------+---------+------------------------------+---------+----------+--------------------------------------------------+
+| id | select_type | table     | partitions | type | possible_keys                    | key           | key_len | ref                          | rows    | filtered | Extra                                            |
++----+-------------+-----------+------------+------+----------------------------------+---------------+---------+------------------------------+---------+----------+--------------------------------------------------+
+|  1 | SIMPLE      | tb5       | p202002,....| ref  | ink1,ink4                        | ink4          | 82      | const                        |       1 |   100.00 | Using temporary; Using filesort; Start temporary |
+|  1 | SIMPLE      | tb1       | p202010     | ref  | ink01, ink03,idx2                | ink03         | 82      | tb5.no                       |       1 |    23.93 | Using index condition; End temporary             |
+|  1 | SIMPLE      | tb2       | p202002,....| ref  | PRIMARY,idx1                     | PRIMARY       | 82      | tb5.no                       |       1 |   100.00 | NULL                                             |
+|  1 | SIMPLE      | tb3       | p202002,....| ref  | PRIMARY                          | PRIMARY       | 82      | tb5.order_no                 |       1 |   100.00 | NULL                                             |
+|  1 | SIMPLE      | tb4       | p202002,....| ALL  | PRIMARY                          | NULL          | NULL    | NULL                         | 4605120 |   100.00 | Range checked for each record (index map: 0x1)   |
++----+-------------+-----------+------------+------+----------------------------------+---------------+---------+------------------------------+---------+----------+--------------------------------------------------+
+</code></pre><p>=&gt; 실행 계획이 잘나가다가 tb4 부분을 보면 tb4 를 조인할 때 풀스캔을 하면서 수많은 row를 읽게 됩니다.
+LEFT OUTER JOIN 절에 OR 로 인해서 인덱스를 타지 못해서 엄청난 비효율이 발생하고 있습니다.</p>
+<h3 id="-1">쿼리 튜닝</h3>
+<pre><code>select
+  tb1.`ymdt` as col_0_0_,
+  tb1.`amount` as col_1_0_,
+.
+.
+.
+  COALESCE(tb4.`c_id`, tb6.`c_id`) as col_10_0_, 
+  COALESCE(tb4.`issue_id`, tb6.`issue_id`) as col_11_0_
+from
+  tb_test1 tb1
+  inner join tb_test2 tb2 on tb1.`order_no` = tb2.`order_no`
+  inner join `tb_test3` tb3 on tb1.`order_no` = tb3.`order_no`
+  left outer join tb_test4 tb4 on ( tb4.`no` = tb1.`no` )
+  left outer join tb_test4 tb6 on ( tb6.`no` = tb1.`origin_no`)
+where
+  tb1.`ymdt` &gt;= ?
+  and tb1.`ymdt` &lt; ?
+  and exists (
+      select '1' from tb_test5 tb5 where tb5.`order_no` = tb1.`order_no`
+        and ( tb5.`coupon_id` in ( ? )) )
+order by 
+.
+.
+</code></pre><ul>
+<li>LEFT OUTER JOIN OR 부분을 컬럼 별로 JOIN 할 수 있도록 수정</li>
+<li>SELECT 절에서 기존 tb4 에서 가져오던 컬럼이 tb4, tb6 으로 나뉘어졌기 때문에 COALESCE 함수를 사용하도록 수정함</li>
+</ul>
+<h3 id="--">튜닝한 쿼리 실행계획</h3>
+<pre><code>+----+-------------+------------+----------------+-------+-----------------------------+---------------+---------+-------+----------+------------------------------+
+| id | select_type | table      | partitions     | type  | possible_keys               | key           | key_len | rows  | filtered | Extra                        |
++----+-------------+------------+----------------+-------+-----------------------------+---------------+---------+-------+----------+------------------------------+
+|  1 | SIMPLE      | tb1        | p202010        | range | ink01,ink03                 | ink01         | 5       | 26702 |   100.00 | Using index condition        |
+|  1 | SIMPLE      | tb4        | p202002,,....  | ref   | PRIMARY                     | PRIMARY       | 82      |     1 |   100.00 | NULL                         |
+|  1 | SIMPLE      | tb6        | p202002,,....  | ref   | PRIMARY                     | PRIMARY       | 82      |     1 |   100.00 | Using index                  |
+|  1 | SIMPLE      | tb5        | p202002,,....  | ref   | ink1,ink4                   | ink1          | 82      |     1 |    30.00 | Using where; Start temporary |
+|  1 | SIMPLE      | tb2        | p202002,,....  | ref   | PRIMARY                     | PRIMARY       | 82      |     1 |   100.00 | NULL                         |
+|  1 | SIMPLE      | tb3        | p202002,,....  | ref   | PRIMARY                     | PRIMARY       | 82      |     1 |   100.00 | End temporary                |
++----+-------------+------------+----------------+-------+-----------------------------+---------------+---------+-------+----------+------------------------------+
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

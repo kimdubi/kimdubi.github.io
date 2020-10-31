@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL 특정 테이블만 시점복구 하기</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL 특정 테이블만 시점복구 하기</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL 특정 테이블만 시점복구 하기</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><p>얼마 전 서비스 로직 이슈로 특정 데이터들이 CASCADE 삭제되어 데이터가 유실되는 일이 발생했습니다.<br>
+영향 받은 테이블들은 전체 테이블들 중 두개였고 전체 서비스를 장애 시점 이전으로 롤백시킬 수는 없는 상황이었기 때문에 해당 테이블들만 복구를 진행했습니다.<br>
+대상 테이블들은 특히 또 FOREIGN KEY constraint 가 걸려있어서 여러모로 생각해줘야 하는 부분들이 많았습니다.</p>
+<p>먼저 복구 시나리오는 아래와 같습니다.</p>
+<pre><code>* 복구 시점 찾기
+* 최신 백업본 로드 (10/30일 새벽 백업본)
+* 10/30일 새벽 백업본 + 장애 시점 전 까지의 binary log 적용 ( 대상 테이블 관련 DML만 추출해서 적용하기 )
+* 장애유발쿼리 제거하고 그 이후부터 현재까지의 binary log 적용 (대상 테이블 관련 DML만 추출해서 적용하기 )
+</code></pre><ul>
+<li>복구 대상 binlog 추출</li>
+</ul>
+<pre><code>$ mysqlbinlog mysql-bin.000001 --start-position=&quot;1234&quot; --verbose -d testdb &gt; pre_restore_1_000001.sql
+$ mysqlbinlog mysql-bin.000002 --verbose -d testdb &gt; pre_restore_2_000002.sql
+$ mysqlbinlog mysql-bin.000003 --verbose -d testdb &gt; pre_restore_3_000003.sql
+$ mysqlbinlog mysql-bin.000004 --stop-position=&quot;4567&quot; --verbose -d testdb &gt; pre_restore_4_000004.sql
+</code></pre><p>=&gt; 백업본 dump file에 &ndash;dump-slave / &ndash;master-data 옵션으로 찍힌 master_log_pos를  start position 으로 지정함</p>
+<ul>
+<li>추출한 binlog 에서 복구 대상 테이블들만 추출</li>
+</ul>
+<pre><code>cat pre_restore_1_000001.sql  | grep -e tb_test1 -e tb_test2 &gt; pre_restore_1_000001.sql 
+cat pre_restore_2_000002.sql  | grep -e tb_test1 -e tb_test2 &gt; pre_restore_2_000002.sql 
+cat pre_restore_3_000003.sql  | grep -e tb_test1 -e tb_test2 &gt; pre_restore_3_000003.sql 
+cat pre_restore_4_000004.sql  | grep -e tb_test1 -e tb_test2 &gt; pre_restore_4_000004.sql 
+</code></pre><ul>
+<li>그 중에서 테이블들을 각각 추출</li>
+</ul>
+<pre><code>cat pre_restore_1_000001.sql | grep &quot;tb_test1&quot;  &gt; restore_tb_test1.sql
+cat pre_restore_2_000002.sql | grep &quot;tb_test1&quot;  &gt;&gt; restore_tb_test1.sql
+cat pre_restore_3_000003.sql | grep &quot;tb_test1&quot;  &gt;&gt; restore_tb_test1.sql
+cat pre_restore_4_000004.sql | grep &quot;tb_test1&quot;  &gt;&gt; restore_tb_test1.sql
+
+cat pre_restore_1_000001.sql | grep &quot;tb_test2&quot;  &gt; restore_tb_test2.sql
+cat pre_restore_2_000002.sql | grep &quot;tb_test2&quot;  &gt;&gt; restore_tb_test2.sql
+cat pre_restore_3_000003.sql | grep &quot;tb_test2&quot;  &gt;&gt; restore_tb_test2.sql
+cat pre_restore_4_000004.sql | grep &quot;tb_test2&quot;  &gt;&gt; restore_tb_test2.sql
+</code></pre><ul>
+<li>FK 상관없이 DML 적용하기 위한 FK OFF 옵션 추가</li>
+</ul>
+<pre><code>vi fk_check_off.txt
+SET FOREIGN_KEY_CHECKS = 0;
+
+vi fk_check_on.txt
+SET FOREIGN_KEY_CHECKS = 1;
+
+cat fk_check_off.txt restore_tb_test1.sql fk_check_on.txt &gt; final_tb_test1.sql
+cat fk_check_off.txt restore_tb_test2.sql fk_check_on.txt &gt; final_tb_test2.sql
+</code></pre><ul>
+<li>백업본에 추출한 쿼리 적용</li>
+</ul>
+<pre><code>### 10/30 백업본으로 복구용 DB 생성
+mysql testdb_bk &lt; bk_testdb_1030.sql 
+
+mysql bk_testdb &lt; final_tb_test1.sql
+mysql bk_testdb &lt; final_tb_test2.sql
+</code></pre><ul>
+<li>복구 테이블과 리얼 테이블 rename 바꿔치기</li>
+</ul>
+<pre><code>
+rename table testdb.tb_test1 to bk_testdb.bk_tb_test1 , bk_testdb.tb_test1 to testdb.tb_test1;
+rename table testdb.tb_test2 to bk_testdb.bk_tb_test2 , bk_testdb.tb_test2 to testdb.tb_test2;
+
+</code></pre><ul>
+<li>FK 조건 다시 정의하기</li>
+</ul>
+<pre><code>### show create table testdb.tb_test2
+
+CREATE TABLE `tb_test2` (
+`tenant_id` varchar(255) DEFAULT NULL,
+`id` varchar(36) NOT NULL,
+`name` varchar(255) DEFAULT NULL,
+`loadbalancer_id` varchar(36) DEFAULT NULL,
+PRIMARY KEY (`id`),
+CONSTRAINT `tb_test2_ibfk_1` FOREIGN KEY (`id`) REFERENCES `bk_testdb`.`tb_test1` (`id`)
+
+### show create table bk_testdb.bk_tb_test2
+
+CREATE TABLE `bk_tb_test2` (
+`tenant_id` varchar(255) DEFAULT NULL,
+`id` varchar(36) NOT NULL,
+`name` varchar(255) DEFAULT NULL,
+`loadbalancer_id` varchar(36) DEFAULT NULL,
+PRIMARY KEY (`id`),
+CONSTRAINT `tb_test2_ibfk_1` FOREIGN KEY (`id`) REFERENCES `testdb`.`tb_test1` (`id`)
+
+### 복구완료된 테이블 FK 재생성
+
+alter table testdb.tb_test2 drop foreign key tb_test2_ibfk_1;
+ALTER TABLE testdb.tb_test2 ADD FOREIGN KEY (id) REFERENCES testdb.tb_test1 (id);
+
+### 백업 테이블 FK DROP
+alter table bk_testdb.bk_tb_test2 drop foreign key tb_test2_ibfk_1;
+
+</code></pre><p>=&gt; rename table 을 해도 FK는 원본 부모 테이블을 계속 바라보고 있음<br>
+결국 bk_tb_test1 테이블들은 서비스에서 사용하지 않지만 FK constraint 에서 계속 참조되고 있어서 DML이 실패하게 됨</p>
+<pre><code>MySQL [testdb]&gt;  delete from tb_test2 where id='be124575-7791-4939-8b97-a7fcaac99151';
+ERROR 1451 (23000): Cannot delete or update a parent row: a foreign key constraint fails (`bk_testdb`.`bk_tb_test1`, CONSTRAINT `bk_tb_test1_ibfk_1` FOREIGN KEY (`id`) REFERENCES `testdb`.`tb_test1` (`id`))
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

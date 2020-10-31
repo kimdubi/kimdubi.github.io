@@ -5,10 +5,205 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 15 Oct 2020 16:52:16 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 31 Oct 2020 23:25:04 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>OUTER JOIN OR 조건 튜닝</title>
+      <link>https://kimdubi.github.io/mysql/outer_join_or/</link>
+      <pubDate>Sat, 31 Oct 2020 23:25:04 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/outer_join_or/</guid>
+      <description>&lt;p&gt;쿼리 검수를 하는데 처음 접하는 쿼리를 보게 되어 당황스러웠던 경험이 있습니다.&lt;br&gt;
+바로 LEFT OUTER JOIN 의 JOIN 절에 OR 조건이 달려있는 쿼리였는데요.&lt;br&gt;
+항상 JOIN on a.id = b.id 같은 단일조건, 조건이 더 달려 봤자 AND 조건이었는데 OR 조건은 처음 접하는 경험이었는데요&lt;br&gt;
+저는 LEFT OUTER JOIN 절에 OR 조건이 포함되면 인덱스를 타지못해 성능이 좋지 않아 아래와 같이 쿼리를 튜닝했습니다.&lt;/p&gt;
+&lt;h3 id=&#34;-&#34;&gt;쿼리 확인&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;select
+  tb1.`ymdt` as col_0_0_,
+  tb1.`amount` as col_1_0_,
+.
+.
+.
+  tb4.`c_id` as col_10_0_,
+  tb4.`issue_id` as col_11_0_
+from
+  tb_test1 tb1
+  inner join tb_test2 tb2 on tb1.`order_no` = tb2.`order_no`
+  inner join `tb_test3` tb3 on tb1.`order_no` = tb3.`order_no`
+  left outer join tb_test4 tb4 on (
+    tb4.`no` = tb1.`no`
+    or tb4.`no` = tb1.`origin_no` )
+where
+  tb1.`ymdt` &amp;gt;= ?
+  and tb1.`ymdt` &amp;lt; ?
+  and exists (
+      select &#39;1&#39; from tb_test5 tb5 where tb5.`order_no` = tb1.`order_no`
+        and ( tb5.`coupon_id` in ( ? )) )
+order by 
+.
+.
+
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;heading&#34;&gt;실행계획&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;+----+-------------+-----------+------------+------+----------------------------------+---------------+---------+------------------------------+---------+----------+--------------------------------------------------+
+| id | select_type | table     | partitions | type | possible_keys                    | key           | key_len | ref                          | rows    | filtered | Extra                                            |
++----+-------------+-----------+------------+------+----------------------------------+---------------+---------+------------------------------+---------+----------+--------------------------------------------------+
+|  1 | SIMPLE      | tb5       | p202002,....| ref  | ink1,ink4                        | ink4          | 82      | const                        |       1 |   100.00 | Using temporary; Using filesort; Start temporary |
+|  1 | SIMPLE      | tb1       | p202010     | ref  | ink01, ink03,idx2                | ink03         | 82      | tb5.no                       |       1 |    23.93 | Using index condition; End temporary             |
+|  1 | SIMPLE      | tb2       | p202002,....| ref  | PRIMARY,idx1                     | PRIMARY       | 82      | tb5.no                       |       1 |   100.00 | NULL                                             |
+|  1 | SIMPLE      | tb3       | p202002,....| ref  | PRIMARY                          | PRIMARY       | 82      | tb5.order_no                 |       1 |   100.00 | NULL                                             |
+|  1 | SIMPLE      | tb4       | p202002,....| ALL  | PRIMARY                          | NULL          | NULL    | NULL                         | 4605120 |   100.00 | Range checked for each record (index map: 0x1)   |
++----+-------------+-----------+------------+------+----------------------------------+---------------+---------+------------------------------+---------+----------+--------------------------------------------------+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 실행 계획이 잘나가다가 tb4 부분을 보면 tb4 를 조인할 때 풀스캔을 하면서 수많은 row를 읽게 됩니다.
+LEFT OUTER JOIN 절에 OR 로 인해서 인덱스를 타지 못해서 엄청난 비효율이 발생하고 있습니다.&lt;/p&gt;
+&lt;h3 id=&#34;-1&#34;&gt;쿼리 튜닝&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;select
+  tb1.`ymdt` as col_0_0_,
+  tb1.`amount` as col_1_0_,
+.
+.
+.
+  COALESCE(tb4.`c_id`, tb6.`c_id`) as col_10_0_, 
+  COALESCE(tb4.`issue_id`, tb6.`issue_id`) as col_11_0_
+from
+  tb_test1 tb1
+  inner join tb_test2 tb2 on tb1.`order_no` = tb2.`order_no`
+  inner join `tb_test3` tb3 on tb1.`order_no` = tb3.`order_no`
+  left outer join tb_test4 tb4 on ( tb4.`no` = tb1.`no` )
+  left outer join tb_test4 tb6 on ( tb6.`no` = tb1.`origin_no`)
+where
+  tb1.`ymdt` &amp;gt;= ?
+  and tb1.`ymdt` &amp;lt; ?
+  and exists (
+      select &#39;1&#39; from tb_test5 tb5 where tb5.`order_no` = tb1.`order_no`
+        and ( tb5.`coupon_id` in ( ? )) )
+order by 
+.
+.
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;LEFT OUTER JOIN OR 부분을 컬럼 별로 JOIN 할 수 있도록 수정&lt;/li&gt;
+&lt;li&gt;SELECT 절에서 기존 tb4 에서 가져오던 컬럼이 tb4, tb6 으로 나뉘어졌기 때문에 COALESCE 함수를 사용하도록 수정함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;--&#34;&gt;튜닝한 쿼리 실행계획&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;+----+-------------+------------+----------------+-------+-----------------------------+---------------+---------+-------+----------+------------------------------+
+| id | select_type | table      | partitions     | type  | possible_keys               | key           | key_len | rows  | filtered | Extra                        |
++----+-------------+------------+----------------+-------+-----------------------------+---------------+---------+-------+----------+------------------------------+
+|  1 | SIMPLE      | tb1        | p202010        | range | ink01,ink03                 | ink01         | 5       | 26702 |   100.00 | Using index condition        |
+|  1 | SIMPLE      | tb4        | p202002,,....  | ref   | PRIMARY                     | PRIMARY       | 82      |     1 |   100.00 | NULL                         |
+|  1 | SIMPLE      | tb6        | p202002,,....  | ref   | PRIMARY                     | PRIMARY       | 82      |     1 |   100.00 | Using index                  |
+|  1 | SIMPLE      | tb5        | p202002,,....  | ref   | ink1,ink4                   | ink1          | 82      |     1 |    30.00 | Using where; Start temporary |
+|  1 | SIMPLE      | tb2        | p202002,,....  | ref   | PRIMARY                     | PRIMARY       | 82      |     1 |   100.00 | NULL                         |
+|  1 | SIMPLE      | tb3        | p202002,,....  | ref   | PRIMARY                     | PRIMARY       | 82      |     1 |   100.00 | End temporary                |
++----+-------------+------------+----------------+-------+-----------------------------+---------------+---------+-------+----------+------------------------------+
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>MySQL 특정 테이블만 시점복구 하기</title>
+      <link>https://kimdubi.github.io/mysql/restore_specific_table/</link>
+      <pubDate>Sat, 31 Oct 2020 22:08:22 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/restore_specific_table/</guid>
+      <description>&lt;p&gt;얼마 전 서비스 로직 이슈로 특정 데이터들이 CASCADE 삭제되어 데이터가 유실되는 일이 발생했습니다.&lt;br&gt;
+영향 받은 테이블들은 전체 테이블들 중 두개였고 전체 서비스를 장애 시점 이전으로 롤백시킬 수는 없는 상황이었기 때문에 해당 테이블들만 복구를 진행했습니다.&lt;br&gt;
+대상 테이블들은 특히 또 FOREIGN KEY constraint 가 걸려있어서 여러모로 생각해줘야 하는 부분들이 많았습니다.&lt;/p&gt;
+&lt;p&gt;먼저 복구 시나리오는 아래와 같습니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;* 복구 시점 찾기
+* 최신 백업본 로드 (10/30일 새벽 백업본)
+* 10/30일 새벽 백업본 + 장애 시점 전 까지의 binary log 적용 ( 대상 테이블 관련 DML만 추출해서 적용하기 )
+* 장애유발쿼리 제거하고 그 이후부터 현재까지의 binary log 적용 (대상 테이블 관련 DML만 추출해서 적용하기 )
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;복구 대상 binlog 추출&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ mysqlbinlog mysql-bin.000001 --start-position=&amp;quot;1234&amp;quot; --verbose -d testdb &amp;gt; pre_restore_1_000001.sql
+$ mysqlbinlog mysql-bin.000002 --verbose -d testdb &amp;gt; pre_restore_2_000002.sql
+$ mysqlbinlog mysql-bin.000003 --verbose -d testdb &amp;gt; pre_restore_3_000003.sql
+$ mysqlbinlog mysql-bin.000004 --stop-position=&amp;quot;4567&amp;quot; --verbose -d testdb &amp;gt; pre_restore_4_000004.sql
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 백업본 dump file에 &amp;ndash;dump-slave / &amp;ndash;master-data 옵션으로 찍힌 master_log_pos를  start position 으로 지정함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;추출한 binlog 에서 복구 대상 테이블들만 추출&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;cat pre_restore_1_000001.sql  | grep -e tb_test1 -e tb_test2 &amp;gt; pre_restore_1_000001.sql 
+cat pre_restore_2_000002.sql  | grep -e tb_test1 -e tb_test2 &amp;gt; pre_restore_2_000002.sql 
+cat pre_restore_3_000003.sql  | grep -e tb_test1 -e tb_test2 &amp;gt; pre_restore_3_000003.sql 
+cat pre_restore_4_000004.sql  | grep -e tb_test1 -e tb_test2 &amp;gt; pre_restore_4_000004.sql 
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;그 중에서 테이블들을 각각 추출&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;cat pre_restore_1_000001.sql | grep &amp;quot;tb_test1&amp;quot;  &amp;gt; restore_tb_test1.sql
+cat pre_restore_2_000002.sql | grep &amp;quot;tb_test1&amp;quot;  &amp;gt;&amp;gt; restore_tb_test1.sql
+cat pre_restore_3_000003.sql | grep &amp;quot;tb_test1&amp;quot;  &amp;gt;&amp;gt; restore_tb_test1.sql
+cat pre_restore_4_000004.sql | grep &amp;quot;tb_test1&amp;quot;  &amp;gt;&amp;gt; restore_tb_test1.sql
+
+cat pre_restore_1_000001.sql | grep &amp;quot;tb_test2&amp;quot;  &amp;gt; restore_tb_test2.sql
+cat pre_restore_2_000002.sql | grep &amp;quot;tb_test2&amp;quot;  &amp;gt;&amp;gt; restore_tb_test2.sql
+cat pre_restore_3_000003.sql | grep &amp;quot;tb_test2&amp;quot;  &amp;gt;&amp;gt; restore_tb_test2.sql
+cat pre_restore_4_000004.sql | grep &amp;quot;tb_test2&amp;quot;  &amp;gt;&amp;gt; restore_tb_test2.sql
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;FK 상관없이 DML 적용하기 위한 FK OFF 옵션 추가&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;vi fk_check_off.txt
+SET FOREIGN_KEY_CHECKS = 0;
+
+vi fk_check_on.txt
+SET FOREIGN_KEY_CHECKS = 1;
+
+cat fk_check_off.txt restore_tb_test1.sql fk_check_on.txt &amp;gt; final_tb_test1.sql
+cat fk_check_off.txt restore_tb_test2.sql fk_check_on.txt &amp;gt; final_tb_test2.sql
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;백업본에 추출한 쿼리 적용&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### 10/30 백업본으로 복구용 DB 생성
+mysql testdb_bk &amp;lt; bk_testdb_1030.sql 
+
+mysql bk_testdb &amp;lt; final_tb_test1.sql
+mysql bk_testdb &amp;lt; final_tb_test2.sql
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;복구 테이블과 리얼 테이블 rename 바꿔치기&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;
+rename table testdb.tb_test1 to bk_testdb.bk_tb_test1 , bk_testdb.tb_test1 to testdb.tb_test1;
+rename table testdb.tb_test2 to bk_testdb.bk_tb_test2 , bk_testdb.tb_test2 to testdb.tb_test2;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;FK 조건 다시 정의하기&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### show create table testdb.tb_test2
+
+CREATE TABLE `tb_test2` (
+`tenant_id` varchar(255) DEFAULT NULL,
+`id` varchar(36) NOT NULL,
+`name` varchar(255) DEFAULT NULL,
+`loadbalancer_id` varchar(36) DEFAULT NULL,
+PRIMARY KEY (`id`),
+CONSTRAINT `tb_test2_ibfk_1` FOREIGN KEY (`id`) REFERENCES `bk_testdb`.`tb_test1` (`id`)
+
+### show create table bk_testdb.bk_tb_test2
+
+CREATE TABLE `bk_tb_test2` (
+`tenant_id` varchar(255) DEFAULT NULL,
+`id` varchar(36) NOT NULL,
+`name` varchar(255) DEFAULT NULL,
+`loadbalancer_id` varchar(36) DEFAULT NULL,
+PRIMARY KEY (`id`),
+CONSTRAINT `tb_test2_ibfk_1` FOREIGN KEY (`id`) REFERENCES `testdb`.`tb_test1` (`id`)
+
+### 복구완료된 테이블 FK 재생성
+
+alter table testdb.tb_test2 drop foreign key tb_test2_ibfk_1;
+ALTER TABLE testdb.tb_test2 ADD FOREIGN KEY (id) REFERENCES testdb.tb_test1 (id);
+
+### 백업 테이블 FK DROP
+alter table bk_testdb.bk_tb_test2 drop foreign key tb_test2_ibfk_1;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; rename table 을 해도 FK는 원본 부모 테이블을 계속 바라보고 있음&lt;br&gt;
+결국 bk_tb_test1 테이블들은 서비스에서 사용하지 않지만 FK constraint 에서 계속 참조되고 있어서 DML이 실패하게 됨&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;MySQL [testdb]&amp;gt;  delete from tb_test2 where id=&#39;be124575-7791-4939-8b97-a7fcaac99151&#39;;
+ERROR 1451 (23000): Cannot delete or update a parent row: a foreign key constraint fails (`bk_testdb`.`bk_tb_test1`, CONSTRAINT `bk_tb_test1_ibfk_1` FOREIGN KEY (`id`) REFERENCES `testdb`.`tb_test1` (`id`))
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>MySQL online으로 일반테이블 파티셔닝 전환하기</title>

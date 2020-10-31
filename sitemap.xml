@@ -4,7 +4,28 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-10-18T00:36:16+09:00</lastmod>
+    <lastmod>2020-10-31T23:25:04+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/</loc>
+    <lastmod>2020-10-31T23:25:04+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/outer_join_or/</loc>
+    <lastmod>2020-10-31T23:25:04+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/restore_specific_table/</loc>
+    <lastmod>2020-10-31T22:08:22+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
@@ -32,13 +53,6 @@
   
   <url>
     <loc>https://kimdubi.github.io/mysql/ptosc-partitioning/</loc>
-    <lastmod>2020-10-15T16:52:16+09:00</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://kimdubi.github.io/mysql/</loc>
     <lastmod>2020-10-15T16:52:16+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>

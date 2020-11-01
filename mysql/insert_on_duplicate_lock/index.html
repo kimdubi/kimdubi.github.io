@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL INSERT INTO ON DUPLICATE KEY UPDATE 로 인한 LOCK 이슈</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL INSERT INTO ON DUPLICATE KEY UPDATE 로 인한 LOCK 이슈</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL INSERT INTO ON DUPLICATE KEY UPDATE 로 인한 LOCK 이슈</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><p>MySQL의 편리한 기능 중 INSERT INTO ~ ON DUPLICATE KEY UPDATE 구문이 있습니다.<br>
+unique key, primary key 로 unique 제약조건이 걸려 있는 상황에서 중복된 데이터가 들어오면 DUPLICATE KEY UPDATE 구문으로 update 를 수행하는 구문인데요.<br>
+ORACLE 이나 기타 DB에서는 REPLCAE 에 해당하는 구문입니다.</p>
+<p>참 편리한 기능이지만 DML이 많이 발생하는 상황에서 동일한 ROW 에 UPDATE 를 시도하는 세션이 많이 쌓이는 경우<br>
+LOCK 과 함께 CPU가 급증하는 현상을 만날 수 있는 주의해야할 쿼리이기도 합니다.</p>
+<h3 id="-">장애 상황</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/duplicate_key_cpu.png" alt=""></p>
+<h3 id="-1">문제 쿼리</h3>
+<pre><code>CREATE TABLE `log_table` (
+  `VISIT_DATE` date NOT NULL ,
+  `LOG_TYPE` ,
+  `AD_NO` int(11) NOT NULL ,
+  `CLICK_CNT` int(11) NOT NULL DEFAULT '0' ,
+  `ADVER_NO` int(11) DEFAULT NULL,
+  `VIEW_CNT` int(11) DEFAULT '0',
+  `DEVICE` enum('I','A') NOT NULL DEFAULT 'I',
+  PRIMARY KEY (`VISIT_DATE`,`LOG_TYPE`,`AD_NO`,`DEVICE`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 
+
+
+INSERT INTO log_table ( VISIT_DATE, LOG_TYPE, AD_NO, VIEW_CNT, DEVICE ) values ( NOW(), 'T', 1671, 1, 'A' ) ON DUPLICATE KEY UPDATE VIEW_CNT = VIEW_CNT + 1
+
+</code></pre><h3 id="innodb-status-">innodb status 로그</h3>
+<pre><code>------------------
+---TRANSACTION 14610287265, ACTIVE 1 sec inserting
+mysql tables in use 1, locked 1
+LOCK WAIT 2 lock struct(s), heap size 1136, 1 row lock(s)
+MySQL thread id 24699280, OS thread handle 140026551707392, query id 15835524797   update
+INSERT INTO log_table (
+                        VISIT_DATE, LOG_TYPE, AD_NO, VIEW_CNT, DEVICE
+                    ) values (
+                        NOW(), 'CALENDAR', 123, 1, 'A'
+                    )
+                    ON DUPLICATE KEY UPDATE
+                        VIEW_CNT = VIEW_CNT + 1
+------------------
+---TRANSACTION 14610287264, ACTIVE 1 sec inserting
+mysql tables in use 1, locked 1
+LOCK WAIT 2 lock struct(s), heap size 1136, 1 row lock(s)
+MySQL thread id 24699201, OS thread handle 140026585519872, query id 15835524793   update
+INSERT INTO log_table (
+                        VISIT_DATE, LOG_TYPE, AD_NO, VIEW_CNT, DEVICE
+                    ) values (
+                        NOW(), 'CALENDAR', 123, 1, 'A'
+                    )
+                    ON DUPLICATE KEY UPDATE
+                        VIEW_CNT = VIEW_CNT + 1
+------------------
+---TRANSACTION 14610287241, ACTIVE 1 sec inserting
+mysql tables in use 1, locked 1
+LOCK WAIT 2 lock struct(s), heap size 1136, 1 row lock(s)
+MySQL thread id 24698954, OS thread handle 140026719504128, query id 15835524475 10.161.40.131 pinkdiary2 update
+INSERT INTO log_table (
+                        VISIT_DATE, LOG_TYPE, AD_NO, VIEW_CNT, DEVICE
+                    ) values (
+                        NOW(), 'CALENDAR', 123, 1, 'A'
+                    )
+                    ON DUPLICATE KEY UPDATE
+                        VIEW_CNT = VIEW_CNT + 1
+</code></pre><h3 id="-2">장애 원인</h3>
+<p>위 테이블에서 visit_date 컬럼은 datetime type 이 아니라 date type고 결국 now() 는 &lsquo;2020-11-01&rsquo; 로 데이터가 들어가게 됩니다.<br>
+그래서 결국 같은 ROW 에 update 가 많이 발생되게 되어 lock 경합이 심해지고 deadlock 이 발생하기 좋은 환경이 됩니다.<br>
+<!-- raw HTML omitted -->
+MySQL 에서는 &ldquo;UPDATE 테이블 SET counter = counter + 1 WHERE key='a&rsquo;&rdquo; 를 처리할 때 아래와 같이 동작합니다.(insert on duplicate key update 동일)</p>
+<ul>
+<li>먼저 counter 필드 값을 읽고 이 때 다른 트랜잭션에서 값을 변경하는 것을 막기 위해 해당 레코드에 Shared Lock을 획득</li>
+<li>실제 업데이트를 수행할 때 다시 Exclusive Lock을 획득</li>
+</ul>
+<pre><code>BEGIN;
+SELECT @var := counter FROM log_tale WHERE key=OO LOCK IN SHARE MODE;
+UPDATE log_table SET counter = @var + 1 WHERE key=OO;
+COMMIT;
+</code></pre><p>이 때 여러 세션이 동일하게 들어오면 서로 같은 row 에 대해 SHARED LOCK을 획득한 후 서로 Exclusive Lock 을 획득하려 하기 때문에 deadlock 이 발생하게 됩니다.</p>
+<h3 id="heading">해결방안</h3>
+<p>위에서 본 UPDATE 수행 과정이 해당 레코드에 대해 LOCK IN SHARE MODE 가 아니라 FOR UPDATE 로 적용되면 간단하게 해결되지만.. MySQL에서 수정되지 않는 이상 힘들것 같습니다.</p>
+<pre><code>BEGIN;
+SELECT @var := counter FROM log_tale WHERE key='a' FOR UPDATE;
+UPDATE log_table SET counter = @var + 1 WHERE key='a';
+COMMIT;
+</code></pre><p>따라서 아래 두가지 방법 중 하나로 우회하는 방법이 있겠습니다.</p>
+<ul>
+<li>트랜잭션 시작 전 SET SESSION transaction isolation level READ COMMITTED; 선언</li>
+<li>temporary table 생성 후 temp 테이블에 insert 후 리얼 테이블의 PK 컬럼으로 group by 하여 count 를 sum 한 뒤 리얼 테이블에 update 치는 방식</li>
+<li>EH cache 같은 간단한 local cache를 사용하여 count 값을 캐싱해 놓다가 DB 와 동기화하는 방식</li>
+</ul>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

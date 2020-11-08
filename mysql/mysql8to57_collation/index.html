@@ -448,7 +448,7 @@ init_connect='SET NAMES utf8mb4 COLLATE utf8mb4_bin'
 <li>JDBC default 설정</li>
 </ul>
 <pre><code>String DB_URL = &quot;jdbc:mysql://172.18.0.101:3306/testdb&quot;; 
-</code></pre><p>=&gt; JDBC 설정에 connectionCollation 설정이 없으면 자동으로 utf8mb4_0900_ai_ci를 불러옴
+</code></pre><p>=&gt; JDBC 설정에 connectionCollation 설정이 없으면 자동으로 utf8mb4_0900_ai_ci를 불러옴<br>
 <img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/0900.png" alt=""></p>
 <ul>
 <li>connectionCollation 추가</li>
@@ -516,11 +516,11 @@ CREATE ALGORITHM = TEMPTABLE DEFINER = `mysql.sys` @`localhost` SQL SECURITY INV
 이로 인해 MySQL 5.7의 백업 mysqldump 를 MySQL 8.0 셋업할 때 사용하면 table 생성 구문 중 default charset 옵션만 설정된 테이블들이</p>
 <ul>
 <li>MySQL 8.0에서 5.7 원본의 테이블과 다르게 utf8mb4_0900_ai_ci 으로 생성될 수 있는 이슈가 있으며</li>
-<li>MySQL 8.0 -&gt; 5.7 로 replication 구성시 8.0의 binlog에서 utf8mb4_0900_ai_ci를 찾는 구문 때문에 5.7에서는 복제가 실패하는 이슈가 있습니다.<br>
-이를 위한 해결방법으로 첫번째, 5.7 mysqldump 파일에서 default_charset 만 설정되어있는 부분을 삭제하여 논리DB 설정에 따라 테이블이 생성될 수 있도록 수정하기<br>
-두번째, my.cnf에 init-connect 설정이나 JDBC에서 collationConnection 설정을 사용하여 세션들이 utf8mb4_0900_ai_ci 가 아닌 서로 호환되는 collation을 사용하도록 설정하기<br>
-같은 해결방법이 있다고 공유드렸습니다.</li>
+<li>MySQL 8.0 -&gt; 5.7 로 replication 구성시 8.0의 binlog에서 utf8mb4_0900_ai_ci를 찾는 구문 때문에 5.7에서는 복제가 실패하는 이슈가 있습니다.</li>
 </ul>
+<p>이를 위한 해결방법으로 첫번째, 5.7 mysqldump 파일에서 default_charset 만 설정되어있는 부분을 삭제하여 논리DB 설정에 따라 테이블이 생성될 수 있도록 수정하기<br>
+두번째, my.cnf에 init-connect 설정이나 JDBC에서 collationConnection 설정을 사용하여 세션들이 utf8mb4_0900_ai_ci 가 아닌 서로 호환되는 collation을 사용하도록 설정하기<br>
+같은 해결방법이 있다고 공유드렸습니다.</p>
 </div>
 
 </main>

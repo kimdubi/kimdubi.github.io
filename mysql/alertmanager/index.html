@@ -137,8 +137,7 @@
     <div align="start" class="content" text-align="center"><p>지난 글에서 MySQL 에서 생기는 일들을 모니터링 하는 PMM 구축 방법에 대해 소개해드렸습니다.<br>
 <a href="https://kimdubi.github.io/mysql/pmm/">https://kimdubi.github.io/mysql/pmm/</a></p>
 <p>그러나 모니터링 서버가 있어도 바로 이슈를 전달 받지 못하면 아무 소용이 없겠죠?<br>
-그래서 이번 글에서는 alertmanager 를 통해서 PMM에서 감지 된 이슈들을<br>
-sms으로 받는 방법에 대해 소개해드리겠습니다.</p>
+그래서 이번 글에서는 alertmanager 를 통해서 PMM에서 감지 된 이슈들을 sms으로 받는 방법에 대해 소개해드리겠습니다.</p>
 <h3 id="alertmanager-">alertmanager 란?</h3>
 <p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/pmm_alert.png" alt=""></p>
 <p>prometheus 를 통해 수집된 metric에서 사전에 설정해둔 alert rule 에 해당하는<br>
@@ -232,10 +231,10 @@ alert rule 예제는 아래 참고!!<br>
 /engn001/alertmanager/alertmanager -config.file=/engn001/alertmanager/alertmanager.yaml &amp;
 </code></pre><h3 id="alertmanager--">alertmanager 동작 확인</h3>
 <ul>
-<li>MySQL restarted 이벤트 발생
+<li>MySQL restarted 이벤트 발생<br>
 <img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert1.png" alt=""><br>
 <!-- raw HTML omitted --></li>
-<li>alertmanager 감지 후 알람 발송
+<li>alertmanager 감지 후 알람 발송<br>
 <img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert2.png" alt=""><br>
 <!-- raw HTML omitted --></li>
 <li>slack에서 알람 수신

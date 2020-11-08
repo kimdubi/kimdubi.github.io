@@ -5,10 +5,406 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 01 Nov 2020 21:27:42 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 08 Nov 2020 21:39:41 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL 8.0 to MySQL 5.7 replication 구성 시 collation issue</title>
+      <link>https://kimdubi.github.io/mysql/mysql8to57_collation/</link>
+      <pubDate>Sun, 08 Nov 2020 21:39:41 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/mysql8to57_collation/</guid>
+      <description>&lt;p&gt;이번에 MySQL 5.7을 사용하는 서비스를 MySQL 8.0으로 업그레이드 하는 작업을 진행했습니다.&lt;br&gt;
+MySQL 8.0 은 MySQL 5.7에서 받은 mysqldump 로 신규 구성 후 MMM 을 사용하여 role change 과정을 통해 MySQL 8.0을 한대 씩 투입하여&lt;br&gt;
+최종적으로는 MySQL 8.0 두대를 서비스에 투입하고, 기존에 사용하던 MySQL 5.7은 혹시모를 롤백용으로 MySQL 8.0 -&amp;gt; MySQL 5.7로의 복제 구성하도록 남겨두는 게 시나리오였습니다.&lt;/p&gt;
+&lt;p&gt;MySQL 8.0 과 5.7 의 default collation이 달라서 실패했고 트러블 슈팅한 내용을 정리해봤습니다.&lt;br&gt;
+두 버전 간 default collation 이 달라서 생기는 이슈로 두가지가 있는데요&lt;/p&gt;
+&lt;p&gt;첫 번째로, MySQL 5.7의 mysqldump 파일로 MySQL 8.0 을 셋업한다면 MySQL 5.7에서는 utf8mb4_general_ci / utfmb4_bin 으로 생성된 테이블들이 MySQL 8.0 에서는 utf8mb4_0900_ai_ci 로 생성될 수 있습니다.&lt;br&gt;
+collation 이 달라지면 unique index , 데이터 읽어오는 결과값이 기존과는 다른 이슈가 생길 수 있기 때문에 반드시 살펴봐야 하는 이슈입니다.&lt;br&gt;
+두 번째로, MySQL 5.7-&amp;gt;8.0 으로의 리플리케이션이 불가능합니다.&lt;br&gt;
+MySQL 5.7 -&amp;gt; 8.0 버전업을 위한 작업 중 롤백 상황을 대비하여 구성한 MySQL 8.0.16 -&amp;gt; MySQL 5.7.15 replication 설정이 아래와 같은 charset 에러로 복제 실패하게 됩니다.&lt;br&gt;
+( 서버 &amp;amp; database 설정은 8.0, 5.7 모두 동일하게 세팅 되어있음 )&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;Last_SQL_Error: Error &#39;Character set &#39;#255&#39; is not a compiled character set and is not specified in the &#39;/home1/testuser/db/mysql/share/charsets/Index.xml&#39; file&#39; on query. Default database: &#39;test_db&#39;. Query: &#39;BEGIN&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;issue-1-mysql80--utf8mb40900aici---&#34;&gt;issue 1 MySQL8.0에서 테이블이 utf8mb4_0900_ai_ci 로 생성되는 이슈&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;MySQL 8.0 신규 서버 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; show variables like &#39;char%&#39;;
++--------------------------+----------------------------------------+
+| Variable_name            | Value                                  |
++--------------------------+----------------------------------------+
+| character_set_client     | utf8                                   |
+| character_set_connection | utf8                                   |
+| character_set_database   | utf8mb4                                |
+| character_set_filesystem | binary                                 |
+| character_set_results    | utf8                                   |
+| character_set_server     | utf8mb4                                |
+| character_set_system     | utf8                                   |
+| character_sets_dir       | /home1/testuser/db/mysql/share/charsets/ |
++--------------------------+----------------------------------------+
+8 rows in set (0.00 sec)
+
+mysql&amp;gt; show variables like &#39;coll%&#39;;
++----------------------+--------------------+
+| Variable_name        | Value              |
++----------------------+--------------------+
+| collation_connection | utf8_general_ci    |
+| collation_database   | utf8mb4_general_ci |
+| collation_server     | utf8mb4_general_ci |
++----------------------+--------------------+
+3 rows in set (0.01 sec)
+
+mysql&amp;gt; show create database test_db;
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------------+
+| Database                 | Create Database                                                                                                                             |
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------------+
+| test_db | CREATE DATABASE `test_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin */ /*!80016 DEFAULT ENCRYPTION=&#39;N&#39; */ |
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------------+
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;MySQL 5.7 구 서버 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt;  show variables like &#39;char%&#39;;
++--------------------------+----------------------------------------+
+| Variable_name            | Value                                  |
++--------------------------+----------------------------------------+
+| character_set_client     | utf8                                   |
+| character_set_connection | utf8                                   |
+| character_set_database   | utf8mb4                                |
+| character_set_filesystem | binary                                 |
+| character_set_results    | utf8                                   |
+| character_set_server     | utf8mb4                                |
+| character_set_system     | utf8                                   |
+| character_sets_dir       | /home1/testuser/db/mysql/share/charsets/ |
++--------------------------+----------------------------------------+
+8 rows in set (0.00 sec)
+
+mysql&amp;gt; show variables like &#39;coll%&#39;;
++----------------------+--------------------+
+| Variable_name        | Value              |
++----------------------+--------------------+
+| collation_connection | utf8_general_ci    |
+| collation_database   | utf8mb4_general_ci |
+| collation_server     | utf8mb4_general_ci |
++----------------------+--------------------+
+3 rows in set (0.00 sec)
+
+mysql&amp;gt; show create database test_db;
++--------------------------+----------------------------------------------------------------------------------------------------------+
+| Database                 | Create Database                                                                                          |
++--------------------------+----------------------------------------------------------------------------------------------------------+
+| test_db | CREATE DATABASE `test_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin */ |
++--------------------------+----------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;mysql-80--mysql-57-collation-&#34;&gt;MySQL 8.0 &amp;amp; MySQL 5.7 collation 비교&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;MySQL 8.0&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select * from information_schema.collations where COLLATION_NAME like &#39;utf8mb4_0900%&#39; or COLLATION_NAME = &#39;utf8mb4_bin&#39; or COLLATION_NAME like &#39;utf8mb4_general%&#39;;
++--------------------+--------------------+-----+------------+-------------+---------+---------------+
+| COLLATION_NAME     | CHARACTER_SET_NAME | ID  | IS_DEFAULT | IS_COMPILED | SORTLEN | PAD_ATTRIBUTE |
++--------------------+--------------------+-----+------------+-------------+---------+---------------+
+| utf8mb4_general_ci | utf8mb4            |  45 |            | Yes         |       1 | PAD SPACE     |
+| utf8mb4_bin        | utf8mb4            |  46 |            | Yes         |       1 | PAD SPACE     |
+| utf8mb4_0900_ai_ci | utf8mb4            | 255 | Yes        | Yes         |       0 | NO PAD        |
+| utf8mb4_0900_as_cs | utf8mb4            | 278 |            | Yes         |       0 | NO PAD        |
+| utf8mb4_0900_as_ci | utf8mb4            | 305 |            | Yes         |       0 | NO PAD        |
++--------------------+--------------------+-----+------------+-------------+---------+---------------+
+5 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; MySQL 8.0 에서 Chaset utf8mb4 일 때 default collation 은 utf8mb4_0900_ai_ci&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt; select table_schema,count(*) 
+ from tables 
+ where table_schema not in (&#39;performance_schema&#39;,&#39;sys&#39;,&#39;mysql&#39;,&#39;information_schema&#39;) 
+ and table_collation=&#39;utf8mb4_0900_ai_ci&#39; group by 1;
++----------------------------+----------+
+| TABLE_SCHEMA               | count(*) |
++----------------------------+----------+
+| test_c10001               |        5 |
+| test_c10002               |        5 |
+| test_c10003               |        5 |
+| test_c10004               |        5 |
+| test_c10005               |        5 |
+| test_c10006               |        4 |
+| test_c10007               |        5 |
+| test_c10008               |        5 |
+| test_c10010               |        7 |
+.
+.
+.
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;MySQL 5.7&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select * from information_schema.collations where COLLATION_NAME like &#39;utf8mb4_0900%&#39; or COLLATION_NAME = &#39;utf8mb4_bin&#39; or COLLATION_NAME like &#39;utf8mb4_general%&#39;;
++--------------------+--------------------+----+------------+-------------+---------+
+| COLLATION_NAME     | CHARACTER_SET_NAME | ID | IS_DEFAULT | IS_COMPILED | SORTLEN |
++--------------------+--------------------+----+------------+-------------+---------+
+| utf8mb4_general_ci | utf8mb4            | 45 | Yes        | Yes         |       1 |
+| utf8mb4_bin        | utf8mb4            | 46 |            | Yes         |       1 |
++--------------------+--------------------+----+------------+-------------+---------+
+2 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; MySQL 5.7 에서 Chaset utf8mb4 일 때 default collation 은 utf8mb4_general_ci&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt;  select table_schema,count(*) from tables where table_schema not in (&#39;performance_schema&#39;,&#39;sys&#39;,&#39;mysql&#39;,&#39;testdb&#39;,&#39;information_schema&#39;,&#39;db_helper&#39;) and table_collation=&#39;utf8mb4_general_ci&#39; group by 1;
++----------------------------+----------+
+| table_schema               | count(*) |
++----------------------------+----------+
+| test_c10001               |        5 |
+| test_c10002               |        5 |
+| test_c10003               |        5 |
+| test_c10004               |        5 |
+| test_c10005               |        5 |
+| test_c10006               |        4 |
+| test_c10007               |        5 |
+| test_c10008               |        5 |
+| test_c10010               |        7 |
+.
+.
+.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; MySQL 5.7 과 8.0의 charset,collation 설정이 같음에도 MySQL 5.7에서 utf8mb4_general_ci 로 생성된 테이블들이 MySQL 8.0 에서는 utf8mb4_0900_ai_ci 로 생성되었음을 확인&lt;/p&gt;
+&lt;h3 id=&#34;heading&#34;&gt;원인&lt;/h3&gt;
+&lt;p&gt;=&amp;gt; 테이블 생성 구문에 따라 TABLE의 collation이 다르게 설정됨&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;utf8mb4 / utf8mb4_general_ci DATABASE 생성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select version();
++-----------+
+| version() |
++-----------+
+| 8.0.16    |
++-----------+
+
+ CREATE DATABASE `collate_test_ci` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */ ;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;charset / collation 구문 없이 생성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt; mysql&amp;gt; create table tb_test (a varchar(10)) ;
+Query OK, 0 rows affected (0.02 sec)
+
+mysql&amp;gt; show create table tb_test;
++---------+-------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Table   | Create Table                                                                                                                                          |
++---------+-------------------------------------------------------------------------------------------------------------------------------------------------------+
+| tb_test | CREATE TABLE `tb_test` (
+  `a` varchar(10) COLLATE utf8mb4_general_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci |
++---------+-------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 논리 DB 설정대로 utf8mb4 / utf8mb4_general_ci 설정이 적용됨&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;charset만 지정해서 생성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; create table tb_test2 (a varchar(10)) DEFAULT CHARSET=utf8mb4 ;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql&amp;gt; show create table tb_test2;
++----------+-----------------------------------------------------------------------------------------------------------------------------+
+| Table    | Create Table                                                                                                                |
++----------+-----------------------------------------------------------------------------------------------------------------------------+
+| tb_test2 | CREATE TABLE `tb_test2` (
+  `a` varchar(10) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci |
++----------+-----------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 테이블에 default charset =utf8mb4 옵션 &amp;lsquo;만&amp;rsquo; 주면 논리 database 의 설정(utf8mb4 , utf8mb4_general_ci) 을 따라가는 게 아니라
+DB 버전의 default 설정인 charset=utf8mb4 의 default collation utf8mb4_0900_ai_ci 가 적용되어 생성됨&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;신규서버 구성시 사용한 백업본  mysqldump&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[testuser@testserver-t1002 21:39:07 ~/db/admin/work/13306/test_db ]$ head -n 40 test_db.sql
+-- MySQL dump 10.13  Distrib 5.7.15, for linux-glibc2.5 (x86_64)
+--
+-- Host: localhost    Database: test_db
+-- ------------------------------------------------------
+-- Server version       5.7.15-log
+
+.
+.
+.
+.
+
+
+DROP TABLE IF EXISTS `tb_test`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tb_test` (
+  `uid` varchar(50) NOT NULL ,
+  `email_id` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL ,
+  `mobile_id` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL ,
+  `text_id` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL ,
+  `password` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL ,
+  `id_format_code` varchar(20) NOT NULL ,
+  `name` varchar(100) DEFAULT NULL ,
+  `member_type_code` varchar(20) DEFAULT NULL ,
+  PRIMARY KEY (`uid`),
+  UNIQUE KEY `email_id_UNIQUE` (`email_id`),
+  UNIQUE KEY `mobile_id_UNIQUE` (`mobile_id`),
+  UNIQUE KEY `text_id_UNIQUE` (`text_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 신규 MySQL 8.0을 구성할 때 사용한 mysqldump 백업본에 위처럼 DEFAULT CHARSET=utf8mb4  설정으로 생성된 테이블들이 있음
+source DB인 MySQL 5.7 에서 위와 같이 생성했기 때문에 dump파일에도 동일한 생성 구문이 남음&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;utf8mb4_general_ci / utf8mb4_0900_ai_ci 차이점&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### utf8mb4_general_ci
+
+mysql&amp;gt; select &#39;a &#39;=&#39;a&#39;;
++----------+
+| &#39;a &#39;=&#39;a&#39; |
++----------+
+|        1 |
++----------+
+1 row in set (0.00 sec)
+
+=&amp;gt; utf8mb4_general_ci 는 PAD SPACE로 동작하여 뒤에 나오는 모든 공백을 제거함
+
+### utf8mb4_0900_ai_ci
+mysql&amp;gt; select &#39;a &#39;=&#39;a&#39;;
++----------+
+| &#39;a &#39;=&#39;a&#39; |
++----------+
+|        0 |
++----------+
+1 row in set (0.00 sec)
+
+=&amp;gt; utf8mb4_0900_ai_ci 는 NO PAD 로 동작하여 뒤에 나오는 공백을 제거하지않음
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;heading1&#34;&gt;해결방법&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;mysql 5.7 의 백업본으로 MySQL 8.0 을 구성하는 경우 mysqldump 를 스키마 따로, data 따로 받은 뒤 스키마 파일에서 DEFAULT CHARSET=utf8mb4 있는 부분을 제거 하여 테이블이 논리database 의 설정대로 적용되도록  반영한다&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;mysql-80--mysql-57--&#34;&gt;MySQL 8.0 -&amp;gt; MySQL 5.7 복제실패 이슈&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;utf8mb4_0900_ai_ci 테이블 / 컬럼 없어도 8.0 -&amp;gt; 5.7 복제 실패&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;Last_Error: Error &#39;Character set &#39;#255&#39; is not a compiled character set and is not specified in the &#39;/home1/testuser/db/mysql/share/charsets/Index.xml&#39; file&#39; on query. Default database: &#39;neoid_govtoast&#39;. Query: &#39;BEGIN&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;heading2&#34;&gt;원인&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;binlog 에 아래 처럼 set utf8mb4_0900_ai_ci 하는 부분이 포함 되어있기 때문임&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;/*!80011 SET @@session.default_collation_for_utf8mb4=255*//*!*/;
+BEGIN
+/*!*/;
+# at 345
+
+#201028 14:17:10 server id 9425  end_log_pos 892 CRC32 0x464b2a63       Query   thread_id=514413        exec_time=0     error_code=0
+use `neoid_govtoast`/*!*/;
+SET TIMESTAMP=1603862230/*!*/;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 이 커맨드가 MySQL 5.7 relay log에도 그대로 포함되어 수행하다 255 (utf8mb4_0900_ai_ci) 가 없어서 복제실패하게 됨&lt;/p&gt;
+&lt;h3 id=&#34;-1-mycnf-initconnect-&#34;&gt;해결방법 1. my.cnf init_connect 설정&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;SET NAMES utf8mb4 COLLATE utf8mb4_bin;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; flush logs;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; SET NAMES utf8mb4 COLLATE utf8mb4_bin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; insert into tb_collation_test values (&#39;asdf&#39;);
+Query OK, 1 row affected (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;binlog&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;/*!\C utf8mb4 *//*!*/;
+SET @@session.character_set_client=46,@@session.collation_connection=46,@@session.collation_server=45/*!*/;
+SET @@session.lc_time_names=0/*!*/;
+SET @@session.collation_database=DEFAULT/*!*/;
+/*!80011 SET @@session.default_collation_for_utf8mb4=255*//*!*/;
+BEGIN
+/*!*/;
+# at 324
+#201108 21:24:52 server id 7833  end_log_pos 454 CRC32 0x6b8ff67d       Query   thread_id=189668        exec_time=0     error_code=0
+use `repltest`/*!*/;
+SET TIMESTAMP=1604838292/*!*/;
+insert into tb_collation_test values (&#39;asdf&#39;)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;my.cnf&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;vi my.cnf
+
+[mysqld]
+init_connect=&#39;SET NAMES utf8mb4 COLLATE utf8mb4_bin&#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;-2-was--jdbc-&#34;&gt;해결방법 2. WAS 서버 JDBC 설정&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;JDBC default 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;String DB_URL = &amp;quot;jdbc:mysql://172.18.0.101:3306/testdb&amp;quot;; 
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; JDBC 설정에 connectionCollation 설정이 없으면 자동으로 utf8mb4_0900_ai_ci를 불러옴
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/0900.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;connectionCollation 추가&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;String DB_URL = &amp;quot;jdbc:mysql://172.18.0.101:3306/testdb?connectionCollation=utf8mb4_general_ci&amp;quot;; 
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/general_ci.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;-3-mysql-80-defaultcollationforutf8mb4--&#34;&gt;해결방법 3. MySQL 8.0의 default_collation_for_utf8mb4 값을 변경&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; set global default_collation_for_utf8mb4=utf8mb4_general_ci;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+mysql&amp;gt; show variables like &#39;default_collation_for_utf8mb4&#39;;
++-------------------------------+--------------------+
+| Variable_name                 | Value              |
++-------------------------------+--------------------+
+| default_collation_for_utf8mb4 | utf8mb4_general_ci |
++-------------------------------+--------------------+
+1 row in set (0.00 sec)
+
+
+### binlog
+
+/*!80011 SET @@session.default_collation_for_utf8mb4=45*//*!*/;
+BEGIN
+/*!*/;
+# at 310
+#201028 15:33:48 server id 7833  end_log_pos 378 CRC32 0x2c4d12c9       Table_map: `test`.`tb_test` mapped to number 171
+# at 378
+#201028 15:33:48 server id 7833  end_log_pos 810 CRC32 0xc4c5d5bf       Write_rows: table id 171 flags: STMT_END_F
+
+BINLOG &#39;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; binlog 에서  SET @@session.default_collation_for_utf8mb4=45&lt;br&gt;
+기존 255 (0900_ai_ci) 에서 45 (general_ci) 로 변경된 것 확인 가능&lt;/p&gt;
+&lt;h3 id=&#34;-&#34;&gt;주의 사항&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;위에서 default_collation_for_utf8mb4 를 변경하면
+sys 같은 메타데이터 용 DB의 utf8mb4_0900_ai_ci 로 생성되어 있는 테이블을 temptable 방식으로 참조하여 생성되는 view들이 동작하지 않게됨&lt;/li&gt;
+&lt;li&gt;이로 인한 영향도 파악 안됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### default_collation_for_utf8mb4 = utf8mb4_general_ci 로 변경
+mysql&amp;gt; show variables like &#39;default_collation_for_utf8mb4&#39;;
++-------------------------------+--------------------+
+| Variable_name                 | Value              |
++-------------------------------+--------------------+
+| default_collation_for_utf8mb4 | utf8mb4_general_ci |
++-------------------------------+--------------------+
+1 row in set (0.00 sec)
+
+
+### 임시 테이블과 조인하는 테이블의 collation이 맞지 않아 에러발생함
+mysql&amp;gt; select * from schema_table_statistics;
+ERROR 1267 (HY000): Illegal mix of collations (utf8mb4_0900_ai_ci,IMPLICIT) and (utf8mb4_general_ci,IMPLICIT) for operation &#39;=&#39;
+
+
+### schema_table_statistics view 생성구문
+
+CREATE ALGORITHM = TEMPTABLE DEFINER = `mysql.sys` @`localhost` SQL SECURITY INVOKER VIEW `schema_table_statistics` (
+  `table_schema`,
+  `table_name`,
+  .
+  .
+  .
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;heading3&#34;&gt;정리&lt;/h2&gt;
+&lt;p&gt;MySQL 8.0 의 default collation 은 utf8mb4_0900_ai_ci 로 unicode 9를 지원하며 엑센트와 대소문자를 구분하지 않고 문자열 뒤의 공백을 지우지 않는 collation 으로 변경됐습니다.&lt;br&gt;
+이로 인해 MySQL 5.7의 백업 mysqldump 를 MySQL 8.0 셋업할 때 사용하면 table 생성 구문 중 default charset 옵션만 설정된 테이블들이&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;MySQL 8.0에서 5.7 원본의 테이블과 다르게 utf8mb4_0900_ai_ci 으로 생성될 수 있는 이슈가 있으며&lt;/li&gt;
+&lt;li&gt;MySQL 8.0 -&amp;gt; 5.7 로 replication 구성시 8.0의 binlog에서 utf8mb4_0900_ai_ci를 찾는 구문 때문에 5.7에서는 복제가 실패하는 이슈가 있습니다.&lt;br&gt;
+이를 위한 해결방법으로 첫번째, 5.7 mysqldump 파일에서 default_charset 만 설정되어있는 부분을 삭제하여 논리DB 설정에 따라 테이블이 생성될 수 있도록 수정하기&lt;br&gt;
+두번째, my.cnf에 init-connect 설정이나 JDBC에서 collationConnection 설정을 사용하여 세션들이 utf8mb4_0900_ai_ci 가 아닌 서로 호환되는 collation을 사용하도록 설정하기&lt;br&gt;
+같은 해결방법이 있다고 공유드렸습니다.&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>MySQL INSERT INTO ON DUPLICATE KEY UPDATE 로 인한 LOCK 이슈</title>
@@ -1263,8 +1659,7 @@ IN을 무조건 &amp;lsquo;=&amp;rsquo; 조건 취급할 게 아니라는 것, �
       <description>&lt;p&gt;지난 글에서 MySQL 에서 생기는 일들을 모니터링 하는 PMM 구축 방법에 대해 소개해드렸습니다.&lt;br&gt;
 &lt;a href=&#34;https://kimdubi.github.io/mysql/pmm/&#34;&gt;https://kimdubi.github.io/mysql/pmm/&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;그러나 모니터링 서버가 있어도 바로 이슈를 전달 받지 못하면 아무 소용이 없겠죠?&lt;br&gt;
-그래서 이번 글에서는 alertmanager 를 통해서 PMM에서 감지 된 이슈들을&lt;br&gt;
-sms으로 받는 방법에 대해 소개해드리겠습니다.&lt;/p&gt;
+그래서 이번 글에서는 alertmanager 를 통해서 PMM에서 감지 된 이슈들을 sms으로 받는 방법에 대해 소개해드리겠습니다.&lt;/p&gt;
 &lt;h3 id=&#34;alertmanager-&#34;&gt;alertmanager 란?&lt;/h3&gt;
 &lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/pmm_alert.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
 &lt;p&gt;prometheus 를 통해 수집된 metric에서 사전에 설정해둔 alert rule 에 해당하는&lt;br&gt;
@@ -1358,10 +1753,10 @@ alert rule 예제는 아래 참고!!&lt;br&gt;
 /engn001/alertmanager/alertmanager -config.file=/engn001/alertmanager/alertmanager.yaml &amp;amp;
 &lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;alertmanager--&#34;&gt;alertmanager 동작 확인&lt;/h3&gt;
 &lt;ul&gt;
-&lt;li&gt;MySQL restarted 이벤트 발생
+&lt;li&gt;MySQL restarted 이벤트 발생&lt;br&gt;
 &lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert1.png&#34; alt=&#34;&#34;&gt;&lt;br&gt;
 &lt;!-- raw HTML omitted --&gt;&lt;/li&gt;
-&lt;li&gt;alertmanager 감지 후 알람 발송
+&lt;li&gt;alertmanager 감지 후 알람 발송&lt;br&gt;
 &lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/alert2.png&#34; alt=&#34;&#34;&gt;&lt;br&gt;
 &lt;!-- raw HTML omitted --&gt;&lt;/li&gt;
 &lt;li&gt;slack에서 알람 수신

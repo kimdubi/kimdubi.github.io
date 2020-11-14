@@ -139,13 +139,13 @@
 PostgreSQL은 Vacuum 동작을 자동으로 수행하는 AutoVacuum을 통해 아래 두가지 작업을 수행합니다.</p>
 <ul>
 <li>transaction id wraparound 방지</li>
-<li>임계치 이상으로 발생한 dead tuple을 정리하여 FSM (Free Space Map) 으로 반환<br>
-위 두가지를 수행하지 않고 방치하면 어떤 문제점이 생기는지에 대해서는 PostgreSQL을 소개하며 간단히 다룬 적이 있으니 참고하시기 바랍니다.<br>
-<a href="https://kimdubi.github.io/postgresql/psql_intro/">https://kimdubi.github.io/postgresql/psql_intro/</a></li>
+<li>임계치 이상으로 발생한 dead tuple을 정리하여 FSM (Free Space Map) 으로 반환</li>
 </ul>
+<p>위 두가지를 수행하지 않고 방치하면 어떤 문제점이 생기는지에 대해서는 PostgreSQL을 소개하며 간단히 다룬 적이 있으니 참고하시기 바랍니다.<br>
+<a href="https://kimdubi.github.io/postgresql/psql_intro/">https://kimdubi.github.io/postgresql/psql_intro/</a></p>
 <p>PostgreSQL을 운영하면서 꼭 알아둬야하는 동작인 AutoVacuum에 대해서 살펴보겠습니다.</p>
 <h2 id="dead-tuple-">dead tuple ?</h2>
-<p>tuple이란 다른 RDBMS의 row, record와 동일한 개념입니다. PostgreSQL 에서 모든 데이터는 tuple 이라 불리는 형태로 저장이 되고 tuple 은 live tuple, dead tuple 로 나뉩니다.
+<p>tuple이란 다른 RDBMS의 row, record와 동일한 개념입니다. PostgreSQL 에서 모든 데이터는 tuple 이라 불리는 형태로 저장이 되고 tuple 은 live tuple, dead tuple 로 나뉩니다.<br>
 이중에서 더 이상 참조되지 않는 tuple 을 dead tuple 이라 부르는데 이런 dead tuple은 PostgreSQL의 MVCC의 구현방식으로 인해 생겨납니다.<br>
 MVCC 구현을 위해 PostgreSQL의 update 동작은 아래와 같이 동작하게 됩니다.</p>
 <ul>
@@ -249,7 +249,7 @@ vacuum_cost_limit = 200
 <li>vacuum_cost_page_hit : Shared_buffer에 있는 데이터를 vacuuming 할 때 마다 1 의 cost 소모</li>
 <li>vacuum_cost_page_miss : Shared_buffer 가 아닌 disk 에 존재하는 데이터를 vacuuming 할 때 마다 10 의 cost 소모</li>
 <li>vacuum_cost_page_dirty : page_dirty 영역에 있는 데이터를 vacuuming 할 때 마다 20 의 cost 소모</li>
-<li>vacuum_cost_delay : vacuum_cost_limit 를 모두 소모하면 vacuum_cost_delay 만큼 sleep 후 다시 동작, 0이면 sleep 하지 않고 계속 동작
+<li>vacuum_cost_delay : vacuum_cost_limit 를 모두 소모하면 vacuum_cost_delay 만큼 sleep 후 다시 동작, 0이면 sleep 하지 않고 계속 동작<br>
 <!-- raw HTML omitted -->
 운영하는 서비스에서 Vacuum이 Disk I/O 에 부담을 많이 주게 된다면 vacuum_cost_delay를 10ms 등으로 주어 autovacuum 수행 중 term을 두게 하는 것이 좋습니다.<br>
 너무 많은 term은 autovacuum 완료시간에 영향을 주기 때문에 vacuum_cost_limit = 1000 등으로 늘릴 수 있습니다.<br>
@@ -277,7 +277,7 @@ MySQL이나 ORACLE에서 delete 처럼 동작한다고 생각하면 됩니다.<b
 AutoVacuum의 default 발동 조건은 운영 환경에서 사용하기엔 무리가 있어 autovacuum_vacuum_scale_factor, autovacuum_vacuum_threshold를 적당한 값으로 설정하는 것을 추천하고<br>
 이 외에도 autovacuum cost나 autovacuum_max_workers 같은 설정을 튜닝하는 방법도 있습니다.</p>
 <ul>
-<li>참고 자료
+<li>참고 자료<br>
 <a href="https://nrise.github.io/posts/postgresql-autovacuum/?fbclid=IwAR3axiM0p1cohJVV-rz0Mw-HUaU0vCsP8gi5M8QqN6FXhMWQQfKa38osRS0">https://nrise.github.io/posts/postgresql-autovacuum/?fbclid=IwAR3axiM0p1cohJVV-rz0Mw-HUaU0vCsP8gi5M8QqN6FXhMWQQfKa38osRS0</a></li>
 </ul>
 </div>

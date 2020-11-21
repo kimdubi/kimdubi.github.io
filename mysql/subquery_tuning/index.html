@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Subquery Tuning</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Subquery Tuning</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Subquery Tuning</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><h2 id="--">서브쿼리 동작 방식</h2>
+<h3 id="filter">filter</h3>
+<ul>
+<li>서브쿼리의 결과 건수가 몇건이건 상관 없이 전체 쿼리의 결과는 최대 메인쿼리 결과만큼나옴</li>
+<li>메인 쿼리 수행 결과 만큼 서브쿼리를 실행함, 쿼리 순서는 메인쿼리 -&gt; 서브쿼리 고정</li>
+<li>메인 쿼리 실행 결과 건 수 + 서브쿼리로 input 되는 값 에 따라 경우의 수 나뉠 수 있음
+<ul>
+<li>메인 쿼리 실행 결과 건 수 많음 + input 되는 값이 unique 한 경우</li>
+<li>메인 쿼리 실행 결과 건 수 적음 + input 되는 값이 unique 한 경우</li>
+<li>메인 쿼리 실행 결과 건 수 많음 + input 되는 값이 unique 하지 않고 중복되는 값이 많음</li>
+<li>2&gt;3&gt;1 순으로 성능 나올 것</li>
+<li>Filter 동작 방식은 메인쿼리의 실행 결과 건수가 많고 (조인 시도 횟수 증가),서브 쿼리에 제공하는 input 값의 종류가 많을 수록 성능이 좋지않음 (캐싱 효율 떨어짐)<br>
+메인 쿼리의 결과 건수가 적거나,많더라도 서브 쿼리에 제공하는 input 값의 종류가 적을 수록 성능이 양호함</li>
+</ul>
+</li>
+</ul>
+<h3 id="join">join</h3>
+<ul>
+<li>서브쿼리를 join 방식으로 바꾸면서 전체 결과 건 수가 달라질 수 있음, PK로 1:1 JOIN 되는 경우 상관없지만 1:M 관계라면 distinct를 추가할것</li>
+<li>join 방식으로 변경하면서 쿼리 JOIN 순서도 제어 가능</li>
+</ul>
+<h2 id="--1">서브쿼리 튜닝 유형</h2>
+<h3 id="----join---">확인자 역할을 하는 테이블이 JOIN 으로 수행될 때</h3>
+<p>확인자 역할이란 FROM 절에 나오는 테이블 중 SELECT 절에서 사용되는 컬럼은 없고 단순히 WHERE절의 JOIN 조건이나, FILTER 조건으로만 사용되는 테이블을 뜻함<br>
+이러한 확인자 역할의 테이블을 JOIN으로 처리할 때 아래 케이스와 같은 경우 비효율이 발생할 수 있음</p>
+<ul>
+<li>다른 테이블과 확인자 역할의 테이블이 1:M 관계라 JOIN을 수행할 때 데이터 건수를 증가시켜 결국 전체 조인 연결 시도횟수를 증가시키게 되는 경우</li>
+<li>확인자 역할 테이블 자체가 느리게 풀리는 경우</li>
+</ul>
+<pre><code>select a.*,b.*
+from tb_test1 a inner join tb_test2 b on a.id1=b.id1
+inner join 
+    (SELECT id1 id2, min(mod_ymdt)
+     FROM   tb_test3
+     GROUP  BY id1,id2) c on a.id2=c.id2
+where a.id3='test' 
+</code></pre><!-- raw HTML omitted -->
+<h4 id="-">튜닝 후</h4>
+<pre><code>### in
+select a.*,b.*
+from tb_test1 a inner join tb_test2 b on a.id1=b.id1
+where a.id3='test' 
+and a.id2 in ( select id2 from tb_test3 )
+
+### exists
+select a.*,b.*
+from tb_test1 a inner join tb_test2 b on a.id1=b.id1
+where a.id3='test' 
+and exists (
+    SELECT id1, id2
+    FROM   tb_test3
+    where  id2=a.id2    
+)
+</code></pre><h3 id="--------">메인쿼리에 효율적인 조건이 없고 서브쿼리엔 좋은 조건이 있을 때</h3>
+<p>바로 위에서 JOIN 으로 풀리는 확인자 테이블을 in, exists 를 사용하는 서브쿼리로 수정했으나 아래와 같은 경우엔 오히려 서브쿼리를 JOIN으로 풀어줘야 성능이 향상됨</p>
+<ul>
+<li>메인 쿼리에 서브쿼리 외에는 WHERE 조건이 없지만 서브쿼리에는 id1=1 같은 결과 건 수를 확 줄여줄 수 있는 조건이 있을 때</li>
+</ul>
+<pre><code>select a.*,b.*
+from tb_test1 a inner join tb_test2 b on a.id1=b.id1
+where exists (
+    SELECT id1, id2
+    FROM   tb_test3
+    where  id2=a.id2    
+    and id1=1
+)
+and exists (
+    SELECT id1, id2
+    FROM   tb_test4
+    where  id2=a.id2    
+)
+and exists (
+    SELECT id1, id2
+    FROM   tb_test3
+    where  id2=a.id2    
+)
+</code></pre><h4 id="-1">튜닝 후</h4>
+<pre><code>select distinct a.*,b.*
+from tb_test1 a inner join tb_test2 b on a.id1=b.id1
+inner join (select distinct id1,id2 
+            from tb_test3 
+            where id1=1 ) c on a.id2=c.id2
+where exists exists (
+    SELECT id1, id2
+    FROM   tb_test4
+    where  id2=a.id2    
+)
+and exists (
+    SELECT id1, id2
+    FROM   tb_test3
+    where  id2=a.id2    
+)
+</code></pre><p>=&gt; subquery 를 JOIN 으로 변경했기 때문에 distinct 를 추가해야한다</p>
+<h3 id="minus">minus</h3>
+<ul>
+<li>minus -&gt; not exists 로 변경 시엔 데이터 정합성을 위해 select 절에 나열된 컬럼들이 unique한지 체크할 것
+<ul>
+<li>distinct 를 추가하면 되긴 하지만 추가적으로 정렬 작업이 발생하기 때문에 피할 수 있으면 좋음</li>
+</ul>
+</li>
+</ul>
+<h2 id="--2">스칼라 서브쿼리 특징</h2>
+<ul>
+<li>스칼라 서브쿼리는 SELECT 절에 사용되는 서브쿼리로, 최대 반복 수행되는 횟수는 메인 쿼리의 결과 건수만큼임</li>
+<li>스칼라 서브쿼리는 동일한 input에 대해서는 결과값을 캐싱하여 리턴하기 때문에 최초 1는 스칼라 서브쿼리를 직접 수행하게 되지만 그 이후의 동일한 값에 대해서는 실행을 스킵함</li>
+<li>스칼라 서브쿼리의 결과값은 무조건 1건이거나 NULL 이어야함  =&gt; 메인 쿼리의 결과 건 수 에 영향을 미치지 않음</li>
+<li>스칼라 서브쿼리를 JOIN 으로 변경할 때는 JOIN column은 distinct한 값을 가지기 위해 UNIQUE한 column 이어야 하며 LEFT OUTER JOIN으로 수행되어야함</li>
+</ul>
+<h2 id="---">스칼라 서브쿼리 튜닝 유형</h2>
+<h3 id="---1">스칼라 서브쿼리의 수행 위치</h3>
+<p>스칼라 서브쿼리는 메인 쿼리의 결과 건 수 만큼 실행되기 때문에 스칼라 서브쿼리의 수행위치에 크게 영향을 받음</p>
+<pre><code>SELECT c1,c2,c3, (SELECT t2.c3 FROM tb_test2 t2 WHERE t2.c1=t1.c1 ) as t2_c3
+FROM tb_test t1
+order by c1,c2
+limit 10;
+</code></pre><h4 id="-2">튜닝 후</h4>
+<pre><code>SELECT a.*, (SELECT t2.c3 FROM tb_test2 t2 WHERE t2.c1=a.c1 ) as t2_c3
+FROM (
+    SELECT c1,c2,c3
+    FROM tb_test t1
+    order by c1,c2
+    limit 10
+) a
+</code></pre><p>=&gt;tb_test 의 건 수가 100건이라 할때 첫번째 쿼리는 스칼라 서브쿼리를 100번 수행하여 나온 결과를 정렬 후 10건 추출,<br>
+두번째 쿼리는 스칼라 서브쿼리를 10번만 수행하여 I/O 처리량에서 훨씬 효율적이게 됨</p>
+<h3 id="--join--">스칼라 서브쿼리를 JOIN 으로 변경</h3>
+<p>배치 프로그램처럼 데이터 건 수가 많은 경우엔 비례해서 스칼라 서브쿼리의 수행횟수도 많아지기 때문에 성능이 나오기 어려움<br>
+스칼라 서브쿼리를 JOIN으로 변경하여 HASH JOIN으로 유도하는 게 가장 효율적이나 MySQL에는 8.0.18 버전 부터 HASH JOIN을 지원함<br>
+<a href="https://sarc.io/index.php/mariadb/1768-mysql-8-0-18-hash-join">https://sarc.io/index.php/mariadb/1768-mysql-8-0-18-hash-join</a></p>
+<pre><code>SELECT c1,c2,c3, (SELECT t2.c3 FROM tb_test2 t2 WHERE t2.c1=t1.c1 ) as t2_c3
+FROM tb_test t1
+order by c1,c2
+</code></pre><h4 id="-3">변경 후</h4>
+<pre><code>SELECT c1,c2,c3,t2.c3
+FROM tb_test t1 LEFT OUTER JOIN tb_test2 t2 on t1.c1=t2.c1
+order by c1,c2
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

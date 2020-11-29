@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL5.7 에서 Window function 구현하기</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL5.7 에서 Window function 구현하기</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL5.7 에서 Window function 구현하기</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><p>MySQL 8.0 부터는 rank() over , dense 등 window 함수를 지원하지만<br>
+그 이전버전에서는 window 함수를 지원하지 않기 때문에 @rownum 같은 사용자변수를 활용해서 구현해야 합니다.<br>
+이번 글에서는 Window함수 중에서도 자주 사용하는 rank over(), dense_rank over(), row_number over()를 MySQL 8.0 아래 버전에서 어떻게 우회해서 구현해야하는지 정리해보겠습니다.</p>
+<h3 id="window-">window 함수란</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/pmm_window.png" alt=""></p>
+<p>group by 같은 aggregation function (집계함수)는 현재 행과 관련 된 여러 행을 집계하여 그 결과를 단일 행으로 출력하지만<br>
+window function은 개별 행에 계속 접근하여 여러행에 대한 집계 연산을 합니다.</p>
+<pre><code>SELECT ANALYTIC_FUNCTION ( arguments )
+       OVER ( [ PARTITION BY 컬럼List ]
+              [ ORDER BY 컬럼List ] 
+              [ WINDOWING 절 (Rows|Range Between)]
+            )
+  FROM 테이블 명;
+
+- ANALYTIC_FUNCTION : 분석함수명
+- OVER : 분석함수임을 나타내는 키워드
+- PARTITION BY : 연산 대상 그룹을 정함, ex) 같은 부서끼리만 계산, 같은 나라끼리만 계산
+- ORDER BY : 대상 그룹에 대한 정렬 수행
+
+- 순위함수 : RANK, DENSE_RANK, ROW_NUMBER, NTILE
+- 집계함수 : SUM, MIN, MAX, AVG, COUNT
+</code></pre><h3 id="-">데이터 준비</h3>
+<ul>
+<li>같은 부서 내에서만 연봉 순으로 순위를 구할 수 있도록 데이터 준비</li>
+</ul>
+<pre><code>create table empsalary(depname varchar(50), empno integer, salary integer);
+insert into empsalary values('sales',1, 5000), ('personnel', 2, 3900), ('sales',3, 4800), ('sales',4,4800), ('personnel',5,3500), ('develop', 7, 4200), ('develop', 8, 6000),('develop', 9, 5200), ('develop', 10, 5200), ('develop', 11, 5200);
+
+
+mysql&gt; select * from empsalary;
++-----------+-------+--------+
+| depname   | empno | salary |
++-----------+-------+--------+
+| sales     |     1 |   5000 |
+| personnel |     2 |   3900 |
+| sales     |     3 |   4800 |
+| sales     |     4 |   4800 |
+| personnel |     5 |   3500 |
+| develop   |     7 |   4200 |
+| develop   |     8 |   6000 |
+| develop   |     9 |   5200 |
+| develop   |    10 |   5200 |
+| develop   |    11 |   5200 |
++-----------+-------+--------+
+10 rows in set (0.00 sec)
+</code></pre><h3 id="rank-over">RANK() OVER</h3>
+<p>같은 값에 대해서는 동일한 순위를 부여하지만 그 다음 값에 대해서는 연속된 순위를 부여하지 않음. 앞선 값의 동일한 값의 개수 만큼 밀림</p>
+<ul>
+<li>window 함수</li>
+</ul>
+<pre><code>SELECT depname, empno, salary,
+    RANK() OVER (PARTITION BY depname ORDER BY salary DESC) AS rnk
+FROM empsalary;
+
++-----------+-------+--------+-----+
+| depname   | empno | salary | rnk |
++-----------+-------+--------+-----+
+| develop   |     8 |   6000 |   1 |
+| develop   |     9 |   5200 |   2 |
+| develop   |    10 |   5200 |   2 |
+| develop   |    11 |   5200 |   2 |
+| develop   |     7 |   4200 |   5 |
+| personnel |     2 |   3900 |   1 |
+| personnel |     5 |   3500 |   2 |
+| sales     |     1 |   5000 |   1 |
+| sales     |     3 |   4800 |   2 |
+| sales     |     4 |   4800 |   2 |
++-----------+-------+--------+-----+
+
+</code></pre><ul>
+<li>사용자 변수</li>
+</ul>
+<pre><code>SELECT t3.depname,t3.empno,t3.salary,t3.rnk
+FROM 
+  (
+    SELECT depname,empno,salary, 
+      @RANK := IF(@BF_USER_DEPT = depname, IF(@BF_USER_SAL = salary, @RANK, @RANK + @SAME_SAL_CNT ),1) AS rnk , /* 이전 row와 현재 row의 salary가 같으면 동일 순위, 아니면 순위+SAME_SAL_CNT */
+      @SAME_SAL_CNT := IF(@BF_USER_DEPT = depname, IF(@BF_USER_SAL = salary, @SAME_SAL_CNT + 1, 1),1) AS CNT, /* salary가 동일할 때 cnt + 1 */
+      @BF_USER_DEPT := depname,
+      @BF_USER_SAL := salary 
+    FROM 
+      (
+        SELECT 
+          t1.depname,t1.empno,t1.salary
+        FROM 
+          empsalary t1
+        ORDER BY 
+          t1.depname,t1.salary DESC
+      ) t2, 
+      (
+        SELECT @RANK := 1, @BF_USER_SAL := '', @SAME_SAL_CNT := 1, @ROWNUM := 0, @BF_USER_DEPT := ''
+      ) tmp
+  ) t3
+ORDER BY t3.depname,t3.rnk;
+
++-----------+-------+--------+------+
+| depname   | empno | salary | rnk  |
++-----------+-------+--------+------+
+| develop   |     8 |   6000 | 1    |
+| develop   |     9 |   5200 | 2    |
+| develop   |    10 |   5200 | 2    |
+| develop   |    11 |   5200 | 2    |
+| develop   |     7 |   4200 | 5    |
+| personnel |     2 |   3900 | 1    |
+| personnel |     5 |   3500 | 2    |
+| sales     |     1 |   5000 | 1    |
+| sales     |     3 |   4800 | 2    |
+| sales     |     4 |   4800 | 2    |
++-----------+-------+--------+------+
+</code></pre><h3 id="denserank">DENSE_RANK()</h3>
+<p>같은 값에 대해서는 동일한 순위를 부여하고 그 다음 값에 대해서도 연속된 순위를 부여함</p>
+<ul>
+<li>window 함수</li>
+</ul>
+<pre><code>SELECT depname,empno,salary, 
+    dense_rank() over(partition by depname order by salary desc) AS rnk 
+FROM empsalary;
+
++-----------+-------+--------+-----+
+| depname   | empno | salary | rnk |
++-----------+-------+--------+-----+
+| develop   |     8 |   6000 |   1 |
+| develop   |     9 |   5200 |   2 |
+| develop   |    10 |   5200 |   2 |
+| develop   |    11 |   5200 |   2 |
+| develop   |     7 |   4200 |   3 |
+| personnel |     2 |   3900 |   1 |
+| personnel |     5 |   3500 |   2 |
+| sales     |     1 |   5000 |   1 |
+| sales     |     3 |   4800 |   2 |
+| sales     |     4 |   4800 |   2 |
++-----------+-------+--------+-----+
+</code></pre><ul>
+<li>사용자 변수</li>
+</ul>
+<pre><code>SELECT t3.depname,t3.empno,t3.salary,t3.dense_rnk
+FROM 
+  (
+    SELECT depname,empno,salary, 
+      @RANK := IF(@BF_USER_DEPT = depname, IF(@BF_USER_SAL = t2.salary, @RANK, @RANK + 1 ),1) AS dense_rnk, /* 이전 row와 현재 row의 salary가 같으면 동일 순위, 아니면 순위+SAME_SAL_CNT */
+      @BF_USER_DEPT := depname,
+      @BF_USER_SAL := salary 
+    FROM 
+      (
+        SELECT 
+          t1.depname,t1.empno,t1.salary
+        FROM 
+          empsalary t1
+        ORDER BY 
+          t1.depname,t1.salary DESC
+      ) t2, 
+      (
+        SELECT @RANK := 1, @BF_USER_SAL := '', @ROWNUM := 0, @BF_USER_DEPT := ''
+      ) tmp
+  ) t3
+ORDER BY t3.depname,t3.dense_rnk;
+
++-----------+-------+--------+-----------+
+| depname   | empno | salary | dense_rnk |
++-----------+-------+--------+-----------+
+| develop   |     8 |   6000 | 1         |
+| develop   |     9 |   5200 | 2         |
+| develop   |    10 |   5200 | 2         |
+| develop   |    11 |   5200 | 2         |
+| develop   |     7 |   4200 | 3         |
+| personnel |     2 |   3900 | 1         |
+| personnel |     5 |   3500 | 2         |
+| sales     |     1 |   5000 | 1         |
+| sales     |     3 |   4800 | 2         |
+| sales     |     4 |   4800 | 2         |
++-----------+-------+--------+-----------+
+</code></pre><h3 id="rownumber">ROW_NUMBER()</h3>
+<p>같은 값에 대해서도 다른 고유한 순위를 부여함</p>
+<ul>
+<li>window 함수</li>
+</ul>
+<pre><code>SELECT depname,empno,salary, 
+    row_number() over(partition by depname order by salary desc) as rnk
+FROM empsalary;
+
++-----------+-------+--------+-----+
+| depname   | empno | salary | rnk |
++-----------+-------+--------+-----+
+| develop   |     8 |   6000 |   1 |
+| develop   |     9 |   5200 |   2 |
+| develop   |    10 |   5200 |   3 |
+| develop   |    11 |   5200 |   4 |
+| develop   |     7 |   4200 |   5 |
+| personnel |     2 |   3900 |   1 |
+| personnel |     5 |   3500 |   2 |
+| sales     |     1 |   5000 |   1 |
+| sales     |     3 |   4800 |   2 |
+| sales     |     4 |   4800 |   3 |
++-----------+-------+--------+-----+
+</code></pre><ul>
+<li>사용자 변수</li>
+</ul>
+<pre><code>SELECT t3.depname,t3.empno,t3.salary,t3.row_num
+FROM 
+  (
+    SELECT depname,empno,salary, 
+      @RANK := IF(@BF_USER_DEPT = depname, @RANK + 1, 1) AS row_num, /* 이전 row와 현재 row의 salary가 같으면 동일 순위, 아니면 순위+SAME_SAL_CNT */
+      @BF_USER_DEPT := depname,
+      @BF_USER_SAL := salary 
+    FROM 
+      (
+        SELECT 
+          t1.depname,t1.empno,t1.salary
+        FROM 
+          empsalary t1
+        ORDER BY 
+          t1.depname,t1.salary DESC
+      ) t2, 
+      (
+        SELECT @RANK := 1, @BF_USER_SAL := '',@BF_USER_DEPT := ''
+      ) tmp
+  ) t3
+ORDER BY t3.depname,t3.row_num;
+
++-----------+-------+--------+---------+
+| depname   | empno | salary | row_num |
++-----------+-------+--------+---------+
+| develop   |     8 |   6000 |       1 |
+| develop   |     9 |   5200 |       2 |
+| develop   |    10 |   5200 |       3 |
+| develop   |    11 |   5200 |       4 |
+| develop   |     7 |   4200 |       5 |
+| personnel |     2 |   3900 |       1 |
+| personnel |     5 |   3500 |       2 |
+| sales     |     1 |   5000 |       1 |
+| sales     |     3 |   4800 |       2 |
+| sales     |     4 |   4800 |       3 |
++-----------+-------+--------+---------+
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

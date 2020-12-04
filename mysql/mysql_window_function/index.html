@@ -138,7 +138,7 @@
 그 이전버전에서는 window 함수를 지원하지 않기 때문에 @rownum 같은 사용자변수를 활용해서 구현해야 합니다.<br>
 이번 글에서는 Window함수 중에서도 자주 사용하는 rank over(), dense_rank over(), row_number over()를 MySQL 8.0 아래 버전에서 어떻게 우회해서 구현해야하는지 정리해보겠습니다.</p>
 <h3 id="window-">window 함수란</h3>
-<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/pmm_window.png" alt=""></p>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/mysql_window.png" alt=""></p>
 <p>group by 같은 aggregation function (집계함수)는 현재 행과 관련 된 여러 행을 집계하여 그 결과를 단일 행으로 출력하지만<br>
 window function은 개별 행에 계속 접근하여 여러행에 대한 집계 연산을 합니다.</p>
 <pre><code>SELECT ANALYTIC_FUNCTION ( arguments )

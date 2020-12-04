@@ -5,10 +5,80 @@
     <description>Recent content in Nosqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 18 Oct 2020 00:36:16 +0900</lastBuildDate>
+    <lastBuildDate>Fri, 04 Dec 2020 21:47:22 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/nosql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Sentinel Failover 이벤트 발생 시 메일 받기</title>
+      <link>https://kimdubi.github.io/nosql/sentinel-nofify/</link>
+      <pubDate>Fri, 04 Dec 2020 21:47:22 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/nosql/sentinel-nofify/</guid>
+      <description>&lt;p&gt;Redis 의 Auto Failover HA 솔루션으로는 Sentinel 이 있습니다.&lt;br&gt;
+Master가 down 됐는지 Sentinel 간 sdown,odown 같은 투표과정을 통해 과반수 이상의 Sentinel이 Master가 Down됐다고 판단하면 다른 Slave 를 Master로 승격시키게 됩니다.&lt;br&gt;
+Failover 가 발생했음을 알기 위해서 alertmanager 같은 오픈 소스를 사용하거나 별도로 스크립트를 설정해놔도 되겠지만&lt;br&gt;
+기본적인 sentinel의 기능으로 Failover 가 발생했음을 noti 할 수 있는 &amp;lsquo;sentinel notification-script&amp;rsquo; 라는 기능이 있습니다.&lt;br&gt;
+&lt;!-- raw HTML omitted --&gt;
+사실 Failover만을 알람 받기 위한 기능은 아니고 Sentinel 의 여러 Warning 이벤트들을 noti 해주는 기능인데 주로 Failover를 위해 사용합니다.&lt;br&gt;
+&lt;!-- raw HTML omitted --&gt; &lt;br&gt;
+sentinel.conf 파일에서 아래 같은 항목을 볼 수 있는데요&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;sentinel.conf&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;cat sentinel.conf
+.
+.
+.
+sentinel notification-script testredis /home1/redisuser/redis_6379/notify.sh
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 의미는 testredis 라는 이름의 sentinel cluster 에서 warning 이벤트가 발생하면 /home1/redisuser/redis_6379/notify.sh 스크립트를 수행해라!  라는 의미입니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;notify.sh&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;#!/bin/sh
+#/home1/redisuser/redis_6379/notify.sh
+
+MAIL_FROM=&amp;quot;kimdubi@gmail.com&amp;quot;
+MAIL_TO=(&amp;quot;kimdubi@gmail.com&amp;quot;)
+
+timestamp=$(date +%D-%T.%3N)
+
+if [ &amp;quot;$#&amp;quot; = &amp;quot;2&amp;quot; ]; then
+    if [ &amp;quot;${1}&amp;quot; = &amp;quot;+try-failover&amp;quot;  -o  &amp;quot;${1}&amp;quot; = &amp;quot;+failover-end&amp;quot; ];
+    then
+
+    mail_body=`cat &amp;lt;&amp;lt; EOB
+============================================
+레디스 서버 장애조치(failover)가 발생했습니다.
+레디스 서버 또는 센티널을 확인해보세요.
+============================================
+이벤트 타입: ${1}
+이벤트 설명: ${2}
+이메일보낸 시각: $timestamp
+
+이것은 센티널 알림 기능에서 보낸 메일입니다.
+
+EOB`
+    mail_subject=`echo ${2} | cut -d&#39; &#39; -f2`
+
+    for MAIL_TO in ${MAIL_TO[@]}; do
+        echo &amp;quot;${mail_body}&amp;quot; | mailx -S smtp=&amp;quot;사내 smtp서버&amp;quot; -r &amp;quot;${MAIL_FROM}&amp;quot; -s &amp;quot;Redis ${mail_subject} Notification&amp;quot; &amp;quot;${MAIL_TO}&amp;quot;
+    done
+
+    fi
+fi
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 위와 같은 notify.sh 스크립트가 수행 되면 두가지 이벤트에 대해 메일을 받을 수 있습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;+try-failover : Failover 시도&lt;/li&gt;
+&lt;li&gt;+failover-end : Failover 정상 완료&lt;br&gt;
+&lt;!-- raw HTML omitted --&gt;
+물론 cloud 서비스 등에서 제공하는 sms 기능을 사용하여 메일뿐만 아니라 sms 를 받을 수 있도록 스크립트에 추가할 수 있습니다.&lt;br&gt;
+만약 +try-failover 메일만 계속 오고 +failover-end 가 안온다면 뭔가 문제가 있는 상황이므로 살펴봐야합니다.&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>Redis memory 분석 툴 RMA</title>

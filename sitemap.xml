@@ -4,7 +4,21 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-12-04T21:47:22+09:00</lastmod>
+    <lastmod>2020-12-10T13:01:57+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/postgresql/pg_wal_level/</loc>
+    <lastmod>2020-12-10T13:01:57+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/postgresql/</loc>
+    <lastmod>2020-12-10T13:01:57+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
@@ -46,13 +60,6 @@
   
   <url>
     <loc>https://kimdubi.github.io/postgresql/pg_autovacuum/</loc>
-    <lastmod>2020-11-14T17:57:04+09:00</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://kimdubi.github.io/postgresql/</loc>
     <lastmod>2020-11-14T17:57:04+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>

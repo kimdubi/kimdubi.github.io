@@ -5,7 +5,7 @@
 
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Postgresqls</title>
+        <title>PostgreSQL wal_level=replica / logical 차이</title>
         
         <style>
 
@@ -59,9 +59,6 @@
 <script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
  <meta name="generator" content="Hugo 0.60.1" />
         
-            <link href="/postgresql/index.xml" rel="alternate" type="application/rss&#43;xml" title="kimDuBiA" />
-            <link href="/postgresql/index.xml" rel="feed" type="application/rss&#43;xml" title="kimDuBiA" />
-        
 
         
             <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
@@ -87,7 +84,7 @@
         <nav class="navbar navbar-default navbar-fixed-top">
             <div class="container">
                 <div class="navbar-header">
-                    <a class="navbar-brand visible-xs" href="#">Postgresqls</a>
+                    <a class="navbar-brand visible-xs" href="#">PostgreSQL wal_level=replica / logical 차이</a>
                     <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
@@ -130,181 +127,70 @@
 
 <main>
 
-    <h2>Postgresqls</h2>
+    <div>
+        <h2>PostgreSQL wal_level=replica / logical 차이</h2>
+        <h5></h5>
+        
 
-     <div class="item">
+    </div>
 
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/postgresql/pg_schema/">PostgreSQL schema 의미 및 권한관리</a></h4>
-    <h5>August 9, 2020</h5>
-    
-
-
+    <div align="start" class="content" text-align="center"><p>PostgreSQL 설정 중 wal_level 이라는 설정이 있습니다.<br>
+WAL 에 저장되는 데이터의 양이나 수준을 지정하는 설정으로 streaming replication 을 위해서는 최소 wal_level = replica, logical replication을 위해서는 최소 wal_level = logical 설정이 필요한데<br>
+정확히 이 두 설정값에 따라 데이터가 어떻게 저장되는지에 대한 설명이 부족해서 찾아본 내용을 공유합니다.</p>
+<h2 id="logical-replicaion-">logical replicaion 원리</h2>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/logical_replication.png" alt=""></p>
+<ul>
+<li>WAL record가 생성되면 logical decoding 을 거쳐 변경된 데이터를 RecorderBufferChange (HeapTupleData)로 재구성합니다.</li>
+<li>pgoutput plugin이 이 tuple을 subscriber, 즉 슬레이브에게 보냅니다</li>
+<li>HeapTupleData를 받은 slave는 변경 전 데이터 (tuple-old)를 찾아 tuple-new 로 바꿔주는 DML 구문을 재 수행합니다.</li>
+</ul>
+<h2 id="wallevel--replica">wal_level = replica</h2>
+<ul>
+<li>update
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/replica_upd.png" alt=""></li>
+</ul>
+<p>t1 테이블에 (1,2,3,4) record 를 (1,20,3,4) 로 update 할 때 tuple_new 엔 변경된 데이터만 기록합니다.<br>
+4(20)8 의 의미는 (20) 값만 변경되었고 (20) 앞의 4바이트 (20) 뒤의 8바이트는 변하지 않았다는 의미입니다.</p>
+<ul>
+<li>delete
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/replica_delete.png" alt=""><br>
+delete 할 땐 tuple_old의 정확한 데이터는 상관 없이 tuple_old의 위치 즉 ctid 값만 기록합니다.</li>
+</ul>
+<h2 id="wallevel--logical">wal_level = logical</h2>
+<ul>
+<li>
+<p>update
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/logical_upd.png" alt=""><br>
+변경된 값만 저장한 wal_level=replica 와는 달리 변경되지 않은 데이터 전체도 새로운 tuple_new 로 저장합니다.</p>
+</li>
+<li>
+<p>delete
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/logical_delete.png" alt=""><br>
+primary key, 전체 tuple 데이터, index 등 tuple_old의 정확한 데이터를 기록합니다.</p>
+</li>
+</ul>
 </div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/postgresql/postgresql_bg_process/">PostgreSQL background process 살펴보기</a></h4>
-    <h5>August 8, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/postgresql/psql_intro/">PostgreSQL을 소개합니다</a></h4>
-    <h5>August 8, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/postgresql/command/">PostgreSQL 유용한 command</a></h4>
-    <h5>August 8, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/postgresql/pgloader/">PostgreSQL migration tool pgloader 사용법</a></h4>
-    <h5>July 7, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/postgresql/psql_backup/">PostgreSQL 백업 복구 테스트</a></h4>
-    <h5>July 7, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/postgresql/psql_pgpool/">PostgreSQL pgpool을 활용한 auto-failover 구성</a></h4>
-    <h5>July 7, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/postgresql/psql_replication/">PostgreSQL Replication 설정-Streaming Replication</a></h4>
-    <h5>June 3, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/postgresql/psql_conf/">PostgreSQL configure 설정</a></h4>
-    <h5>June 2, 2020</h5>
-    
-
-
-</div>
-  <div class="item">
-
-    
-    
-    
-
-    
-    
-
-    <h4><a href="/postgresql/psql_install/">PostgreSQL source compile install</a></h4>
-    <h5>June 2, 2020</h5>
-    
-
-
-</div>
- 
 
 </main>
 
 
+<div id="disqus_thread"></div>
+<script type="text/javascript">
 
-<div class="pages">
-
+(function() {
     
-        <a class="icon pages-icon" href="/postgresql/" rel="prev">
-            <i class="fa fa-arrow-left"></i>
-        </a>
     
+    if (window.location.hostname == "localhost")
+        return;
 
-    
-        <a class="icon pages-icon" href="/postgresql/page/3/" rel="next">
-            <i class="fa fa-arrow-right"></i>
-        </a>
-    
-
-</div>
-
-
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
 
         <footer>
             <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>

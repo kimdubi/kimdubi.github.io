@@ -5,10 +5,54 @@
     <description>Recent content in Postgresqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 14 Nov 2020 17:57:04 +0900</lastBuildDate>
+    <lastBuildDate>Thu, 10 Dec 2020 13:01:57 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/postgresql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>PostgreSQL wal_level=replica / logical 차이</title>
+      <link>https://kimdubi.github.io/postgresql/pg_wal_level/</link>
+      <pubDate>Thu, 10 Dec 2020 13:01:57 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/pg_wal_level/</guid>
+      <description>&lt;p&gt;PostgreSQL 설정 중 wal_level 이라는 설정이 있습니다.&lt;br&gt;
+WAL 에 저장되는 데이터의 양이나 수준을 지정하는 설정으로 streaming replication 을 위해서는 최소 wal_level = replica, logical replication을 위해서는 최소 wal_level = logical 설정이 필요한데&lt;br&gt;
+정확히 이 두 설정값에 따라 데이터가 어떻게 저장되는지에 대한 설명이 부족해서 찾아본 내용을 공유합니다.&lt;/p&gt;
+&lt;h2 id=&#34;logical-replicaion-&#34;&gt;logical replicaion 원리&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/logical_replication.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;WAL record가 생성되면 logical decoding 을 거쳐 변경된 데이터를 RecorderBufferChange (HeapTupleData)로 재구성합니다.&lt;/li&gt;
+&lt;li&gt;pgoutput plugin이 이 tuple을 subscriber, 즉 슬레이브에게 보냅니다&lt;/li&gt;
+&lt;li&gt;HeapTupleData를 받은 slave는 변경 전 데이터 (tuple-old)를 찾아 tuple-new 로 바꿔주는 DML 구문을 재 수행합니다.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;wallevel--replica&#34;&gt;wal_level = replica&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;update
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/replica_upd.png&#34; alt=&#34;&#34;&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;t1 테이블에 (1,2,3,4) record 를 (1,20,3,4) 로 update 할 때 tuple_new 엔 변경된 데이터만 기록합니다.&lt;br&gt;
+4(20)8 의 의미는 (20) 값만 변경되었고 (20) 앞의 4바이트 (20) 뒤의 8바이트는 변하지 않았다는 의미입니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;delete
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/replica_delete.png&#34; alt=&#34;&#34;&gt;&lt;br&gt;
+delete 할 땐 tuple_old의 정확한 데이터는 상관 없이 tuple_old의 위치 즉 ctid 값만 기록합니다.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;wallevel--logical&#34;&gt;wal_level = logical&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;update
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/logical_upd.png&#34; alt=&#34;&#34;&gt;&lt;br&gt;
+변경된 값만 저장한 wal_level=replica 와는 달리 변경되지 않은 데이터 전체도 새로운 tuple_new 로 저장합니다.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;delete
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/psql/logical_delete.png&#34; alt=&#34;&#34;&gt;&lt;br&gt;
+primary key, 전체 tuple 데이터, index 등 tuple_old의 정확한 데이터를 기록합니다.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>PostgreSQL AutoVacuum 최적화</title>

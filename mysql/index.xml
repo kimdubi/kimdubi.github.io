@@ -5,10 +5,98 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 29 Nov 2020 21:19:07 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 13 Dec 2020 17:16:47 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Xtrabackup 사용 시 </title>
+      <link>https://kimdubi.github.io/mysql/xtrabackup_issue/</link>
+      <pubDate>Sun, 13 Dec 2020 17:16:47 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/xtrabackup_issue/</guid>
+      <description>&lt;p&gt;Xtrabackup 은 mysqldump 대신 많이 사용되는 오픈소스 hotbackup utility 입니다.&lt;br&gt;
+널리 사용되는 유틸리티라서 사용하는데에 큰 이슈는 없지만 다만 사용할 때 꼭 기억해둬야할 주의점이 있습니다.&lt;br&gt;
+Xtrabackup은 백업 수행이후 FLUSH TABLES WITH READ LOCK을 수행하는데 이 때 실행되는 쿼리가 있는 경우 flush 구문은 테이블락을 획득하지 못하고 waiting하며&lt;br&gt;
+lockwait timeout 이후 세션이 종료되어 백업이 완료되지 못하거나 backup이 비정상적으로 길어지는 현상이 발생할 수 있다는 점입니다.&lt;/p&gt;
+&lt;h3 id=&#34;---&#34;&gt;백업서버에서 롱 쿼리 수행&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select a,b,c,count(*) from tb_test group by a,b,c order by a,b,c desc ;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;-xtrabackup-&#34;&gt;동시에 xtrabackup 수행&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;[testuser ]$ innobackupex --defaults-file=/home1/testuser/db/mysql/my.cnf --user bk_user --password test --socket /home1/testuser/db/mysql/tmp/mysql.sock --slave-info --backup .
+.
+.
+.
+xtrabackup: Generating a list of tablespaces
+InnoDB: Allocated tablespace ID 21 for sys/sys_config, old maximum was 0
+201213 15:39:24 [01] Copying ./ibdata1 to /home1/testuser/bk_Test/2020-12-13_15-39-23/ibdata1
+201213 15:39:24 &amp;gt;&amp;gt; log scanned up to (2905973944)
+
+
+201213 15:39:25 &amp;gt;&amp;gt; log scanned up to (2905973944)
+201213 15:39:26 [01]        ...done
+201213 15:39:26 [01] Copying ./sys/sys_config.ibd to /home1/testuser/bk_Test/2020-12-13_15-39-23/sys/sys_config.ibd
+.
+.
+.
+201213 15:39:35 &amp;gt;&amp;gt; log scanned up to (2905973944)
+201213 15:39:36 Executing FLUSH NO_WRITE_TO_BINLOG TABLES...
+201213 15:39:36 &amp;gt;&amp;gt; log scanned up to (2905973944)
+201213 15:39:37 &amp;gt;&amp;gt; log scanned up to (2905973944)
+201213 15:39:38 &amp;gt;&amp;gt; log scanned up to (2905973944)
+201213 15:39:39 &amp;gt;&amp;gt; log scanned up to (2905973944)
+201213 15:39:40 &amp;gt;&amp;gt; log scanned up to (2905973944)
+201213 15:39:41 &amp;gt;&amp;gt; log scanned up to (2905973944)
+201213 15:39:42 &amp;gt;&amp;gt; log scanned up to (2905973944)
+201213 15:39:43 &amp;gt;&amp;gt; log scanned up to (2905973944)
+201213 15:39:44 &amp;gt;&amp;gt; log scanned up to (2905973944)
+201213 15:39:45 &amp;gt;&amp;gt; log scanned up to (2905973944)
+201213 15:39:46 &amp;gt;&amp;gt; log scanned up to (2905973944)
+201213 15:39:47 &amp;gt;&amp;gt; log scanned up to (2905973944)
+.
+.
+.
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; Xtrabacup은 innodb 테이블의 ibd 파일을 copy 한 후 MyIsam 같은 transaction을 지원하지 않는 테이블들의 백업을 위해&lt;br&gt;
+Executing FLUSH NO_WRITE_TO_BINLOG TABLES&amp;hellip;  즉 flush tables with read lock을 수행합니다.&lt;br&gt;
+이때 long query가 돌고 있다면 flush table with read lock을 걸지 못하고 아래와 같이 lock 대기하게 됩니다.&lt;br&gt;
+문제는 &amp;lsquo;Waiting for table flush&amp;rsquo; 으로 인해 뒤이어 들어오는 모든 쿼리들이 전부 대기하게 된다는 점인데&lt;br&gt;
+single instance에서 백업을 돌렸는데 이런 현상이 발생하게 되면 그대로 서비스 장애로 연결되는 이슈가 있습니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; show processlist;
++------+-------------+-----------+---------------+---------+------+--------------------------------------------------------+----------------------------------------------------------------------------+
+| Id   | User        | Host      | db            | Command | Time | State                                                  | Info                                                                       |
++------+-------------+-----------+---------------+---------+------+--------------------------------------------------------+----------------------------------------------------------------------------+
+| 1250 | admin       | localhost | repltest_1029 | Query   |   51 | Creating sort index                                    | select a,b,c,count(*) from tb_test group by a,b,c order by a,b desc ,c asc |
+| 2476 | admin       | localhost | repltest_1029 | Query   |    0 | starting                                               | show processlist                                                           |
+| 2485 | bk_user     | localhost | NULL          | Query   |   38 | Waiting for table flush                                | FLUSH NO_WRITE_TO_BINLOG TABLES                                            |
+| 2488 | admin       | localhost | repltest_1029 | Query   |   20 | Waiting for table flush                                | select * from tb_test limit 1                                              |
++------+-------------+-----------+---------------+---------+------+--------------------------------------------------------+----------------------------------------------------------------------------+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;심지어 Xtrabackup 수행 시 자체적으로 lock_wait_timeout=31536000 으로 설정하고 돌기 때문에 DB 설정이 몇초간에 백업이 취소되지 않고 비정상적으로 길어질 수 있습니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;2020-12-13T06:49:03.391760Z      2182 Query     SET SESSION lock_wait_timeout=31536000
+2020-12-13T06:49:03.391876Z      2182 Query     FLUSH NO_WRITE_TO_BINLOG TABLES
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;heading&#34;&gt;대응방안&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;백업 전용 Slave 구성하기&lt;/li&gt;
+&lt;li&gt;&amp;ndash;ftwrl-wait-timeout , &amp;ndash;ftwrl-wait-threshold
+=&amp;gt; flush tables with read lock 커맨드를 실행하기 전에 wait하는 시간을 설정하는 옵션, default 0, ftwrl을 바로 수행함&lt;br&gt;
+FTWRL을 실행 하기 전에 &amp;ndash;ftwrl-wait-timeout = 30 만큼 기다렸는데도 &amp;ndash;ftwrl-wait-threshold(default 60)에 설정된 시간 보다 더 오래 실행되는 쿼리가 있으면 백업을 취소시켜 lock 대기로 인한 이슈를 최소화 시킴&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;201213 16:16:52 Waiting 30 seconds for queries running longer than 60 seconds to finish
+201213 16:16:52 Executing FLUSH TABLES WITH READ LOCK...
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;ftwrl 을 수행하기 전에 &amp;ndash;ftwrl-wait-threshold 만큼의 long query 가 없어서 ftwrl 을 수행했는데 &amp;ndash;ftwrl-wait-threshold 미만의 롱 쿼리로 인해 락 대기할 수 있음&lt;br&gt;
+=&amp;gt; &amp;ndash;ftwrl-wait-threshold=0 으로 설정하면 됨&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&amp;ndash;kill-long-queries-timeout , &amp;ndash;kill-long-query-type&lt;br&gt;
+=&amp;gt; flush tables with read lock 수행 후 global lock 획득을 방해하는 쿼리를 kill 하는 옵션&lt;br&gt;
+&amp;ndash;kill-long-query-type 옵션을 통해 select , 혹은 모든 쿼리를 지정할 수 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;innobackupex --ftwrl-wait-threshold=60 --ftrwl-wait-query-type=all \
+    --ftrwl-wait-timeout=60 --kill-long-queries=30 \ 
+    --kill-long-query-type=all 
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 60초이상 수행되는 모든 쿼리에 대해 60초이상 기다리지 않고 (남아있으면 백업 취소) ftwrl을 수행하고 30초 이내 ftwrl 락을 얻지 못하면 그 이전에 수행된 쿼리들을 모두 kill하겠다는 의미&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>MySQL5.7 에서 Window function 구현하기</title>

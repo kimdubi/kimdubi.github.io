@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Xtrabackup 사용 시 </title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Xtrabackup 사용 시 </a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Xtrabackup 사용 시 </h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><p>Xtrabackup 은 mysqldump 대신 많이 사용되는 오픈소스 hotbackup utility 입니다.<br>
+널리 사용되는 유틸리티라서 사용하는데에 큰 이슈는 없지만 다만 사용할 때 꼭 기억해둬야할 주의점이 있습니다.<br>
+Xtrabackup은 백업 수행이후 FLUSH TABLES WITH READ LOCK을 수행하는데 이 때 실행되는 쿼리가 있는 경우 flush 구문은 테이블락을 획득하지 못하고 waiting하며<br>
+lockwait timeout 이후 세션이 종료되어 백업이 완료되지 못하거나 backup이 비정상적으로 길어지는 현상이 발생할 수 있다는 점입니다.</p>
+<h3 id="---">백업서버에서 롱 쿼리 수행</h3>
+<pre><code>mysql&gt; select a,b,c,count(*) from tb_test group by a,b,c order by a,b,c desc ;
+
+</code></pre><h3 id="-xtrabackup-">동시에 xtrabackup 수행</h3>
+<pre><code>[testuser ]$ innobackupex --defaults-file=/home1/testuser/db/mysql/my.cnf --user bk_user --password test --socket /home1/testuser/db/mysql/tmp/mysql.sock --slave-info --backup .
+.
+.
+.
+xtrabackup: Generating a list of tablespaces
+InnoDB: Allocated tablespace ID 21 for sys/sys_config, old maximum was 0
+201213 15:39:24 [01] Copying ./ibdata1 to /home1/testuser/bk_Test/2020-12-13_15-39-23/ibdata1
+201213 15:39:24 &gt;&gt; log scanned up to (2905973944)
+
+
+201213 15:39:25 &gt;&gt; log scanned up to (2905973944)
+201213 15:39:26 [01]        ...done
+201213 15:39:26 [01] Copying ./sys/sys_config.ibd to /home1/testuser/bk_Test/2020-12-13_15-39-23/sys/sys_config.ibd
+.
+.
+.
+201213 15:39:35 &gt;&gt; log scanned up to (2905973944)
+201213 15:39:36 Executing FLUSH NO_WRITE_TO_BINLOG TABLES...
+201213 15:39:36 &gt;&gt; log scanned up to (2905973944)
+201213 15:39:37 &gt;&gt; log scanned up to (2905973944)
+201213 15:39:38 &gt;&gt; log scanned up to (2905973944)
+201213 15:39:39 &gt;&gt; log scanned up to (2905973944)
+201213 15:39:40 &gt;&gt; log scanned up to (2905973944)
+201213 15:39:41 &gt;&gt; log scanned up to (2905973944)
+201213 15:39:42 &gt;&gt; log scanned up to (2905973944)
+201213 15:39:43 &gt;&gt; log scanned up to (2905973944)
+201213 15:39:44 &gt;&gt; log scanned up to (2905973944)
+201213 15:39:45 &gt;&gt; log scanned up to (2905973944)
+201213 15:39:46 &gt;&gt; log scanned up to (2905973944)
+201213 15:39:47 &gt;&gt; log scanned up to (2905973944)
+.
+.
+.
+
+</code></pre><p>=&gt; Xtrabacup은 innodb 테이블의 ibd 파일을 copy 한 후 MyIsam 같은 transaction을 지원하지 않는 테이블들의 백업을 위해<br>
+Executing FLUSH NO_WRITE_TO_BINLOG TABLES&hellip;  즉 flush tables with read lock을 수행합니다.<br>
+이때 long query가 돌고 있다면 flush table with read lock을 걸지 못하고 아래와 같이 lock 대기하게 됩니다.<br>
+문제는 &lsquo;Waiting for table flush&rsquo; 으로 인해 뒤이어 들어오는 모든 쿼리들이 전부 대기하게 된다는 점인데<br>
+single instance에서 백업을 돌렸는데 이런 현상이 발생하게 되면 그대로 서비스 장애로 연결되는 이슈가 있습니다.</p>
+<pre><code>mysql&gt; show processlist;
++------+-------------+-----------+---------------+---------+------+--------------------------------------------------------+----------------------------------------------------------------------------+
+| Id   | User        | Host      | db            | Command | Time | State                                                  | Info                                                                       |
++------+-------------+-----------+---------------+---------+------+--------------------------------------------------------+----------------------------------------------------------------------------+
+| 1250 | admin       | localhost | repltest_1029 | Query   |   51 | Creating sort index                                    | select a,b,c,count(*) from tb_test group by a,b,c order by a,b desc ,c asc |
+| 2476 | admin       | localhost | repltest_1029 | Query   |    0 | starting                                               | show processlist                                                           |
+| 2485 | bk_user     | localhost | NULL          | Query   |   38 | Waiting for table flush                                | FLUSH NO_WRITE_TO_BINLOG TABLES                                            |
+| 2488 | admin       | localhost | repltest_1029 | Query   |   20 | Waiting for table flush                                | select * from tb_test limit 1                                              |
++------+-------------+-----------+---------------+---------+------+--------------------------------------------------------+----------------------------------------------------------------------------+
+</code></pre><p>심지어 Xtrabackup 수행 시 자체적으로 lock_wait_timeout=31536000 으로 설정하고 돌기 때문에 DB 설정이 몇초간에 백업이 취소되지 않고 비정상적으로 길어질 수 있습니다.</p>
+<pre><code>2020-12-13T06:49:03.391760Z      2182 Query     SET SESSION lock_wait_timeout=31536000
+2020-12-13T06:49:03.391876Z      2182 Query     FLUSH NO_WRITE_TO_BINLOG TABLES
+</code></pre><h3 id="heading">대응방안</h3>
+<ul>
+<li>백업 전용 Slave 구성하기</li>
+<li>&ndash;ftwrl-wait-timeout , &ndash;ftwrl-wait-threshold
+=&gt; flush tables with read lock 커맨드를 실행하기 전에 wait하는 시간을 설정하는 옵션, default 0, ftwrl을 바로 수행함<br>
+FTWRL을 실행 하기 전에 &ndash;ftwrl-wait-timeout = 30 만큼 기다렸는데도 &ndash;ftwrl-wait-threshold(default 60)에 설정된 시간 보다 더 오래 실행되는 쿼리가 있으면 백업을 취소시켜 lock 대기로 인한 이슈를 최소화 시킴</li>
+</ul>
+<pre><code>201213 16:16:52 Waiting 30 seconds for queries running longer than 60 seconds to finish
+201213 16:16:52 Executing FLUSH TABLES WITH READ LOCK...
+</code></pre><p>ftwrl 을 수행하기 전에 &ndash;ftwrl-wait-threshold 만큼의 long query 가 없어서 ftwrl 을 수행했는데 &ndash;ftwrl-wait-threshold 미만의 롱 쿼리로 인해 락 대기할 수 있음<br>
+=&gt; &ndash;ftwrl-wait-threshold=0 으로 설정하면 됨</p>
+<ul>
+<li>&ndash;kill-long-queries-timeout , &ndash;kill-long-query-type<br>
+=&gt; flush tables with read lock 수행 후 global lock 획득을 방해하는 쿼리를 kill 하는 옵션<br>
+&ndash;kill-long-query-type 옵션을 통해 select , 혹은 모든 쿼리를 지정할 수 있음</li>
+</ul>
+<pre><code>innobackupex --ftwrl-wait-threshold=60 --ftrwl-wait-query-type=all \
+    --ftrwl-wait-timeout=60 --kill-long-queries=30 \ 
+    --kill-long-query-type=all 
+</code></pre><p>=&gt; 60초이상 수행되는 모든 쿼리에 대해 60초이상 기다리지 않고 (남아있으면 백업 취소) ftwrl을 수행하고 30초 이내 ftwrl 락을 얻지 못하면 그 이전에 수행된 쿼리들을 모두 kill하겠다는 의미</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

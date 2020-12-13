@@ -4,7 +4,21 @@
   
   <url>
     <loc>https://kimdubi.github.io/</loc>
-    <lastmod>2020-12-10T13:01:57+09:00</lastmod>
+    <lastmod>2020-12-13T17:16:47+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/</loc>
+    <lastmod>2020-12-13T17:16:47+09:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://kimdubi.github.io/mysql/xtrabackup_issue/</loc>
+    <lastmod>2020-12-13T17:16:47+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>
   </url>
@@ -39,13 +53,6 @@
   
   <url>
     <loc>https://kimdubi.github.io/mysql/mysql_window_function/</loc>
-    <lastmod>2020-11-29T21:19:07+09:00</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://kimdubi.github.io/mysql/</loc>
     <lastmod>2020-11-29T21:19:07+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>

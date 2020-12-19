@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Private Repository 서버 구축하기</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Private Repository 서버 구축하기</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Private Repository 서버 구축하기</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><p>DB 서버들은 보통 인터넷망과 연결되지 않은 경우가 보통입니다.<br>
+클라우드에서도 DB서버들은 private subnet에 위치하게 하여 인터넷이 안되도록 하는데요.<br>
+이런 경우 외부에서 뭔가 필요한 rpm 등 s/w 를 설치할 때 여러 경로를 통해야하는 불편이 있습니다.<br>
+yum 설치를 하는데 필요한 rpm들이 서로 물리고 물리는 경우 머리가 어질해지는데요</p>
+<p>이런 경우를 위해 보통 private repository 서버를 두고 이 repository 서버에 업무에 필요한 rpm 들을 설치해놓습니다<br>
+그리고 DB서버 등 운영서버가 이 private repository 서버를 바라보게 하여 여기에서 필요한 파일들을 가져오게 하면 DB서버가 인터넷이 안되어도 상관없게 됩니다<br>
+이번 글에서는 private reposiotry 서버를 구축하는 방법에 대해 공유하겠습니다.</p>
+<h3 id="-">사전 준비</h3>
+<ul>
+<li>인터넷이 되는 repository 서버</li>
+<li>repository 서버 &lt;-&gt; client 서버 간의 network acl</li>
+</ul>
+<h3 id="db--repolist">DB서버 기본 repolist</h3>
+<pre><code>[testusersu@testserver 15:49:12 /etc/yum.repos.d ]$ yum repolist all
+
+repo id                                                  repo name                                                            status
+test-backport                                             CentOS 6.9 - Backport                                                     11
+test-base                                                 CentOS 6.9 - Base                                                     6704+2
+test-epel                                                 Extra Packages for Enterprise Linux 6 - x86_64                       17297+9
+test-extras                                               CentOS 6.9 - Extras                                                       53
+test-updates                                              CentOS 6.9 - Updates                                                    1307
+test                                                      test Packages for Enterprise Linux 6 - x86_64                              22
+</code></pre><h2 id="repository--">repository 서버 설정</h2>
+<ul>
+<li>nginx 서버 구성 (repository 웹 페이지용)</li>
+</ul>
+<pre><code>$ sudo yum -y install nginx
+
+$ vi /etc/nginx/nginx.conf
+
+server {
+        listen   80;
+        server_name  repo_test
+        root   /var/www/html/repos;
+        location / {
+                index  index.php index.html index.htm;
+                autoindex on; 
+        }
+}
+
+$ service nginx start
+</code></pre><ul>
+<li>제공 할 rpm 파일 받아오기 위한 repository 주소 설정
+<ul>
+<li>예시로 percona, postgresql repository 등록</li>
+</ul>
+</li>
+</ul>
+<pre><code>$ sudo yum -y install createrepo yum-utils
+$ sudo chown -R testusersu:testuser /var/www/html
+
+$ mkdir -p /var/www/html/repos/{제공할 repository명}
+$ mkdir -p /var/www/html/repos/log
+</code></pre><pre><code>$ cat /etc/yum.repos.d/percona-original-release.repo
+-&gt; yum install https://repo.percona.com/yum/percona-release-latest.noarch.rpm 커맨드로 repository 추가할 수 있음
+
+[testusersu@repo-test yum.repos.d]$ cat percona-original-release.repo
+#
+# This repo is managed by &quot;percona-release&quot; utility, do not edit!
+#
+[percona-release-x86_64]
+name = Percona Original release/x86_64 YUM repository
+baseurl = http://repo.percona.com/percona/yum/release/$releasever/RPMS/x86_64
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/PERCONA-PACKAGING-KEY
+
+[percona-release-noarch]
+name = Percona Original release/noarch YUM repository
+baseurl = http://repo.percona.com/percona/yum/release/$releasever/RPMS/noarch
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/PERCONA-PACKAGING-KEY
+
+[percona-release-sources]
+name = Percona Original release/sources YUM repository
+baseurl = http://repo.percona.com/percona/yum/release/$releasever/SRPMS
+enabled = 0
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/PERCONA-PACKAGING-KEY
+
+
+
+$ cat /etc/yum.repos.d/pgdg.repo
+
+[pgdg12]
+name=PostgreSQL 12 for RHEL/CentOS $releasever - $basearch
+baseurl= https://download.postgresql.org/pub/repos/yum/12/redhat/rhel-$releasever-$basearch
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-PGDG
+
+[pgdg12-centos6]
+name=PostgreSQL 12 for RHEL/CentOS 6 - $basearch
+baseurl= https://download.postgresql.org/pub/repos/yum/12/redhat/rhel-6-$basearch
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-PGDG
+</code></pre><ul>
+<li>추가 된 repolist 확인</li>
+</ul>
+<pre><code>$ sudo yum repolist
+
+[testusersu@repo-test percona]$ sudo yum repolist
+Loaded plugins: fastestmirror, langpacks
+Loading mirror speeds from cached hostfile
+repo id                                                                                               repo name                                                                                                                       status
+.
+.
+.
+percona-release-noarch/7                                                                              Percona Original release/noarch YUM repository                                                                                        63
+percona-release-x86_64/7                                                                              Percona Original release/x86_64 YUM repository                                                                                     2,208
+pgdg12/7/x86_64                                                                                       PostgreSQL 12 for RHEL/CentOS 7 - x86_64                                                                                             434
+pgdg12-centos6/x86_64                                                                                 PostgreSQL 12 for RHEL/CentOS 6 - x86_64                                                   .
+.
+</code></pre><p>=&gt; centos6/7 버전별로 제공하기 위해선 위 rpm repository 주소 설정할 때 $releasever 서버 부분을 수정해야함</p>
+<ul>
+<li>local repository 저장소에 rpm 받아오기</li>
+</ul>
+<pre><code>$ reposync -l -d -m --repoid=percona-release-x86_64 --newest-only --download-metadata --download_path=/var/www/html/repos/percona
+$ reposync -l -d -m --repoid=pgdg12-centos6 --newest-only --download-metadata --download_path=/var/www/html/repos/postgresql
+</code></pre><p>=&gt; reposync를 통해 repolist에 등록 된 repoid 를 바탕으로 가져욤</p>
+<ul>
+<li>repository update crontab 설정</li>
+</ul>
+<pre><code>$ vi /etc/yum.repos.d/repo_sync.sh
+
+#!/bin/bash
+# Create log files
+LOG_FILE=/var/www/html/repos/logs/repo_sync_$(date +%Y.%m.%d).log
+
+# Remove old log files
+find /var/www/html/repos/logs/repo_sync* -mtime +7 -delete; &gt;&gt; $LOG_FILE 2&gt;&amp;1
+
+# Reposync
+/usr/bin/reposync --newest-only --repoid=percona-release-x86_64 -p /var/www/html/repos/percona &gt;&gt; $LOG_FILE 2&gt;&amp;1
+/usr/bin/reposync --newest-only --repoid=pgdg12-centos6 -p /var/www/html/repos/potgresql &gt;&gt; $LOG_FILE 2&gt;&amp;1
+/usr/bin/reposync --newest-only --repoid=pgdg12 -p /var/www/html/repos/potgresql &gt;&gt; $LOG_FILE 2&gt;&amp;1
+
+
+# Createrepo
+/usr/bin/createrepo /var/www/html/repos/percona &gt;&gt; $LOG_FILE 2&gt;&amp;1
+/usr/bin/createrepo /var/www/html/repos/percona/percona-release-noarch-centos6 &gt;&gt; $LOG_FILE 2&gt;&amp;1
+/usr/bin/createrepo /var/www/html/repos/percona/percona-release-x86_64-centos6 &gt;&gt; $LOG_FILE 2&gt;&amp;1
+/usr/bin/createrepo /var/www/html/repos/percona/percona-release-noarch &gt;&gt; $LOG_FILE 2&gt;&amp;1
+/usr/bin/createrepo /var/www/html/repos/percona/percona-release-x86_64 &gt;&gt; $LOG_FILE 2&gt;&amp;1
+/usr/bin/createrepo /var/www/html/repos/postgresql &gt;&gt; $LOG_FILE 2&gt;&amp;1
+
+$ crontab -e
+0 0 * * * * /etc/yum.repos.d/repo_sync.sh
+</code></pre><p>=&gt; 업데이트 된 rpm 들을 가져오기 위해 reposync &ndash;newest-only 커맨드를 crontab으로 설정함<br>
+만약 새로운 repository 가 추가되면 위 스크립트의 rsync , createrepo 부분에 추가하고 스크립트 한번 실행해주면 됨</p>
+<h2 id="client-">client 설정</h2>
+<p>=&gt; centos 버전에 맞게 아래 repository 추가하면 됨</p>
+<ul>
+<li>yum.repos.d 설정 - centos6</li>
+</ul>
+<pre><code>$ cat /etc/yum.repos.d/kimdubi.repo
+
+[percona-centos6_1]
+name=TEAM private repository for percona tool
+#IP of the local repository server set up in the previous step
+baseurl=http://10.111.11.111/percona/percona-release-x86_64-centos6
+gpgcheck=0
+enabled=1
+
+[percona-centos6_2]
+name=TEAM private repository for percona tool
+#IP of the local repository server set up in the previous step
+baseurl=http://10.111.11.111/percona/percona-release-noarch-centos6
+gpgcheck=0
+enabled=1
+centos7
+$ cat /etc/yum.repos.d/kimdubi.repo
+
+[percona-centos6_1]
+name=TEAM private repository for percona tool
+#IP of the local repository server set up in the previous step
+baseurl=http://10.111.11.111/percona/percona-release-x86_64
+gpgcheck=0
+enabled=1
+
+[percona-centos6_2]
+name=TEAM private repository for percona tool
+#IP of the local repository server set up in the previous step
+baseurl=http://10.111.11.111/percona/percona-release-noarch
+gpgcheck=0
+enabled=1
+</code></pre><ul>
+<li>repolist 확인</li>
+</ul>
+<pre><code>[testusersu@testserver 15:52:07 /etc/yum.repos.d ]$ sudo yum repolist
+Loaded plugins: fastestmirror, security
+Loading mirror speeds from cached hostfile
+repo id                                                  repo name                                                            status
+test-backport                                             CentOS 6.9 - Backport                                                     11
+test-base                                                 CentOS 6.9 - Base                                                     6704+2
+test-epel                                                 Extra Packages for Enterprise Linux 6 - x86_64                       17297+9
+test-extras                                               CentOS 6.9 - Extras                                                       53
+test-updates                                              CentOS 6.9 - Updates                                                    1307
+test                                                      test Packages for Enterprise Linux 6 - x86_64                              22
+percona                                                   TEAM private repository for percona tool                                 111
+postgresql                                                TEAM private repository for postgresql                                    81
+repolist: 25586
+</code></pre><p>=&gt; client 서버에 repository가 추가된 것을 확인했다면<br>
+인터넷에 연결된 것처럼 yum 설치, 혹은 repository 서버의 IP로 웹브라우저를 통해 접속해서 필요한 파일들을 가져올 수 있습니다.</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

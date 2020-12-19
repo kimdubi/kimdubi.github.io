@@ -5,10 +5,225 @@
     <description>Recent content in Etcs on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 23 May 2020 15:04:31 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 19 Dec 2020 11:39:48 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/etc/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Private Repository 서버 구축하기</title>
+      <link>https://kimdubi.github.io/etc/private_repo/</link>
+      <pubDate>Sat, 19 Dec 2020 11:39:48 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/etc/private_repo/</guid>
+      <description>&lt;p&gt;DB 서버들은 보통 인터넷망과 연결되지 않은 경우가 보통입니다.&lt;br&gt;
+클라우드에서도 DB서버들은 private subnet에 위치하게 하여 인터넷이 안되도록 하는데요.&lt;br&gt;
+이런 경우 외부에서 뭔가 필요한 rpm 등 s/w 를 설치할 때 여러 경로를 통해야하는 불편이 있습니다.&lt;br&gt;
+yum 설치를 하는데 필요한 rpm들이 서로 물리고 물리는 경우 머리가 어질해지는데요&lt;/p&gt;
+&lt;p&gt;이런 경우를 위해 보통 private repository 서버를 두고 이 repository 서버에 업무에 필요한 rpm 들을 설치해놓습니다&lt;br&gt;
+그리고 DB서버 등 운영서버가 이 private repository 서버를 바라보게 하여 여기에서 필요한 파일들을 가져오게 하면 DB서버가 인터넷이 안되어도 상관없게 됩니다&lt;br&gt;
+이번 글에서는 private reposiotry 서버를 구축하는 방법에 대해 공유하겠습니다.&lt;/p&gt;
+&lt;h3 id=&#34;-&#34;&gt;사전 준비&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;인터넷이 되는 repository 서버&lt;/li&gt;
+&lt;li&gt;repository 서버 &amp;lt;-&amp;gt; client 서버 간의 network acl&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;db--repolist&#34;&gt;DB서버 기본 repolist&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;[testusersu@testserver 15:49:12 /etc/yum.repos.d ]$ yum repolist all
+
+repo id                                                  repo name                                                            status
+test-backport                                             CentOS 6.9 - Backport                                                     11
+test-base                                                 CentOS 6.9 - Base                                                     6704+2
+test-epel                                                 Extra Packages for Enterprise Linux 6 - x86_64                       17297+9
+test-extras                                               CentOS 6.9 - Extras                                                       53
+test-updates                                              CentOS 6.9 - Updates                                                    1307
+test                                                      test Packages for Enterprise Linux 6 - x86_64                              22
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;repository--&#34;&gt;repository 서버 설정&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;nginx 서버 구성 (repository 웹 페이지용)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ sudo yum -y install nginx
+
+$ vi /etc/nginx/nginx.conf
+
+server {
+        listen   80;
+        server_name  repo_test
+        root   /var/www/html/repos;
+        location / {
+                index  index.php index.html index.htm;
+                autoindex on; 
+        }
+}
+
+$ service nginx start
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;제공 할 rpm 파일 받아오기 위한 repository 주소 설정
+&lt;ul&gt;
+&lt;li&gt;예시로 percona, postgresql repository 등록&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ sudo yum -y install createrepo yum-utils
+$ sudo chown -R testusersu:testuser /var/www/html
+
+$ mkdir -p /var/www/html/repos/{제공할 repository명}
+$ mkdir -p /var/www/html/repos/log
+&lt;/code&gt;&lt;/pre&gt;&lt;pre&gt;&lt;code&gt;$ cat /etc/yum.repos.d/percona-original-release.repo
+-&amp;gt; yum install https://repo.percona.com/yum/percona-release-latest.noarch.rpm 커맨드로 repository 추가할 수 있음
+
+[testusersu@repo-test yum.repos.d]$ cat percona-original-release.repo
+#
+# This repo is managed by &amp;quot;percona-release&amp;quot; utility, do not edit!
+#
+[percona-release-x86_64]
+name = Percona Original release/x86_64 YUM repository
+baseurl = http://repo.percona.com/percona/yum/release/$releasever/RPMS/x86_64
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/PERCONA-PACKAGING-KEY
+
+[percona-release-noarch]
+name = Percona Original release/noarch YUM repository
+baseurl = http://repo.percona.com/percona/yum/release/$releasever/RPMS/noarch
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/PERCONA-PACKAGING-KEY
+
+[percona-release-sources]
+name = Percona Original release/sources YUM repository
+baseurl = http://repo.percona.com/percona/yum/release/$releasever/SRPMS
+enabled = 0
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/PERCONA-PACKAGING-KEY
+
+
+
+$ cat /etc/yum.repos.d/pgdg.repo
+
+[pgdg12]
+name=PostgreSQL 12 for RHEL/CentOS $releasever - $basearch
+baseurl= https://download.postgresql.org/pub/repos/yum/12/redhat/rhel-$releasever-$basearch
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-PGDG
+
+[pgdg12-centos6]
+name=PostgreSQL 12 for RHEL/CentOS 6 - $basearch
+baseurl= https://download.postgresql.org/pub/repos/yum/12/redhat/rhel-6-$basearch
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-PGDG
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;추가 된 repolist 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ sudo yum repolist
+
+[testusersu@repo-test percona]$ sudo yum repolist
+Loaded plugins: fastestmirror, langpacks
+Loading mirror speeds from cached hostfile
+repo id                                                                                               repo name                                                                                                                       status
+.
+.
+.
+percona-release-noarch/7                                                                              Percona Original release/noarch YUM repository                                                                                        63
+percona-release-x86_64/7                                                                              Percona Original release/x86_64 YUM repository                                                                                     2,208
+pgdg12/7/x86_64                                                                                       PostgreSQL 12 for RHEL/CentOS 7 - x86_64                                                                                             434
+pgdg12-centos6/x86_64                                                                                 PostgreSQL 12 for RHEL/CentOS 6 - x86_64                                                   .
+.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; centos6/7 버전별로 제공하기 위해선 위 rpm repository 주소 설정할 때 $releasever 서버 부분을 수정해야함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;local repository 저장소에 rpm 받아오기&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ reposync -l -d -m --repoid=percona-release-x86_64 --newest-only --download-metadata --download_path=/var/www/html/repos/percona
+$ reposync -l -d -m --repoid=pgdg12-centos6 --newest-only --download-metadata --download_path=/var/www/html/repos/postgresql
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; reposync를 통해 repolist에 등록 된 repoid 를 바탕으로 가져욤&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;repository update crontab 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ vi /etc/yum.repos.d/repo_sync.sh
+
+#!/bin/bash
+# Create log files
+LOG_FILE=/var/www/html/repos/logs/repo_sync_$(date +%Y.%m.%d).log
+
+# Remove old log files
+find /var/www/html/repos/logs/repo_sync* -mtime +7 -delete; &amp;gt;&amp;gt; $LOG_FILE 2&amp;gt;&amp;amp;1
+
+# Reposync
+/usr/bin/reposync --newest-only --repoid=percona-release-x86_64 -p /var/www/html/repos/percona &amp;gt;&amp;gt; $LOG_FILE 2&amp;gt;&amp;amp;1
+/usr/bin/reposync --newest-only --repoid=pgdg12-centos6 -p /var/www/html/repos/potgresql &amp;gt;&amp;gt; $LOG_FILE 2&amp;gt;&amp;amp;1
+/usr/bin/reposync --newest-only --repoid=pgdg12 -p /var/www/html/repos/potgresql &amp;gt;&amp;gt; $LOG_FILE 2&amp;gt;&amp;amp;1
+
+
+# Createrepo
+/usr/bin/createrepo /var/www/html/repos/percona &amp;gt;&amp;gt; $LOG_FILE 2&amp;gt;&amp;amp;1
+/usr/bin/createrepo /var/www/html/repos/percona/percona-release-noarch-centos6 &amp;gt;&amp;gt; $LOG_FILE 2&amp;gt;&amp;amp;1
+/usr/bin/createrepo /var/www/html/repos/percona/percona-release-x86_64-centos6 &amp;gt;&amp;gt; $LOG_FILE 2&amp;gt;&amp;amp;1
+/usr/bin/createrepo /var/www/html/repos/percona/percona-release-noarch &amp;gt;&amp;gt; $LOG_FILE 2&amp;gt;&amp;amp;1
+/usr/bin/createrepo /var/www/html/repos/percona/percona-release-x86_64 &amp;gt;&amp;gt; $LOG_FILE 2&amp;gt;&amp;amp;1
+/usr/bin/createrepo /var/www/html/repos/postgresql &amp;gt;&amp;gt; $LOG_FILE 2&amp;gt;&amp;amp;1
+
+$ crontab -e
+0 0 * * * * /etc/yum.repos.d/repo_sync.sh
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 업데이트 된 rpm 들을 가져오기 위해 reposync &amp;ndash;newest-only 커맨드를 crontab으로 설정함&lt;br&gt;
+만약 새로운 repository 가 추가되면 위 스크립트의 rsync , createrepo 부분에 추가하고 스크립트 한번 실행해주면 됨&lt;/p&gt;
+&lt;h2 id=&#34;client-&#34;&gt;client 설정&lt;/h2&gt;
+&lt;p&gt;=&amp;gt; centos 버전에 맞게 아래 repository 추가하면 됨&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;yum.repos.d 설정 - centos6&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ cat /etc/yum.repos.d/kimdubi.repo
+
+[percona-centos6_1]
+name=TEAM private repository for percona tool
+#IP of the local repository server set up in the previous step
+baseurl=http://10.111.11.111/percona/percona-release-x86_64-centos6
+gpgcheck=0
+enabled=1
+
+[percona-centos6_2]
+name=TEAM private repository for percona tool
+#IP of the local repository server set up in the previous step
+baseurl=http://10.111.11.111/percona/percona-release-noarch-centos6
+gpgcheck=0
+enabled=1
+centos7
+$ cat /etc/yum.repos.d/kimdubi.repo
+
+[percona-centos6_1]
+name=TEAM private repository for percona tool
+#IP of the local repository server set up in the previous step
+baseurl=http://10.111.11.111/percona/percona-release-x86_64
+gpgcheck=0
+enabled=1
+
+[percona-centos6_2]
+name=TEAM private repository for percona tool
+#IP of the local repository server set up in the previous step
+baseurl=http://10.111.11.111/percona/percona-release-noarch
+gpgcheck=0
+enabled=1
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;repolist 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;[testusersu@testserver 15:52:07 /etc/yum.repos.d ]$ sudo yum repolist
+Loaded plugins: fastestmirror, security
+Loading mirror speeds from cached hostfile
+repo id                                                  repo name                                                            status
+test-backport                                             CentOS 6.9 - Backport                                                     11
+test-base                                                 CentOS 6.9 - Base                                                     6704+2
+test-epel                                                 Extra Packages for Enterprise Linux 6 - x86_64                       17297+9
+test-extras                                               CentOS 6.9 - Extras                                                       53
+test-updates                                              CentOS 6.9 - Updates                                                    1307
+test                                                      test Packages for Enterprise Linux 6 - x86_64                              22
+percona                                                   TEAM private repository for percona tool                                 111
+postgresql                                                TEAM private repository for postgresql                                    81
+repolist: 25586
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; client 서버에 repository가 추가된 것을 확인했다면&lt;br&gt;
+인터넷에 연결된 것처럼 yum 설치, 혹은 repository 서버의 IP로 웹브라우저를 통해 접속해서 필요한 파일들을 가져올 수 있습니다.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Ansible ROLE 사용하여 MySQL 설치</title>

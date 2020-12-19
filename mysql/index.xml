@@ -486,7 +486,53 @@ order by c1,c2
 &lt;pre&gt;&lt;code&gt;SELECT c1,c2,c3,t2.c3
 FROM tb_test t1 LEFT OUTER JOIN tb_test2 t2 on t1.c1=t2.c1
 order by c1,c2
-&lt;/code&gt;&lt;/pre&gt;</description>
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;단 MySQL은 ORACLE과 달리 complex view(아래 조건이 포함된 view) 에 대해서는 위와 같은 view merging을 지원하지 않음
+&lt;ul&gt;
+&lt;li&gt;UNION&lt;/li&gt;
+&lt;li&gt;GROUP BY&lt;/li&gt;
+&lt;li&gt;DISTINCT&lt;/li&gt;
+&lt;li&gt;Aggregation&lt;/li&gt;
+&lt;li&gt;LIMIT&lt;/li&gt;
+&lt;li&gt;사용자 생성 변수&lt;/li&gt;
+&lt;li&gt;ORACLE에서는 GROUP BY, DISTINCT, Aggregation 을 포함해도 비용 비교 후 view merging을 할 수 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;-4&#34;&gt;변경 전&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; explain
+    -&amp;gt; SELECT (SELECT SUM(E_1.EMPNO) SUM_EMPNO FROM   EMP E_1 WHERE E_1.EMPNO = E.EMPNO) SUM_EMPNO_1,
+    -&amp;gt;        E.HIREDATE,
+    -&amp;gt;        E.DEPTNO
+    -&amp;gt; FROM   EMP E
+    -&amp;gt; WHERE      E.DEPTNO = 10;
++----+--------------------+-------+------------+--------+---------------+-----------+---------+--------------+------+----------+-------------+
+| id | select_type        | table | partitions | type   | possible_keys | key       | key_len | ref          | rows | filtered | Extra       |
++----+--------------------+-------+------------+--------+---------------+-----------+---------+--------------+------+----------+-------------+
+|  1 | PRIMARY            | E     | NULL       | ref    | FK_DEPTNO     | FK_DEPTNO | 2       | const        |    3 |   100.00 | NULL        |
+|  2 | DEPENDENT SUBQUERY | E_1   | NULL       | eq_ref | PRIMARY       | PRIMARY   | 2       | test.E.EMPNO |    1 |   100.00 | Using index |
++----+--------------------+-------+------------+--------+---------------+-----------+---------+--------------+------+----------+-------------+
+&lt;/code&gt;&lt;/pre&gt;&lt;h4 id=&#34;-5&#34;&gt;변경 후&lt;/h4&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; explain
+    -&amp;gt; SELECT T_1.SUM_EMPNO SUM_EMPNO_1,
+    -&amp;gt;        E.HIREDATE,
+    -&amp;gt;        E.DEPTNO
+    -&amp;gt; FROM   EMP E LEFT OUTER JOIN
+    -&amp;gt;         (SELECT E_1.EMPNO, SUM(E_1.EMPNO) SUM_EMPNO
+    -&amp;gt;         FROM   EMP E_1
+    -&amp;gt;         GROUP BY E_1.EMPNO) T_1 on E.EMPNO = T_1.EMPNO
+    -&amp;gt; WHERE      E.DEPTNO = 10;
++----+-------------+------------+------------+-------+-------------------+-------------+---------+--------------+------+----------+-------------+
+| id | select_type | table      | partitions | type  | possible_keys     | key         | key_len | ref          | rows | filtered | Extra       |
++----+-------------+------------+------------+-------+-------------------+-------------+---------+--------------+------+----------+-------------+
+|  1 | PRIMARY     | E          | NULL       | ref   | FK_DEPTNO         | FK_DEPTNO   | 2       | const        |    3 |   100.00 | NULL        |
+|  1 | PRIMARY     | &amp;lt;derived2&amp;gt; | NULL       | ref   | &amp;lt;auto_key0&amp;gt;       | &amp;lt;auto_key0&amp;gt; | 2       | test.E.EMPNO |    2 |   100.00 | NULL        |
+|  2 | DERIVED     | E_1        | NULL       | index | PRIMARY,FK_DEPTNO | PRIMARY     | 2       | NULL         |   14 |   100.00 | Using index |
++----+-------------+------------+------------+-------+-------------------+-------------+---------+--------------+------+----------+-------------+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 집계함수를 포함한 스칼라 서브쿼리를 LEFT JOIN 으로 변경하면서 inline view에 group by가 포함됨&lt;br&gt;
+group by 를 포함한 inline view는 view merging이 불가능하여 id=2 DERIVED 로 풀려 index 풀스캔을 하여 임시테이블을 생성한 뒤 조인하게 됨&lt;br&gt;
+근데 ORACLE처럼 view merging 실패하면 E.DEPTNO=10 조건이 자동으로 inline view 안으로 pushdown 될 줄 알았는데 이것도 안되네..?&lt;/p&gt;
+</description>
     </item>
     
     <item>

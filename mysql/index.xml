@@ -473,10 +473,10 @@ FROM (
     order by c1,c2
     limit 10
 ) a
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt;tb_test 의 건 수가 100건이라 할때 첫번째 쿼리는 스칼라 서브쿼리를 100번 수행하여 나온 결과를 정렬 후 10건 추출,
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt;tb_test 의 건 수가 100건이라 할때 첫번째 쿼리는 스칼라 서브쿼리를 100번 수행하여 나온 결과를 정렬 후 10건 추출,&lt;br&gt;
 두번째 쿼리는 스칼라 서브쿼리를 10번만 수행하여 I/O 처리량에서 훨씬 효율적이게 됨&lt;/p&gt;
 &lt;h3 id=&#34;--join--&#34;&gt;스칼라 서브쿼리를 JOIN 으로 변경&lt;/h3&gt;
-&lt;p&gt;배치 프로그램처럼 데이터 건 수가 많은 경우엔 비례해서 스칼라 서브쿼리의 수행횟수도 많아지기 때문에 성능이 나오기 어려움
+&lt;p&gt;배치 프로그램처럼 데이터 건 수가 많은 경우엔 비례해서 스칼라 서브쿼리의 수행횟수도 많아지기 때문에 성능이 나오기 어려움&lt;br&gt;
 스칼라 서브쿼리를 JOIN으로 변경하여 HASH JOIN으로 유도하는 게 가장 효율적이나 MySQL에는 8.0.18 버전 부터 HASH JOIN을 지원하기 때문에 NL 조인으로 풀리도록 유도함&lt;br&gt;
 &lt;a href=&#34;https://sarc.io/index.php/mariadb/1768-mysql-8-0-18-hash-join&#34;&gt;https://sarc.io/index.php/mariadb/1768-mysql-8-0-18-hash-join&lt;/a&gt;&lt;/p&gt;
 &lt;h4 id=&#34;-3&#34;&gt;변경 전&lt;/h4&gt;
@@ -516,7 +516,7 @@ WHERE  DEPT_NO = 10 ;
 &lt;li&gt;Aggregation&lt;/li&gt;
 &lt;li&gt;LIMIT&lt;/li&gt;
 &lt;li&gt;사용자 생성 변수&lt;/li&gt;
-&lt;li&gt;ORACLE에서는 GROUP BY, DISTINCT 을 포함해도 비용 비교 후 view merging을 할 수 있음
+&lt;li&gt;ORACLE에서는 GROUP BY, DISTINCT 을 포함해도 비용 비교 후 view merging을 할 수 있음&lt;br&gt;
 =&amp;gt; OUTER JOIN 으로 푼 것 보다 스칼라 서브쿼리가 더 빠를 수 있음&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h4 id=&#34;-7&#34;&gt;변경 전&lt;/h4&gt;
@@ -549,9 +549,9 @@ WHERE  DEPT_NO = 10 ;
 |  1 | PRIMARY     | &amp;lt;derived2&amp;gt; | NULL       | ref   | &amp;lt;auto_key0&amp;gt;       | &amp;lt;auto_key0&amp;gt; | 2       | test.E.EMPNO |    2 |   100.00 | NULL        |
 |  2 | DERIVED     | E_1        | NULL       | index | PRIMARY,FK_DEPTNO | PRIMARY     | 2       | NULL         |   14 |   100.00 | Using index |
 +----+-------------+------------+------------+-------+-------------------+-------------+---------+--------------+------+----------+-------------+
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 집계함수를 포함한 스칼라 서브쿼리를 LEFT JOIN 으로 변경하면서 inline view에 group by가 포함됨
-group by 를 포함한 inline view는 view merging이 불가능하여 id=2 DERIVED 로 풀려 index 풀스캔을 하여 임시테이블을 생성한 뒤 조인하게 됨
-근데 ORACLE처럼 view merging 실패하면 E.DEPTNO=10 조건이 자동으로 inline view 안으로 pushdown 될 줄 알았는데 이것도 안되네..?
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 집계함수를 포함한 스칼라 서브쿼리를 LEFT JOIN 으로 변경하면서 inline view에 group by가 포함됨&lt;br&gt;
+group by 를 포함한 inline view는 view merging이 불가능하여 id=2 DERIVED 로 풀려 index 풀스캔을 하여 임시테이블을 생성한 뒤 조인하게 됨&lt;br&gt;
+근데 ORACLE처럼 view merging 실패하면 E.DEPTNO=10 조건이 자동으로 inline view 안으로 pushdown 될 줄 알았는데 이것도 안되네..?&lt;br&gt;
 OUTER JOIN하는 inline view 안에 group by 가 포함되어있으면 스칼라 조인으로 변환시키는 게 성능 상 이득일 수 있음&lt;/p&gt;
 </description>
     </item>

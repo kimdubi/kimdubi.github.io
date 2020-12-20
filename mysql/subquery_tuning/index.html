@@ -257,21 +257,42 @@ FROM (
     order by c1,c2
     limit 10
 ) a
-</code></pre><p>=&gt;tb_test 의 건 수가 100건이라 할때 첫번째 쿼리는 스칼라 서브쿼리를 100번 수행하여 나온 결과를 정렬 후 10건 추출,<br>
+</code></pre><p>=&gt;tb_test 의 건 수가 100건이라 할때 첫번째 쿼리는 스칼라 서브쿼리를 100번 수행하여 나온 결과를 정렬 후 10건 추출,
 두번째 쿼리는 스칼라 서브쿼리를 10번만 수행하여 I/O 처리량에서 훨씬 효율적이게 됨</p>
 <h3 id="--join--">스칼라 서브쿼리를 JOIN 으로 변경</h3>
-<p>배치 프로그램처럼 데이터 건 수가 많은 경우엔 비례해서 스칼라 서브쿼리의 수행횟수도 많아지기 때문에 성능이 나오기 어려움<br>
-스칼라 서브쿼리를 JOIN으로 변경하여 HASH JOIN으로 유도하는 게 가장 효율적이나 MySQL에는 8.0.18 버전 부터 HASH JOIN을 지원함<br>
+<p>배치 프로그램처럼 데이터 건 수가 많은 경우엔 비례해서 스칼라 서브쿼리의 수행횟수도 많아지기 때문에 성능이 나오기 어려움
+스칼라 서브쿼리를 JOIN으로 변경하여 HASH JOIN으로 유도하는 게 가장 효율적이나 MySQL에는 8.0.18 버전 부터 HASH JOIN을 지원하기 때문에 NL 조인으로 풀리도록 유도함<br>
 <a href="https://sarc.io/index.php/mariadb/1768-mysql-8-0-18-hash-join">https://sarc.io/index.php/mariadb/1768-mysql-8-0-18-hash-join</a></p>
+<h4 id="-3">변경 전</h4>
 <pre><code>SELECT c1,c2,c3, (SELECT t2.c3 FROM tb_test2 t2 WHERE t2.c1=t1.c1 ) as t2_c3
 FROM tb_test t1
 order by c1,c2
-</code></pre><h4 id="-3">변경 후</h4>
+</code></pre><h4 id="-4">변경 후</h4>
 <pre><code>SELECT c1,c2,c3,t2.c3
 FROM tb_test t1 LEFT OUTER JOIN tb_test2 t2 on t1.c1=t2.c1
 order by c1,c2
-</code></pre><ul>
-<li>단 MySQL은 ORACLE과 달리 complex view(아래 조건이 포함된 view) 에 대해서는 위와 같은 view merging을 지원하지 않음
+</code></pre><h4 id="-5">변경 전</h4>
+<pre><code>SELECT t1.EMPNO,
+       t1.DEPT_NO
+FROM   (SELECT E.EMPNO,
+               (SELECT D.DEPTNO
+                FROM   DEPT D
+                WHERE  D.DEPTNO = E.DEPTNO) DEPT_NO
+        FROM   EMP E) t1
+WHERE  t1.DEPT_NO = 10 ;
+</code></pre><p>=&gt; view 안에 스칼라 서브쿼리 컬럼이 있고 이 컬럼을 밖에서 where 조건으로 사용하는 경우, 해당 컬럼에 인덱스가 있어도 인덱스를 탈 수 없음<br>
+t1.DEPT_NO 는 서브쿼리의 결과를 의미하기 때문에 가공된 컬럼처럼 동작함</p>
+<h4 id="-6">변경 후</h4>
+<pre><code>SELECT t1.EMPNO,
+       t1.DEPT_NO
+FROM   (SELECT E.EMPNO,
+               D.DEPTNO DEPT_NO
+        FROM   EMP  E LEFT OUTER JOIN DEPT D ON D.DEPTNO = E.DEPTNO
+        ) t1
+WHERE  DEPT_NO = 10 ;
+</code></pre><p>=&gt; view 안의 서브쿼리를 OUTER JOIN으로 풀었고 필요 시 view 밖의 DEPT_NO=10 조건을 view 안으로 밀어넣어 인덱스를 타도록 유도 가능<br>
+<!-- raw HTML omitted --></p>
+<h3 id="-mysql-oracle--complex-view---view-----view-merging--">단 MySQL은 ORACLE과 달리 complex view(아래 조건이 포함된 view) 에 대해서는 위와 같은 view merging을 지원하지 않음</h3>
 <ul>
 <li>UNION</li>
 <li>GROUP BY</li>
@@ -279,11 +300,10 @@ order by c1,c2
 <li>Aggregation</li>
 <li>LIMIT</li>
 <li>사용자 생성 변수</li>
-<li>ORACLE에서는 GROUP BY, DISTINCT, Aggregation 을 포함해도 비용 비교 후 view merging을 할 수 있음</li>
+<li>ORACLE에서는 GROUP BY, DISTINCT 을 포함해도 비용 비교 후 view merging을 할 수 있음
+=&gt; OUTER JOIN 으로 푼 것 보다 스칼라 서브쿼리가 더 빠를 수 있음</li>
 </ul>
-</li>
-</ul>
-<h4 id="-4">변경 전</h4>
+<h4 id="-7">변경 전</h4>
 <pre><code>mysql&gt; explain
     -&gt; SELECT (SELECT SUM(E_1.EMPNO) SUM_EMPNO FROM   EMP E_1 WHERE E_1.EMPNO = E.EMPNO) SUM_EMPNO_1,
     -&gt;        E.HIREDATE,
@@ -296,7 +316,7 @@ order by c1,c2
 |  1 | PRIMARY            | E     | NULL       | ref    | FK_DEPTNO     | FK_DEPTNO | 2       | const        |    3 |   100.00 | NULL        |
 |  2 | DEPENDENT SUBQUERY | E_1   | NULL       | eq_ref | PRIMARY       | PRIMARY   | 2       | test.E.EMPNO |    1 |   100.00 | Using index |
 +----+--------------------+-------+------------+--------+---------------+-----------+---------+--------------+------+----------+-------------+
-</code></pre><h4 id="-5">변경 후</h4>
+</code></pre><h4 id="-8">변경 후</h4>
 <pre><code>mysql&gt; explain
     -&gt; SELECT T_1.SUM_EMPNO SUM_EMPNO_1,
     -&gt;        E.HIREDATE,
@@ -313,9 +333,10 @@ order by c1,c2
 |  1 | PRIMARY     | &lt;derived2&gt; | NULL       | ref   | &lt;auto_key0&gt;       | &lt;auto_key0&gt; | 2       | test.E.EMPNO |    2 |   100.00 | NULL        |
 |  2 | DERIVED     | E_1        | NULL       | index | PRIMARY,FK_DEPTNO | PRIMARY     | 2       | NULL         |   14 |   100.00 | Using index |
 +----+-------------+------------+------------+-------+-------------------+-------------+---------+--------------+------+----------+-------------+
-</code></pre><p>=&gt; 집계함수를 포함한 스칼라 서브쿼리를 LEFT JOIN 으로 변경하면서 inline view에 group by가 포함됨<br>
-group by 를 포함한 inline view는 view merging이 불가능하여 id=2 DERIVED 로 풀려 index 풀스캔을 하여 임시테이블을 생성한 뒤 조인하게 됨<br>
-근데 ORACLE처럼 view merging 실패하면 E.DEPTNO=10 조건이 자동으로 inline view 안으로 pushdown 될 줄 알았는데 이것도 안되네..?</p>
+</code></pre><p>=&gt; 집계함수를 포함한 스칼라 서브쿼리를 LEFT JOIN 으로 변경하면서 inline view에 group by가 포함됨
+group by 를 포함한 inline view는 view merging이 불가능하여 id=2 DERIVED 로 풀려 index 풀스캔을 하여 임시테이블을 생성한 뒤 조인하게 됨
+근데 ORACLE처럼 view merging 실패하면 E.DEPTNO=10 조건이 자동으로 inline view 안으로 pushdown 될 줄 알았는데 이것도 안되네..?
+OUTER JOIN하는 inline view 안에 group by 가 포함되어있으면 스칼라 조인으로 변환시키는 게 성능 상 이득일 수 있음</p>
 </div>
 
 </main>

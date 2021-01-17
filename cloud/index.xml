@@ -5,10 +5,308 @@
     <description>Recent content in Clouds on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 10 Jan 2020 10:09:05 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 17 Jan 2021 22:23:45 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/cloud/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>kubernetes command 정리-1</title>
+      <link>https://kimdubi.github.io/cloud/k8s_command/</link>
+      <pubDate>Sun, 17 Jan 2021 22:23:45 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_command/</guid>
+      <description>&lt;p&gt;혼자 쿠버네티스 커맨드 익숙해지고자 주저리주저리 작성하는 글입니다.&lt;/p&gt;
+&lt;p&gt;오브젝트는 쿠버네티스에 자원의 바라는 상태 (desired state) 를 정의하고 컨트롤러는 desired state = current state 가 되도록 오브젝트들을 생성 / 삭제&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;오브젝트 : pod, service, namespace,pvc&lt;/li&gt;
+&lt;li&gt;컨트롤러 : replicaset, deployment, statefulset,demonset&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;heading&#34;&gt;생성&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kubectl run nginx-app &amp;ndash;image nginx &amp;ndash;port=80  =&amp;gt; default로 deployment 생성&lt;/li&gt;
+&lt;li&gt;kubectl run nginx-app &amp;ndash;generator =run-pod/v1 &amp;ndash;image=&amp;quot;nginx&amp;rdquo; &amp;ndash;port=80  =&amp;gt; pod생성&lt;/li&gt;
+&lt;li&gt;kubectl apply -f nginx.yaml&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;heading1&#34;&gt;조회&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kubectl get pods,deploy,rs,svc -o wide&lt;/li&gt;
+&lt;li&gt;kubectl api-resources&lt;/li&gt;
+&lt;li&gt;kubectl explain pods&lt;/li&gt;
+&lt;li&gt;kubectl explain pods.spec&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;deploymentnginxappyaml&#34;&gt;deployment/nginx-app.yaml&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    apps: nginx-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-app
+  template:
+    metadata:
+      labels:
+        app: nginx-app
+    spec:
+      containers:
+      - name: nginx-app
+        image: nginx
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 0.1
+            memory: 10M
+          limits:
+            cpus: 0.2
+            memory: 20M
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; .spec.selector.matchLabels = .spec.template.metadata.labels 랑 같아야 적용가능&lt;/p&gt;
+&lt;h3 id=&#34;pod-&#34;&gt;pod 직접접속&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kubectl exec -it podname /bin/sh&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;replicaset-deployment----&#34;&gt;replicaset, deployment 등 컨트롤러만 지울 때&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kubectl delete replicaset nginx-replicaset-tets &amp;ndash;cascade=false&lt;br&gt;
+=&amp;gt; &amp;ndash;cascade=false 없이 지우면 해당 deployment 관련 모든 오브젝트 삭제됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;---&#34;&gt;떠있는 오브젝트, 컨트롤러 수정하기&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kubectl edit deployment.apps/nginx-deployment&lt;br&gt;
+=&amp;gt; ex. 위 커맨드 수행시 pod의 현재정보들이 vim 편집기로 열림, 수정 후 저장하고 나오면 변경사항 적용됨&lt;/li&gt;
+&lt;li&gt;kubectl set image deployment.apps/nginx-deployment nginx-container=nginx:1.9.1&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;AL01542225:deployment nhn$ kubectl get pod,rs,deploy,svc -o wide
+NAME                                    READY   STATUS              RESTARTS   AGE    IP           NODE       NOMINATED NODE   READINESS GATES
+pod/nginx-deployment-57c78dbb95-6hd8x   1/1     Running             0          8m6s   172.17.0.6   minikube   &amp;lt;none&amp;gt;           &amp;lt;none&amp;gt;
+pod/nginx-deployment-57c78dbb95-wnqhs   0/1     Terminating         0          8m6s   172.17.0.8   minikube   &amp;lt;none&amp;gt;           &amp;lt;none&amp;gt;
+pod/nginx-deployment-77c8f4c994-6tvm8   1/1     Running             0          36s    172.17.0.9   minikube   &amp;lt;none&amp;gt;           &amp;lt;none&amp;gt;
+pod/nginx-deployment-77c8f4c994-78bjk   1/1     Running             0          11s    172.17.0.7   minikube   &amp;lt;none&amp;gt;           &amp;lt;none&amp;gt;
+pod/nginx-deployment-77c8f4c994-tbrxr   0/1     ContainerCreating   0          5s     &amp;lt;none&amp;gt;       minikube   &amp;lt;none&amp;gt;           &amp;lt;none&amp;gt;
+
+NAME                                          DESIRED   CURRENT   READY   AGE    CONTAINERS        IMAGES        SELECTOR
+replicaset.apps/nginx-deployment-57c78dbb95   1         1         1       8m6s   nginx-container   nginx         app=nginx-conatiners,pod-template-hash=57c78dbb95
+replicaset.apps/nginx-deployment-77c8f4c994   3         3         2       36s    nginx-container   nginx:1.9.1   app=nginx-conatiners,pod-template-hash=77c8f4c994
+
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS        IMAGES        SELECTOR
+deployment.apps/nginx-deployment   3/3     3            3           8m6s   nginx-container   nginx:1.9.1   app=nginx-conatiners
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; deployment에서 선언한 container nginx-container 의 image를 nginx -&amp;gt; nginx:1.9.1 로 수정함&lt;br&gt;
+신규 77c8f4c994 ReplicaSet이 생성되어 새로운 Pod 들이 생성되며 기존 Pod들은 rolling update 형식으로 대체됨&lt;/p&gt;
+&lt;h3 id=&#34;replica-&#34;&gt;replica 조정&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kubectl scale deploy nginx-app &amp;ndash;replicas=2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;deployment-&#34;&gt;deployment 롤백&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;롤백 가능 버전 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl rollout history deploy nginx-deployment
+
+deployment.apps/nginx-deployment
+REVISION  CHANGE-CAUSE
+1         &amp;lt;none&amp;gt;
+2         &amp;lt;none&amp;gt;
+
+$ kubectl rollout history deploy nginx-deployment --revision=1
+deployment.apps/nginx-deployment with revision #1
+Pod Template:
+  Labels:	app=nginx-conatiners
+	pod-template-hash=57c78dbb95
+  Containers:
+   nginx-container:
+    Image:	nginx
+
+$ kubectl rollout history deploy nginx-deployment --revision=2
+deployment.apps/nginx-deployment with revision #2
+Pod Template:
+  Labels:	app=nginx-conatiners
+	pod-template-hash=77c8f4c994
+  Containers:
+   nginx-container:
+    Image:	nginx:1.9.1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 배포 버전 revision 1,2 차이는 nginx 이미지 버전 차이&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;특정 revision 으로 롤백&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl rollout undo deploy nginx-deployment --to-revision=1
+deployment.apps/nginx-deployment rolled back
+
+kubectl get deploy,rs,pods -o wide
+NAME                               READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS        IMAGES   SELECTOR
+deployment.apps/nginx-deployment   5/5     5            5           35m   nginx-container   nginx    app=nginx-conatiners
+
+NAME                                          DESIRED   CURRENT   READY   AGE   CONTAINERS        IMAGES        SELECTOR
+replicaset.apps/nginx-deployment-57c78dbb95   5         5         5       35m   nginx-container   nginx         app=nginx-conatiners,pod-template-hash=57c78dbb95
+replicaset.apps/nginx-deployment-77c8f4c994   0         0         0       27m   nginx-container   nginx:1.9.1   app=nginx-conatiners,pod-template-hash=77c8f4c994
+
+NAME                                    READY   STATUS    RESTARTS   AGE   IP            NODE       NOMINATED NODE   READINESS GATES
+pod/nginx-deployment-57c78dbb95-8lbh6   1/1     Running   0          26s   172.17.0.8    minikube   &amp;lt;none&amp;gt;           &amp;lt;none&amp;gt;
+pod/nginx-deployment-57c78dbb95-dzjj7   1/1     Running   0          19s   172.17.0.6    minikube   &amp;lt;none&amp;gt;           &amp;lt;none&amp;gt;
+pod/nginx-deployment-57c78dbb95-q7rjq   1/1     Running   0          33s   172.17.0.11   minikube   &amp;lt;none&amp;gt;           &amp;lt;none&amp;gt;
+pod/nginx-deployment-57c78dbb95-qbkxs   1/1     Running   0          33s   172.17.0.13   minikube   &amp;lt;none&amp;gt;           &amp;lt;none&amp;gt;
+pod/nginx-deployment-57c78dbb95-rmfh9   1/1     Running   0          33s   172.17.0.12   minikube   &amp;lt;none&amp;gt;           &amp;lt;none&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; nginx:1.9.1 버전을 사용하는 77c8f4c994=&amp;gt; 57c78dbb95 으로 롤백됨&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;롤백 버전 정보 보려면 annotations를 추가한다&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ cat nginx-deployment.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx-deployment
+  annotations:
+    kubernetes.io/change-cause: version test
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; deployment 정의 yaml파일에서 annotations 필드를 추가함. kubernetes.io/change-cause: 구문 뒤에 해당 버전에 대한 설명 기재&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl apply -f nginx-deployment.yaml
+
+$ kubectl rollout history deploy nginx-deployment
+deployment.apps/nginx-deployment
+REVISION  CHANGE-CAUSE
+2         &amp;lt;none&amp;gt;
+3         version test
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;-pod-metadatalabelsapp--&#34;&gt;각 pod의 .metadata.labels.app 필드 확인하기&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pods -o=jsonpath=&amp;quot;{range .items[*]}{.metadata.name}{&#39;\t&#39;}{.metadata.labels}{&#39;\n&#39;}{end}&amp;quot;
+nginx-replicaset-test-8pbqk	map[app:nginx-replicaset-container]
+nginx-replicaset-test-8pltx	map[app:nginx-replicaset-container]
+nginx-replicaset-test-v9gw9	map[app:nginx-replicaset-container2]
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;statefullsetyaml&#34;&gt;statefullset.yaml&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;statefulset는 상태가 유지되어야 하는 pod들을 관리하는 컨트롤러로 아래같은 경우에 사용함
+&lt;ul&gt;
+&lt;li&gt;pvc 를 사용해서 데이터를 저장하여 pod이 재시작되어도 데이터를 유지해야할 때&lt;/li&gt;
+&lt;li&gt;여러 pod 사이에 순서를 지정해서 실행이 필요할 때&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-statefulset-service
+  labels:
+    app: nginx-statefulset-service
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None
+  selector:
+    app: nginx-statefulset
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  selector:
+    matchLabels:
+      app: nginx-statefulset
+  serviceName: nginx-statefulset-service
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: nginx-statefulset
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: nginx-statefulset
+        image: nginx
+        ports: 
+        - containerPort: 80
+          name: web
+    updateStrategy:
+      type: RollingUpdate
+          
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; statefulset 설정의 .spec.serviceNmae 필드에서 사용할 service를 설정함&lt;br&gt;
+service 설정의 .spec.selector 필드의 값과 statefulset 설정의 .spec.template.metadata.labels의 값이 같아야 해당 pod을 연결하는 서비스가 됨&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pods
+
+
+NAME        READY   STATUS    RESTARTS   AGE
+pod/web-0   1/1     Running   0          35s
+pod/web-1   1/1     Running   0          20s
+pod/web-2   1/1     Running   0          5s
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; statefulset의 기본동작은 순서대로 pod을 관리하는 것이기 때문에 pod이 0,1,2, 순서대로 생성되지만&lt;br&gt;
+statefulset의 .spec.podManagementPolicy: Parallel 옵션으로 Pod들이 병렬로 실행되게 할 수 있음&lt;/p&gt;
+&lt;h3 id=&#34;statefulset-pod-update&#34;&gt;statefulset pod update&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;partition 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl edit statefulset web
+.
+.
+.
+  updateStrategy:
+    rollingUpdate:
+      partition: 0    &amp;lt;==== 이부분 1로 수정
+    type: RollingUpdate
+.
+.
+
+$ kubectl set env statefulset web testenv=testvalue02
+statefulset.apps/web env updated
+
+$ kubectl get pods -o jsonpath=&amp;quot;{range .items[*]}{.metadata.name}{.spec.containers[0].env}{&#39;\n&#39;}{end}&amp;quot;
+web-0[map[name:testenv value:testvalue01]]   ==&amp;gt; 변동x
+web-1[map[name:testenv value:testvalue02]]   
+web-2[map[name:testenv value:testvalue02]]
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; .spec.updateStragegy.rollingUpdate.partition 필드값인 1보다 작은 번호의 pod 은 업데이트 되지 않음&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;type 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;=&amp;gt; statefulset의 기본 updateStrategy는 rollingUpdate 라서 statefulset template이 변경되면 신규 pod 생성 + 기존 pod 삭제로 업데이트 내용이 바로 반영됨&lt;br&gt;
+.spec.updateStrategy.type: OnDelete 로 변경하면 기존 pod이 삭제되어야 업데이트 내용이 반영된 새 pod이 생성됨&lt;/p&gt;
+&lt;h3 id=&#34;service&#34;&gt;service&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;컨트롤러를 통해 실행된 pod는 재생성 될 때마다 IP가 변경되기 때문에 동적으로 변하는 pod에 고정적으로 접근하는 방법이 필요함 &lt;br&gt;
+=&amp;gt; service 가 그 역할을 하며 네가지 type이 있음&lt;/li&gt;
+&lt;li&gt;ClusterIP: cluster 내부에서만 접근 가능한 서비스&lt;/li&gt;
+&lt;li&gt;NodePort: Node의 port를 클러스터 내부의 pod과 매핑시킴, 클러스터 외부에서 안으로 접근하는 가장 간단한 방법&lt;/li&gt;
+&lt;li&gt;LoadBalancer : 로드밸런서와 pod를 연결하여 해당 로드밸런서의 IP로 클러스터 외부에서 pod으로 접근하게 하는 방법 (EXTERNAL-IP)&lt;/li&gt;
+&lt;li&gt;ExternalName: CNAME을 이용하여 클러스터 내부 -&amp;gt; 외부로 접근하는 방법&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: v1
+kind: Service
+metadata: 
+  name: service-test
+spec:
+  type: ClusterIP
+  clusterIP: 10.0.10.10
+  selector:
+    app: myapp
+  ports:
+  - protocal: TCP
+    port: 80
+    targetPort: 80
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; type: ClusterIP이므로 내부 통신용 service,&lt;br&gt;
+labels = myapp 이고 port가 80로 열려있는 pod 을 연결하는 service 이며 10.0.10.10:80 으로 접근함&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: v1
+kind: Service
+metadata: 
+  name: service-test
+spec:
+  type: NodePort
+  selector:
+    app: myapp
+  ports:
+  - protocal: TCP
+    port: 80
+    targetPort: 80
+    nodePort: 30080
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>Docker image</title>

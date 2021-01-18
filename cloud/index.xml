@@ -5,10 +5,205 @@
     <description>Recent content in Clouds on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 17 Jan 2021 22:23:45 +0900</lastBuildDate>
+    <lastBuildDate>Mon, 18 Jan 2021 22:04:25 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/cloud/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>kubernetes label 정리</title>
+      <link>https://kimdubi.github.io/cloud/k8s-label/</link>
+      <pubDate>Mon, 18 Jan 2021 22:04:25 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s-label/</guid>
+      <description>&lt;p&gt;혼자 보기위해 정리하는 쿠버네티스2 오늘은 label 편&lt;/p&gt;
+&lt;p&gt;label은 key:value 로 구성되며 오브젝트나 컨트롤러를 만들 때 메타데이터 필드에서 설정함&lt;br&gt;
+label key는 컨트롤러들이 pod를 관리할 때 자신이 관리해야할 pod를 구분하는 역할을 하며 label을 변경하면 pod를 인식하지 못함&lt;/p&gt;
+&lt;p&gt;특정 label의 리소스만 선택해서 관리하게 하는 기능이 selector 인데 selector는 두가지 종류가 있다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;등호 기반
+&lt;ul&gt;
+&lt;li&gt;environment=develop&lt;/li&gt;
+&lt;li&gt;release=stable&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;집합 기반
+&lt;ul&gt;
+&lt;li&gt;environment in (develop, stage)&lt;/li&gt;
+&lt;li&gt;release notin (latest,canary)&lt;/li&gt;
+&lt;li&gt;gpu&lt;/li&gt;
+&lt;li&gt;!gpu&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;label-test&#34;&gt;label test&lt;/h2&gt;
+&lt;h3 id=&#34;deploymentlabel01yaml&#34;&gt;deployment-label01.yaml&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-label01
+  labels:
+    app: nginx
+spec:
+  replicas: 1
+  selector:  
+    matchLabels:
+      app: nginx 
+  template:
+    metadata:
+      labels:
+        app: nginx 
+        environment: develop
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;developmentlabel02yaml&#34;&gt;development-label02.yaml&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-label02
+  labels:
+    app: nginx
+spec:
+  replicas: 1
+  selector:  
+    matchLabels:
+      app: nginx 
+  template:
+    metadata:
+      labels:
+        app: nginx 
+        environment: production
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;labelservice01yaml&#34;&gt;label-service01.yaml&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: v1
+kind: Service
+metadata:
+  name: label-develop-service
+  labels:
+    app: label-develop-service
+spec:
+  type: ClusterIP
+  selector:
+    environment: develop 
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;labelservice02yaml&#34;&gt;label-service02.yaml&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: v1
+kind: Service
+metadata:
+  name: label-production-service
+  labels:
+    app: label-production-service
+spec:
+  type: ClusterIP
+  selector:
+    environment: production 
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;labelallserviceyaml&#34;&gt;label-all-service.yaml&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: v1
+kind: Service
+metadata:
+  name: label-all-service
+  labels:
+    app: label-all-service
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol : TCP
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;deployment-service-&#34;&gt;deployment, service 생성&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;
+$ kubectl get deploy,svc,pod
+NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/nginx-label01   1/1     1            1           2m27s
+deployment.apps/nginx-label02   1/1     1            1           2m24s
+
+
+NAME                               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+service/kubernetes                 ClusterIP   10.96.0.1       &amp;lt;none&amp;gt;        443/TCP        47h
+service/label-develop-service      ClusterIP   10.96.190.209   &amp;lt;none&amp;gt;        80/TCP         2m14s
+service/label-production-service   ClusterIP   10.96.97.82     &amp;lt;none&amp;gt;        80/TCP         2m11s
+
+NAME                                 READY   STATUS    RESTARTS   AGE
+pod/nginx-label01-7ccb68dd8b-zgrz5   1/1     Running   0          2m27s
+pod/nginx-label02-6579d574db-bstpr   1/1     Running   0          2m24s
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;describe-svc&#34;&gt;describe svc&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;label-develop-service&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl describe service/label-develop-service
+Name:              label-develop-service
+Namespace:         default
+Labels:            app=label-develop-service
+Annotations:       kubectl.kubernetes.io/last-applied-configuration:
+                     {&amp;quot;apiVersion&amp;quot;:&amp;quot;v1&amp;quot;,&amp;quot;kind&amp;quot;:&amp;quot;Service&amp;quot;,&amp;quot;metadata&amp;quot;:{&amp;quot;annotations&amp;quot;:{},&amp;quot;labels&amp;quot;:{&amp;quot;app&amp;quot;:&amp;quot;label-develop-service&amp;quot;},&amp;quot;name&amp;quot;:&amp;quot;label-develop-service&amp;quot;,&amp;quot;...
+Selector:          environment=develop
+Type:              ClusterIP
+IP:                10.96.190.209
+Port:              &amp;lt;unset&amp;gt;  80/TCP
+TargetPort:        80/TCP
+Endpoints:         172.17.0.10:80
+Session Affinity:  None
+Events:            &amp;lt;none&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;label-production-service&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl describe service/label-production-service
+Name:              label-production-service
+Namespace:         default
+Labels:            app=label-production-service
+Annotations:       kubectl.kubernetes.io/last-applied-configuration:
+                     {&amp;quot;apiVersion&amp;quot;:&amp;quot;v1&amp;quot;,&amp;quot;kind&amp;quot;:&amp;quot;Service&amp;quot;,&amp;quot;metadata&amp;quot;:{&amp;quot;annotations&amp;quot;:{},&amp;quot;labels&amp;quot;:{&amp;quot;app&amp;quot;:&amp;quot;label-production-service&amp;quot;},&amp;quot;name&amp;quot;:&amp;quot;label-production-serv...
+Selector:          environment=production
+Type:              ClusterIP
+IP:                10.96.97.82
+Port:              &amp;lt;unset&amp;gt;  80/TCP
+TargetPort:        80/TCP
+Endpoints:         172.17.0.11:80
+Session Affinity:  None
+Events:            &amp;lt;none&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;label-all-service&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl describe svc label-all-service
+Name:              label-all-service
+Namespace:         default
+Labels:            app=label-all-service
+Annotations:       kubectl.kubernetes.io/last-applied-configuration:
+                     {&amp;quot;apiVersion&amp;quot;:&amp;quot;v1&amp;quot;,&amp;quot;kind&amp;quot;:&amp;quot;Service&amp;quot;,&amp;quot;metadata&amp;quot;:{&amp;quot;annotations&amp;quot;:{},&amp;quot;labels&amp;quot;:{&amp;quot;app&amp;quot;:&amp;quot;label-all-service&amp;quot;},&amp;quot;name&amp;quot;:&amp;quot;label-all-service&amp;quot;,&amp;quot;namespac...
+Selector:          app=nginx
+Type:              ClusterIP
+IP:                10.96.3.232
+Port:              &amp;lt;unset&amp;gt;  80/TCP
+TargetPort:        80/TCP
+Endpoints:         172.17.0.10:80,172.17.0.11:80
+Session Affinity:  None
+Events:            &amp;lt;none&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 각각의 service가 해당하는 pod의 label 과 연결맺은 것 확인&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>kubernetes command 정리-1</title>

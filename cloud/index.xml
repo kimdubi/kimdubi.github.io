@@ -5,10 +5,271 @@
     <description>Recent content in Clouds on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 18 Jan 2021 22:04:25 +0900</lastBuildDate>
+    <lastBuildDate>Fri, 22 Jan 2021 02:35:45 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/cloud/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>kubernetes Pod Scheduling-1</title>
+      <link>https://kimdubi.github.io/cloud/k8s-pod-scheduling/</link>
+      <pubDate>Fri, 22 Jan 2021 02:35:45 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s-pod-scheduling/</guid>
+      <description>&lt;p&gt;혼자 정리하기 위한 쿠버네티스 pod scheduling편&lt;/p&gt;
+&lt;p&gt;쿠버네티스엔 pod을 어떤 노드에 실행시킬 것인지 scheduling 하는 여러 옵션들이 있다.&lt;br&gt;
+특정 node를 선택해서 pod를 scheduling 할 수도 있고 ( node selector)&lt;br&gt;
+특정 pod들을 같은 node에 모아놓거나 (podAffinity) 반대로 흩어지게 하거나 (podAntiAffinity)&lt;br&gt;
+특정 node에 있는 pod들을 다른 node로 옮길 수도 있다(drain)&lt;/p&gt;
+&lt;h3 id=&#34;nodeselctor&#34;&gt;nodeSelctor&lt;/h3&gt;
+&lt;p&gt;POD가 어떤 node에서 실행될지를 nodeSelector 기능을 통해 key-value 값으로 설정&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;node label 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get nodes --show-labels
+NAME       STATUS   ROLES    AGE     VERSION   LABELS
+minikube   Ready    master   2d23h   v1.17.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=minikube,kubernetes.io/os=linux,node-role.kubernetes.io/master=
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 테스트 환경이 minikube라 하나의 노드만 있으며 LABELS 탭의 beta.kubernetes.io/arch=amd64 같은 값들이 각각 key=value를 의미함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;node label 추가&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl label nodes minikube disktype=ssd
+node/minikube labeled
+
+$ kubectl get nodes --show-labels
+NAME       STATUS   ROLES    AGE   VERSION   LABELS
+minikube   Ready    master   3d    v1.17.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,disktype=ssd,kubernetes.io/arch=amd64,kubernetes.io/hostname=minikube,kubernetes.io/os=linux,node-role.kubernetes.io/master=
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; minikube node에 disktype=ssd 라는 key value label을 추가함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;nodeSelector로 pod scheduling 해보자&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodeSelector-test-pod
+spec:
+  containers:
+  - name: nginx-pod
+    image: nginx
+    ports:
+    - containerPort: 80
+  nodeSelector:
+    disktype: hdd
+
+$ kubectl apply -f nodeselector.yaml
+
+$ kubectl get pod -o wide
+NAME                       READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES
+nodeselector-test-pod      0/1     Pending   0          45s   &amp;lt;none&amp;gt;       &amp;lt;none&amp;gt;     &amp;lt;none&amp;gt;           &amp;lt;none&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; nodeselector.yaml에서 .spec.nodeSelector의 값으로 disktype: hdd를 설정했으나&lt;br&gt;
+현재 클러스터 내 disktype: hdd label을 가진 node는 없다. 그래서 pod이 생성되지 못하고 pending 상태임&lt;br&gt;
+disktype: ssd 로 변경하면 잘 생성됨&lt;/p&gt;
+&lt;h3 id=&#34;nodeaffinity&#34;&gt;nodeAffinity&lt;/h3&gt;
+&lt;p&gt;Pod들을 동일 node에 실행하도록 설정하는 기능&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;nodeAffinity 로 pod scheduling 해보자&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: nodeaffinity-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: beta.kubernetes.io/os
+            operator: In 
+            values:
+            - linux
+            - window
+          - key: disktype
+            operator: Exists
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 10
+        preference:
+          matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In 
+            values: 
+            - worker-node01
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; .spec.affinity.nodeAffinity.requireDuringSchedulingIgnoreDuringExecution : pod scheduling 시 반드시 필요한 조건 &lt;br&gt;
+.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoreDuringExecution : pod scheduling 시 만족하면 좋은 조건&lt;br&gt;
+requireDuringSchedulingIgnoreDuringExecution 설정 시엔 해당하는 node가 없으면 pending 상태로 pod이 생성되지 않지만&lt;br&gt;
+preferredDuringSchedulingIgnoreDuringExecution 설정 시엔 만족하는 node가 없더라도 weight 가중치 점수가 높은 node에 pod scheduling 수행함&lt;/p&gt;
+&lt;p&gt;.nodeSelectorTerm[].matchExpressions[]의 하위 필드로 key,operator,values가 있음&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;key: node의 label key 중 하나를 설정&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;operator: .key에 대한 조건식&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;In: .values[] 필드에 설정한 값 중 label key의 value와 하나라도 일치하는지 체크&lt;/li&gt;
+&lt;li&gt;NotIn: .values[] 필드에 있는 값이 label key의 value와 모두 불일치해야함&lt;/li&gt;
+&lt;li&gt;Exists: .key 필드에 설정한 값이 label의 key 중 존재하는지 확인, .values[] 필드 필요없게됨&lt;/li&gt;
+&lt;li&gt;DoesNotExist : .key 필드 값이 label의 key 중에 없는지 확인&lt;/li&gt;
+&lt;li&gt;Gt : greater than, .key 필드에 설정한 label key의 value가 .values[] 필드의 값보다 큰 지 체크&lt;/li&gt;
+&lt;li&gt;Lt : lower than&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;nodeAffinity 로 pod scheduling 해보자-2&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: nodeaffinity-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: beta.kubernetes.io/os
+            operator: In 
+            values:
+            - linux
+            - window
+          - key: disktype
+            operator: Exists
+          - key: core
+            operator: Gt
+            values:
+            - &amp;quot;40&amp;quot;
+      preferredDuringSchedulingIgnoreDuringExecution:
+      - weight: 10
+        preference:
+          matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In 
+            values: 
+            - worker-node01
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[].matchExpressions[].key = core 부분에 걸려서 pod이 생성되지 않음&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pod
+NAME                       READY   STATUS    RESTARTS   AGE
+nodeaffinity-pod           0/1     Pending   0          6s
+
+
+Events:
+  Type     Reason            Age        From               Message
+  ----     ------            ----       ----               -------
+  Warning  FailedScheduling  &amp;lt;unknown&amp;gt;  default-scheduler  0/1 nodes are available: 1 node(s) didn&#39;t match node selector.
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;podaffinity--podantiaffinity&#34;&gt;podAffinity &amp;amp; podAntiaffinity&lt;/h3&gt;
+&lt;p&gt;podAffinity 와 podAntiAffinity는 각각의 pod 사이의 관계를 정의하는 기능으로&lt;br&gt;
+podAffinity는 서비스1 과 서비스2의 pod를 같은 node에 생성하여 네트워크 통신비용을 줄일 때 사용함&lt;br&gt;
+podAntiAffinity는 CPU나 네트워크 같은 서버 리소스를 많이 사용하는 pod을 여러 node로 분산할 때 사용함&lt;br&gt;
+podAnitiAffinity를 설정하지 않으면 서비스 사용량에 맞춰 pod를 scaleout 해도 이미 사용률이 높은 node에 생성하게 되기 때문에 효과가 없을 수 있음&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;podAntiAffinity.yaml&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In 
+                values: 
+                - redis 
+          topologyKey: &amp;quot;kubernetes.io/hostname&amp;quot;
+      containers:
+      - name: redis-server
+        image: redis
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution 를 사용하여 하위 필드의 조건이 모두 만족되는 node에만 pod을 생성하는데&lt;br&gt;
+label.app의 값이 redis인 pod가 속하지 않은 node에만 pod을 생성하겠다는 조건임&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pod
+NAME                                READY   STATUS    RESTARTS   AGE
+redis-deployment-7869db744c-ck472   0/1     Pending   0          38s
+redis-deployment-7869db744c-m7x4l   0/1     Pending   0          38s
+redis-deployment-7869db744c-zrzw7   1/1     Running   0          38s
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 테스트 환경에서는 node가 하나이기 때문에 pod 하나만 생성되고 나머지는 labels.app의 값이 redis가 속하지 않은 node를 찾을 수 없기 때문에 생성되지않음&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;podaffinity.yaml&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In 
+                values:
+                - web 
+          topologyKey: &amp;quot;kubernetes.io/hostname&amp;quot;
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In 
+                values:
+                - redis 
+          topologyKey: &amp;quot;kubernetes.io/hostname&amp;quot;
+      containers:
+      - name: web-app
+        image: nginx
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; podAntiAffinity 설정으로 pod의 labels.app이 web인 pod이 속한 node에는 pod을 생성하지 않겠다&lt;br&gt;
+추가로, podAffinity 설정으로 pod의 labels.app이 redis인 pod이 속한 node에 pod을 생성하겠다는 의미&lt;br&gt;
+podAntiAffinity, podAffinity의 .topologyKey 필드는 labelSelector 로 걸러진 node 중에서 해당 node가 맞는지 확인하는 기준이 되는 기능으로&lt;br&gt;
+topologyKey: &amp;ldquo;kubernetes.io/hostname&amp;rdquo; 에서 hostname이 다르면 서로 다른 node =&amp;gt; podAntiAffinity
+같으면 서로 같은 node =&amp;gt; podAffinity 로 동작하게 하는 기준이 되는 기능임&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pod --show-labels
+NAME                                READY   STATUS    RESTARTS   AGE    LABELS
+redis-deployment-7869db744c-ck472   0/1     Pending   0          36m    app=redis,pod-template-hash=7869db744c
+redis-deployment-7869db744c-m7x4l   0/1     Pending   0          36m    app=redis,pod-template-hash=7869db744c
+redis-deployment-7869db744c-zrzw7   1/1     Running   0          36m    app=redis,pod-template-hash=7869db744c
+web-server-555659bf88-q6s2q         0/1     Pending   0          2m1s   app=web,pod-template-hash=555659bf88
+web-server-555659bf88-trtl2         0/1     Pending   0          2m1s   app=web,pod-template-hash=555659bf88
+web-server-555659bf88-vdmf8         1/1     Running   0          2m1s   app=web,pod-template-hash=555659bf88
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 수행 결과는 web도 한개만 뜨게됨&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>kubernetes label 정리</title>

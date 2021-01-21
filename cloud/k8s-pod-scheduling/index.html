@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>kubernetes Pod Scheduling-1</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">kubernetes Pod Scheduling-1</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>kubernetes Pod Scheduling-1</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><p>혼자 정리하기 위한 쿠버네티스 pod scheduling편</p>
+<p>쿠버네티스엔 pod을 어떤 노드에 실행시킬 것인지 scheduling 하는 여러 옵션들이 있다.<br>
+특정 node를 선택해서 pod를 scheduling 할 수도 있고 ( node selector)<br>
+특정 pod들을 같은 node에 모아놓거나 (podAffinity) 반대로 흩어지게 하거나 (podAntiAffinity)<br>
+특정 node에 있는 pod들을 다른 node로 옮길 수도 있다(drain)</p>
+<h3 id="nodeselctor">nodeSelctor</h3>
+<p>POD가 어떤 node에서 실행될지를 nodeSelector 기능을 통해 key-value 값으로 설정</p>
+<ul>
+<li>node label 확인</li>
+</ul>
+<pre><code>$ kubectl get nodes --show-labels
+NAME       STATUS   ROLES    AGE     VERSION   LABELS
+minikube   Ready    master   2d23h   v1.17.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=minikube,kubernetes.io/os=linux,node-role.kubernetes.io/master=
+</code></pre><p>=&gt; 테스트 환경이 minikube라 하나의 노드만 있으며 LABELS 탭의 beta.kubernetes.io/arch=amd64 같은 값들이 각각 key=value를 의미함</p>
+<ul>
+<li>node label 추가</li>
+</ul>
+<pre><code>$ kubectl label nodes minikube disktype=ssd
+node/minikube labeled
+
+$ kubectl get nodes --show-labels
+NAME       STATUS   ROLES    AGE   VERSION   LABELS
+minikube   Ready    master   3d    v1.17.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,disktype=ssd,kubernetes.io/arch=amd64,kubernetes.io/hostname=minikube,kubernetes.io/os=linux,node-role.kubernetes.io/master=
+</code></pre><p>=&gt; minikube node에 disktype=ssd 라는 key value label을 추가함</p>
+<ul>
+<li>nodeSelector로 pod scheduling 해보자</li>
+</ul>
+<pre><code>---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodeSelector-test-pod
+spec:
+  containers:
+  - name: nginx-pod
+    image: nginx
+    ports:
+    - containerPort: 80
+  nodeSelector:
+    disktype: hdd
+
+$ kubectl apply -f nodeselector.yaml
+
+$ kubectl get pod -o wide
+NAME                       READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES
+nodeselector-test-pod      0/1     Pending   0          45s   &lt;none&gt;       &lt;none&gt;     &lt;none&gt;           &lt;none&gt;
+</code></pre><p>=&gt; nodeselector.yaml에서 .spec.nodeSelector의 값으로 disktype: hdd를 설정했으나<br>
+현재 클러스터 내 disktype: hdd label을 가진 node는 없다. 그래서 pod이 생성되지 못하고 pending 상태임<br>
+disktype: ssd 로 변경하면 잘 생성됨</p>
+<h3 id="nodeaffinity">nodeAffinity</h3>
+<p>Pod들을 동일 node에 실행하도록 설정하는 기능</p>
+<ul>
+<li>nodeAffinity 로 pod scheduling 해보자</li>
+</ul>
+<pre><code>---
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: nodeaffinity-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: beta.kubernetes.io/os
+            operator: In 
+            values:
+            - linux
+            - window
+          - key: disktype
+            operator: Exists
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 10
+        preference:
+          matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In 
+            values: 
+            - worker-node01
+</code></pre><p>=&gt; .spec.affinity.nodeAffinity.requireDuringSchedulingIgnoreDuringExecution : pod scheduling 시 반드시 필요한 조건 <br>
+.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoreDuringExecution : pod scheduling 시 만족하면 좋은 조건<br>
+requireDuringSchedulingIgnoreDuringExecution 설정 시엔 해당하는 node가 없으면 pending 상태로 pod이 생성되지 않지만<br>
+preferredDuringSchedulingIgnoreDuringExecution 설정 시엔 만족하는 node가 없더라도 weight 가중치 점수가 높은 node에 pod scheduling 수행함</p>
+<p>.nodeSelectorTerm[].matchExpressions[]의 하위 필드로 key,operator,values가 있음</p>
+<ul>
+<li>
+<p>key: node의 label key 중 하나를 설정</p>
+</li>
+<li>
+<p>operator: .key에 대한 조건식</p>
+<ul>
+<li>In: .values[] 필드에 설정한 값 중 label key의 value와 하나라도 일치하는지 체크</li>
+<li>NotIn: .values[] 필드에 있는 값이 label key의 value와 모두 불일치해야함</li>
+<li>Exists: .key 필드에 설정한 값이 label의 key 중 존재하는지 확인, .values[] 필드 필요없게됨</li>
+<li>DoesNotExist : .key 필드 값이 label의 key 중에 없는지 확인</li>
+<li>Gt : greater than, .key 필드에 설정한 label key의 value가 .values[] 필드의 값보다 큰 지 체크</li>
+<li>Lt : lower than</li>
+</ul>
+</li>
+<li>
+<p>nodeAffinity 로 pod scheduling 해보자-2</p>
+</li>
+</ul>
+<pre><code>---
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: nodeaffinity-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: beta.kubernetes.io/os
+            operator: In 
+            values:
+            - linux
+            - window
+          - key: disktype
+            operator: Exists
+          - key: core
+            operator: Gt
+            values:
+            - &quot;40&quot;
+      preferredDuringSchedulingIgnoreDuringExecution:
+      - weight: 10
+        preference:
+          matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In 
+            values: 
+            - worker-node01
+</code></pre><p>=&gt; requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[].matchExpressions[].key = core 부분에 걸려서 pod이 생성되지 않음</p>
+<pre><code>$ kubectl get pod
+NAME                       READY   STATUS    RESTARTS   AGE
+nodeaffinity-pod           0/1     Pending   0          6s
+
+
+Events:
+  Type     Reason            Age        From               Message
+  ----     ------            ----       ----               -------
+  Warning  FailedScheduling  &lt;unknown&gt;  default-scheduler  0/1 nodes are available: 1 node(s) didn't match node selector.
+</code></pre><h3 id="podaffinity--podantiaffinity">podAffinity &amp; podAntiaffinity</h3>
+<p>podAffinity 와 podAntiAffinity는 각각의 pod 사이의 관계를 정의하는 기능으로<br>
+podAffinity는 서비스1 과 서비스2의 pod를 같은 node에 생성하여 네트워크 통신비용을 줄일 때 사용함<br>
+podAntiAffinity는 CPU나 네트워크 같은 서버 리소스를 많이 사용하는 pod을 여러 node로 분산할 때 사용함<br>
+podAnitiAffinity를 설정하지 않으면 서비스 사용량에 맞춰 pod를 scaleout 해도 이미 사용률이 높은 node에 생성하게 되기 때문에 효과가 없을 수 있음</p>
+<ul>
+<li>podAntiAffinity.yaml</li>
+</ul>
+<pre><code>---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In 
+                values: 
+                - redis 
+          topologyKey: &quot;kubernetes.io/hostname&quot;
+      containers:
+      - name: redis-server
+        image: redis
+</code></pre><p>=&gt; podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution 를 사용하여 하위 필드의 조건이 모두 만족되는 node에만 pod을 생성하는데<br>
+label.app의 값이 redis인 pod가 속하지 않은 node에만 pod을 생성하겠다는 조건임</p>
+<pre><code>$ kubectl get pod
+NAME                                READY   STATUS    RESTARTS   AGE
+redis-deployment-7869db744c-ck472   0/1     Pending   0          38s
+redis-deployment-7869db744c-m7x4l   0/1     Pending   0          38s
+redis-deployment-7869db744c-zrzw7   1/1     Running   0          38s
+</code></pre><p>=&gt; 테스트 환경에서는 node가 하나이기 때문에 pod 하나만 생성되고 나머지는 labels.app의 값이 redis가 속하지 않은 node를 찾을 수 없기 때문에 생성되지않음</p>
+<ul>
+<li>podaffinity.yaml</li>
+</ul>
+<pre><code>---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In 
+                values:
+                - web 
+          topologyKey: &quot;kubernetes.io/hostname&quot;
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In 
+                values:
+                - redis 
+          topologyKey: &quot;kubernetes.io/hostname&quot;
+      containers:
+      - name: web-app
+        image: nginx
+</code></pre><p>=&gt; podAntiAffinity 설정으로 pod의 labels.app이 web인 pod이 속한 node에는 pod을 생성하지 않겠다<br>
+추가로, podAffinity 설정으로 pod의 labels.app이 redis인 pod이 속한 node에 pod을 생성하겠다는 의미<br>
+podAntiAffinity, podAffinity의 .topologyKey 필드는 labelSelector 로 걸러진 node 중에서 해당 node가 맞는지 확인하는 기준이 되는 기능으로<br>
+topologyKey: &ldquo;kubernetes.io/hostname&rdquo; 에서 hostname이 다르면 서로 다른 node =&gt; podAntiAffinity
+같으면 서로 같은 node =&gt; podAffinity 로 동작하게 하는 기준이 되는 기능임</p>
+<pre><code>$ kubectl get pod --show-labels
+NAME                                READY   STATUS    RESTARTS   AGE    LABELS
+redis-deployment-7869db744c-ck472   0/1     Pending   0          36m    app=redis,pod-template-hash=7869db744c
+redis-deployment-7869db744c-m7x4l   0/1     Pending   0          36m    app=redis,pod-template-hash=7869db744c
+redis-deployment-7869db744c-zrzw7   1/1     Running   0          36m    app=redis,pod-template-hash=7869db744c
+web-server-555659bf88-q6s2q         0/1     Pending   0          2m1s   app=web,pod-template-hash=555659bf88
+web-server-555659bf88-trtl2         0/1     Pending   0          2m1s   app=web,pod-template-hash=555659bf88
+web-server-555659bf88-vdmf8         1/1     Running   0          2m1s   app=web,pod-template-hash=555659bf88
+</code></pre><p>=&gt; 수행 결과는 web도 한개만 뜨게됨</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

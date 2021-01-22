@@ -5,18 +5,142 @@
     <description>Recent content in Clouds on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 22 Jan 2021 02:35:45 +0900</lastBuildDate>
+    <lastBuildDate>Fri, 22 Jan 2021 18:56:08 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/cloud/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
-      <title>kubernetes Pod Scheduling-1</title>
+      <title>kubernetes Pod Scheduling - taint&amp;tolerations</title>
+      <link>https://kimdubi.github.io/cloud/kus-pod-scheduling2/</link>
+      <pubDate>Fri, 22 Jan 2021 18:56:08 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/kus-pod-scheduling2/</guid>
+      <description>&lt;p&gt;혼자 정리하기위한 쿠버네티스 pod scheduling - taint &amp;amp; toleration 편&lt;/p&gt;
+&lt;p&gt;taint란, taint를 설정한 node에는 pod이 scheduling 되지 않도록 하는 기능으로 key=value:effect 로 구성된다.&lt;br&gt;
+effect는 NoSchedule, PreferNoSchedule or NoExecute 세가지가 있으며 모두 세부적인 건 다르지만 어쨋든 pod를 scheduling 하지 않는다는 설정으로&lt;br&gt;
+만약 taint가 설정된 Node에 pod을 scheduling 하려면 추가로 toleration을 설정해야 한다.&lt;br&gt;
+즉, taint와 toleration을 설정함으로써 특정 pod들만 실행하고, 다른 pod들은 실행하지 못하게 하여 node를 특정 역할만 하도록 만들 수 있다.&lt;br&gt;
+ex) database용 pod를 database용 node에 생성하고 다른 pod들은 생성되지 않게 하여 리소스를 독점해서 사용&lt;br&gt;
+ex) GPU가 있는 node에 GPU를 사용하는 pod scheduling&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;node에 taint 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl taint nodes minikube key01=value01:NoSchedule
+node/minikube tainted
+
+$ kubectl describe nodes minikube 
+
+Taints:             key01=value01:NoSchedule
+
+ex) kubectl taint node -l myLabel=X  dedicated=foo:PreferNoSchedule
+=&amp;gt; node 중 label = myLabel=X 인 node에 taint를 일괄 설정할 수 있음
+
+
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;taint의 .effect&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;NoSchedule : tolerations 설정이 없으면 pod를 scheduling하지 않음, 기존에 실행되던 pod엔 적용 되지 않음&lt;/li&gt;
+&lt;li&gt;PreferNoSchedule: NoSchedule과 동일하나, 클러스터 내 리소스가 부족하면 tolerations이 없어도 taint를 설정한 node에 pod scheduling 가능&lt;/li&gt;
+&lt;li&gt;NoExecute : tolerations이 없으면 pod scheduling 하지 않고, 기존에 실행되던 pod도 적합한 tolerations이 없으면 종료시킴&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;pod 생성 테스트&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl apply -f affinity_test.yaml
+deployment.apps/redis-deployment2 created
+
+$ kubectl get deploy,svc,pod
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/redis-deployment2   0/2     2            0           7s
+
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/kubernetes   ClusterIP   10.96.0.1    &amp;lt;none&amp;gt;        443/TCP   5d19h
+
+NAME                                     READY   STATUS    RESTARTS   AGE
+pod/redis-deployment2-7fd8d79ddc-xqnk9   0/1     Pending   0          6s
+pod/redis-deployment2-7fd8d79ddc-zshj5   0/1     Pending   0          7s
+
+$ kubectl describe pod/redis-deployment2-7fd8d79ddc-zshj5
+Events:
+  Type     Reason            Age        From               Message
+  ----     ------            ----       ----               -------
+  Warning  FailedScheduling  &amp;lt;unknown&amp;gt;  default-scheduler  0/1 nodes are available: 1 node(s) had taints that the pod didn&#39;t tolerate.
+  Warning  FailedScheduling  &amp;lt;unknown&amp;gt;  default-scheduler  0/1 nodes are available: 1 node(s) had taints that the pod didn&#39;t tolerate.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; pod을 scheduling 하지만 위에서 딱 하나 있는 node에 taint 를 걸었기 때문에 pod scheduling이 taint설정에 의해 pending 된 것을 볼 수 있다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;toleration 추가해서 다시 scheduling 해보자&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: redis-server
+  template:
+    metadata:
+      labels:
+        app: redis-server
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - web
+            topologyKey: &amp;quot;kubernetes.io/hostname&amp;quot;
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: run
+                operator: In
+                values:
+                - testnet
+            topologyKey: &amp;quot;kubernetes.io/hostname&amp;quot;
+      containers:
+      - name: redis
+        image: redis
+        ports:
+        - containerPort: 6379
+      tolerations:
+      - key: &amp;quot;key01&amp;quot;
+        operator: &amp;quot;Equal&amp;quot;
+        value: &amp;quot;value01&amp;quot;
+        effect: &amp;quot;NoSchedule&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; .spec.template.spec.tolerattions[] 의 하위필드로 node에 설정했던 taint의 설정 값들을 넣어주었다.&lt;br&gt;
+그 후 다시 배포해보면&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl apply -f affinity_test.yaml
+
+$ kubectl get pod
+NAME                                 READY   STATUS              RESTARTS   AGE
+redis-deployment2-6bcb64f4d4-lq5pc   1/1     Running             0          10s
+redis-deployment2-6bcb64f4d4-sq6vb   0/1     ContainerCreating   0          10s
+
+$ kubectl describe pod redis-deployment2-6bcb64f4d4-sq6vb
+
+Tolerations:     key01=value01:NoSchedule
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; tolerations 설정으로 pod이 잘 생성되었음을 확인할 수 있다.&lt;/p&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>kubernetes Pod Scheduling - affinity</title>
       <link>https://kimdubi.github.io/cloud/k8s-pod-scheduling/</link>
       <pubDate>Fri, 22 Jan 2021 02:35:45 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/cloud/k8s-pod-scheduling/</guid>
-      <description>&lt;p&gt;혼자 정리하기 위한 쿠버네티스 pod scheduling편&lt;/p&gt;
+      <description>&lt;p&gt;혼자 정리하기 위한 쿠버네티스 pod scheduling - affinity 편&lt;/p&gt;
 &lt;p&gt;쿠버네티스엔 pod을 어떤 노드에 실행시킬 것인지 scheduling 하는 여러 옵션들이 있다.&lt;br&gt;
 특정 node를 선택해서 pod를 scheduling 할 수도 있고 ( node selector)&lt;br&gt;
 특정 pod들을 같은 node에 모아놓거나 (podAffinity) 반대로 흩어지게 하거나 (podAntiAffinity)&lt;br&gt;

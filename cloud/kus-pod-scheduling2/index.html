@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>kubernetes Pod Scheduling - taint&amp;tolerations</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">kubernetes Pod Scheduling - taint&amp;tolerations</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>kubernetes Pod Scheduling - taint&amp;tolerations</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><p>혼자 정리하기위한 쿠버네티스 pod scheduling - taint &amp; toleration 편</p>
+<p>taint란, taint를 설정한 node에는 pod이 scheduling 되지 않도록 하는 기능으로 key=value:effect 로 구성된다.<br>
+effect는 NoSchedule, PreferNoSchedule or NoExecute 세가지가 있으며 모두 세부적인 건 다르지만 어쨋든 pod를 scheduling 하지 않는다는 설정으로<br>
+만약 taint가 설정된 Node에 pod을 scheduling 하려면 추가로 toleration을 설정해야 한다.<br>
+즉, taint와 toleration을 설정함으로써 특정 pod들만 실행하고, 다른 pod들은 실행하지 못하게 하여 node를 특정 역할만 하도록 만들 수 있다.<br>
+ex) database용 pod를 database용 node에 생성하고 다른 pod들은 생성되지 않게 하여 리소스를 독점해서 사용<br>
+ex) GPU가 있는 node에 GPU를 사용하는 pod scheduling</p>
+<ul>
+<li>node에 taint 설정</li>
+</ul>
+<pre><code>$ kubectl taint nodes minikube key01=value01:NoSchedule
+node/minikube tainted
+
+$ kubectl describe nodes minikube 
+
+Taints:             key01=value01:NoSchedule
+
+ex) kubectl taint node -l myLabel=X  dedicated=foo:PreferNoSchedule
+=&gt; node 중 label = myLabel=X 인 node에 taint를 일괄 설정할 수 있음
+
+
+</code></pre><ul>
+<li>
+<p>taint의 .effect</p>
+<ul>
+<li>NoSchedule : tolerations 설정이 없으면 pod를 scheduling하지 않음, 기존에 실행되던 pod엔 적용 되지 않음</li>
+<li>PreferNoSchedule: NoSchedule과 동일하나, 클러스터 내 리소스가 부족하면 tolerations이 없어도 taint를 설정한 node에 pod scheduling 가능</li>
+<li>NoExecute : tolerations이 없으면 pod scheduling 하지 않고, 기존에 실행되던 pod도 적합한 tolerations이 없으면 종료시킴</li>
+</ul>
+</li>
+<li>
+<p>pod 생성 테스트</p>
+</li>
+</ul>
+<pre><code>$ kubectl apply -f affinity_test.yaml
+deployment.apps/redis-deployment2 created
+
+$ kubectl get deploy,svc,pod
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/redis-deployment2   0/2     2            0           7s
+
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/kubernetes   ClusterIP   10.96.0.1    &lt;none&gt;        443/TCP   5d19h
+
+NAME                                     READY   STATUS    RESTARTS   AGE
+pod/redis-deployment2-7fd8d79ddc-xqnk9   0/1     Pending   0          6s
+pod/redis-deployment2-7fd8d79ddc-zshj5   0/1     Pending   0          7s
+
+$ kubectl describe pod/redis-deployment2-7fd8d79ddc-zshj5
+Events:
+  Type     Reason            Age        From               Message
+  ----     ------            ----       ----               -------
+  Warning  FailedScheduling  &lt;unknown&gt;  default-scheduler  0/1 nodes are available: 1 node(s) had taints that the pod didn't tolerate.
+  Warning  FailedScheduling  &lt;unknown&gt;  default-scheduler  0/1 nodes are available: 1 node(s) had taints that the pod didn't tolerate.
+</code></pre><p>=&gt; pod을 scheduling 하지만 위에서 딱 하나 있는 node에 taint 를 걸었기 때문에 pod scheduling이 taint설정에 의해 pending 된 것을 볼 수 있다.</p>
+<ul>
+<li>toleration 추가해서 다시 scheduling 해보자</li>
+</ul>
+<pre><code>---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: redis-server
+  template:
+    metadata:
+      labels:
+        app: redis-server
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - web
+            topologyKey: &quot;kubernetes.io/hostname&quot;
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: run
+                operator: In
+                values:
+                - testnet
+            topologyKey: &quot;kubernetes.io/hostname&quot;
+      containers:
+      - name: redis
+        image: redis
+        ports:
+        - containerPort: 6379
+      tolerations:
+      - key: &quot;key01&quot;
+        operator: &quot;Equal&quot;
+        value: &quot;value01&quot;
+        effect: &quot;NoSchedule&quot;
+</code></pre><p>=&gt; .spec.template.spec.tolerattions[] 의 하위필드로 node에 설정했던 taint의 설정 값들을 넣어주었다.<br>
+그 후 다시 배포해보면</p>
+<pre><code>$ kubectl apply -f affinity_test.yaml
+
+$ kubectl get pod
+NAME                                 READY   STATUS              RESTARTS   AGE
+redis-deployment2-6bcb64f4d4-lq5pc   1/1     Running             0          10s
+redis-deployment2-6bcb64f4d4-sq6vb   0/1     ContainerCreating   0          10s
+
+$ kubectl describe pod redis-deployment2-6bcb64f4d4-sq6vb
+
+Tolerations:     key01=value01:NoSchedule
+</code></pre><p>=&gt; tolerations 설정으로 pod이 잘 생성되었음을 확인할 수 있다.</p>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

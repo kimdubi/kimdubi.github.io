@@ -5,10 +5,222 @@
     <description>Recent content in Clouds on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 22 Jan 2021 18:56:08 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 23 Jan 2021 21:36:34 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/cloud/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>kubernetes Pod Scheduling - cordon &amp; drain</title>
+      <link>https://kimdubi.github.io/cloud/k8s-pod-scheduling3/</link>
+      <pubDate>Sat, 23 Jan 2021 21:36:34 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s-pod-scheduling3/</guid>
+      <description>&lt;p&gt;혼자 쿠버네티스 정리를 위한 글 오늘은 cordon, drain 편&lt;/p&gt;
+&lt;p&gt;특정 node의 점검, 정책 변경 등으로 특정 노드에 있는 pod들을 다른 노드로 옮기거나&lt;br&gt;
+작업시간 동안 특정 node에는 Pod scheduling 을 막아놓을 필요가 있을 때 사용하는 기능이 cordon과 drain이다.&lt;/p&gt;
+&lt;h3 id=&#34;cordon&#34;&gt;cordon&lt;/h3&gt;
+&lt;p&gt;cordon 은 지정한 node에 pod scheduling 되는 것을 막는 기능임&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;cordon 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get deploy,pod
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/redis-deployment2   2/2     2            2           22h
+
+NAME                                     READY   STATUS    RESTARTS   AGE
+pod/redis-deployment2-6bcb64f4d4-lq5pc   1/1     Running   0          22h
+pod/redis-deployment2-6bcb64f4d4-sq6vb   1/1     Running   0          22h
+
+
+$ kubectl cordon minikube
+node/minikube cordoned
+
+$ kubectl get node
+NAME       STATUS                     ROLES    AGE     VERSION
+minikube   Ready,SchedulingDisabled   master   6d18h   v1.17.0
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; minikube node에 cordon 설정하자 SchedulingDisabled 상태가 됨&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;scale 해보자&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl scale deployment.apps/redis-deployment2 --replicas=4
+deployment.apps/redis-deployment2 scaled
+
+$ kubectl get deploy,pod
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/redis-deployment2   2/4     4            2           22h
+
+NAME                                     READY   STATUS    RESTARTS   AGE
+pod/redis-deployment2-6bcb64f4d4-h6vsl   0/1     Pending   0          6s
+pod/redis-deployment2-6bcb64f4d4-lb68q   0/1     Pending   0          6s
+pod/redis-deployment2-6bcb64f4d4-lq5pc   1/1     Running   0          22h
+pod/redis-deployment2-6bcb64f4d4-sq6vb   1/1     Running   0          22h
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 기존에 떠있던 pod는 상관없지만 새로 추가로 띄운 2대의 pod은 pending 상태임, node가 단 하나인데 그걸 cordon해버렸으니..&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;cordon 해제하면?&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl uncordon minikube
+node/minikube uncordoned
+
+$ kubectl get deploy,pod
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/redis-deployment2   2/4     4            2           22h
+deployment.apps/testnet             1/1     1            1           5d18h
+
+NAME                                     READY   STATUS              RESTARTS   AGE
+pod/redis-deployment2-6bcb64f4d4-h6vsl   0/1     ContainerCreating   0          97s
+pod/redis-deployment2-6bcb64f4d4-lb68q   0/1     ContainerCreating   0          97s
+pod/redis-deployment2-6bcb64f4d4-lq5pc   1/1     Running             0          22h
+pod/redis-deployment2-6bcb64f4d4-sq6vb   1/1     Running             0          22h
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; uncordon 하면 pending상태였던 pod이 다시 생성됨&lt;/p&gt;
+&lt;h3 id=&#34;drain&#34;&gt;drain&lt;/h3&gt;
+&lt;p&gt;drain 기능은 특정 node의 pod들을 다른 node로 이동시키는 기능으로 drain 수행 시&lt;br&gt;
+해당 Node에 pod scheduling을 막고, 실행중이던 pod들을 삭제한다. 이 때 pod에서 수행되던 작업들이 정리될 때 까지 기다린 후 삭제한다. (graceful)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;drain 안되는 세가지 경우&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;* 파드가 emptyDir을 사용하여 local data를 저장하는 경우
+
+emptyDir를 사용하여 local data를 저장하는 파드가 해당 워커 노드에 있는 경우, 이 파드를 삭제 시 해당 데이터 또한 삭제되므로 수행되지 않습니다. 해당 파드가 제거되어도 문제가 없는 경우에는 --delete-local-data 플래그를 drain 명령어에 추가하여 수행합니다.
+
+* 해당 워커 노드에 데몬셋(daemonset)이 구동되고 있는 경우
+
+데몬셋에 속한 파드가 해당 워커 노드에 구동되고 있는 경우, kubectl drain 명령이 수행되지 않습니다. 데몬셋 컨트롤러는 노드가 unschedulable 상태에 있더라도 이를 무시하고 해당 노드에 파드를 스케줄하여 배치할 수 있습니다. 데몬셋에 속한 파드가 있는 경우에는, --ignore-daemonsets 플래그를 추가하여 해당 파드를 축출 대상에서 제외할 수 있습니다.
+
+* Kubernetes의 컨트롤러에서 관리되지 않는 파드가 구동되고 있는 경우
+
+Kubernetes에서는 Deployment, Statefulset, DaemonSet, ReplicaSet, Job과 같은 컨트롤러가 관리하지 않는 파드가 해당 워커 노드 상에 있는 경우, kubectl drain 명령어는 이를 보호하기 위해서 동작하지 않습니다. --force 플래그를 추가하여 kubectl drain 명령어를 실행하는 경우, 이러한 파드는 클러스터에서 제거되며 재스케줄링되지 않습니다.
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;drain 해보자&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl drain minikube
+node/minikube already cordoned
+error: unable to drain node &amp;quot;minikube&amp;quot;, aborting command...
+
+There are pending nodes to be drained:
+ minikube
+cannot delete DaemonSet-managed Pods (use --ignore-daemonsets to ignore): kube-system/kube-proxy-vxf7k
+cannot delete Pods not managed by ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet (use --force to override): kube-system/storage-provisioner
+cannot delete Pods with local storage (use --delete-local-data to override): kubernetes-dashboard/dashboard-metrics-scraper-7b64584c5c-mn29t, kubernetes-dashboard/kubernetes-dashboard-79d9cd965-rsbzn
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 뭔가 demonset, 혹은 emptyDir을 사용하는 Pod 들이 있다며 drain이 안된다는 에러가 떴다. 처음보는 Pod들인데 그 내가 사용하는 namespace의 Pod들이 아니기 때문이다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get deploy,pod --all-namespaces
+NAMESPACE              NAME                                        READY   UP-TO-DATE   AVAILABLE   AGE
+default                deployment.apps/redis-deployment2           4/4     4            4           26h
+default                deployment.apps/testnet                     1/1     1            1           5d23h
+kube-system            deployment.apps/coredns                     2/2     2            2           6d23h
+kubernetes-dashboard   deployment.apps/dashboard-metrics-scraper   1/1     1            1           6d23h
+kubernetes-dashboard   deployment.apps/kubernetes-dashboard        1/1     1            1           6d23h
+
+NAMESPACE              NAME                                             READY   STATUS    RESTARTS   AGE
+default                pod/redis-deployment2-6bcb64f4d4-h6vsl           1/1     Running   0          4h34m
+default                pod/redis-deployment2-6bcb64f4d4-lb68q           1/1     Running   0          4h34m
+default                pod/redis-deployment2-6bcb64f4d4-lq5pc           1/1     Running   0          26h
+default                pod/redis-deployment2-6bcb64f4d4-sq6vb           1/1     Running   0          26h
+default                pod/testnet-5f694fd785-lb5x8                     1/1     Running   1          5d23h
+kube-system            pod/coredns-6955765f44-k6cv4                     1/1     Running   0          6d23h
+kube-system            pod/coredns-6955765f44-mg7xp                     1/1     Running   0          6d23h
+kube-system            pod/etcd-minikube                                1/1     Running   0          6d23h
+kube-system            pod/kube-addon-manager-minikube                  1/1     Running   0          6d23h
+kube-system            pod/kube-apiserver-minikube                      1/1     Running   0          6d23h
+kube-system            pod/kube-controller-manager-minikube             1/1     Running   5          6d23h
+kube-system            pod/kube-proxy-vxf7k                             1/1     Running   0          6d23h
+kube-system            pod/kube-scheduler-minikube                      1/1     Running   4          6d23h
+kube-system            pod/storage-provisioner                          1/1     Running   0          6d23h
+kubernetes-dashboard   pod/dashboard-metrics-scraper-7b64584c5c-mn29t   1/1     Running   0          6d23h
+kubernetes-dashboard   pod/kubernetes-dashboard-79d9cd965-rsbzn         1/1     Running   0          6d23h
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;옵션 추가하여 다시 drain 해보자&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl drain minikube --ignore-daemonsets=true --force --delete-local-data
+node/minikube already cordoned
+WARNING: deleting Pods not managed by ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet: kube-system/storage-provisioner; ignoring DaemonSet-managed Pods: kube-system/kube-proxy-vxf7k
+evicting pod &amp;quot;testnet-5f694fd785-lb5x8&amp;quot;
+evicting pod &amp;quot;coredns-6955765f44-mg7xp&amp;quot;
+evicting pod &amp;quot;redis-deployment2-6bcb64f4d4-lb68q&amp;quot;
+evicting pod &amp;quot;storage-provisioner&amp;quot;
+evicting pod &amp;quot;kubernetes-dashboard-79d9cd965-rsbzn&amp;quot;
+evicting pod &amp;quot;coredns-6955765f44-k6cv4&amp;quot;
+evicting pod &amp;quot;redis-deployment2-6bcb64f4d4-h6vsl&amp;quot;
+evicting pod &amp;quot;redis-deployment2-6bcb64f4d4-lq5pc&amp;quot;
+evicting pod &amp;quot;redis-deployment2-6bcb64f4d4-sq6vb&amp;quot;
+evicting pod &amp;quot;dashboard-metrics-scraper-7b64584c5c-mn29t&amp;quot;
+
+pod/dashboard-metrics-scraper-7b64584c5c-mn29t evicted
+pod/redis-deployment2-6bcb64f4d4-sq6vb evicted
+pod/redis-deployment2-6bcb64f4d4-h6vsl evicted
+pod/kubernetes-dashboard-79d9cd965-rsbzn evicted
+pod/testnet-5f694fd785-lb5x8 evicted
+pod/storage-provisioner evicted
+pod/redis-deployment2-6bcb64f4d4-lb68q evicted
+pod/coredns-6955765f44-k6cv4 evicted
+pod/redis-deployment2-6bcb64f4d4-lq5pc evicted
+pod/coredns-6955765f44-mg7xp evicted
+node/minikube evicted
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; minikube node 안에 있던 pod들이 쫓겨났다&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;다시 조회해보자&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get deploy,pod --all-namespaces
+NAMESPACE              NAME                                        READY   UP-TO-DATE   AVAILABLE   AGE
+default                deployment.apps/redis-deployment2           0/4     4            0           27h
+default                deployment.apps/testnet                     0/1     1            0           5d23h
+kube-system            deployment.apps/coredns                     0/2     2            0           6d23h
+kubernetes-dashboard   deployment.apps/dashboard-metrics-scraper   0/1     1            0           6d23h
+kubernetes-dashboard   deployment.apps/kubernetes-dashboard        0/1     1            0           6d23h
+
+NAMESPACE              NAME                                             READY   STATUS    RESTARTS   AGE
+default                pod/redis-deployment2-6bcb64f4d4-8rzpc           0/1     Pending   0          15m
+default                pod/redis-deployment2-6bcb64f4d4-j46d7           0/1     Pending   0          15m
+default                pod/redis-deployment2-6bcb64f4d4-psksx           0/1     Pending   0          15m
+default                pod/redis-deployment2-6bcb64f4d4-r64b7           0/1     Pending   0          15m
+default                pod/testnet-5f694fd785-dv46g                     0/1     Pending   0          15m
+kube-system            pod/coredns-6955765f44-2pfdc                     0/1     Pending   0          15m
+kube-system            pod/coredns-6955765f44-59cp5                     0/1     Pending   0          15m
+kube-system            pod/etcd-minikube                                1/1     Running   0          6d23h
+kube-system            pod/kube-addon-manager-minikube                  1/1     Running   0          6d23h
+kube-system            pod/kube-apiserver-minikube                      1/1     Running   0          6d23h
+kube-system            pod/kube-controller-manager-minikube             1/1     Running   5          6d23h
+kube-system            pod/kube-proxy-vxf7k                             1/1     Running   0          6d23h
+kube-system            pod/kube-scheduler-minikube                      1/1     Running   4          6d23h
+kube-system            pod/storage-provisioner                          0/1     Pending   0          15m
+kubernetes-dashboard   pod/dashboard-metrics-scraper-7b64584c5c-6dn8b   0/1     Pending   0          15m
+kubernetes-dashboard   pod/kubernetes-dashboard-79d9cd965-25zcr         0/1     Pending   0          15m
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; node 가 minikube 하나라서 옮겨갈 곳이 없으니 전부 pending 상태임&lt;br&gt;
+그리고 마스터노드의 kube-apiserver를 이용해서 생성된 것이 아닌 kubelet이 직접 실행한 static pod들은 상관없이 running 상태&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;drain 설정 해제&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl uncordon minikube
+node/minikube uncordoned
+
+$ kubectl get deploy,pod --all-namespaces
+NAMESPACE              NAME                                        READY   UP-TO-DATE   AVAILABLE   AGE
+default                deployment.apps/redis-deployment2           4/4     4            4           27h
+default                deployment.apps/testnet                     1/1     1            1           5d23h
+kube-system            deployment.apps/coredns                     2/2     2            2           6d23h
+kubernetes-dashboard   deployment.apps/dashboard-metrics-scraper   1/1     1            1           6d23h
+kubernetes-dashboard   deployment.apps/kubernetes-dashboard        1/1     1            1           6d23h
+
+NAMESPACE              NAME                                             READY   STATUS    RESTARTS   AGE
+default                pod/redis-deployment2-6bcb64f4d4-8rzpc           1/1     Running   0          19m
+default                pod/redis-deployment2-6bcb64f4d4-j46d7           1/1     Running   0          19m
+default                pod/redis-deployment2-6bcb64f4d4-psksx           1/1     Running   0          19m
+default                pod/redis-deployment2-6bcb64f4d4-r64b7           1/1     Running   0          19m
+default                pod/testnet-5f694fd785-dv46g                     1/1     Running   0          19m
+kube-system            pod/coredns-6955765f44-2pfdc                     1/1     Running   0          19m
+kube-system            pod/coredns-6955765f44-59cp5                     1/1     Running   0          19m
+kube-system            pod/etcd-minikube                                1/1     Running   0          6d23h
+kube-system            pod/kube-addon-manager-minikube                  1/1     Running   0          6d23h
+kube-system            pod/kube-apiserver-minikube                      1/1     Running   0          6d23h
+kube-system            pod/kube-controller-manager-minikube             1/1     Running   5          6d23h
+kube-system            pod/kube-proxy-vxf7k                             1/1     Running   0          6d23h
+kube-system            pod/kube-scheduler-minikube                      1/1     Running   4          6d23h
+kube-system            pod/storage-provisioner                          1/1     Running   0          19m
+kubernetes-dashboard   pod/dashboard-metrics-scraper-7b64584c5c-6dn8b   1/1     Running   0          19m
+kubernetes-dashboard   pod/kubernetes-dashboard-79d9cd965-25zcr         1/1     Running   0          19m
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>kubernetes Pod Scheduling - taint&amp;tolerations</title>

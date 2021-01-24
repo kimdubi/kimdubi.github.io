@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>kubernetes Volume</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">kubernetes Volume</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>kubernetes Volume</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><p>혼자 쿠버네티스 정리하기 위한 글, 오늘은 volume 편</p>
+<p>여태 생성했던 Pod들은 stateless container를 사용하고 있었다. 그래서 Pod나 Node가 재기동되면 그 데이터가 사라지는 단점이 있었다.<br>
+만약 제공해야하는 서비스에서 이런 경우에도 데이터를 계속 보존해야한다면 kubernetes에서는 Volume을 사용해야한다.</p>
+<h2 id="volume">volume</h2>
+<h3 id="emptydir">emptyDir</h3>
+<p>Pod가 실행되는 host의 disk를 Contatiner의 volume으로 할당하는 기능,<br>
+Container가 재기동 되어도 데이터는 보존되지만 Pod가 종료되면 emptyDir에 할당했던 volume 내 데이터도 사라진다.<br>
+이 점이 앞서 살펴봤던 kubectl drain node 수행 시 emptyDir 사용하는 Pod이 있는 경우 에러가 발생하는 이유인듯</p>
+<pre><code>apiVersion: v1 
+kind: Pod 
+metadata: 
+  name: emptydir-test 
+  labels:
+    app: emptydir-test 
+spec:
+  containers:
+  - name: nginx
+    image: nginx 
+    volumeMounts:
+    - mountPath: /emptydir 
+      name: emptydir-volume 
+    volumes:
+    - name: emptydir-volume 
+      emptyDir: {}
+</code></pre><p>=&gt; .spec.contatiners.volumes[] 에서 사용햐려는 볼륨을 먼저 생성한다.<br>
+emptydir-volume이라는 이름의 emptyDir을 생성하고 volumeMounts 에서 이 volume을 사용하겠다고 지정 후<br>
+( .spec.containers.volumes[].name =&gt; .spec.containers.volumeMounts[].name 으로 매핑 )<br>
+.mountPath 필드 값으로 container의 /emptydir 디렉토리로 mount</p>
+<h3 id="hostpath">hostPath</h3>
+<p>Pod이 실행되는 host의 파일이나 디렉토리를 Pod에 mount하는 기능<br>
+emptyDir과는 달리 Pod이 재기동되어도 host에 데이터가 남음</p>
+<pre><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: hostpath-test
+  labels:
+    app: hostpath-test
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    volumeMounts:
+    - mountPath: /hostpath-volume
+      name: hostpath-volume
+  volumes:
+  - name: hostpath-volume
+    hostPath:
+      path: /Users/nhn/Documents/kubernetes/volume
+      type: Directory
+</code></pre><h2 id="persistentvolume--persistentvolumeclaim">PersistentVolume &amp; PersistentVolumeClaim</h2>
+<p>앞서 봤던 volume은 volume을 Pod에 직접 할당하는 방식이다.<br>
+그렇기 때문에 만약 Pod가 사라지면 직접 할당된 volume도 사라지고 volume에 변경사항이 생기면 (ex. voulme type)<br>
+Pod의 volume을 일일이 바꿔줘야 하는 불편사항이 있다.</p>
+<p>이 구조를 Pod -&gt; PVC -&gt; PV 로 변경하게 되면 Pod는 PVC를 거쳐서 volume을 사용하게 되기 때문에 어떤 스토리지를 사용하는지 신경 쓰지 않아도 되고<br>
+PVC 에서 PV만 새로 변경해주면 되기 때문에 상황에 맞게 유연한 사용이 가능하다.</p>
+<h3 id="pv--persistentvolume-">PV ( PersistentVolume )</h3>
+<p>가상의 volume 객체로 kubernetes cluster에서 Pod와는 별개 된 자원으로서 관리한다.<br>
+별도의 생명주기가 있으며 PVC를 통해 PV 할당 요청을 받으면 사용하고 싶은 용량, 읽기/쓰기 모드 등에 맞게 PV를 provisiong 한다.</p>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/pv_static.png" alt=""><br>
+위는 static provisiong의 방식을 나타내는데 PV와 PVC는 아래와 같은 생명 주기를 갖는다.</p>
+<ul>
+<li>
+<p>provisioing : PV를 생성하는 단계로 미리 만들어 놓는 static, PVC로 부터 요청이 있을 때마다 생성하는 dynamic 방식이 있다.</p>
+</li>
+<li>
+<p>binding : Provisioning으로 생성한 PV를 PVC와 연결하는 단계, PVC에서 요청한 스펙의 PV를 매핑한다. PV와 PVC는 1:1 관계</p>
+</li>
+<li>
+<p>using: PVC는 Pod에 연결되고, Pod는 PVC를 volume ,즉 PVC로 인식해서 사용하는 단계</p>
+</li>
+<li>
+<p>reclaiming: 사용이 끝난 PVC는 삭제하고 PV를 초기화 하는 과정</p>
+</li>
+<li>
+<p>pv_test.yaml</p>
+</li>
+</ul>
+<pre><code>apiVersion: v1
+kind: PersistentVolume 
+metadata: 
+  name: pv-test 
+  labels:
+    storage: prod
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes: 
+  - ReadWriteOnce  
+  storageClassName: test
+  persistentVolumeReclaimPolicy: Delete
+  hostPath:
+    path: /Users/nhn/Documents/kubernetes/volume/test/pv-test
+</code></pre><p>=&gt; volume plugin=hostPath 방식으로 1GB 짜리 PV 생성</p>
+<h3 id="pvc--persistentvolumeclaim-">PVC ( PersistentVolumeClaim )</h3>
+<p>Pod가 자신이 사용하는 스토리지를 신경쓸 필요 없이 PVC를 통해 사용하고 싶은 스펙의 PV를 PVC에 요청하면 PVC가 그 스펙에 맞는 PV를 생성하고 자신과 매핑시킴.<br>
+Pod는 결국 PVC를 Volume으로 인식하여 사용하게 됨</p>
+<ul>
+<li>pvc_test.yaml</li>
+</ul>
+<pre><code>apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-test
+spec:
+  accessModes:
+  - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: test
+  selector:
+    matchLabels:
+      storage: prod
+</code></pre><p>=&gt; .spec.resources.requests 필드를 통해 필요로 하는 자원을 요청한다.<br>
+.spec.selector 를 이용하여 labels로 PV와 매핑할 수 있음</p>
+<pre><code>$ kubectl get pv,pvc
+NAME                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM              STORAGECLASS   REASON   AGE
+persistentvolume/pv-test   1Gi        RWO            Delete           Bound    default/pvc-test   test                    6m47s
+
+NAME                             STATUS   VOLUME    CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+persistentvolumeclaim/pvc-test   Bound    pv-test   1Gi        RWO            test           7s
+</code></pre><p>=&gt; pvc-test PVC가 pv-test PV와 연결된 것을 확인</p>
+<ul>
+<li>매핑되는 PV가 없을 때</li>
+</ul>
+<pre><code>$ kubectl get pv,pvc
+NAME                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   REASON   AGE
+persistentvolume/pv-test   1Gi        RWO            Delete           Available           test                    74s
+
+NAME                             STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+persistentvolumeclaim/pvc-test   Pending                                      manual         63s
+</code></pre><p>=&gt; PVC 에서 요청한 storageclass를 사용하는 PV가 없어서 PVC가 PV를 매핑하지 못하고 pending 상태임</p>
+<ul>
+<li>매핑되는 PV를 생성하고 다시 조회해보자</li>
+</ul>
+<pre><code>$ kubectl get pv,pvc
+NAME                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM              STORAGECLASS   REASON   AGE
+persistentvolume/pv-test   1Gi        RWO            Delete           Bound    default/pvc-test   manual                  2m53s
+
+NAME                             STATUS   VOLUME    CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+persistentvolumeclaim/pvc-test   Bound    pv-test   1Gi        RWO            manual         2m42s
+</code></pre><h3 id="pvc--pod-">PVC를 사용하는 Pod를 생성해보자</h3>
+<pre><code>---
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: nginx-pvc-test
+  labels:
+    app: nginx-pvc-test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      name: nginx 
+      labels:
+        app: nginx 
+    spec:
+      containers: 
+      - name:  nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: pod-pvc-test
+          mountPath: /pv-test
+      volumes:
+      - name: pod-pvc-test
+        persistentVolumeClaim:
+          claimName: pvc-test
+</code></pre><p>=&gt; .spec.template.spec.volumes[].name 으로 사용할 volume을 선언하는데<br>
+.spec.template.spec.volumes[].persistentVolumeClaim.cclaimName으로 이전에 생성해놓은 pvc-test PVC를 설정한다.<br>
+.spec.template.specc.containers.volumeMounts[].name에서 pvc-test volume을 conatiner의 /pv-test에 mount 한다고 설정한다.<br>
+그리고 이 pvc-test PVC는 pv-test 와 매핑되는데 pv-test 는 이전에 hostPath로 host의 /Users/nhn/Documents/kubernetes/volume/test/pv-test 디렉토리에 마운트됨</p>
+<pre><code>$ kubectl describe pod/nginx-pvc-test-5d55669b9-vm8ml
+
+Volumes:
+  pod-pvc-test:
+    Type:       PersistentVolumeClaim (a reference to a PersistentVolumeClaim in the same namespace)
+    ClaimName:  pvc-test
+
+$ kubectl describe persistentvolumeclaim/pvc-test
+
+Volume:        pv-test
+Mounted By:    nginx-pvc-test-5d55669b9-nkq68
+               nginx-pvc-test-5d55669b9-vm8ml
+
+$ kubectl describe persistentvolume/pv-test
+
+Source:
+    Type:          HostPath (bare host directory volume)
+    Path:          /Users/nhn/Documents/kubernetes/volume/test/pv-test
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

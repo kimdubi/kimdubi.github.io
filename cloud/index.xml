@@ -5,10 +5,215 @@
     <description>Recent content in Clouds on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 23 Jan 2021 21:36:34 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 24 Jan 2021 19:22:14 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/cloud/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>kubernetes Volume</title>
+      <link>https://kimdubi.github.io/cloud/k8s-volume/</link>
+      <pubDate>Sun, 24 Jan 2021 19:22:14 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s-volume/</guid>
+      <description>&lt;p&gt;혼자 쿠버네티스 정리하기 위한 글, 오늘은 volume 편&lt;/p&gt;
+&lt;p&gt;여태 생성했던 Pod들은 stateless container를 사용하고 있었다. 그래서 Pod나 Node가 재기동되면 그 데이터가 사라지는 단점이 있었다.&lt;br&gt;
+만약 제공해야하는 서비스에서 이런 경우에도 데이터를 계속 보존해야한다면 kubernetes에서는 Volume을 사용해야한다.&lt;/p&gt;
+&lt;h2 id=&#34;volume&#34;&gt;volume&lt;/h2&gt;
+&lt;h3 id=&#34;emptydir&#34;&gt;emptyDir&lt;/h3&gt;
+&lt;p&gt;Pod가 실행되는 host의 disk를 Contatiner의 volume으로 할당하는 기능,&lt;br&gt;
+Container가 재기동 되어도 데이터는 보존되지만 Pod가 종료되면 emptyDir에 할당했던 volume 내 데이터도 사라진다.&lt;br&gt;
+이 점이 앞서 살펴봤던 kubectl drain node 수행 시 emptyDir 사용하는 Pod이 있는 경우 에러가 발생하는 이유인듯&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;apiVersion: v1 
+kind: Pod 
+metadata: 
+  name: emptydir-test 
+  labels:
+    app: emptydir-test 
+spec:
+  containers:
+  - name: nginx
+    image: nginx 
+    volumeMounts:
+    - mountPath: /emptydir 
+      name: emptydir-volume 
+    volumes:
+    - name: emptydir-volume 
+      emptyDir: {}
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; .spec.contatiners.volumes[] 에서 사용햐려는 볼륨을 먼저 생성한다.&lt;br&gt;
+emptydir-volume이라는 이름의 emptyDir을 생성하고 volumeMounts 에서 이 volume을 사용하겠다고 지정 후&lt;br&gt;
+( .spec.containers.volumes[].name =&amp;gt; .spec.containers.volumeMounts[].name 으로 매핑 )&lt;br&gt;
+.mountPath 필드 값으로 container의 /emptydir 디렉토리로 mount&lt;/p&gt;
+&lt;h3 id=&#34;hostpath&#34;&gt;hostPath&lt;/h3&gt;
+&lt;p&gt;Pod이 실행되는 host의 파일이나 디렉토리를 Pod에 mount하는 기능&lt;br&gt;
+emptyDir과는 달리 Pod이 재기동되어도 host에 데이터가 남음&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;apiVersion: v1
+kind: Pod
+metadata:
+  name: hostpath-test
+  labels:
+    app: hostpath-test
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    volumeMounts:
+    - mountPath: /hostpath-volume
+      name: hostpath-volume
+  volumes:
+  - name: hostpath-volume
+    hostPath:
+      path: /Users/nhn/Documents/kubernetes/volume
+      type: Directory
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;persistentvolume--persistentvolumeclaim&#34;&gt;PersistentVolume &amp;amp; PersistentVolumeClaim&lt;/h2&gt;
+&lt;p&gt;앞서 봤던 volume은 volume을 Pod에 직접 할당하는 방식이다.&lt;br&gt;
+그렇기 때문에 만약 Pod가 사라지면 직접 할당된 volume도 사라지고 volume에 변경사항이 생기면 (ex. voulme type)&lt;br&gt;
+Pod의 volume을 일일이 바꿔줘야 하는 불편사항이 있다.&lt;/p&gt;
+&lt;p&gt;이 구조를 Pod -&amp;gt; PVC -&amp;gt; PV 로 변경하게 되면 Pod는 PVC를 거쳐서 volume을 사용하게 되기 때문에 어떤 스토리지를 사용하는지 신경 쓰지 않아도 되고&lt;br&gt;
+PVC 에서 PV만 새로 변경해주면 되기 때문에 상황에 맞게 유연한 사용이 가능하다.&lt;/p&gt;
+&lt;h3 id=&#34;pv--persistentvolume-&#34;&gt;PV ( PersistentVolume )&lt;/h3&gt;
+&lt;p&gt;가상의 volume 객체로 kubernetes cluster에서 Pod와는 별개 된 자원으로서 관리한다.&lt;br&gt;
+별도의 생명주기가 있으며 PVC를 통해 PV 할당 요청을 받으면 사용하고 싶은 용량, 읽기/쓰기 모드 등에 맞게 PV를 provisiong 한다.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/pv_static.png&#34; alt=&#34;&#34;&gt;&lt;br&gt;
+위는 static provisiong의 방식을 나타내는데 PV와 PVC는 아래와 같은 생명 주기를 갖는다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;provisioing : PV를 생성하는 단계로 미리 만들어 놓는 static, PVC로 부터 요청이 있을 때마다 생성하는 dynamic 방식이 있다.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;binding : Provisioning으로 생성한 PV를 PVC와 연결하는 단계, PVC에서 요청한 스펙의 PV를 매핑한다. PV와 PVC는 1:1 관계&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;using: PVC는 Pod에 연결되고, Pod는 PVC를 volume ,즉 PVC로 인식해서 사용하는 단계&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;reclaiming: 사용이 끝난 PVC는 삭제하고 PV를 초기화 하는 과정&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;pv_test.yaml&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;apiVersion: v1
+kind: PersistentVolume 
+metadata: 
+  name: pv-test 
+  labels:
+    storage: prod
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes: 
+  - ReadWriteOnce  
+  storageClassName: test
+  persistentVolumeReclaimPolicy: Delete
+  hostPath:
+    path: /Users/nhn/Documents/kubernetes/volume/test/pv-test
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; volume plugin=hostPath 방식으로 1GB 짜리 PV 생성&lt;/p&gt;
+&lt;h3 id=&#34;pvc--persistentvolumeclaim-&#34;&gt;PVC ( PersistentVolumeClaim )&lt;/h3&gt;
+&lt;p&gt;Pod가 자신이 사용하는 스토리지를 신경쓸 필요 없이 PVC를 통해 사용하고 싶은 스펙의 PV를 PVC에 요청하면 PVC가 그 스펙에 맞는 PV를 생성하고 자신과 매핑시킴.&lt;br&gt;
+Pod는 결국 PVC를 Volume으로 인식하여 사용하게 됨&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;pvc_test.yaml&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-test
+spec:
+  accessModes:
+  - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: test
+  selector:
+    matchLabels:
+      storage: prod
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; .spec.resources.requests 필드를 통해 필요로 하는 자원을 요청한다.&lt;br&gt;
+.spec.selector 를 이용하여 labels로 PV와 매핑할 수 있음&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pv,pvc
+NAME                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM              STORAGECLASS   REASON   AGE
+persistentvolume/pv-test   1Gi        RWO            Delete           Bound    default/pvc-test   test                    6m47s
+
+NAME                             STATUS   VOLUME    CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+persistentvolumeclaim/pvc-test   Bound    pv-test   1Gi        RWO            test           7s
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; pvc-test PVC가 pv-test PV와 연결된 것을 확인&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;매핑되는 PV가 없을 때&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pv,pvc
+NAME                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   REASON   AGE
+persistentvolume/pv-test   1Gi        RWO            Delete           Available           test                    74s
+
+NAME                             STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+persistentvolumeclaim/pvc-test   Pending                                      manual         63s
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; PVC 에서 요청한 storageclass를 사용하는 PV가 없어서 PVC가 PV를 매핑하지 못하고 pending 상태임&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;매핑되는 PV를 생성하고 다시 조회해보자&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pv,pvc
+NAME                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM              STORAGECLASS   REASON   AGE
+persistentvolume/pv-test   1Gi        RWO            Delete           Bound    default/pvc-test   manual                  2m53s
+
+NAME                             STATUS   VOLUME    CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+persistentvolumeclaim/pvc-test   Bound    pv-test   1Gi        RWO            manual         2m42s
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;pvc--pod-&#34;&gt;PVC를 사용하는 Pod를 생성해보자&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;---
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: nginx-pvc-test
+  labels:
+    app: nginx-pvc-test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      name: nginx 
+      labels:
+        app: nginx 
+    spec:
+      containers: 
+      - name:  nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: pod-pvc-test
+          mountPath: /pv-test
+      volumes:
+      - name: pod-pvc-test
+        persistentVolumeClaim:
+          claimName: pvc-test
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; .spec.template.spec.volumes[].name 으로 사용할 volume을 선언하는데&lt;br&gt;
+.spec.template.spec.volumes[].persistentVolumeClaim.cclaimName으로 이전에 생성해놓은 pvc-test PVC를 설정한다.&lt;br&gt;
+.spec.template.specc.containers.volumeMounts[].name에서 pvc-test volume을 conatiner의 /pv-test에 mount 한다고 설정한다.&lt;br&gt;
+그리고 이 pvc-test PVC는 pv-test 와 매핑되는데 pv-test 는 이전에 hostPath로 host의 /Users/nhn/Documents/kubernetes/volume/test/pv-test 디렉토리에 마운트됨&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl describe pod/nginx-pvc-test-5d55669b9-vm8ml
+
+Volumes:
+  pod-pvc-test:
+    Type:       PersistentVolumeClaim (a reference to a PersistentVolumeClaim in the same namespace)
+    ClaimName:  pvc-test
+
+$ kubectl describe persistentvolumeclaim/pvc-test
+
+Volume:        pv-test
+Mounted By:    nginx-pvc-test-5d55669b9-nkq68
+               nginx-pvc-test-5d55669b9-vm8ml
+
+$ kubectl describe persistentvolume/pv-test
+
+Source:
+    Type:          HostPath (bare host directory volume)
+    Path:          /Users/nhn/Documents/kubernetes/volume/test/pv-test
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>kubernetes Pod Scheduling - cordon &amp; drain</title>

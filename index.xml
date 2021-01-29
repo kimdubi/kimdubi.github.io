@@ -5,10 +5,19 @@
     <description>Recent content on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 24 Jan 2021 19:22:14 +0900</lastBuildDate>
+    <lastBuildDate>Fri, 29 Jan 2021 19:45:36 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Mysqls</title>
+      <link>https://kimdubi.github.io/mysql/</link>
+      <pubDate>Fri, 29 Jan 2021 19:45:36 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>Clouds</title>
@@ -25,15 +34,6 @@
       <pubDate>Sat, 19 Dec 2020 11:39:48 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/etc/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Mysqls</title>
-      <link>https://kimdubi.github.io/mysql/</link>
-      <pubDate>Sun, 13 Dec 2020 17:16:48 +0900</pubDate>
-      
-      <guid>https://kimdubi.github.io/mysql/</guid>
       <description></description>
     </item>
     

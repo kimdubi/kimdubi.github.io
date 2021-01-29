@@ -5,10 +5,69 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 13 Dec 2020 17:16:48 +0900</lastBuildDate>
+    <lastBuildDate>Fri, 29 Jan 2021 19:45:36 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL 5.7.15 Master-Slave datetime 이슈</title>
+      <link>https://kimdubi.github.io/mysql/mysql_5715_datetime_issue/</link>
+      <pubDate>Fri, 29 Jan 2021 19:45:36 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/mysql_5715_datetime_issue/</guid>
+      <description>&lt;p&gt;얼마전 운영하는 MySQL에서 재미있는 이슈가 하나 터졌습니다.&lt;br&gt;
+datetime 컬럼에 대해 Master / Slave 간 1초 씩 차이나서 데이터가 안맞는 이슈였는데요&lt;br&gt;
+간단히 정리하면 이런 버그였습니다.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;datetime 칼럼 insert문이 binary log에 millisecond 값이 생략되어 마스터-슬레이브 값 차이가 1초씩 발생  
+(server-side prepared statements 사용시, timestamp의 millisecond 부분이 master에서는 정상적으로 반올림 되는데 slave에서는 잘리는 버그)
+
+버그 리포트 : https://bugs.mysql.com/bug.php?id=74550
+5.7.18 버전에서 패치
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;heading&#34;&gt;이슈&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/mysql_datetime.png&#34; alt=&#34;&#34;&gt;
+위에서 보이듯이 Master / Slave 간 datetime 값이 1초씩 차이가 납니다.&lt;/p&gt;
+&lt;p&gt;이 때 발생할 수 있는 이슈는 뭐가 있을까요? 데이터가 틀어지는 것은 기본이고&lt;br&gt;
+사용하고 있는 binlog_format 무엇이냐에 따라 다른데, 일반적으로 많이 쓰는 binlog_format=mixed 일 때를 가정해보겠습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;delete from tb_test where reg_ymdt &amp;lt; &amp;lsquo;2018-10-05 11:30:04&amp;rsquo;;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;위 쿼리 수행 시에는 statement 로 binlog에 찍히게 되어 Slave 에서도 동일한 쿼리를 수행하게 됩니다.&lt;br&gt;
+Master에서는 ID 20298 까지 삭제되겠지만 Slave 에서는 ID 20299 까지 삭제되어 데이터가 틀어지게 되겠죠&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;delete from tb_test where reg_ymdt &amp;lt; &amp;lsquo;2018-10-05 11:30:04&amp;rsquo; limit 1000;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;위 쿼리 수행 시에는 Master-Slave 복제까지 깨지게 됩니다.&lt;br&gt;
+binlog_format=&#39;mixed&amp;rsquo; 설정은 limit을 statement로 처리하기엔 위험한 명령어라고 분류하기 때문에 Row-based 로 처리하게 되는데&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;### DELETE FROM `test`.`tb_test`
+### WHERE
+###   @1=20299
+.
+.
+.
+###   @17=&#39;2018-10-05 11:30:04&#39;
+###   @18=NULL
+###   @19=NULL
+###   @20=NULL
+###   @21=NULL
+###   @22=NULL
+###   @23=NULL
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;위 처럼 Master 와 데이터가 완전히 동일한 row 를 찾게 되는데 현재 저 ID 20299 는 버그로 인해&lt;br&gt;
+reg_ymdt 값이 &amp;lsquo;2018-10-05 11:30:03&amp;rsquo; 입니다. 그래서 Slave는 저 row를 찾을 수 없다며 복제가 깨지게됩니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;delete from tb_test where id in (select id from tb_test where reg_ymdt &amp;lt; &amp;lsquo;2018-10-15 11:30:04&amp;rsquo;)
+그럼 PK 기반으로 지우면 되지 않을까? 위 쿼리도 마찬가지로 row-based로 수행되니 대안이 되지 못합니다.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;heading1&#34;&gt;해결방안&lt;/h2&gt;
+&lt;p&gt;해결방법은 크게 세 가지입니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;insert 할 때 JAVA의 LocalDateTime.now() 대신 MySQL 함수 now()를 사용하기&lt;/li&gt;
+&lt;li&gt;bug가 fix 된 MySQL 5.7.18 이상 버전으로 업그레이드 하기&lt;/li&gt;
+&lt;li&gt;JDBC 설정의 useServerPrepStmts 를 false로 처리하기&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;이 중 useServerPrepStmts=false 설정은 코드를 수정할 필요가 없어 제일 간단하지만 useServerPrepStmts 기능을 사용할 수 없게 되기 때문에 1번이나 2번 방법을 통해 주로 해결하는 것 같습니다.&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Xtrabackup 사용 시 주의사항</title>

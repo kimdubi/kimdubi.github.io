@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size)</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size)</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size)</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><p>Index 잘 타던 쿼리가 fullscan을 하면서 CPU가 100% 를 치는 이슈가 발생했습니다.<br>
+range_optimizer_max_mem_size 라는 생소한 파라미터를 설정하여 이슈 해결한 사례를 공유합니다.</p>
+<h3 id="-">이슈 상황</h3>
+<p>DB server에서 갑자기 CPU가 100%를 치는 상황이 발생<br>
+원인은 아래 Slow query 가 수행되면서 발생한것으로 추측</p>
+<pre><code>SELECT *
+FROM tb_test tb1
+LEFT OUTER JOIN tb_test2 AS tb2 ON tb1.name = tb2.name 
+WHERE tb1.status = 'active'
+AND tb1.resource_id in (1,2 ......... N) 
+</code></pre><p>=&gt; where IN절에 bind값이 많기는 하지만 필요한 인덱스는 모두 있어서 문제될 법한 쿼리는 아닌 듯 했으나 full scan을 하면서 CPU가 급증함</p>
+<h3 id="heading">원인</h3>
+<p>where 조건의 범위가 제한된 메모리보다 초과하여 index를 타지 못하고 full scan 하게 됨</p>
+<ul>
+<li>MySQL5.7.14</li>
+</ul>
+<pre><code>default : range_optimizer_max_mem_size = 8MB
+
++------------------------------+---------+
+| Variable_name                | Value   |
++------------------------------+---------+
+| range_optimizer_max_mem_size | 8388608 |
++------------------------------+---------+
+</code></pre><p>공식문서 <a href="https://dev.mysql.com/doc/refman/8.0/en/range-optimization.html">https://dev.mysql.com/doc/refman/8.0/en/range-optimization.html</a></p>
+<ul>
+<li>or 는 하나당 230bytes</li>
+</ul>
+<pre><code>SELECT COUNT(*) FROM t
+WHERE a=1 OR a=2 OR a=3 OR .. . a=N;
+</code></pre><ul>
+<li>and 는 하나당 125bytes</li>
+</ul>
+<pre><code>SELECT COUNT(*) FROM t
+WHERE a=1 AND b=1 AND c=1 ... N;
+</code></pre><h3 id="-1">재현 테스트</h3>
+<ul>
+<li>range_optimizer_max_mem_size = 8388608</li>
+</ul>
+<pre><code>select count(*) from joinit ;
++----------+
+| count(*) |
++----------+
+|  2097152 |
++----------+
+
+mysql&gt; select * from joinit where i in (1,2,3,4,5,6,7,8,9,10);
++---+--------------------------------------+----------+----+
+| i | s                                    | t        | g  |
++---+--------------------------------------+----------+----+
+| 1 | ecb5774f-4e92-11eb-9465-00163e462f55 | 13:44:10 | 38 |
+| 2 | ecb9f236-4e92-11eb-9465-00163e462f55 | 13:44:10 | 16 |
+| 3 | ecbac904-4e92-11eb-9465-00163e462f55 | 13:44:10 | 26 |
+| 4 | ecbacaf0-4e92-11eb-9465-00163e462f55 | 13:44:10 | 22 |
+| 6 | ecbb4b04-4e92-11eb-9465-00163e462f55 | 13:44:10 | 30 |
+| 7 | ecbb4d68-4e92-11eb-9465-00163e462f55 | 13:44:10 | 26 |
+| 8 | ecbb4dc6-4e92-11eb-9465-00163e462f55 | 13:44:10 | 37 |
+| 9 | ecbb4e01-4e92-11eb-9465-00163e462f55 | 13:44:10 | 49 |
++---+--------------------------------------+----------+----+
+8 rows in set (0.00 sec)
+
+
+mysql&gt; explain select * from joinit where i in (1,2,3,4,5,6,7,8,9,10);
++----+-------------+--------+------------+-------+---------------+---------+---------+------+------+----------+-------------+
+| id | select_type | table  | partitions | type  | possible_keys | key     | key_len | ref  | rows | filtered | Extra       |
++----+-------------+--------+------------+-------+---------------+---------+---------+------+------+----------+-------------+
+|  1 | SIMPLE      | joinit | NULL       | range | PRIMARY       | PRIMARY | 4       | NULL |   10 |   100.00 | Using where |
++----+-------------+--------+------------+-------+---------------+---------+---------+------+------+----------+-------------+
+1 row in set, 1 warning (0.00 sec)
+
+mysql&gt; show status like '%handler%';
++----------------------------+-------+
+| Variable_name              | Value |
+
++----------------------------+-------+
+...
+| Handler_read_key           | 10    |
+
+</code></pre><p>=&gt; PK 인덱스를 활용하여 10개의 row 만 접근한 것을 확인할 수 있음<br>
+handler_read_key : 단일 row inddex key 값을 읽은 횟 수, PK나 UK scan이나, range scan 시 처음 읽은 시작점으로 접근했을 때 증가</p>
+<ul>
+<li>range_optimizer_max_mem_size = 500</li>
+</ul>
+<pre><code>mysql&gt; set range_optimizer_max_mem_size = 500;
+Query OK, 0 rows affected (0.00 sec)
+ 
+mysql&gt; select * from joinit where i in (1,2,3,4,5,6,7,8,9,10);
++---+--------------------------------------+----------+----+
+| i | s                                    | t        | g  |
++---+--------------------------------------+----------+----+
+| 1 | ecb5774f-4e92-11eb-9465-00163e462f55 | 13:44:10 | 38 |
+| 2 | ecb9f236-4e92-11eb-9465-00163e462f55 | 13:44:10 | 16 |
+| 3 | ecbac904-4e92-11eb-9465-00163e462f55 | 13:44:10 | 26 |
+| 4 | ecbacaf0-4e92-11eb-9465-00163e462f55 | 13:44:10 | 22 |
+| 6 | ecbb4b04-4e92-11eb-9465-00163e462f55 | 13:44:10 | 30 |
+| 7 | ecbb4d68-4e92-11eb-9465-00163e462f55 | 13:44:10 | 26 |
+| 8 | ecbb4dc6-4e92-11eb-9465-00163e462f55 | 13:44:10 | 37 |
+| 9 | ecbb4e01-4e92-11eb-9465-00163e462f55 | 13:44:10 | 49 |
++---+--------------------------------------+----------+----+
+8 rows in set, 1 warning (0.82 sec)
+
+mysql&gt; explain select * from joinit where i in (1,2,3,4,5,6,7,8,9,10);
++----+-------------+--------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+| id | select_type | table  | partitions | type | possible_keys | key  | key_len | ref  | rows    | filtered | Extra       |
++----+-------------+--------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+|  1 | SIMPLE      | joinit | NULL       | ALL  | PRIMARY       | NULL | NULL    | NULL | 2088128 |    50.00 | Using where |
++----+-------------+--------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+1 row in set, 2 warnings (0.00 sec)
+
+mysql&gt; show status like '%handler%';
++----------------------------+---------+
+| Variable_name              | Value   |
++----------------------------+---------+
+...
+| Handler_read_rnd_next      | 2097153 |
+</code></pre><p>=&gt; index를 활용하지 못하고 full scan한 것 확인<br>
+Handler_read_rnd_next : full scan 발생 시 random I/O 횟수</p>
+<h3 id="heading1">해결방법</h3>
+<ul>
+<li>쿼리의 where 조건이 정상적으로 들어온 것을 먼저 확인 후</li>
+<li>range_optimizer_max_mem_size=0 으로 설정하거나 늘릴것을 검토한다. dynamic parameter이며 0으로 설정 시 unlimit을 의미</li>
+</ul>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

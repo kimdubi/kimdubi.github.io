@@ -5,10 +5,286 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 31 Jan 2021 16:37:47 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 14 Feb 2021 16:28:44 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL의 Transaction Isolation에 대해</title>
+      <link>https://kimdubi.github.io/mysql/transaction_isolation/</link>
+      <pubDate>Sun, 14 Feb 2021 16:28:44 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/transaction_isolation/</guid>
+      <description>&lt;p&gt;MySQL에는 네가지 transaction isolation 레벨이 있습니다.&lt;br&gt;
+transaction isolation 에 따라 쿼리의 결과가 달라지고 Lock의 범위가 달라지므로 간단히라도 꼭 알아둬야 하는 개념인데요&lt;br&gt;
+이번 글에서는 MySQL의 transaction isolation에 대해 간단히 알아보겠습니다.&lt;br&gt;
+repeatable-read 의 gap lock, next key lock 은 다음에&amp;hellip;&amp;hellip;&amp;hellip;..&lt;/p&gt;
+&lt;h2 id=&#34;readuncommitted&#34;&gt;READ-UNCOMMITTED&lt;/h2&gt;
+&lt;h3 id=&#34;heading&#34;&gt;특징&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;lock 잡지 않음&lt;/li&gt;
+&lt;li&gt;dirty read , unrepeatable read, phantom read 발생&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;heading1&#34;&gt;테스트&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;session 1&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; set session transaction_isolation=&#39;read-uncommitted&#39;;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; update tb_test set b=&#39;hi&#39; where a=1;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;session 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt;  set session transaction_isolation=&#39;read-uncommitted&#39;;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; select * from tb_test;
++---+----------+
+| a | b        |
++---+----------+
+| 1 | hi       |
+| 2 | leedubi  |
+| 3 | parkdubi |
++---+----------+
+3 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 다른 세션에서 commit 을 찍지 않아도 변경된 데이터를 조회할 수 있는 dirty read 가 발생함&lt;/p&gt;
+&lt;h2 id=&#34;readcommitted&#34;&gt;READ-COMMITTED&lt;/h2&gt;
+&lt;h3 id=&#34;heading2&#34;&gt;특징&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;dirty read 방지&lt;/li&gt;
+&lt;li&gt;unrepeatable readd, phantom read 발생&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;heading3&#34;&gt;테스트&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;session 1&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; set session transaction_isolation=&#39;read-committed&#39;;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; update tb_test set b=&#39;hi&#39; where a=1;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;session 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; set session transaction_isolation=&#39;read-committed&#39;;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; select * from tb_test;
++---+----------+
+| a | b        |
++---+----------+
+| 1 | kimdubi  |
+| 2 | leedubi  |
+| 3 | parkdubi |
++---+----------+
+3 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 다른 세션에서 commit을 찍지 않으면 변경된 데이터가 보이지 않음, dirty read 방지&lt;/p&gt;
+&lt;h2 id=&#34;repeatableread&#34;&gt;REPEATABLE-READ&lt;/h2&gt;
+&lt;h3 id=&#34;heading4&#34;&gt;특징&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;dirty read, unrepeatable read 방지&lt;/li&gt;
+&lt;li&gt;phantom read 발생
+&lt;ul&gt;
+&lt;li&gt;phantom read 를 막기 위해 gap lock, next key lock을 사용함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;insert ~ select , create table as select ~ 할 때 select 하는 테이블에 lock 걸림&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;heading5&#34;&gt;테스트&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;session 1&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; set session transaction_isolation=&#39;repeatable-read&#39;;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; update tb_test set b=&#39;hi&#39; where a=1;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql&amp;gt; commit;
+Query OK, 0 rows affected (0.00 sec)
+
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;session 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; set session transaction_isolation=&#39;repeatable-read&#39;;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; select * from tb_test;
++---+----------+
+| a | b        |
++---+----------+
+| 1 | kimdubi  |
+| 2 | leedubi  |
+| 3 | parkdubi |
++---+----------+
+3 rows in set (0.00 sec)
+
+mysql&amp;gt; select * from tb_test;
++---+----------+
+| a | b        |
++---+----------+
+| 1 | kimdubi  |
+| 2 | leedubi  |
+| 3 | parkdubi |
++---+----------+
+3 rows in set (0.00 sec)
+
+mysql&amp;gt; select * from tb_test;
++---+----------+
+| a | b        |
++---+----------+
+| 1 | kimdubi  |
+| 2 | leedubi  |
+| 3 | parkdubi |
++---+----------+
+3 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 다른 세션에서 commit 을 찍어도, 트랜잭션이 시작했을 때의 snapshot 을 그대로 유지하여 unrepeatable read를 방지함&lt;/p&gt;
+&lt;h3 id=&#34;phantom-read-&#34;&gt;phantom read 테스트&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;session 1&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; insert into tb_test(b) values(&#39;choidubi&#39;);
+Query OK, 1 row affected (0.00 sec)
+
+mysql&amp;gt; commit;
+Query OK, 0 rows affected (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;session 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; select * from tb_test;
++---+----------+
+| a | b        |
++---+----------+
+| 1 | kimdubi  |
+| 2 | leedubi  |
+| 3 | parkdubi |
++---+----------+
+3 rows in set (0.00 sec)
+
+mysql&amp;gt; update tb_test set b=&#39;limdubi&#39; where a=4;
+
+
+
+Query OK, 1 row affected (3.76 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql&amp;gt; select * from tb_test;
++---+----------+
+| a | b        |
++---+----------+
+| 1 | kimdubi  |
+| 2 | leedubi  |
+| 3 | parkdubi |
+| 4 | limdubi  |
++---+----------+
+4 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;phantom-read---next-key-lock&#34;&gt;phantom read 테스트 - next key lock&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;session 1&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; select * from tb_test for update;
++---+----------+
+| a | b        |
++---+----------+
+| 1 | kimdubi  |
+| 2 | leedubi  |
+| 3 | parkdubi |
++---+----------+
+3 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;session 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; insert into tb_test(b) values(&#39;choidubi&#39;);
+
+ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;lock 조회&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; SELECT straight_join         dl.THREAD_ID        , est.SQL_TEXT        , dl.OBJECT_SCHEMA        , dl.OBJECT_NAME        , dl.INDEX_NAME        , dl.LOCK_TYPE        , dl.LOCK_MODE        , dl.LOCK_STATUS        , dl.LOCK_DATA      FROM        performance_schema.data_locks dl inner join performance_schema.events_statements_current est on dl.THREAD_ID = est.THREAD_ID      ORDER BY est.TIMER_START,dl.OBJECT_INSTANCE_BEGIN;
++-----------+-------------------------------------------+---------------+-------------+------------+-----------+--------------------+-------------+------------------------+
+| THREAD_ID | SQL_TEXT                                  | OBJECT_SCHEMA | OBJECT_NAME | INDEX_NAME | LOCK_TYPE | LOCK_MODE          | LOCK_STATUS | LOCK_DATA              |
++-----------+-------------------------------------------+---------------+-------------+------------+-----------+--------------------+-------------+------------------------+
+|   1532790 | select * from tb_test for update          | test2         | tb_test     | PRIMARY    | RECORD    | X                  | GRANTED     | supremum pseudo-record |
+|   1532790 | select * from tb_test for update          | test2         | tb_test     | PRIMARY    | RECORD    | X                  | GRANTED     | 1                      |
+|   1532790 | select * from tb_test for update          | test2         | tb_test     | PRIMARY    | RECORD    | X                  | GRANTED     | 2                      |
+|   1532790 | select * from tb_test for update          | test2         | tb_test     | PRIMARY    | RECORD    | X                  | GRANTED     | 3                      |
+|   1532790 | select * from tb_test for update          | test2         | tb_test     | NULL       | TABLE     | IX                 | GRANTED     | NULL                   |
+|   1532788 | insert into tb_test(b) values(&#39;choidubi&#39;) | test2         | tb_test     | PRIMARY    | RECORD    | X,INSERT_INTENTION | WAITING     | supremum pseudo-record |
+|   1532788 | insert into tb_test(b) values(&#39;choidubi&#39;) | test2         | tb_test     | NULL       | TABLE     | IX                 | GRANTED     | NULL                   |
++-----------+-------------------------------------------+---------------+-------------+------------+-----------+--------------------+-------------+------------------------+
+7 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; repeatable read 일때 select ~ for update 사용 시 , gap lock, next key lock으로 인해 팬텀리드가 방지됨&lt;/p&gt;
+&lt;h2 id=&#34;serializable&#34;&gt;serializable&lt;/h2&gt;
+&lt;h3 id=&#34;heading6&#34;&gt;특징&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;dirty read, unrepeatable read, phantom read 없음&lt;/li&gt;
+&lt;li&gt;트랜잭션 수행 시 select 문에  SELECT FOR SHARE LOCK을 걸어 다른 세션에서 DML 수행 불가&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;heading7&#34;&gt;테스트&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;session 1&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt;  set session transaction_isolation=&#39;serializable&#39;;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; select * from tb_test;
++---+----------+
+| a | b        |
++---+----------+
+| 1 | kimdubi  |
+| 2 | leedubi  |
+| 3 | parkdubi |
+| 4 | limdubi  |
++---+----------+
+4 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;session 2&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt;  set session transaction_isolation=&#39;serializable&#39;;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&amp;gt; insert into tb_test(b) values(&#39;choidubi&#39;);
+
+ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size)</title>

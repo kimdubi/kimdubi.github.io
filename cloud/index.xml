@@ -5,10 +5,1293 @@
     <description>Recent content in Clouds on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 06 Mar 2021 15:01:01 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 06 Mar 2021 15:04:58 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/cloud/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - 구성요소</title>
+      <link>https://kimdubi.github.io/cloud/k8s_redis_components/</link>
+      <pubDate>Sat, 06 Mar 2021 15:04:58 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_redis_components/</guid>
+      <description>&lt;h1 id=&#34;heading&#34;&gt;구성요소&lt;/h1&gt;
+&lt;h3 id=&#34;node&#34;&gt;node&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get node
+NAME                                         STATUS   ROLES    AGE     VERSION
+kimdubi-test-default-w-46niimovcith-node-0   Ready    &amp;lt;none&amp;gt;   4h56m   v1.17.6
+kimdubi-test-default-w-46niimovcith-node-1   Ready    &amp;lt;none&amp;gt;   4h56m   v1.17.6
+kimdubi-test-default-w-46niimovcith-node-2   Ready    &amp;lt;none&amp;gt;   4h56m   v1.17.6
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;worker node 3개&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;pod&#34;&gt;Pod&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pod
+NAME                                              READY   STATUS      RESTARTS   AGE
+kimdubi-test-redis-cluster-0                      1/1     Running     0          3h10m
+kimdubi-test-redis-cluster-1                      1/1     Running     0          3h10m
+kimdubi-test-redis-cluster-2                      1/1     Running     2          3h10m
+kimdubi-test-redis-cluster-3                      1/1     Running     1          3h10m
+kimdubi-test-redis-cluster-4                      1/1     Running     1          3h10m
+kimdubi-test-redis-cluster-5                      1/1     Running     1          3h10m
+kimdubi-test-redis-cluster-cluster-create-gjwsk   0/1     Completed   0          3h10m
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;redis cluster 용도의 Pod 6개&lt;/li&gt;
+&lt;li&gt;Job / batch 용으로 1회성으로 생성된 Pod 1개&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;service&#34;&gt;Service&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get service
+NAME                                  TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)              AGE
+kimdubi-test-redis-cluster            ClusterIP   10.254.8.60   &amp;lt;none&amp;gt;        6379/TCP             3h13m
+kimdubi-test-redis-cluster-headless   ClusterIP   None          &amp;lt;none&amp;gt;        6379/TCP,16379/TCP   3h13m
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;headless service&lt;/li&gt;
+&lt;li&gt;내부에서 동작하는 ClusterIP service&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;statefulset&#34;&gt;StatefulSet&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get statefulset
+NAME                         READY   AGE
+kimdubi-test-redis-cluster   6/6     3h13m
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;Pod 관리하는 statefulset 1개&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;job&#34;&gt;Job&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;NAME                                                COMPLETIONS   DURATION   AGE
+job.batch/kimdubi-test-redis-cluster-cluster-create   1/1           44s        23h
+job.batch/kimdubi-test-redis-cluster-cluster-update   1/1           2s         26h
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;hook 으로 동작하는 job&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;pvc--pv&#34;&gt;pvc / pv&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pv,pvc
+NAME                                                        CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                                             STORAGECLASS   REASON   AGE
+persistentvolume/pvc-10412da7-46bb-43e0-b791-a810774b7c87   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-1   kimdubi-test            3h15m
+persistentvolume/pvc-3b7c88ff-6e56-428a-885f-58301e05478f   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-0   kimdubi-test            3h15m
+persistentvolume/pvc-6a5aa328-8ca2-4450-a308-1c07cc7aab60   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-2   kimdubi-test            3h15m
+persistentvolume/pvc-92e41155-d644-4799-b974-2a35c19ada8b   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-4   kimdubi-test            3h15m
+persistentvolume/pvc-b198c891-2d0c-474e-9113-2ad0f198a336   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-3   kimdubi-test            3h15m
+persistentvolume/pvc-b2fe7621-e748-4cc7-aa4c-2efee2fc0cd8   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-5   kimdubi-test            3h15m
+
+NAME                                                            STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-0   Bound    pvc-3b7c88ff-6e56-428a-885f-58301e05478f   2Gi        RWO            kimdubi-test   3h15m
+persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-1   Bound    pvc-10412da7-46bb-43e0-b791-a810774b7c87   2Gi        RWO            kimdubi-test   3h15m
+persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-2   Bound    pvc-6a5aa328-8ca2-4450-a308-1c07cc7aab60   2Gi        RWO            kimdubi-test   3h15m
+persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-3   Bound    pvc-b198c891-2d0c-474e-9113-2ad0f198a336   2Gi        RWO            kimdubi-test   3h15m
+persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-4   Bound    pvc-92e41155-d644-4799-b974-2a35c19ada8b   2Gi        RWO            kimdubi-test   3h15m
+persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-5   Bound    pvc-b2fe7621-e748-4cc7-aa4c-2efee2fc0cd8   2Gi        RWO            kimdubi-test   3h15m
+
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;configmap&#34;&gt;configmap&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get configmap
+NAME                                 DATA   AGE
+kimdubi-test-redis-cluster-default   1      3h15m
+kimdubi-test-redis-cluster-scripts   2      3h15m
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Configmap</title>
+      <link>https://kimdubi.github.io/cloud/k8s_redis_configmap/</link>
+      <pubDate>Sat, 06 Mar 2021 15:04:53 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_redis_configmap/</guid>
+      <description>&lt;h1 id=&#34;configmap&#34;&gt;configmap?&lt;/h1&gt;
+&lt;h2 id=&#34;configmap-&#34;&gt;configmap 개념&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_configmap01.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Pod 내 Container로 띄운 application ( Redis, apache &amp;hellip;) 에서 사용하는 설정 값을 configmap 이라는 독립적인 오브젝트로 분리함&lt;/li&gt;
+&lt;li&gt;DEV용, TEST용, PROD용으로 configmap을 따로 관리하여 하나의 동일한 Container로 여러 환경에서 사용할 수 있음&lt;/li&gt;
+&lt;li&gt;수정 배포가 필요한 경우에도 Container 일일이 접속해서 수정하는 게 아니라 사용하는 Configmap을 수정하여 사용할 수 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;configmap-1&#34;&gt;configmap 사용현황&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get configmap
+NAME                                 DATA   AGE
+kimdubi-test-redis-cluster-default   1      6d19h
+kimdubi-test-redis-cluster-scripts   2      6d19h
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;kimdubi-test-redis-cluster-default configmap은 redis.conf 의 내용을 담고 있음&lt;/li&gt;
+&lt;li&gt;kimdubi-test-redis-cluster-scripts configmap은 redis health check 용으로 사용하는 script 의 내용을 담고 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;configmap-template-&#34;&gt;configmap template을 살펴보자&lt;/h1&gt;
+&lt;h2 id=&#34;kimdubitestredisclusterdefault&#34;&gt;kimdubi-test-redis-cluster-default&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;$ kubectl get configmap -o yaml kimdubi-test-redis-cluster-default
+
+apiVersion: v1
+data:
+  redis-default.conf:
+  &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;# Redis configuration file example.\n#\n# Note that in order
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    to read the configuration file, Redis must be\n# started with the file path as
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    first argument:\n#\n# .
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    .
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    .
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    .
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;  
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;  
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;kind: ConfigMap
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;metadata:
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;  annotations:
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    meta.helm.sh/release-name: kimdubi-test
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    meta.helm.sh/release-namespace: default
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;  creationTimestamp: &amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;2021-02-21T07:33:55Z&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;  labels:
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    app.kubernetes.io/instance: kimdubi-test
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    app.kubernetes.io/managed-by: Helm
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    app.kubernetes.io/name: redis-cluster
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;    helm.sh/chart: redis-cluster-4.3.0
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;  name: kimdubi-test-redis-cluster-default
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;  namespace: default
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;  resourceVersion: &amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;24610&lt;/span&gt;&amp;#34;
+  selfLink: /api/v1/namespaces/default/configmaps/kimdubi-test-redis-cluster-default
+  uid: bd69754d-bcda-4d8c-b8f7-08ece1567533  
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;data&#34;&gt;.data&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;configmap에서 사용할 설정들을 정의하는 부분, 위에선 redis.conf 의 내용을 담고있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;kimdubitestredisclusterscripts&#34;&gt;kimdubi-test-redis-cluster-scripts&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;$ kubectl get configmap kimdubi-test-redis-cluster-scripts -o yaml
+apiVersion: v1
+data:
+  ping_liveness_local.sh: |&lt;span style=&#34;color:#e6db74&#34;&gt;-
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;   &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;export REDISCLI_AUTH=$REDIS_PASSWORD&lt;/span&gt;
+    response=$(
+      timeout -s &lt;span style=&#34;color:#ae81ff&#34;&gt;9&lt;/span&gt; $&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;$response&amp;#34;&lt;/span&gt; != &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;PONG&amp;#34;&lt;/span&gt; ] &lt;span style=&#34;color:#75715e&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; [ &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;$response&amp;#34;&lt;/span&gt; != &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;LOADING Redis is loading the dataset in memory&amp;#34;&lt;/span&gt; ]; then
+      echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;$response&amp;#34;&lt;/span&gt;
+      exit &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+    fi
+  ping_readiness_local.sh: |&lt;span style=&#34;color:#e6db74&#34;&gt;-
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;   &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;export REDISCLI_AUTH=$REDIS_PASSWORD&lt;/span&gt;
+    response=$(
+      timeout -s &lt;span style=&#34;color:#ae81ff&#34;&gt;9&lt;/span&gt; $&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;$response&amp;#34;&lt;/span&gt; != &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;PONG&amp;#34;&lt;/span&gt; ]; then
+      echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;$response&amp;#34;&lt;/span&gt;
+      exit &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+    fi
+kind: ConfigMap
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kimdubi-test
+    meta.helm.sh/release-namespace: default
+  creationTimestamp: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-21T07:33:55Z&amp;#34;&lt;/span&gt;
+  labels:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    helm.sh/chart: redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-4.3&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;
+  name: kimdubi-test-redis-cluster-scripts
+  namespace: default
+  resourceVersion: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;24609&amp;#34;&lt;/span&gt;
+  selfLink: /api/v1/namespaces/default/configmaps/kimdubi-test-redis-cluster-scripts
+  uid: 89b2319a-fd57-475f&lt;span style=&#34;color:#ae81ff&#34;&gt;-9671&lt;/span&gt;-deb80023f6b8
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;data1&#34;&gt;.data&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;redis health check를 위한 ping_liveness_local.sh&lt;/li&gt;
+&lt;li&gt;redis 사용가능한 상태인지 check 를 위한 ping_readiness_local.sh&lt;/li&gt;
+&lt;li&gt;위 스크립트를 Pod에 제공하고 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;    livenessProbe:
+      exec:
+        command:
+        - sh
+        - -c
+        - /scripts/ping_liveness_local.sh &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      failureThreshold: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      initialDelaySeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      periodSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      successThreshold: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+      timeoutSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+
+    readinessProbe:
+      exec:
+        command:
+        - sh
+        - -c
+        - /scripts/ping_readiness_local.sh &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+      failureThreshold: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      initialDelaySeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      periodSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      successThreshold: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+      timeoutSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Service</title>
+      <link>https://kimdubi.github.io/cloud/k8s_redis_service/</link>
+      <pubDate>Sat, 06 Mar 2021 15:04:49 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_redis_service/</guid>
+      <description>&lt;h1 id=&#34;service&#34;&gt;Service?&lt;/h1&gt;
+&lt;h2 id=&#34;service-&#34;&gt;Service 개념&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_svc01.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Pod는 deployment, replicaset, statefulset 같은 controller에 의해 관리되기 때문에 새로 생겨나거나 없어지기도 하고 한 Node에만 떠있는 게 아니라 여러 Node를 옮겨다닐 수 있음&lt;/li&gt;
+&lt;li&gt;Pod는 이렇듯 동적으로 변하여 고정된 endpoint로의 호출이 어려운데 (Pod의 IP,hostname이 변하니까 ) 이러한 이슈를 해결하기 위한 오브젝트가 Service임&lt;/li&gt;
+&lt;li&gt;Client는 클러스터 안에서 Pod IP가 바뀌던 없어지건 새로 생기건 신경쓸 필요 없이 Service만 바라보면 고정된 endpoint로 접근이 가능함&lt;/li&gt;
+&lt;li&gt;Service는 크게 아래와 같이 네가지 Type으로 나뉨
+&lt;ul&gt;
+&lt;li&gt;ClusterIp : kubernets cluster 내부에서 사용하는 service. 외부에선 접근할 수 없음&lt;/li&gt;
+&lt;li&gt;LoadBalancer : 토클,aws,gcp 등 퍼블릭 클라우드 서비스를 이용할 때 사용가능한 type으로 loadbalancer의 IP를 이용하여 외부에서 접근가능함&lt;/li&gt;
+&lt;li&gt;NodePort : kubernetes cluster의 각 노드의 지정된 port를 service에 할당함. node의 port를 이용하기 때문에 외부에서도 접근가능함&lt;/li&gt;
+&lt;li&gt;ExternalName : kubernetes cluster 내부에서 외부로 접근하는 경우 사용, Service를 ExternalName 으로 설정하여 CNAME을 타고 외부로 접근함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;이 글에서 다루는 redis-cluster 에서는 ClusterIP type의 service를 사용하고 있음 ( DB는 내부통신만 하면 되니까)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;service-1&#34;&gt;Service 사용현황&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get service
+NAME                                  TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)              AGE
+kimdubi-test-redis-cluster            ClusterIP   10.254.8.60   &amp;lt;none&amp;gt;        6379/TCP             6d
+kimdubi-test-redis-cluster-headless   ClusterIP   None          &amp;lt;none&amp;gt;        6379/TCP,16379/TCP   6d
+kubernetes                            ClusterIP   10.254.0.1    &amp;lt;none&amp;gt;        443/TCP              6d1h
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;kubernetes cluster 내부에서 Pod 간 연결을 위해 사용하는 ClusterIP type의 kimdubi-test-redis-cluster 라는 이름의 service&lt;/li&gt;
+&lt;li&gt;ClusterIP type이지만 IP가 설정되지 않은 kimdubi-test-redis-cluster-headless 라는 이름의 service, headless service라고 함&lt;/li&gt;
+&lt;li&gt;두개의 service가 생성되었지만 실제로는 kimdubi-test-redis-cluster-headless 서비스가 사용됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;headless-service&#34;&gt;headless service란?&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;kimdubi-test-redis-cluster 같은 보통의 service는 받은 요청을 매핑된 Pod들에게 loadbalancing 형태로 뿌려주는데
+이는 stateless 한 web server 처럼, 어떤 web server로 요청이 가도 동일한 결과를 내는 구조에서 의미가 있음 &lt;/li&gt;
+&lt;li&gt;DB처럼 Master / Slave 같은 stateful 한 구성에서는 loadbalancing 형태로 뿌려주는 게 아니라 Master 인지 Slave인지 파악하여 특정한 Pod에 요청을 뿌려줘야함&lt;/li&gt;
+&lt;li&gt;이처럼 loadbalancing이 필요없고 client 에서 모든 Pod에 접근해야하는 구성에서는 headless service를 사용하며 아래와 같은 특징이 있음
+&lt;ul&gt;
+&lt;li&gt;headless service는 IP 대신 dns 를 가짐&lt;/li&gt;
+&lt;li&gt;headless service의 dns에 대해 nslookup을 수행하면 binding 된 모든 Pod들의 IP를 return 함&lt;/li&gt;
+&lt;li&gt;Client는 return 받은 모든 Pod의 IP를 통해 원하는 Pod 에 직접 접근할 수 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;# nslookup kimdubi-test-redis-cluster-headless
+Server:		10.254.0.10
+Address:	10.254.0.10#53
+
+Name:	kimdubi-test-redis-cluster-headless.default.svc.cluster.local
+Address: 10.100.71.3
+Name:	kimdubi-test-redis-cluster-headless.default.svc.cluster.local
+Address: 10.100.14.7
+Name:	kimdubi-test-redis-cluster-headless.default.svc.cluster.local
+Address: 10.100.79.12
+Name:	kimdubi-test-redis-cluster-headless.default.svc.cluster.local
+Address: 10.100.14.8
+Name:	kimdubi-test-redis-cluster-headless.default.svc.cluster.local
+Address: 10.100.79.11
+Name:	kimdubi-test-redis-cluster-headless.default.svc.cluster.local
+Address: 10.100.71.4
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; kimdubi-test-redis-cluster-headless service에 대해 nslookup 수행
+이 service에 binding 된 모든 Pod의 IP를 return 받음
+&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;h1 id=&#34;service--template-&#34;&gt;Service 생성 template을 살펴보자&lt;/h1&gt;
+&lt;h2 id=&#34;kimdubitestrediscluster&#34;&gt;kimdubi-test-redis-cluster&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;$ kubectl get service kimdubi-test-redis-cluster -o yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kimdubi-test
+    meta.helm.sh/release-namespace: default
+  creationTimestamp: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-21T07:33:55Z&amp;#34;&lt;/span&gt;
+  labels:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    helm.sh/chart: redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-4.3&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;
+  name: kimdubi-test-redis-cluster
+  namespace: default
+  resourceVersion: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;24613&amp;#34;&lt;/span&gt;
+  selfLink: /api/v1/namespaces/default/services/kimdubi-test-redis-cluster
+  uid: c7a73d74-a532&lt;span style=&#34;color:#ae81ff&#34;&gt;-4689&lt;/span&gt;-8d9e-45287df887b3
+spec:
+  clusterIP: &lt;span style=&#34;color:#ae81ff&#34;&gt;10.254&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.8&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.60&lt;/span&gt;
+  ports:
+  - name: tcp-redis
+    port: &lt;span style=&#34;color:#ae81ff&#34;&gt;6379&lt;/span&gt;
+    protocol: TCP
+    targetPort: tcp-redis
+  selector:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/name: redis-cluster
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;specclusterip&#34;&gt;.spec.clusterIP&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;clusterIP type으로 생성된 service를 지정한 IP로 생성되도록 설정&lt;/li&gt;
+&lt;li&gt;이 service는 10.254.8.60 IP를 할당받게됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specports&#34;&gt;.spec.ports[]&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;해당 서비스의 label selector 에 매치되는 Pod의 특정 Port (targetPort) 를 service의 6379 port에 매핑시킴&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specselector&#34;&gt;.spec.selector&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;해당 service가 연결해야하는 대상 Pod의 label 조건&lt;/li&gt;
+&lt;li&gt;kimdubi-test , redis-cluster 의 label이 달린 Pod는 이 service를 통해 접근할 수 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specsessionaffinity&#34;&gt;.spec.sessionAffinity&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;특정 클라이언트가 특정 Pod에 붙어야할 때 사용하는 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;spectype&#34;&gt;.spec.type&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;service의 type으로 default는 ClusterIP&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;kimdubitestredisclusterheadless&#34;&gt;kimdubi-test-redis-cluster-headless&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;$ kubectl get service kimdubi-test-redis-cluster-headless -o yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kimdubi-test
+    meta.helm.sh/release-namespace: default
+  creationTimestamp: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-21T07:33:55Z&amp;#34;&lt;/span&gt;
+  labels:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    helm.sh/chart: redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-4.3&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;
+  name: kimdubi-test-redis-cluster-headless
+  namespace: default
+  resourceVersion: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;24611&amp;#34;&lt;/span&gt;
+  selfLink: /api/v1/namespaces/default/services/kimdubi-test-redis-cluster-headless
+  uid: eb2da26a&lt;span style=&#34;color:#ae81ff&#34;&gt;-9264&lt;/span&gt;-46a7-91f1-7a3cfa241889
+spec:
+  clusterIP: None
+  ports:
+  - name: tcp-redis
+    port: &lt;span style=&#34;color:#ae81ff&#34;&gt;6379&lt;/span&gt;
+    protocol: TCP
+    targetPort: tcp-redis
+  - name: tcp-redis-bus
+    port: &lt;span style=&#34;color:#ae81ff&#34;&gt;16379&lt;/span&gt;
+    protocol: TCP
+    targetPort: tcp-redis-bus
+  publishNotReadyAddresses: &lt;span style=&#34;color:#66d9ef&#34;&gt;true&lt;/span&gt;
+  selector:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/name: redis-cluster
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;specclusterip1&#34;&gt;.spec.clusterIP&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;위에서 본 kimdubi-test-redis-cluster service와는 다르게 clusterIP 값이 None 으로 설정하여 headless service를 생성함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specports1&#34;&gt;.spec.ports[]&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;해당 서비스의 label selector 에 매치되는 Pod의 특정 Port (targetPort) 를 service의 6379 port에 매핑시킴&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specselector1&#34;&gt;.spec.selector&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;해당 service가 연결해야하는 대상 Pod의 label 조건&lt;/li&gt;
+&lt;li&gt;kimdubi-test , redis-cluster 의 label이 달린 Pod는 이 service를 통해 접근할 수 있음&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Statefulset</title>
+      <link>https://kimdubi.github.io/cloud/k8s_redis_statefulset/</link>
+      <pubDate>Sat, 06 Mar 2021 15:04:42 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_redis_statefulset/</guid>
+      <description>&lt;h1 id=&#34;statefulset-&#34;&gt;StatefulSet ?&lt;/h1&gt;
+&lt;h2 id=&#34;statefulset-1&#34;&gt;StatefulSet 개념&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_sfs01.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;StatefulSet은 Pod을 scale up&amp;amp;down 하여 새로 배포 할 때 각 Pod의 기존 Spec(hostname,Ip등) 을 유지하여 생성함 (stateful)&lt;/li&gt;
+&lt;li&gt;stateless 한 deployment, replicaset 과는 다른점임&lt;/li&gt;
+&lt;li&gt;Pod 별로 각각의 PVC를 사용하거나 Pod 생성 순서가 중요할 때 (Master / Slave 구성이 필요할떄) statefulset 을 사용하여 Ordering을 보장하고 구분지을 수 있음&lt;/li&gt;
+&lt;li&gt;위 구성을 replicaSet , delpoyment를 사용했다면 pod-0 , pod-1 이 같은 PVC,PV를 사용하여 Pod 고유의 state가 사라지고 , 재기동 될 때마다 IP,hostname이 달라져 headless Service를 사용할 수 없음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;statefulset--&#34;&gt;StatefulSet 사용 현황&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get statefulset
+NAME                         READY   AGE
+kimdubi-test-redis-cluster   6/6     2d4h
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;statefulset 하나로 Pod 6대를 관리함, Pod이 down되어도 statefulset에 의해 자동으로 restart 됨&lt;/li&gt;
+&lt;li&gt;Pod,pvc 생성 구문은 statefulset 에서 정의됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;statefulset-template-&#34;&gt;StatefulSet template을 살펴보자&lt;/h1&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;$ kubectl get statefulset kimdubi-test-redis-cluster -o yaml
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kimdubi-test
+    meta.helm.sh/release-namespace: default
+  creationTimestamp: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-21T07:33:55Z&amp;#34;&lt;/span&gt;
+  generation: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+  labels:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    helm.sh/chart: redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-4.3&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;
+  name: kimdubi-test-redis-cluster
+  namespace: default
+  resourceVersion: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;358350&amp;#34;&lt;/span&gt;
+  selfLink: /apis/apps/v1/namespaces/default/statefulsets/kimdubi-test-redis-cluster
+  uid: b348894a-e930-4dc2-ba10-c8566eeec0b9
+spec:
+  podManagementPolicy: Parallel
+  replicas: &lt;span style=&#34;color:#ae81ff&#34;&gt;6&lt;/span&gt;
+  revisionHistoryLimit: &lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt;
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: kimdubi-test
+      app.kubernetes.io/name: redis-cluster
+  serviceName: kimdubi-test-redis-cluster-headless
+  template:
+    metadata:
+      annotations:
+        checksum/scripts: 13c84ab100b949b2a69989dbcfa1079e3d930ee56d79744da9abc6d691709923
+        checksum/secret: 3fb9c96414bd6f5e1a0841de974fcb260231a9c12bebb2c49af0f02b651e47cf
+      creationTimestamp: &lt;span style=&#34;color:#66d9ef&#34;&gt;null&lt;/span&gt;
+      labels:
+        app.kubernetes.io/instance: kimdubi-test
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: redis-cluster
+        helm.sh/chart: redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-4.3&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: kimdubi-test
+                  app.kubernetes.io/name: redis-cluster
+              namespaces:
+              - default
+              topologyKey: kubernetes.io/hostname
+            weight: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+      containers:
+      - args:
+        - &lt;span style=&#34;color:#e6db74&#34;&gt;|
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;         &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;# Backwards compatibility change&lt;/span&gt;
+          if ! [[ -f /opt/bitnami/redis/etc/redis.conf ]]; then
+              echo COPYING FILE
+              cp  /opt/bitnami/redis/etc/redis-default.conf /opt/bitnami/redis/etc/redis.conf
+          fi
+          /opt/bitnami/scripts/redis-cluster/entrypoint.sh /opt/bitnami/scripts/redis-cluster/run.sh
+        command:
+        - /bin/bash
+        - -c
+        env:
+        - name: REDIS_NODES
+          value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;kimdubi-test-redis-cluster-0.kimdubi-test-redis-cluster-headless
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;            kimdubi-test-redis-cluster-1.kimdubi-test-redis-cluster-headless kimdubi-test-redis-cluster-2.kimdubi-test-redis-cluster-headless
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;            kimdubi-test-redis-cluster-3.kimdubi-test-redis-cluster-headless kimdubi-test-redis-cluster-4.kimdubi-test-redis-cluster-headless
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;            kimdubi-test-redis-cluster-5.kimdubi-test-redis-cluster-headless &amp;#39;&lt;/span&gt;
+        - name: REDISCLI_AUTH
+          valueFrom:
+            secretKeyRef:
+              key: redis-password
+              name: kimdubi-test-redis-cluster
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: redis-password
+              name: kimdubi-test-redis-cluster
+        - name: REDIS_AOF_ENABLED
+          value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;
+        - name: REDIS_TLS_ENABLED
+          value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;no&amp;#34;&lt;/span&gt;
+        - name: REDIS_PORT
+          value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;6379&amp;#34;&lt;/span&gt;
+        image: docker.io/bitnami/redis-cluster:&lt;span style=&#34;color:#ae81ff&#34;&gt;6.0&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.10&lt;/span&gt;-debian&lt;span style=&#34;color:#ae81ff&#34;&gt;-10&lt;/span&gt;-r5
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - /scripts/ping_liveness_local.sh &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+          failureThreshold: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+          initialDelaySeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+          periodSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+          successThreshold: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+          timeoutSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+        name: kimdubi-test-redis-cluster
+        ports:
+        - containerPort: &lt;span style=&#34;color:#ae81ff&#34;&gt;6379&lt;/span&gt;
+          name: tcp-redis
+          protocol: TCP
+        - containerPort: &lt;span style=&#34;color:#ae81ff&#34;&gt;16379&lt;/span&gt;
+          name: tcp-redis-bus
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - /scripts/ping_readiness_local.sh &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+          failureThreshold: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+          initialDelaySeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+          periodSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+          successThreshold: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+          timeoutSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 50m
+            memory: 50Mi
+        securityContext:
+          runAsUser: &lt;span style=&#34;color:#ae81ff&#34;&gt;1001&lt;/span&gt;
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /scripts
+          name: scripts
+        - mountPath: /bitnami/redis/data
+          name: redis-data
+        - mountPath: /opt/bitnami/redis/etc/redis-default.conf
+          name: default-config
+          subPath: redis-default.conf
+        - mountPath: /opt/bitnami/redis/etc/
+          name: redis-tmp-conf
+      dnsPolicy: ClusterFirst
+      enableServiceLinks: &lt;span style=&#34;color:#66d9ef&#34;&gt;false&lt;/span&gt;
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: &lt;span style=&#34;color:#ae81ff&#34;&gt;1001&lt;/span&gt;
+      serviceAccount: default
+      serviceAccountName: default
+      terminationGracePeriodSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;30&lt;/span&gt;
+      volumes:
+      - configMap:
+          defaultMode: &lt;span style=&#34;color:#ae81ff&#34;&gt;493&lt;/span&gt;
+          name: kimdubi-test-redis-cluster-scripts
+        name: scripts
+      - configMap:
+          defaultMode: &lt;span style=&#34;color:#ae81ff&#34;&gt;420&lt;/span&gt;
+          name: kimdubi-test-redis-cluster-default
+        name: default-config
+      - emptyDir: {}
+        name: redis-tmp-conf
+  updateStrategy:
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: &lt;span style=&#34;color:#66d9ef&#34;&gt;null&lt;/span&gt;
+      name: redis-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 2Gi
+      storageClassName: kimdubi-test
+      volumeMode: Filesystem
+    status:
+      phase: Pending
+status:
+  collisionCount: &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;
+  currentReplicas: &lt;span style=&#34;color:#ae81ff&#34;&gt;6&lt;/span&gt;
+  currentRevision: kimdubi-test-redis-cluster-86585bd988
+  observedGeneration: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+  readyReplicas: &lt;span style=&#34;color:#ae81ff&#34;&gt;6&lt;/span&gt;
+  replicas: &lt;span style=&#34;color:#ae81ff&#34;&gt;6&lt;/span&gt;
+  updateRevision: kimdubi-test-redis-cluster-86585bd988
+  updatedReplicas: &lt;span style=&#34;color:#ae81ff&#34;&gt;6&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;specreplicas&#34;&gt;.spec.replicas&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;statefulset 에서 관리할 동일한 스펙의 Pod를 6대만큼 생성하겠다는 설정&lt;/li&gt;
+&lt;li&gt;생성할 Pod의 상세 설정은 .spec.template.spec에 정의 되어있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specselectormatchlabels&#34;&gt;.spec.selector.matchLabels&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;statefulset 에서 관리할 Pod를 구분짓는 조건&lt;/li&gt;
+&lt;li&gt;Pod의 label과 .spec.selector.matchLabels가 동일한지 체크를 통해 관리할 Pod를 구분함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specservicename&#34;&gt;.spec.serviceName&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;statefulset 으로 생성된 Pod 들이 사용할 Service&lt;/li&gt;
+&lt;li&gt;statefulset 에선 Pod에 직접 access할 수 있는 DNS를 할당하기 위해 headless service를 사용함&lt;/li&gt;
+&lt;li&gt;관련 내용은 service편에서..&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;spectemplatemetadatalabels&#34;&gt;.spec.template.metadata.labels&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;생성할 Pod의 label 을 설정하는 부분, .spec.selector.matchLabels의 label과 일치해야함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specupdatestrategytype&#34;&gt;.spec.updateStrategy.type&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;statefulset 을 통해 배포할 때 Pod이 배포되는 방식을 설정&lt;/li&gt;
+&lt;li&gt;RollingUpdate : Ordering 된 Pod 들을 마지막 Pod부터 순서대로 재생성하여 배포함&lt;/li&gt;
+&lt;li&gt;onDelete : Pod을 수동으로 삭제 했을 때 새로운 설정이 반영된 Pod가 생성됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specvolumeclaimtemplates&#34;&gt;.spec.volumeClaimTemplates&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;statefulset 에 의해 생성되고 관리되는 Pod에 하나씩 binding 해줄 PVC 정의 부분&lt;/li&gt;
+&lt;li&gt;정의한 PVC를 .spec.template.spec.containers.volumeMounts 를 통해 container의 /bitnami/redis/data 디렉토리에 binding하고 있음&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Volume</title>
+      <link>https://kimdubi.github.io/cloud/k8s_redis_volume/</link>
+      <pubDate>Sat, 06 Mar 2021 15:04:34 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_redis_volume/</guid>
+      <description>&lt;h1 id=&#34;volume-&#34;&gt;Volume ?&lt;/h1&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_volume01.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;volume-1&#34;&gt;volume 개념&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;컨테이너 내 파일은 stateless 하기 때문에 데이터 보존이 필요한 경우 Volume을 사용해야함&lt;/li&gt;
+&lt;li&gt;kubernetes에서 Volume은 Pod 에 종속되어 같은 Pod에 있는 container들은 volume을 공유함&lt;/li&gt;
+&lt;li&gt;Volume type에는 아래와 같은 여러 방식이 있음
+&lt;ul&gt;
+&lt;li&gt;emptyDir : Pod 와 함께 생성되고 Pod가 종료될 때 같이 삭제되는 임시볼륨&lt;/li&gt;
+&lt;li&gt;hostPath : Pod가 속한 node의 로컬 디스크의 디렉토리를 Pod에 마운트 해서 사용함, 동일 node에서 Pod이 재생성 되는 경우엔 데이터 보존이 가능하나 node가 달라지면 데이터 보존이 불가능함&lt;/li&gt;
+&lt;li&gt;nfs : 기존 NFS (네트워크파일시스템) 처럼 여러 Pod에서 동시에 마운트 할 수 있는 볼륨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;pv--pv-&#34;&gt;PV / PV 개념&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_volume02.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;PV (Persistent Volume) : Pod에 종속적인 volume과는 달리 PV는 그 자체로 kubernetes cluster의 resource로 관리됨.
+Pod의 수명주기와는 관계 없이 독립적이기 때문에 Pod가 재시작되거나, 다른 node로 migration 되어도 상관없이 PV는 유지됨
+ToastCloud 를 사용하는 경우 하나의 PV는 하나의 ToastCloud Block Storage와 연결됨&lt;/li&gt;
+&lt;li&gt;PVC (Persistent Volume Claim) : 필요한 볼륨의 요구사항에 대한 정의서로 용량, 읽기/쓰기 모드 등을 정의하면 조건을 만족하는 PV를 가져다 binding 함
+&lt;ul&gt;
+&lt;li&gt;static provisioning : 사용자가 직접 PV를 미리 준비해야 하며 PVC 를 통해 PV를 요청했을 때 조건에 맞는 PV 가 없을 땐 사용 불가&lt;/li&gt;
+&lt;li&gt;dynamic provisioning : storageClass 에 정의된 속성을 참조하여 PVC의 요청이 있을 때 동적으로 PV를 생성하여 PVC에 binding 함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;pv-pvc--&#34;&gt;PV /PVC 생명 주기&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_volume03.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;PV, PVC 에는 위와 같은 Pod 독릭접인 생명주기가 있음&lt;/li&gt;
+&lt;li&gt;Provisioning : PV를 만드는 단계 , static / dynamic 방식으로 나뉨&lt;/li&gt;
+&lt;li&gt;Binding : Provisioning 단계를 거쳐 생성된 PV를 PVC와 1:1 로 연결하는 단계, PVC에서 원하는 스토리지의 용량과 스펙을 명시해서 요청하면 알맞은 PV가 할당되며 없으면 요청은 pending 상태로 빠짐.&lt;/li&gt;
+&lt;li&gt;Using : PVC가 Pod에 할당되고, Pod는 PVC를 Volume으로 인식해서 사용하는 상태, 할당된 PVC는 임의로 삭제될 수 없고 보호됨 ( Storage Object in Use Protection  )&lt;/li&gt;
+&lt;li&gt;Reclaiming : 사용이 끝난 PVC가 삭제되어 PV를 초기화하는 단계&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;pv--pvc--&#34;&gt;PV / PVC 사용 현황&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                                             STORAGECLASS   REASON   AGE
+pvc-10412da7-46bb-43e0-b791-a810774b7c87   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-1   kimdubi-test            2d4h
+pvc-3b7c88ff-6e56-428a-885f-58301e05478f   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-0   kimdubi-test            2d4h
+pvc-6a5aa328-8ca2-4450-a308-1c07cc7aab60   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-2   kimdubi-test            2d4h
+pvc-92e41155-d644-4799-b974-2a35c19ada8b   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-4   kimdubi-test            2d4h
+pvc-b198c891-2d0c-474e-9113-2ad0f198a336   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-3   kimdubi-test            2d4h
+pvc-b2fe7621-e748-4cc7-aa4c-2efee2fc0cd8   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-5   kimdubi-test            2d4h
+
+$ kubectl get pvc
+NAME                                      STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+redis-data-kimdubi-test-redis-cluster-0   Bound    pvc-3b7c88ff-6e56-428a-885f-58301e05478f   2Gi        RWO            kimdubi-test   2d4h
+redis-data-kimdubi-test-redis-cluster-1   Bound    pvc-10412da7-46bb-43e0-b791-a810774b7c87   2Gi        RWO            kimdubi-test   2d4h
+redis-data-kimdubi-test-redis-cluster-2   Bound    pvc-6a5aa328-8ca2-4450-a308-1c07cc7aab60   2Gi        RWO            kimdubi-test   2d4h
+redis-data-kimdubi-test-redis-cluster-3   Bound    pvc-b198c891-2d0c-474e-9113-2ad0f198a336   2Gi        RWO            kimdubi-test   2d4h
+redis-data-kimdubi-test-redis-cluster-4   Bound    pvc-92e41155-d644-4799-b974-2a35c19ada8b   2Gi        RWO            kimdubi-test   2d4h
+redis-data-kimdubi-test-redis-cluster-5   Bound    pvc-b2fe7621-e748-4cc7-aa4c-2efee2fc0cd8   2Gi        RWO            kimdubi-test   2d4h
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_volume04.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;PV와 매핑되는 block storage&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;pv--pvc-template-&#34;&gt;PV / PVC template을 살펴보자&lt;/h1&gt;
+&lt;h2 id=&#34;persistent-volume&#34;&gt;Persistent Volume&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;$ kubectl get persistentvolume/pvc-10412da7-46bb&lt;span style=&#34;color:#ae81ff&#34;&gt;-43e0&lt;/span&gt;-b791-a810774b7c87 -o yaml
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    kubernetes.io/createdby: cinder-dynamic-provisioner
+    pv.kubernetes.io/bound-by-controller: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;
+    pv.kubernetes.io/provisioned-by: kubernetes.io/cinder
+  creationTimestamp: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-21T07:33:56Z&amp;#34;&lt;/span&gt;
+  finalizers:
+  - kubernetes.io/pv-protection
+  labels:
+    failure-domain.beta.kubernetes.io/region: RegionOne
+    failure-domain.beta.kubernetes.io/zone: kr-pub-b
+  name: pvc-10412da7-46bb&lt;span style=&#34;color:#ae81ff&#34;&gt;-43e0&lt;/span&gt;-b791-a810774b7c87
+  resourceVersion: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;24691&amp;#34;&lt;/span&gt;
+  selfLink: /api/v1/persistentvolumes/pvc-10412da7-46bb&lt;span style=&#34;color:#ae81ff&#34;&gt;-43e0&lt;/span&gt;-b791-a810774b7c87
+  uid: df950b89-f229-4d2f-9b77-0f1f47e327aa
+spec:
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 2Gi
+  cinder:
+    volumeID: 9b284d26-a868-4f0a-86d2-4c3916ccf791
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    name: redis-data-kimdubi-test-redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-1&lt;/span&gt;
+    namespace: default
+    resourceVersion: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;24628&amp;#34;&lt;/span&gt;
+    uid: 10412da7-46bb&lt;span style=&#34;color:#ae81ff&#34;&gt;-43e0&lt;/span&gt;-b791-a810774b7c87
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: failure-domain.beta.kubernetes.io/region
+          operator: In
+          values:
+          - RegionOne
+        - key: failure-domain.beta.kubernetes.io/zone
+          operator: In
+          values:
+          - kr-pub-b
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: kimdubi-test
+  volumeMode: Filesystem
+status:
+  phase: Bound
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;specaccessmodes&#34;&gt;.spec.accessModes&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;ReadWriteOnce : node 하나만 볼륨에 read / write 할 수 있도록 mount하는 설정&lt;/li&gt;
+&lt;li&gt;ReadOnlyMany : 여러 node에서 read 할 수 있도록 mount 하는 설정&lt;/li&gt;
+&lt;li&gt;ReadWriteMany : 여러 노드에서 read / write 할 수 있도록 mount하는 설정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specclaimref&#34;&gt;.spec.claimRef&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;해당 PV 가 binding 된 PVC 정보, 위 PV는 redis-data-kimdubi-test-redis-cluster-1 PVC에 묶여있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specpersistentvolumereclaimpolicy&#34;&gt;.spec.persistentVolumeReclaimPolicy&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;PV가 해제되었을 때의 초기화 옵션 설정&lt;/li&gt;
+&lt;li&gt;retain : PV를 그대로 보존함, 이 PV를 재사용하려면 직접 수동으로 PV를 삭제하여 초기화해야함&lt;/li&gt;
+&lt;li&gt;Recycle : PV의 데이터를 삭제하고 다시 새로운 PVC 에 binding 될 수 있도록 하는 설정&lt;/li&gt;
+&lt;li&gt;Delete : PV를 삭제하고 연결된 외부의 스토리지 볼륨도 삭제함 (default 설정)&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Pod</title>
+      <link>https://kimdubi.github.io/cloud/k8s_redis_pod/</link>
+      <pubDate>Sat, 06 Mar 2021 15:04:17 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_redis_pod/</guid>
+      <description>&lt;h1 id=&#34;pod-&#34;&gt;Pod ?&lt;/h1&gt;
+&lt;h2 id=&#34;pod-1&#34;&gt;Pod 개념&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_pod01.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Pod은 kubernetes 클러스터 내 최소 배포단위&lt;/li&gt;
+&lt;li&gt;하나의 Pod는 하나의 node에 속하고 node 단위로 옮겨다닐 수 있음&lt;/li&gt;
+&lt;li&gt;Pod 에는 여러개의 container가 포함될 수 있고 Pod 내 container들은 storage와 network를 공유하며 내부통신이 가능함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;pod--&#34;&gt;Pod 사용 현황&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;~~~
+$ kubectl get pod
+NAME                           READY   STATUS    RESTARTS   AGE
+kimdubi-test-redis-cluster-0   1/1     Running   0          23h
+kimdubi-test-redis-cluster-1   1/1     Running   0          2d1h
+kimdubi-test-redis-cluster-2   1/1     Running   1          23h
+kimdubi-test-redis-cluster-3   1/1     Running   1          2d1h
+kimdubi-test-redis-cluster-4   1/1     Running   0          23h
+kimdubi-test-redis-cluster-5   1/1     Running   0          23h
+~~~
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;본문에서 사용하는 helm chart 에서는 Redis Pod을 6대 생성함&lt;/li&gt;
+&lt;li&gt;3대는 Master , 3대는 Slave 로 동작 중&lt;/li&gt;
+&lt;li&gt;Pod은 statefulset 에 의해 생성되고 관리되며 Pod의 container image나 개수, 설정등을 변경하고 싶다면
+helm chart 내 statefulset과 values.yaml을 수정해야함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;pod-template-&#34;&gt;Pod template을 살펴보자&lt;/h1&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;$ kubectl get pod/kimdubi-test-redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-0&lt;/span&gt; -o yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    checksum/scripts: 13c84ab100b949b2a69989dbcfa1079e3d930ee56d79744da9abc6d691709923
+    checksum/secret: 3fb9c96414bd6f5e1a0841de974fcb260231a9c12bebb2c49af0f02b651e47cf
+  creationTimestamp: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-22T09:21:50Z&amp;#34;&lt;/span&gt;
+  generateName: kimdubi-test-redis-cluster&lt;span style=&#34;color:#e6db74&#34;&gt;-
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;labels:&lt;/span&gt;
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    controller-revision-hash: kimdubi-test-redis-cluster-86585bd988
+    helm.sh/chart: redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-4.3&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;
+    statefulset.kubernetes.io/pod-name: kimdubi-test-redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-0&lt;/span&gt;
+  name: kimdubi-test-redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-0&lt;/span&gt;
+  namespace: default
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: &lt;span style=&#34;color:#66d9ef&#34;&gt;true&lt;/span&gt;
+    controller: &lt;span style=&#34;color:#66d9ef&#34;&gt;true&lt;/span&gt;
+    kind: StatefulSet
+    name: kimdubi-test-redis-cluster
+    uid: b348894a-e930-4dc2-ba10-c8566eeec0b9
+  resourceVersion: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;358338&amp;#34;&lt;/span&gt;
+  selfLink: /api/v1/namespaces/default/pods/kimdubi-test-redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-0&lt;/span&gt;
+  uid: ccfca1d7-e997&lt;span style=&#34;color:#ae81ff&#34;&gt;-4375&lt;/span&gt;-acbd-aa44b1428c35
+spec:
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/instance: kimdubi-test
+              app.kubernetes.io/name: redis-cluster
+          namespaces:
+          - default
+          topologyKey: kubernetes.io/hostname
+        weight: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+  containers:
+  - args:
+    - &lt;span style=&#34;color:#e6db74&#34;&gt;|
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;     &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;# Backwards compatibility change&lt;/span&gt;
+      if ! [[ -f /opt/bitnami/redis/etc/redis.conf ]]; then
+          echo COPYING FILE
+          cp  /opt/bitnami/redis/etc/redis-default.conf /opt/bitnami/redis/etc/redis.conf
+      fi
+      /opt/bitnami/scripts/redis-cluster/entrypoint.sh /opt/bitnami/scripts/redis-cluster/run.sh
+    command:
+    - /bin/bash
+    - -c
+    env:
+    - name: REDIS_NODES
+      value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;kimdubi-test-redis-cluster-0.kimdubi-test-redis-cluster-headless kimdubi-test-redis-cluster-1.kimdubi-test-redis-cluster-headless
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;        kimdubi-test-redis-cluster-2.kimdubi-test-redis-cluster-headless kimdubi-test-redis-cluster-3.kimdubi-test-redis-cluster-headless
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;        kimdubi-test-redis-cluster-4.kimdubi-test-redis-cluster-headless kimdubi-test-redis-cluster-5.kimdubi-test-redis-cluster-headless &amp;#39;&lt;/span&gt;
+    - name: REDISCLI_AUTH
+      valueFrom:
+        secretKeyRef:
+          key: redis-password
+          name: kimdubi-test-redis-cluster
+    - name: REDIS_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          key: redis-password
+          name: kimdubi-test-redis-cluster
+    - name: REDIS_AOF_ENABLED
+      value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;
+    - name: REDIS_TLS_ENABLED
+      value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;no&amp;#34;&lt;/span&gt;
+    - name: REDIS_PORT
+      value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;6379&amp;#34;&lt;/span&gt;
+    image: docker.io/bitnami/redis-cluster:&lt;span style=&#34;color:#ae81ff&#34;&gt;6.0&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.10&lt;/span&gt;-debian&lt;span style=&#34;color:#ae81ff&#34;&gt;-10&lt;/span&gt;-r5
+    imagePullPolicy: IfNotPresent
+    livenessProbe:
+      exec:
+        command:
+        - sh
+        - -c
+        - /scripts/ping_liveness_local.sh &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      failureThreshold: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      initialDelaySeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      periodSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      successThreshold: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+      timeoutSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+    name: kimdubi-test-redis-cluster
+    ports:
+    - containerPort: &lt;span style=&#34;color:#ae81ff&#34;&gt;6379&lt;/span&gt;
+      name: tcp-redis
+      protocol: TCP
+    - containerPort: &lt;span style=&#34;color:#ae81ff&#34;&gt;16379&lt;/span&gt;
+      name: tcp-redis-bus
+      protocol: TCP
+    readinessProbe:
+      exec:
+        command:
+        - sh
+        - -c
+        - /scripts/ping_readiness_local.sh &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+      failureThreshold: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      initialDelaySeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      periodSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+      successThreshold: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+      timeoutSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+    resources:
+      limits:
+        cpu: 100m
+        memory: 100Mi
+      requests:
+        cpu: 50m
+        memory: 50Mi
+    securityContext:
+      runAsUser: &lt;span style=&#34;color:#ae81ff&#34;&gt;1001&lt;/span&gt;
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /scripts
+      name: scripts
+    - mountPath: /bitnami/redis/data
+      name: redis-data
+    - mountPath: /opt/bitnami/redis/etc/redis-default.conf
+      name: default-config
+      subPath: redis-default.conf
+    - mountPath: /opt/bitnami/redis/etc/
+      name: redis-tmp-conf
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-5zmdw
+      readOnly: &lt;span style=&#34;color:#66d9ef&#34;&gt;true&lt;/span&gt;
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: &lt;span style=&#34;color:#66d9ef&#34;&gt;false&lt;/span&gt;
+  hostname: kimdubi-test-redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-0&lt;/span&gt;
+  nodeName: kimdubi-test-default-w-46niimovcith-node&lt;span style=&#34;color:#ae81ff&#34;&gt;-2&lt;/span&gt;
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext:
+    fsGroup: &lt;span style=&#34;color:#ae81ff&#34;&gt;1001&lt;/span&gt;
+  serviceAccount: default
+  serviceAccountName: default
+  subdomain: kimdubi-test-redis-cluster-headless
+  terminationGracePeriodSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;30&lt;/span&gt;
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;300&lt;/span&gt;
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;300&lt;/span&gt;
+  volumes:
+  - name: redis-data
+    persistentVolumeClaim:
+      claimName: redis-data-kimdubi-test-redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-0&lt;/span&gt;
+  - configMap:
+      defaultMode: &lt;span style=&#34;color:#ae81ff&#34;&gt;493&lt;/span&gt;
+      name: kimdubi-test-redis-cluster-scripts
+    name: scripts
+  - configMap:
+      defaultMode: &lt;span style=&#34;color:#ae81ff&#34;&gt;420&lt;/span&gt;
+      name: kimdubi-test-redis-cluster-default
+    name: default-config
+  - emptyDir: {}
+    name: redis-tmp-conf
+  - name: default-token-5zmdw
+    secret:
+      defaultMode: &lt;span style=&#34;color:#ae81ff&#34;&gt;420&lt;/span&gt;
+      secretName: default-token-5zmdw
+status:
+  conditions:
+  - lastProbeTime: &lt;span style=&#34;color:#66d9ef&#34;&gt;null&lt;/span&gt;
+    lastTransitionTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-22T09:21:51Z&amp;#34;&lt;/span&gt;
+    status: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;True&amp;#34;&lt;/span&gt;
+    type: Initialized
+  - lastProbeTime: &lt;span style=&#34;color:#66d9ef&#34;&gt;null&lt;/span&gt;
+    lastTransitionTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-22T09:22:23Z&amp;#34;&lt;/span&gt;
+    status: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;True&amp;#34;&lt;/span&gt;
+    type: Ready
+  - lastProbeTime: &lt;span style=&#34;color:#66d9ef&#34;&gt;null&lt;/span&gt;
+    lastTransitionTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-22T09:22:23Z&amp;#34;&lt;/span&gt;
+    status: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;True&amp;#34;&lt;/span&gt;
+    type: ContainersReady
+  - lastProbeTime: &lt;span style=&#34;color:#66d9ef&#34;&gt;null&lt;/span&gt;
+    lastTransitionTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-22T09:21:50Z&amp;#34;&lt;/span&gt;
+    status: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;True&amp;#34;&lt;/span&gt;
+    type: PodScheduled
+  containerStatuses:
+  - containerID: docker://ffe64f7d3ca9e5f302a9269d87c2598522b883169ef82bd931186bbd8e721482
+    image: bitnami/redis-cluster:&lt;span style=&#34;color:#ae81ff&#34;&gt;6.0&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.10&lt;/span&gt;-debian&lt;span style=&#34;color:#ae81ff&#34;&gt;-10&lt;/span&gt;-r5
+    imageID: docker-pullable://bitnami/redis-cluster@sha256:dfedcaa03878564f6eb75c101a66d8ecd18a9558971ade5c82611bfa9fb6da96
+    lastState: {}
+    name: kimdubi-test-redis-cluster
+    ready: &lt;span style=&#34;color:#66d9ef&#34;&gt;true&lt;/span&gt;
+    restartCount: &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;
+    started: &lt;span style=&#34;color:#66d9ef&#34;&gt;true&lt;/span&gt;
+    state:
+      running:
+        startedAt: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-22T09:22:12Z&amp;#34;&lt;/span&gt;
+  hostIP: &lt;span style=&#34;color:#ae81ff&#34;&gt;192.168&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.8&lt;/span&gt;
+  phase: Running
+  podIP: &lt;span style=&#34;color:#ae81ff&#34;&gt;10.100&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.14&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.8&lt;/span&gt;
+  podIPs:
+  - ip: &lt;span style=&#34;color:#ae81ff&#34;&gt;10.100&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.14&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.8&lt;/span&gt;
+  qosClass: Burstable
+  startTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-22T09:21:51Z&amp;#34;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;labels&#34;&gt;.labels&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;key-value 형태로 controller가 자신이 관리해야하는 Pod를 구분하기 위해 사용함&lt;/li&gt;
+&lt;li&gt;Pod에 lables 을 달아놓으면 statefulset,service 같은 controller에서 labelSelector를 통해 매치되는 Pod을 관리함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specaffinity&#34;&gt;.spec.affinity&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Pod를 스케줄링 할 때 어떤 worker-node에 배치할 지 조건을 설정하는 옵션&lt;/li&gt;
+&lt;li&gt;podAffinity 설정으로 특정 Pod들을 같은 노드에 모아 네트워크 비용을 줄일 수도 있고&lt;/li&gt;
+&lt;li&gt;podAntiAffinity 설정으로 같은 기능의 Pod들을 같은 노드에 배치하지 않고 여러 노드에 분산배치할 수 있음&lt;/li&gt;
+&lt;li&gt;위 Pod설정에서는 podAntiAffinity 설정으로 Pod들을 분산배치하고자 하는데 podAffinityTerm[].labelSelector.matchLabels: 옵션으로 해당 label이 달린 Pod가 속한 node 에는 &amp;lsquo;되도록&amp;rsquo; 배치하지 않으려한다. (preferredDuringSchedulingIgnoredDuringExecution)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;speccontainersargs&#34;&gt;.spec.containers[].args&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Pod 내 container를 생성할 때 entrypoint로 넘겨줄 arguments 지정&lt;/li&gt;
+&lt;li&gt;/opt/bitnami/redis/etc/redis.conf redis configure 파일을 복사하고&lt;/li&gt;
+&lt;li&gt;redis cluster 구성을 위한 shell을 수행하기 위해 설정하고 있음
+&lt;ul&gt;
+&lt;li&gt;/opt/bitnami/scripts/redis-cluster/entrypoint.sh&lt;/li&gt;
+&lt;li&gt;/opt/bitnami/scripts/redis-cluster/run.sh&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;speccontainersenv&#34;&gt;.spec.containers[].env&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;container에서 사용할 환경변수를 설정해서 넘겨줌&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;speccontainersimage&#34;&gt;.spec.containers[].image&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;생성할 container image 지정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;speccontainerslivenessprobe&#34;&gt;.spec.containers[].livenessProbe&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Container가 동작 중 인지 /scripts/ping_liveness_local.sh 수행을 통해 확인함&lt;/li&gt;
+&lt;li&gt;livenessProbe 동작에 실패하는 경우 worker node의 kubelet은 해당 container를 재기동함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;speccontainersreadinessprobe&#34;&gt;.spec.containers[].readinessProbe&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Container 가 요청을 처리할 수 있는 상태인지 /scripts/ping_readiness_local.sh 수행을 통해 확인함&lt;/li&gt;
+&lt;li&gt;readinessProbe 동작에 실패하는 경우 endpoint Controller는 해당 Pod의 IP를 모든 endpoint에서 제거함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;speccontainersresources&#34;&gt;.spec.containers[].resources&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;.spec.containers[].resources.limit -&amp;gt; Pod가 최대한 사용할 수 있는 서버 리소스 한계선을 지정, 없으면 Pod 하나가 노드의 모든 리소스를 사용할 수 있음&lt;/li&gt;
+&lt;li&gt;.spec.containers[].resources.requests -&amp;gt; Pod를 생성할 때 지정한 만큼의 최소한의 리소스를 할당 할 수 있는 노드에 배치, 만족하는 노드가 없으면 Pod pending&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specconatinersvolumemounts&#34;&gt;.spec.conatiners.volumeMounts&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;.spec.volumes 에서 준비한 volume을 container 에 매핑하는 설정&lt;/li&gt;
+&lt;li&gt;예를들어 .spec.volumes 에서 redis-data 이름으로 생성한 PVC 볼륨은 container의 /bitnami/redis/data 디렉토리와 매핑됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;specvolumes&#34;&gt;.spec.volumes&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Container는 stateless 한 특성이 있으나 보존해야하는 데이터가 있을 경우 volume을 생성하여 노드의 디스크와 container의 디렉토리를 매핑할 수 있음&lt;/li&gt;
+&lt;li&gt;PVC redis-data-kimdubi-test-redis-cluster-0를 통해 hostPath type의 PV 와 매핑함, Pod는 이 PVC를 통해 실제 볼륨 역할을 하는 PV와 매핑됨&lt;/li&gt;
+&lt;li&gt;그 외에 configmap volume 과 Pod가 restart 되면 초기화되는 emptyDir 을 선언함&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Node</title>
+      <link>https://kimdubi.github.io/cloud/k8s_redis_node/</link>
+      <pubDate>Sat, 06 Mar 2021 15:04:12 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_redis_node/</guid>
+      <description>&lt;h1 id=&#34;node&#34;&gt;node?&lt;/h1&gt;
+&lt;h2 id=&#34;node-&#34;&gt;node 개념&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_node01.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Kubernetes 컴포넌트는 아래 세가지로 구분됨
+&lt;ul&gt;
+&lt;li&gt;master node&lt;/li&gt;
+&lt;li&gt;worker node&lt;/li&gt;
+&lt;li&gt;addon component (필수는아님)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;master-node&#34;&gt;Master node&lt;/h3&gt;
+&lt;p&gt;Master node는 kubernetes cluster 를 관리하는 node로 크게 아래의 컴포넌트로 이루어짐&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;kube-apiserver : kubernetes 로 오는 모든 요청을 apiserver가 받아서 이 요청이 유효한지 검증함. kubernetes 내 모든 컴포넌트는 kube-apiserver를 통해 필요한 정보를 주고받음&lt;/li&gt;
+&lt;li&gt;kube-scheduler : Pod 생성 요청이 왔을 때 affinity, anti-affinity, resource requests 등의 Pod 생성조건을 확인하여 조건에 부합하는 node를 찾아 Pod를 생성하는 역할을 수행함&lt;/li&gt;
+&lt;li&gt;kube-controller-manager : node , network routing, loadbalancer, volume 을 관리하는 역할&lt;/li&gt;
+&lt;li&gt;etcd : kubernetes 의 status를 key value 로 저장하는 kubernetes의 database 역할&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;worker-node&#34;&gt;Worker node&lt;/h3&gt;
+&lt;p&gt;Pod 실행 및 관리 등 kubernetes내 오브젝트들의 실행 환경을 제공하고 관리함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;kubelet : kubernetes cluster 내 모든 node에서 실행되는 에이전트로 Pod 내 container를 실행하고 헬스체크하는 역할&lt;/li&gt;
+&lt;li&gt;kube-proxy : 노드에 들어오는 네트워크 트래픽을 포드 내의 컨테이너에게 라우팅하고 노드와 마스터간의 네트워크 통신을 관리하는 역할&lt;/li&gt;
+&lt;li&gt;Container runtime : container를 실행시키는 역할로 주로 docker를 사용함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;worker-node--pod---&#34;&gt;worker node 간 pod 통신은 어떻게 이루어질까?&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_node02.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;host01 의 Pod -&amp;gt; host02의 Pod으로 접속할 때 host01의 cbr0 (10.168.20.1) -&amp;gt; NAT -&amp;gt; eth0 (192.168.10.11) -&amp;gt; 라우터/게이트웨이로 도착&lt;/li&gt;
+&lt;li&gt;라우터/게이트웨이에는 192.168.30.0/24 로의 요청이 오면 어느 호스트로 보내야하는지에 대한 규칙을 가지고 있어서 host02로 전달함&lt;/li&gt;
+&lt;li&gt;이와 같은 구조를 host 간의 network 위에 별도의 network 가 또 존재한다 하여 overlay network라고 함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;node--&#34;&gt;node 사용 현황&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_node03.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get nodes
+NAME                                         STATUS   ROLES    AGE   VERSION
+kimdubi-test-default-w-46niimovcith-node-0   Ready    &amp;lt;none&amp;gt;   46h   v1.17.6
+kimdubi-test-default-w-46niimovcith-node-1   Ready    &amp;lt;none&amp;gt;   46h   v1.17.6
+kimdubi-test-default-w-46niimovcith-node-2   Ready    &amp;lt;none&amp;gt;   46h   v1.17.6
+&lt;/code&gt;&lt;/pre&gt;&lt;h1 id=&#34;node-template-&#34;&gt;node template을 살펴보자&lt;/h1&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;$ kubectl get node  kimdubi-test-default-w-46niimovcith-node&lt;span style=&#34;color:#ae81ff&#34;&gt;-0&lt;/span&gt; -o yaml
+apiVersion: v1
+kind: Node
+metadata:
+  annotations:
+    node.alpha.kubernetes.io/ttl: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt;
+    volumes.kubernetes.io/controller-managed-attach-detach: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;true&amp;#34;&lt;/span&gt;
+  creationTimestamp: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-21T05:46:58Z&amp;#34;&lt;/span&gt;
+  labels:
+    beta.kubernetes.io/arch: amd64
+    beta.kubernetes.io/instance-type: 6efa0e80-84f1-49b2-b641-7737b878ee56
+    beta.kubernetes.io/os: linux
+    failure-domain.beta.kubernetes.io/region: RegionOne
+    failure-domain.beta.kubernetes.io/zone: kr-pub-b
+    kubernetes.io/arch: amd64
+    kubernetes.io/hostname: kimdubi-test-default-w-46niimovcith-node&lt;span style=&#34;color:#ae81ff&#34;&gt;-0&lt;/span&gt;
+    kubernetes.io/os: linux
+    magnum.openstack.org/nodegroup: default-worker
+    magnum.openstack.org/role: worker
+    node.kubernetes.io/instance-type: 6efa0e80-84f1-49b2-b641-7737b878ee56
+    topology.kubernetes.io/region: RegionOne
+    topology.kubernetes.io/zone: kr-pub-b
+  name: kimdubi-test-default-w-46niimovcith-node&lt;span style=&#34;color:#ae81ff&#34;&gt;-0&lt;/span&gt;
+  resourceVersion: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;602658&amp;#34;&lt;/span&gt;
+  selfLink: /api/v1/nodes/kimdubi-test-default-w-46niimovcith-node&lt;span style=&#34;color:#ae81ff&#34;&gt;-0&lt;/span&gt;
+  uid: 8b0642fe-cc69-461c-bfd1-cb20647b60d5
+spec:
+  podCIDR: &lt;span style=&#34;color:#ae81ff&#34;&gt;10.100&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;/&lt;span style=&#34;color:#ae81ff&#34;&gt;24&lt;/span&gt;
+  podCIDRs:
+  - &lt;span style=&#34;color:#ae81ff&#34;&gt;10.100&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;/&lt;span style=&#34;color:#ae81ff&#34;&gt;24&lt;/span&gt;
+  providerID: openstack:///e0d624b0-346a-44d8-8eae-448bd6b15701
+status:
+  addresses:
+  - address: &lt;span style=&#34;color:#ae81ff&#34;&gt;192.168&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.16&lt;/span&gt;
+    type: InternalIP
+  - address: kimdubi-test-default-w-46niimovcith-node&lt;span style=&#34;color:#ae81ff&#34;&gt;-0&lt;/span&gt;
+    type: Hostname
+  allocatable:
+    cpu: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt;
+    ephemeral-storage: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;18904622254&amp;#34;&lt;/span&gt;
+    hugepages-1Gi: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt;
+    hugepages-2Mi: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt;
+    memory: 1780444Ki
+    pods: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;110&amp;#34;&lt;/span&gt;
+  capacity:
+    cpu: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt;
+    ephemeral-storage: 20512828Ki
+    hugepages-1Gi: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt;
+    hugepages-2Mi: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;0&amp;#34;&lt;/span&gt;
+    memory: 1882844Ki
+    pods: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;110&amp;#34;&lt;/span&gt;
+  conditions:
+  - lastHeartbeatTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-23T04:15:34Z&amp;#34;&lt;/span&gt;
+    lastTransitionTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-22T09:21:49Z&amp;#34;&lt;/span&gt;
+    message: kubelet has sufficient memory available
+    reason: KubeletHasSufficientMemory
+    status: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;False&amp;#34;&lt;/span&gt;
+    type: MemoryPressure
+  - lastHeartbeatTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-23T04:15:34Z&amp;#34;&lt;/span&gt;
+    lastTransitionTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-22T09:21:49Z&amp;#34;&lt;/span&gt;
+    message: kubelet has no disk pressure
+    reason: KubeletHasNoDiskPressure
+    status: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;False&amp;#34;&lt;/span&gt;
+    type: DiskPressure
+  - lastHeartbeatTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-23T04:15:34Z&amp;#34;&lt;/span&gt;
+    lastTransitionTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-22T09:21:49Z&amp;#34;&lt;/span&gt;
+    message: kubelet has sufficient PID available
+    reason: KubeletHasSufficientPID
+    status: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;False&amp;#34;&lt;/span&gt;
+    type: PIDPressure
+  - lastHeartbeatTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-23T04:15:34Z&amp;#34;&lt;/span&gt;
+    lastTransitionTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-22T09:21:50Z&amp;#34;&lt;/span&gt;
+    message: kubelet is posting ready status
+    reason: KubeletReady
+    status: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;True&amp;#34;&lt;/span&gt;
+    type: Ready
+  daemonEndpoints:
+    kubeletEndpoint:
+      Port: &lt;span style=&#34;color:#ae81ff&#34;&gt;10250&lt;/span&gt;
+  images:
+  - names:
+    - nvidia/k8s-device-plugin@sha256:631573a476b7e18512c5dae8990ea571bad3c14de3abaf6a8bc09a22c49be771
+    - nvidia/k8s-device-plugin:v0&lt;span style=&#34;color:#ae81ff&#34;&gt;.7&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;-centos7
+    sizeBytes: &lt;span style=&#34;color:#ae81ff&#34;&gt;264403050&lt;/span&gt;
+  - names:
+    - kubernetesui/dashboard@sha256:24b77588e57e55da43db45df0c321de1f48488fa637926b342129783ff76abd4
+    - kubernetesui/dashboard:v2&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;-rc7
+    sizeBytes: &lt;span style=&#34;color:#ae81ff&#34;&gt;220798514&lt;/span&gt;
+  - names:
+    - k8s.gcr.io/kube-proxy@sha256:3691aecddfd13179dd6185a3dc4fd809c4964b64121c00b202cd972303edc4a9
+    - k8s.gcr.io/kube-proxy:v1&lt;span style=&#34;color:#ae81ff&#34;&gt;.17&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.6&lt;/span&gt;
+    sizeBytes: &lt;span style=&#34;color:#ae81ff&#34;&gt;116521281&lt;/span&gt;
+  - names:
+    - k8s.gcr.io/node-problem-detector@sha256:f7a97be0fae649f95228bd89836590fb3dfddadc98a48e4be3fee1b19854bf9b
+    - k8s.gcr.io/node-problem-detector:v0&lt;span style=&#34;color:#ae81ff&#34;&gt;.8&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.2&lt;/span&gt;
+    sizeBytes: &lt;span style=&#34;color:#ae81ff&#34;&gt;110047285&lt;/span&gt;
+  - names:
+    - bitnami/redis-cluster@sha256:dfedcaa03878564f6eb75c101a66d8ecd18a9558971ade5c82611bfa9fb6da96
+    - bitnami/redis-cluster:&lt;span style=&#34;color:#ae81ff&#34;&gt;6.0&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.10&lt;/span&gt;-debian&lt;span style=&#34;color:#ae81ff&#34;&gt;-10&lt;/span&gt;-r5
+    sizeBytes: &lt;span style=&#34;color:#ae81ff&#34;&gt;100302970&lt;/span&gt;
+  - names:
+    - k8s.gcr.io/autoscaling/cluster-autoscaler@sha256:d6e51b58808b5abe74b57666114efab748a6d8ba73afdb24cd2a7f91f11c4b1b
+    - k8s.gcr.io/autoscaling/cluster-autoscaler:v1&lt;span style=&#34;color:#ae81ff&#34;&gt;.19&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;
+    sizeBytes: &lt;span style=&#34;color:#ae81ff&#34;&gt;90379091&lt;/span&gt;
+  - names:
+    - quay.io/coreos/flannel@sha256:6d451d92c921f14bfb38196aacb6e506d4593c5b3c9d40a8b8a2506010dc3e10
+    - quay.io/coreos/flannel:v0&lt;span style=&#34;color:#ae81ff&#34;&gt;.12&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;-amd64
+    sizeBytes: &lt;span style=&#34;color:#ae81ff&#34;&gt;52767393&lt;/span&gt;
+  - names:
+    - gcr.io/google_containers/cluster-proportional-autoscaler-amd64@sha256:791836c2a2471ecb23a975cf12835f2a35ada3f9d841f3f1a363b83eca99e2aa
+    - gcr.io/google_containers/cluster-proportional-autoscaler-amd64:&lt;span style=&#34;color:#ae81ff&#34;&gt;1.1&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.2&lt;/span&gt;
+    sizeBytes: &lt;span style=&#34;color:#ae81ff&#34;&gt;50485461&lt;/span&gt;
+  - names:
+    - quay.io/coreos/flannel-cni@sha256:734b4222110980abd0abe74974b6ca36452d26bdd2a20e25f37fdf7fdc2da170
+    - quay.io/coreos/flannel-cni:v0&lt;span style=&#34;color:#ae81ff&#34;&gt;.3&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;
+    sizeBytes: &lt;span style=&#34;color:#ae81ff&#34;&gt;49786179&lt;/span&gt;
+  - names:
+    - coredns/coredns@sha256:7ec975f167d815311a7136c32e70735f0d00b73781365df1befd46ed35bd4fe7
+    - coredns/coredns:&lt;span style=&#34;color:#ae81ff&#34;&gt;1.6&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.5&lt;/span&gt;
+    sizeBytes: &lt;span style=&#34;color:#ae81ff&#34;&gt;41578211&lt;/span&gt;
+  - names:
+    - k8s.gcr.io/metrics-server-amd64@sha256:78938f933822856f443e6827fe5b37d6cc2f74ae888ac8b33d06fdbe5f8c658b
+    - k8s.gcr.io/metrics-server-amd64:v0&lt;span style=&#34;color:#ae81ff&#34;&gt;.3&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.1&lt;/span&gt;
+    sizeBytes: &lt;span style=&#34;color:#ae81ff&#34;&gt;40767713&lt;/span&gt;
+  - names:
+    - kubernetesui/metrics-scraper@sha256:555981a24f184420f3be0c79d4efb6c948a85cfce84034f85a563f4151a81cbf
+    - kubernetesui/metrics-scraper:v1&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.4&lt;/span&gt;
+    sizeBytes: &lt;span style=&#34;color:#ae81ff&#34;&gt;36937728&lt;/span&gt;
+  - names:
+    - k8s.gcr.io/pause@sha256:f78411e19d84a252e53bff71a4407a5686c46983a2c2eeed83929b888179acea
+    - k8s.gcr.io/pause:&lt;span style=&#34;color:#ae81ff&#34;&gt;3.1&lt;/span&gt;
+    sizeBytes: &lt;span style=&#34;color:#ae81ff&#34;&gt;742472&lt;/span&gt;
+  nodeInfo:
+    architecture: amd64
+    bootID: c5eda8c3-5d63-45db-854f-6a563e9a7870
+    containerRuntimeVersion: docker://&lt;span style=&#34;color:#ae81ff&#34;&gt;19.3&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.13&lt;/span&gt;
+    kernelVersion: &lt;span style=&#34;color:#ae81ff&#34;&gt;3.10&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;-862.14&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.4&lt;/span&gt;.el7.x86_64
+    kubeProxyVersion: v1&lt;span style=&#34;color:#ae81ff&#34;&gt;.17&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.6&lt;/span&gt;
+    kubeletVersion: v1&lt;span style=&#34;color:#ae81ff&#34;&gt;.17&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.6&lt;/span&gt;
+    machineID: e0d624b0346a44d88eae448bd6b15701
+    operatingSystem: linux
+    osImage: CentOS Linux &lt;span style=&#34;color:#ae81ff&#34;&gt;7&lt;/span&gt; (Core)
+    systemUUID: E0D624B0-346A-44D8-8EAE-448BD6B15701
+  volumesAttached:
+  - devicePath: /dev/vdc
+    name: kubernetes.io/cinder/5aa9bfc5-5cac-48ba-a9dc-f1e19926763d
+  - devicePath: /dev/vdb
+    name: kubernetes.io/cinder/01f43c11-b446-48ee&lt;span style=&#34;color:#ae81ff&#34;&gt;-8898&lt;/span&gt;-bdd3f247dfbd
+  volumesInUse:
+  - kubernetes.io/cinder/01f43c11-b446-48ee&lt;span style=&#34;color:#ae81ff&#34;&gt;-8898&lt;/span&gt;-bdd3f247dfbd
+  - kubernetes.io/cinder/5aa9bfc5-5cac-48ba-a9dc-f1e19926763d
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;metadatalabels&#34;&gt;.metadata.labels&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;node의 labels 은 주로 Pod 의 affinity , antiAffinity 에 사용되어 Pod이 특정 node에 생성될 수 있도록 할 때 사용됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;statusconditions&#34;&gt;.status.conditions&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;node 의 현재 상태를 확인할 수 있음 주로 kubectl decribe node node명으로 확인함&lt;/li&gt;
+&lt;li&gt;memory나 disk 가 부족한지 등의 상태가 나오기 때문에 Pod 이 생성 안되거나 이상이 있을 때 확인해야하는 정보임&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>Kubernetes에서 redis cluster를 돌려보자 - install</title>
@@ -46,13 +1329,13 @@
 &lt;/ul&gt;
 &lt;h2 id=&#34;heading1&#34;&gt;설치&lt;/h2&gt;
 &lt;h3 id=&#34;kubernetes-&#34;&gt;kubernetes 설치&lt;/h3&gt;
-&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_node01.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_install01.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;NHN cloud Container 서비스 탭에서 kubernetes cluster를 간단히 생성할 수 있음&lt;/li&gt;
 &lt;li&gt;worker node 3개 짜리 kubernetes cluster를 생성함&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3 id=&#34;-kubernetes-&#34;&gt;설치한 kubernetes에 접속해보자&lt;/h3&gt;
-&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_node02.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_install02.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
 &lt;pre&gt;&lt;code&gt;### 다운받은 kubeconfig 파일을 환경변수로 설정함
 $ export KUBECONFIG=kimdubi-test_kubeconfig.yaml
 

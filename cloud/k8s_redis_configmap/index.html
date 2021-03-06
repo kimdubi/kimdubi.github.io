@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Kubernetes에서 redis cluster를 돌려보자 - Configmap</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Kubernetes에서 redis cluster를 돌려보자 - Configmap</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Kubernetes에서 redis cluster를 돌려보자 - Configmap</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><h1 id="configmap">configmap?</h1>
+<h2 id="configmap-">configmap 개념</h2>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_configmap01.png" alt=""></p>
+<ul>
+<li>Pod 내 Container로 띄운 application ( Redis, apache &hellip;) 에서 사용하는 설정 값을 configmap 이라는 독립적인 오브젝트로 분리함</li>
+<li>DEV용, TEST용, PROD용으로 configmap을 따로 관리하여 하나의 동일한 Container로 여러 환경에서 사용할 수 있음</li>
+<li>수정 배포가 필요한 경우에도 Container 일일이 접속해서 수정하는 게 아니라 사용하는 Configmap을 수정하여 사용할 수 있음</li>
+</ul>
+<h2 id="configmap-1">configmap 사용현황</h2>
+<pre><code>$ kubectl get configmap
+NAME                                 DATA   AGE
+kimdubi-test-redis-cluster-default   1      6d19h
+kimdubi-test-redis-cluster-scripts   2      6d19h
+</code></pre><ul>
+<li>kimdubi-test-redis-cluster-default configmap은 redis.conf 의 내용을 담고 있음</li>
+<li>kimdubi-test-redis-cluster-scripts configmap은 redis health check 용으로 사용하는 script 의 내용을 담고 있음</li>
+</ul>
+<h1 id="configmap-template-">configmap template을 살펴보자</h1>
+<h2 id="kimdubitestredisclusterdefault">kimdubi-test-redis-cluster-default</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">$ kubectl get configmap -o yaml kimdubi-test-redis-cluster-default
+
+apiVersion: v1
+data:
+  redis-default.conf:
+  <span style="color:#e6db74">&#34;# Redis configuration file example.\n#\n# Note that in order
+</span><span style="color:#e6db74">    to read the configuration file, Redis must be\n# started with the file path as
+</span><span style="color:#e6db74">    first argument:\n#\n# .
+</span><span style="color:#e6db74">    .
+</span><span style="color:#e6db74">    .
+</span><span style="color:#e6db74">    .
+</span><span style="color:#e6db74">  
+</span><span style="color:#e6db74">  
+</span><span style="color:#e6db74">kind: ConfigMap
+</span><span style="color:#e6db74">metadata:
+</span><span style="color:#e6db74">  annotations:
+</span><span style="color:#e6db74">    meta.helm.sh/release-name: kimdubi-test
+</span><span style="color:#e6db74">    meta.helm.sh/release-namespace: default
+</span><span style="color:#e6db74">  creationTimestamp: &#34;</span><span style="color:#e6db74">2021-02-21T07:33:55Z</span><span style="color:#e6db74">&#34;
+</span><span style="color:#e6db74">  labels:
+</span><span style="color:#e6db74">    app.kubernetes.io/instance: kimdubi-test
+</span><span style="color:#e6db74">    app.kubernetes.io/managed-by: Helm
+</span><span style="color:#e6db74">    app.kubernetes.io/name: redis-cluster
+</span><span style="color:#e6db74">    helm.sh/chart: redis-cluster-4.3.0
+</span><span style="color:#e6db74">  name: kimdubi-test-redis-cluster-default
+</span><span style="color:#e6db74">  namespace: default
+</span><span style="color:#e6db74">  resourceVersion: &#34;</span><span style="color:#ae81ff">24610</span>&#34;
+  selfLink: /api/v1/namespaces/default/configmaps/kimdubi-test-redis-cluster-default
+  uid: bd69754d-bcda-4d8c-b8f7-08ece1567533  
+
+</code></pre></div><h3 id="data">.data</h3>
+<ul>
+<li>configmap에서 사용할 설정들을 정의하는 부분, 위에선 redis.conf 의 내용을 담고있음</li>
+</ul>
+<h2 id="kimdubitestredisclusterscripts">kimdubi-test-redis-cluster-scripts</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">$ kubectl get configmap kimdubi-test-redis-cluster-scripts -o yaml
+apiVersion: v1
+data:
+  ping_liveness_local.sh: |<span style="color:#e6db74">-
+</span><span style="color:#e6db74">   </span><span style="color:#e6db74"> </span><span style="color:#e6db74">export REDISCLI_AUTH=$REDIS_PASSWORD</span>
+    response=$(
+      timeout -s <span style="color:#ae81ff">9</span> $<span style="color:#ae81ff">1</span> \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ <span style="color:#e6db74">&#34;$response&#34;</span> != <span style="color:#e6db74">&#34;PONG&#34;</span> ] <span style="color:#75715e">&amp;&amp;</span> [ <span style="color:#e6db74">&#34;$response&#34;</span> != <span style="color:#e6db74">&#34;LOADING Redis is loading the dataset in memory&#34;</span> ]; then
+      echo <span style="color:#e6db74">&#34;$response&#34;</span>
+      exit <span style="color:#ae81ff">1</span>
+    fi
+  ping_readiness_local.sh: |<span style="color:#e6db74">-
+</span><span style="color:#e6db74">   </span><span style="color:#e6db74"> </span><span style="color:#e6db74">export REDISCLI_AUTH=$REDIS_PASSWORD</span>
+    response=$(
+      timeout -s <span style="color:#ae81ff">9</span> $<span style="color:#ae81ff">1</span> \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ <span style="color:#e6db74">&#34;$response&#34;</span> != <span style="color:#e6db74">&#34;PONG&#34;</span> ]; then
+      echo <span style="color:#e6db74">&#34;$response&#34;</span>
+      exit <span style="color:#ae81ff">1</span>
+    fi
+kind: ConfigMap
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kimdubi-test
+    meta.helm.sh/release-namespace: default
+  creationTimestamp: <span style="color:#e6db74">&#34;2021-02-21T07:33:55Z&#34;</span>
+  labels:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    helm.sh/chart: redis-cluster<span style="color:#ae81ff">-4.3</span><span style="color:#ae81ff">.0</span>
+  name: kimdubi-test-redis-cluster-scripts
+  namespace: default
+  resourceVersion: <span style="color:#e6db74">&#34;24609&#34;</span>
+  selfLink: /api/v1/namespaces/default/configmaps/kimdubi-test-redis-cluster-scripts
+  uid: 89b2319a-fd57-475f<span style="color:#ae81ff">-9671</span>-deb80023f6b8
+</code></pre></div><h3 id="data1">.data</h3>
+<ul>
+<li>redis health check를 위한 ping_liveness_local.sh</li>
+<li>redis 사용가능한 상태인지 check 를 위한 ping_readiness_local.sh</li>
+<li>위 스크립트를 Pod에 제공하고 있음</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">    livenessProbe:
+      exec:
+        command:
+        - sh
+        - -c
+        - /scripts/ping_liveness_local.sh <span style="color:#ae81ff">5</span>
+      failureThreshold: <span style="color:#ae81ff">5</span>
+      initialDelaySeconds: <span style="color:#ae81ff">5</span>
+      periodSeconds: <span style="color:#ae81ff">5</span>
+      successThreshold: <span style="color:#ae81ff">1</span>
+      timeoutSeconds: <span style="color:#ae81ff">5</span>
+
+    readinessProbe:
+      exec:
+        command:
+        - sh
+        - -c
+        - /scripts/ping_readiness_local.sh <span style="color:#ae81ff">1</span>
+      failureThreshold: <span style="color:#ae81ff">5</span>
+      initialDelaySeconds: <span style="color:#ae81ff">5</span>
+      periodSeconds: <span style="color:#ae81ff">5</span>
+      successThreshold: <span style="color:#ae81ff">1</span>
+      timeoutSeconds: <span style="color:#ae81ff">1</span>
+</code></pre></div></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Kubernetes에서 redis cluster를 돌려보자 - Volume</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Kubernetes에서 redis cluster를 돌려보자 - Volume</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Kubernetes에서 redis cluster를 돌려보자 - Volume</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><h1 id="volume-">Volume ?</h1>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_volume01.png" alt=""></p>
+<h2 id="volume-1">volume 개념</h2>
+<ul>
+<li>컨테이너 내 파일은 stateless 하기 때문에 데이터 보존이 필요한 경우 Volume을 사용해야함</li>
+<li>kubernetes에서 Volume은 Pod 에 종속되어 같은 Pod에 있는 container들은 volume을 공유함</li>
+<li>Volume type에는 아래와 같은 여러 방식이 있음
+<ul>
+<li>emptyDir : Pod 와 함께 생성되고 Pod가 종료될 때 같이 삭제되는 임시볼륨</li>
+<li>hostPath : Pod가 속한 node의 로컬 디스크의 디렉토리를 Pod에 마운트 해서 사용함, 동일 node에서 Pod이 재생성 되는 경우엔 데이터 보존이 가능하나 node가 달라지면 데이터 보존이 불가능함</li>
+<li>nfs : 기존 NFS (네트워크파일시스템) 처럼 여러 Pod에서 동시에 마운트 할 수 있는 볼륨</li>
+</ul>
+</li>
+</ul>
+<h2 id="pv--pv-">PV / PV 개념</h2>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_volume02.png" alt=""></p>
+<ul>
+<li>PV (Persistent Volume) : Pod에 종속적인 volume과는 달리 PV는 그 자체로 kubernetes cluster의 resource로 관리됨.
+Pod의 수명주기와는 관계 없이 독립적이기 때문에 Pod가 재시작되거나, 다른 node로 migration 되어도 상관없이 PV는 유지됨
+ToastCloud 를 사용하는 경우 하나의 PV는 하나의 ToastCloud Block Storage와 연결됨</li>
+<li>PVC (Persistent Volume Claim) : 필요한 볼륨의 요구사항에 대한 정의서로 용량, 읽기/쓰기 모드 등을 정의하면 조건을 만족하는 PV를 가져다 binding 함
+<ul>
+<li>static provisioning : 사용자가 직접 PV를 미리 준비해야 하며 PVC 를 통해 PV를 요청했을 때 조건에 맞는 PV 가 없을 땐 사용 불가</li>
+<li>dynamic provisioning : storageClass 에 정의된 속성을 참조하여 PVC의 요청이 있을 때 동적으로 PV를 생성하여 PVC에 binding 함</li>
+</ul>
+</li>
+</ul>
+<h3 id="pv-pvc--">PV /PVC 생명 주기</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_volume03.png" alt=""></p>
+<ul>
+<li>PV, PVC 에는 위와 같은 Pod 독릭접인 생명주기가 있음</li>
+<li>Provisioning : PV를 만드는 단계 , static / dynamic 방식으로 나뉨</li>
+<li>Binding : Provisioning 단계를 거쳐 생성된 PV를 PVC와 1:1 로 연결하는 단계, PVC에서 원하는 스토리지의 용량과 스펙을 명시해서 요청하면 알맞은 PV가 할당되며 없으면 요청은 pending 상태로 빠짐.</li>
+<li>Using : PVC가 Pod에 할당되고, Pod는 PVC를 Volume으로 인식해서 사용하는 상태, 할당된 PVC는 임의로 삭제될 수 없고 보호됨 ( Storage Object in Use Protection  )</li>
+<li>Reclaiming : 사용이 끝난 PVC가 삭제되어 PV를 초기화하는 단계</li>
+</ul>
+<h2 id="pv--pvc--">PV / PVC 사용 현황</h2>
+<pre><code>$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                                             STORAGECLASS   REASON   AGE
+pvc-10412da7-46bb-43e0-b791-a810774b7c87   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-1   kimdubi-test            2d4h
+pvc-3b7c88ff-6e56-428a-885f-58301e05478f   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-0   kimdubi-test            2d4h
+pvc-6a5aa328-8ca2-4450-a308-1c07cc7aab60   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-2   kimdubi-test            2d4h
+pvc-92e41155-d644-4799-b974-2a35c19ada8b   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-4   kimdubi-test            2d4h
+pvc-b198c891-2d0c-474e-9113-2ad0f198a336   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-3   kimdubi-test            2d4h
+pvc-b2fe7621-e748-4cc7-aa4c-2efee2fc0cd8   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-5   kimdubi-test            2d4h
+
+$ kubectl get pvc
+NAME                                      STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+redis-data-kimdubi-test-redis-cluster-0   Bound    pvc-3b7c88ff-6e56-428a-885f-58301e05478f   2Gi        RWO            kimdubi-test   2d4h
+redis-data-kimdubi-test-redis-cluster-1   Bound    pvc-10412da7-46bb-43e0-b791-a810774b7c87   2Gi        RWO            kimdubi-test   2d4h
+redis-data-kimdubi-test-redis-cluster-2   Bound    pvc-6a5aa328-8ca2-4450-a308-1c07cc7aab60   2Gi        RWO            kimdubi-test   2d4h
+redis-data-kimdubi-test-redis-cluster-3   Bound    pvc-b198c891-2d0c-474e-9113-2ad0f198a336   2Gi        RWO            kimdubi-test   2d4h
+redis-data-kimdubi-test-redis-cluster-4   Bound    pvc-92e41155-d644-4799-b974-2a35c19ada8b   2Gi        RWO            kimdubi-test   2d4h
+redis-data-kimdubi-test-redis-cluster-5   Bound    pvc-b2fe7621-e748-4cc7-aa4c-2efee2fc0cd8   2Gi        RWO            kimdubi-test   2d4h
+</code></pre><p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_volume04.png" alt=""></p>
+<ul>
+<li>PV와 매핑되는 block storage</li>
+</ul>
+<h1 id="pv--pvc-template-">PV / PVC template을 살펴보자</h1>
+<h2 id="persistent-volume">Persistent Volume</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">$ kubectl get persistentvolume/pvc-10412da7-46bb<span style="color:#ae81ff">-43e0</span>-b791-a810774b7c87 -o yaml
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    kubernetes.io/createdby: cinder-dynamic-provisioner
+    pv.kubernetes.io/bound-by-controller: <span style="color:#e6db74">&#34;yes&#34;</span>
+    pv.kubernetes.io/provisioned-by: kubernetes.io/cinder
+  creationTimestamp: <span style="color:#e6db74">&#34;2021-02-21T07:33:56Z&#34;</span>
+  finalizers:
+  - kubernetes.io/pv-protection
+  labels:
+    failure-domain.beta.kubernetes.io/region: RegionOne
+    failure-domain.beta.kubernetes.io/zone: kr-pub-b
+  name: pvc-10412da7-46bb<span style="color:#ae81ff">-43e0</span>-b791-a810774b7c87
+  resourceVersion: <span style="color:#e6db74">&#34;24691&#34;</span>
+  selfLink: /api/v1/persistentvolumes/pvc-10412da7-46bb<span style="color:#ae81ff">-43e0</span>-b791-a810774b7c87
+  uid: df950b89-f229-4d2f-9b77-0f1f47e327aa
+spec:
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 2Gi
+  cinder:
+    volumeID: 9b284d26-a868-4f0a-86d2-4c3916ccf791
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    name: redis-data-kimdubi-test-redis-cluster<span style="color:#ae81ff">-1</span>
+    namespace: default
+    resourceVersion: <span style="color:#e6db74">&#34;24628&#34;</span>
+    uid: 10412da7-46bb<span style="color:#ae81ff">-43e0</span>-b791-a810774b7c87
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: failure-domain.beta.kubernetes.io/region
+          operator: In
+          values:
+          - RegionOne
+        - key: failure-domain.beta.kubernetes.io/zone
+          operator: In
+          values:
+          - kr-pub-b
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: kimdubi-test
+  volumeMode: Filesystem
+status:
+  phase: Bound
+</code></pre></div><h3 id="specaccessmodes">.spec.accessModes</h3>
+<ul>
+<li>ReadWriteOnce : node 하나만 볼륨에 read / write 할 수 있도록 mount하는 설정</li>
+<li>ReadOnlyMany : 여러 node에서 read 할 수 있도록 mount 하는 설정</li>
+<li>ReadWriteMany : 여러 노드에서 read / write 할 수 있도록 mount하는 설정</li>
+</ul>
+<h3 id="specclaimref">.spec.claimRef</h3>
+<ul>
+<li>해당 PV 가 binding 된 PVC 정보, 위 PV는 redis-data-kimdubi-test-redis-cluster-1 PVC에 묶여있음</li>
+</ul>
+<h3 id="specpersistentvolumereclaimpolicy">.spec.persistentVolumeReclaimPolicy</h3>
+<ul>
+<li>PV가 해제되었을 때의 초기화 옵션 설정</li>
+<li>retain : PV를 그대로 보존함, 이 PV를 재사용하려면 직접 수동으로 PV를 삭제하여 초기화해야함</li>
+<li>Recycle : PV의 데이터를 삭제하고 다시 새로운 PVC 에 binding 될 수 있도록 하는 설정</li>
+<li>Delete : PV를 삭제하고 연결된 외부의 스토리지 볼륨도 삭제함 (default 설정)</li>
+</ul>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

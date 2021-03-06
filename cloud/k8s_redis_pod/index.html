@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Kubernetes에서 redis cluster를 돌려보자 - Pod</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Kubernetes에서 redis cluster를 돌려보자 - Pod</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Kubernetes에서 redis cluster를 돌려보자 - Pod</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><h1 id="pod-">Pod ?</h1>
+<h2 id="pod-1">Pod 개념</h2>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_pod01.png" alt=""></p>
+<ul>
+<li>Pod은 kubernetes 클러스터 내 최소 배포단위</li>
+<li>하나의 Pod는 하나의 node에 속하고 node 단위로 옮겨다닐 수 있음</li>
+<li>Pod 에는 여러개의 container가 포함될 수 있고 Pod 내 container들은 storage와 network를 공유하며 내부통신이 가능함</li>
+</ul>
+<h2 id="pod--">Pod 사용 현황</h2>
+<pre><code>~~~
+$ kubectl get pod
+NAME                           READY   STATUS    RESTARTS   AGE
+kimdubi-test-redis-cluster-0   1/1     Running   0          23h
+kimdubi-test-redis-cluster-1   1/1     Running   0          2d1h
+kimdubi-test-redis-cluster-2   1/1     Running   1          23h
+kimdubi-test-redis-cluster-3   1/1     Running   1          2d1h
+kimdubi-test-redis-cluster-4   1/1     Running   0          23h
+kimdubi-test-redis-cluster-5   1/1     Running   0          23h
+~~~
+</code></pre><ul>
+<li>본문에서 사용하는 helm chart 에서는 Redis Pod을 6대 생성함</li>
+<li>3대는 Master , 3대는 Slave 로 동작 중</li>
+<li>Pod은 statefulset 에 의해 생성되고 관리되며 Pod의 container image나 개수, 설정등을 변경하고 싶다면
+helm chart 내 statefulset과 values.yaml을 수정해야함</li>
+</ul>
+<h1 id="pod-template-">Pod template을 살펴보자</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">$ kubectl get pod/kimdubi-test-redis-cluster<span style="color:#ae81ff">-0</span> -o yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    checksum/scripts: 13c84ab100b949b2a69989dbcfa1079e3d930ee56d79744da9abc6d691709923
+    checksum/secret: 3fb9c96414bd6f5e1a0841de974fcb260231a9c12bebb2c49af0f02b651e47cf
+  creationTimestamp: <span style="color:#e6db74">&#34;2021-02-22T09:21:50Z&#34;</span>
+  generateName: kimdubi-test-redis-cluster<span style="color:#e6db74">-
+</span><span style="color:#e6db74"> </span><span style="color:#e6db74"> </span><span style="color:#e6db74">labels:</span>
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    controller-revision-hash: kimdubi-test-redis-cluster-86585bd988
+    helm.sh/chart: redis-cluster<span style="color:#ae81ff">-4.3</span><span style="color:#ae81ff">.0</span>
+    statefulset.kubernetes.io/pod-name: kimdubi-test-redis-cluster<span style="color:#ae81ff">-0</span>
+  name: kimdubi-test-redis-cluster<span style="color:#ae81ff">-0</span>
+  namespace: default
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: <span style="color:#66d9ef">true</span>
+    controller: <span style="color:#66d9ef">true</span>
+    kind: StatefulSet
+    name: kimdubi-test-redis-cluster
+    uid: b348894a-e930-4dc2-ba10-c8566eeec0b9
+  resourceVersion: <span style="color:#e6db74">&#34;358338&#34;</span>
+  selfLink: /api/v1/namespaces/default/pods/kimdubi-test-redis-cluster<span style="color:#ae81ff">-0</span>
+  uid: ccfca1d7-e997<span style="color:#ae81ff">-4375</span>-acbd-aa44b1428c35
+spec:
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/instance: kimdubi-test
+              app.kubernetes.io/name: redis-cluster
+          namespaces:
+          - default
+          topologyKey: kubernetes.io/hostname
+        weight: <span style="color:#ae81ff">1</span>
+  containers:
+  - args:
+    - <span style="color:#e6db74">|
+</span><span style="color:#e6db74">     </span><span style="color:#e6db74"> </span><span style="color:#e6db74"># Backwards compatibility change</span>
+      if ! [[ -f /opt/bitnami/redis/etc/redis.conf ]]; then
+          echo COPYING FILE
+          cp  /opt/bitnami/redis/etc/redis-default.conf /opt/bitnami/redis/etc/redis.conf
+      fi
+      /opt/bitnami/scripts/redis-cluster/entrypoint.sh /opt/bitnami/scripts/redis-cluster/run.sh
+    command:
+    - /bin/bash
+    - -c
+    env:
+    - name: REDIS_NODES
+      value: <span style="color:#e6db74">&#39;kimdubi-test-redis-cluster-0.kimdubi-test-redis-cluster-headless kimdubi-test-redis-cluster-1.kimdubi-test-redis-cluster-headless
+</span><span style="color:#e6db74">        kimdubi-test-redis-cluster-2.kimdubi-test-redis-cluster-headless kimdubi-test-redis-cluster-3.kimdubi-test-redis-cluster-headless
+</span><span style="color:#e6db74">        kimdubi-test-redis-cluster-4.kimdubi-test-redis-cluster-headless kimdubi-test-redis-cluster-5.kimdubi-test-redis-cluster-headless &#39;</span>
+    - name: REDISCLI_AUTH
+      valueFrom:
+        secretKeyRef:
+          key: redis-password
+          name: kimdubi-test-redis-cluster
+    - name: REDIS_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          key: redis-password
+          name: kimdubi-test-redis-cluster
+    - name: REDIS_AOF_ENABLED
+      value: <span style="color:#e6db74">&#34;yes&#34;</span>
+    - name: REDIS_TLS_ENABLED
+      value: <span style="color:#e6db74">&#34;no&#34;</span>
+    - name: REDIS_PORT
+      value: <span style="color:#e6db74">&#34;6379&#34;</span>
+    image: docker.io/bitnami/redis-cluster:<span style="color:#ae81ff">6.0</span><span style="color:#ae81ff">.10</span>-debian<span style="color:#ae81ff">-10</span>-r5
+    imagePullPolicy: IfNotPresent
+    livenessProbe:
+      exec:
+        command:
+        - sh
+        - -c
+        - /scripts/ping_liveness_local.sh <span style="color:#ae81ff">5</span>
+      failureThreshold: <span style="color:#ae81ff">5</span>
+      initialDelaySeconds: <span style="color:#ae81ff">5</span>
+      periodSeconds: <span style="color:#ae81ff">5</span>
+      successThreshold: <span style="color:#ae81ff">1</span>
+      timeoutSeconds: <span style="color:#ae81ff">5</span>
+    name: kimdubi-test-redis-cluster
+    ports:
+    - containerPort: <span style="color:#ae81ff">6379</span>
+      name: tcp-redis
+      protocol: TCP
+    - containerPort: <span style="color:#ae81ff">16379</span>
+      name: tcp-redis-bus
+      protocol: TCP
+    readinessProbe:
+      exec:
+        command:
+        - sh
+        - -c
+        - /scripts/ping_readiness_local.sh <span style="color:#ae81ff">1</span>
+      failureThreshold: <span style="color:#ae81ff">5</span>
+      initialDelaySeconds: <span style="color:#ae81ff">5</span>
+      periodSeconds: <span style="color:#ae81ff">5</span>
+      successThreshold: <span style="color:#ae81ff">1</span>
+      timeoutSeconds: <span style="color:#ae81ff">1</span>
+    resources:
+      limits:
+        cpu: 100m
+        memory: 100Mi
+      requests:
+        cpu: 50m
+        memory: 50Mi
+    securityContext:
+      runAsUser: <span style="color:#ae81ff">1001</span>
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /scripts
+      name: scripts
+    - mountPath: /bitnami/redis/data
+      name: redis-data
+    - mountPath: /opt/bitnami/redis/etc/redis-default.conf
+      name: default-config
+      subPath: redis-default.conf
+    - mountPath: /opt/bitnami/redis/etc/
+      name: redis-tmp-conf
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-5zmdw
+      readOnly: <span style="color:#66d9ef">true</span>
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: <span style="color:#66d9ef">false</span>
+  hostname: kimdubi-test-redis-cluster<span style="color:#ae81ff">-0</span>
+  nodeName: kimdubi-test-default-w-46niimovcith-node<span style="color:#ae81ff">-2</span>
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext:
+    fsGroup: <span style="color:#ae81ff">1001</span>
+  serviceAccount: default
+  serviceAccountName: default
+  subdomain: kimdubi-test-redis-cluster-headless
+  terminationGracePeriodSeconds: <span style="color:#ae81ff">30</span>
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: <span style="color:#ae81ff">300</span>
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: <span style="color:#ae81ff">300</span>
+  volumes:
+  - name: redis-data
+    persistentVolumeClaim:
+      claimName: redis-data-kimdubi-test-redis-cluster<span style="color:#ae81ff">-0</span>
+  - configMap:
+      defaultMode: <span style="color:#ae81ff">493</span>
+      name: kimdubi-test-redis-cluster-scripts
+    name: scripts
+  - configMap:
+      defaultMode: <span style="color:#ae81ff">420</span>
+      name: kimdubi-test-redis-cluster-default
+    name: default-config
+  - emptyDir: {}
+    name: redis-tmp-conf
+  - name: default-token-5zmdw
+    secret:
+      defaultMode: <span style="color:#ae81ff">420</span>
+      secretName: default-token-5zmdw
+status:
+  conditions:
+  - lastProbeTime: <span style="color:#66d9ef">null</span>
+    lastTransitionTime: <span style="color:#e6db74">&#34;2021-02-22T09:21:51Z&#34;</span>
+    status: <span style="color:#e6db74">&#34;True&#34;</span>
+    type: Initialized
+  - lastProbeTime: <span style="color:#66d9ef">null</span>
+    lastTransitionTime: <span style="color:#e6db74">&#34;2021-02-22T09:22:23Z&#34;</span>
+    status: <span style="color:#e6db74">&#34;True&#34;</span>
+    type: Ready
+  - lastProbeTime: <span style="color:#66d9ef">null</span>
+    lastTransitionTime: <span style="color:#e6db74">&#34;2021-02-22T09:22:23Z&#34;</span>
+    status: <span style="color:#e6db74">&#34;True&#34;</span>
+    type: ContainersReady
+  - lastProbeTime: <span style="color:#66d9ef">null</span>
+    lastTransitionTime: <span style="color:#e6db74">&#34;2021-02-22T09:21:50Z&#34;</span>
+    status: <span style="color:#e6db74">&#34;True&#34;</span>
+    type: PodScheduled
+  containerStatuses:
+  - containerID: docker://ffe64f7d3ca9e5f302a9269d87c2598522b883169ef82bd931186bbd8e721482
+    image: bitnami/redis-cluster:<span style="color:#ae81ff">6.0</span><span style="color:#ae81ff">.10</span>-debian<span style="color:#ae81ff">-10</span>-r5
+    imageID: docker-pullable://bitnami/redis-cluster@sha256:dfedcaa03878564f6eb75c101a66d8ecd18a9558971ade5c82611bfa9fb6da96
+    lastState: {}
+    name: kimdubi-test-redis-cluster
+    ready: <span style="color:#66d9ef">true</span>
+    restartCount: <span style="color:#ae81ff">0</span>
+    started: <span style="color:#66d9ef">true</span>
+    state:
+      running:
+        startedAt: <span style="color:#e6db74">&#34;2021-02-22T09:22:12Z&#34;</span>
+  hostIP: <span style="color:#ae81ff">192.168</span><span style="color:#ae81ff">.0</span><span style="color:#ae81ff">.8</span>
+  phase: Running
+  podIP: <span style="color:#ae81ff">10.100</span><span style="color:#ae81ff">.14</span><span style="color:#ae81ff">.8</span>
+  podIPs:
+  - ip: <span style="color:#ae81ff">10.100</span><span style="color:#ae81ff">.14</span><span style="color:#ae81ff">.8</span>
+  qosClass: Burstable
+  startTime: <span style="color:#e6db74">&#34;2021-02-22T09:21:51Z&#34;</span>
+</code></pre></div><h3 id="labels">.labels</h3>
+<ul>
+<li>key-value 형태로 controller가 자신이 관리해야하는 Pod를 구분하기 위해 사용함</li>
+<li>Pod에 lables 을 달아놓으면 statefulset,service 같은 controller에서 labelSelector를 통해 매치되는 Pod을 관리함</li>
+</ul>
+<h3 id="specaffinity">.spec.affinity</h3>
+<ul>
+<li>Pod를 스케줄링 할 때 어떤 worker-node에 배치할 지 조건을 설정하는 옵션</li>
+<li>podAffinity 설정으로 특정 Pod들을 같은 노드에 모아 네트워크 비용을 줄일 수도 있고</li>
+<li>podAntiAffinity 설정으로 같은 기능의 Pod들을 같은 노드에 배치하지 않고 여러 노드에 분산배치할 수 있음</li>
+<li>위 Pod설정에서는 podAntiAffinity 설정으로 Pod들을 분산배치하고자 하는데 podAffinityTerm[].labelSelector.matchLabels: 옵션으로 해당 label이 달린 Pod가 속한 node 에는 &lsquo;되도록&rsquo; 배치하지 않으려한다. (preferredDuringSchedulingIgnoredDuringExecution)</li>
+</ul>
+<h3 id="speccontainersargs">.spec.containers[].args</h3>
+<ul>
+<li>Pod 내 container를 생성할 때 entrypoint로 넘겨줄 arguments 지정</li>
+<li>/opt/bitnami/redis/etc/redis.conf redis configure 파일을 복사하고</li>
+<li>redis cluster 구성을 위한 shell을 수행하기 위해 설정하고 있음
+<ul>
+<li>/opt/bitnami/scripts/redis-cluster/entrypoint.sh</li>
+<li>/opt/bitnami/scripts/redis-cluster/run.sh</li>
+</ul>
+</li>
+</ul>
+<h3 id="speccontainersenv">.spec.containers[].env</h3>
+<ul>
+<li>container에서 사용할 환경변수를 설정해서 넘겨줌</li>
+</ul>
+<h3 id="speccontainersimage">.spec.containers[].image</h3>
+<ul>
+<li>생성할 container image 지정</li>
+</ul>
+<h3 id="speccontainerslivenessprobe">.spec.containers[].livenessProbe</h3>
+<ul>
+<li>Container가 동작 중 인지 /scripts/ping_liveness_local.sh 수행을 통해 확인함</li>
+<li>livenessProbe 동작에 실패하는 경우 worker node의 kubelet은 해당 container를 재기동함</li>
+</ul>
+<h3 id="speccontainersreadinessprobe">.spec.containers[].readinessProbe</h3>
+<ul>
+<li>Container 가 요청을 처리할 수 있는 상태인지 /scripts/ping_readiness_local.sh 수행을 통해 확인함</li>
+<li>readinessProbe 동작에 실패하는 경우 endpoint Controller는 해당 Pod의 IP를 모든 endpoint에서 제거함</li>
+</ul>
+<h3 id="speccontainersresources">.spec.containers[].resources</h3>
+<ul>
+<li>.spec.containers[].resources.limit -&gt; Pod가 최대한 사용할 수 있는 서버 리소스 한계선을 지정, 없으면 Pod 하나가 노드의 모든 리소스를 사용할 수 있음</li>
+<li>.spec.containers[].resources.requests -&gt; Pod를 생성할 때 지정한 만큼의 최소한의 리소스를 할당 할 수 있는 노드에 배치, 만족하는 노드가 없으면 Pod pending</li>
+</ul>
+<h3 id="specconatinersvolumemounts">.spec.conatiners.volumeMounts</h3>
+<ul>
+<li>.spec.volumes 에서 준비한 volume을 container 에 매핑하는 설정</li>
+<li>예를들어 .spec.volumes 에서 redis-data 이름으로 생성한 PVC 볼륨은 container의 /bitnami/redis/data 디렉토리와 매핑됨</li>
+</ul>
+<h3 id="specvolumes">.spec.volumes</h3>
+<ul>
+<li>Container는 stateless 한 특성이 있으나 보존해야하는 데이터가 있을 경우 volume을 생성하여 노드의 디스크와 container의 디렉토리를 매핑할 수 있음</li>
+<li>PVC redis-data-kimdubi-test-redis-cluster-0를 통해 hostPath type의 PV 와 매핑함, Pod는 이 PVC를 통해 실제 볼륨 역할을 하는 PV와 매핑됨</li>
+<li>그 외에 configmap volume 과 Pod가 restart 되면 초기화되는 emptyDir 을 선언함</li>
+</ul>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

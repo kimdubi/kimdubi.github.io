@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Kubernetes에서 redis cluster를 돌려보자 - Service</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Kubernetes에서 redis cluster를 돌려보자 - Service</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Kubernetes에서 redis cluster를 돌려보자 - Service</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><h1 id="service">Service?</h1>
+<h2 id="service-">Service 개념</h2>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_svc01.png" alt=""></p>
+<ul>
+<li>Pod는 deployment, replicaset, statefulset 같은 controller에 의해 관리되기 때문에 새로 생겨나거나 없어지기도 하고 한 Node에만 떠있는 게 아니라 여러 Node를 옮겨다닐 수 있음</li>
+<li>Pod는 이렇듯 동적으로 변하여 고정된 endpoint로의 호출이 어려운데 (Pod의 IP,hostname이 변하니까 ) 이러한 이슈를 해결하기 위한 오브젝트가 Service임</li>
+<li>Client는 클러스터 안에서 Pod IP가 바뀌던 없어지건 새로 생기건 신경쓸 필요 없이 Service만 바라보면 고정된 endpoint로 접근이 가능함</li>
+<li>Service는 크게 아래와 같이 네가지 Type으로 나뉨
+<ul>
+<li>ClusterIp : kubernets cluster 내부에서 사용하는 service. 외부에선 접근할 수 없음</li>
+<li>LoadBalancer : 토클,aws,gcp 등 퍼블릭 클라우드 서비스를 이용할 때 사용가능한 type으로 loadbalancer의 IP를 이용하여 외부에서 접근가능함</li>
+<li>NodePort : kubernetes cluster의 각 노드의 지정된 port를 service에 할당함. node의 port를 이용하기 때문에 외부에서도 접근가능함</li>
+<li>ExternalName : kubernetes cluster 내부에서 외부로 접근하는 경우 사용, Service를 ExternalName 으로 설정하여 CNAME을 타고 외부로 접근함</li>
+</ul>
+</li>
+<li>이 글에서 다루는 redis-cluster 에서는 ClusterIP type의 service를 사용하고 있음 ( DB는 내부통신만 하면 되니까)</li>
+</ul>
+<h2 id="service-1">Service 사용현황</h2>
+<pre><code>$ kubectl get service
+NAME                                  TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)              AGE
+kimdubi-test-redis-cluster            ClusterIP   10.254.8.60   &lt;none&gt;        6379/TCP             6d
+kimdubi-test-redis-cluster-headless   ClusterIP   None          &lt;none&gt;        6379/TCP,16379/TCP   6d
+kubernetes                            ClusterIP   10.254.0.1    &lt;none&gt;        443/TCP              6d1h
+</code></pre><ul>
+<li>kubernetes cluster 내부에서 Pod 간 연결을 위해 사용하는 ClusterIP type의 kimdubi-test-redis-cluster 라는 이름의 service</li>
+<li>ClusterIP type이지만 IP가 설정되지 않은 kimdubi-test-redis-cluster-headless 라는 이름의 service, headless service라고 함</li>
+<li>두개의 service가 생성되었지만 실제로는 kimdubi-test-redis-cluster-headless 서비스가 사용됨</li>
+</ul>
+<h3 id="headless-service">headless service란?</h3>
+<ul>
+<li>kimdubi-test-redis-cluster 같은 보통의 service는 받은 요청을 매핑된 Pod들에게 loadbalancing 형태로 뿌려주는데
+이는 stateless 한 web server 처럼, 어떤 web server로 요청이 가도 동일한 결과를 내는 구조에서 의미가 있음 </li>
+<li>DB처럼 Master / Slave 같은 stateful 한 구성에서는 loadbalancing 형태로 뿌려주는 게 아니라 Master 인지 Slave인지 파악하여 특정한 Pod에 요청을 뿌려줘야함</li>
+<li>이처럼 loadbalancing이 필요없고 client 에서 모든 Pod에 접근해야하는 구성에서는 headless service를 사용하며 아래와 같은 특징이 있음
+<ul>
+<li>headless service는 IP 대신 dns 를 가짐</li>
+<li>headless service의 dns에 대해 nslookup을 수행하면 binding 된 모든 Pod들의 IP를 return 함</li>
+<li>Client는 return 받은 모든 Pod의 IP를 통해 원하는 Pod 에 직접 접근할 수 있음</li>
+</ul>
+</li>
+</ul>
+<pre><code># nslookup kimdubi-test-redis-cluster-headless
+Server:		10.254.0.10
+Address:	10.254.0.10#53
+
+Name:	kimdubi-test-redis-cluster-headless.default.svc.cluster.local
+Address: 10.100.71.3
+Name:	kimdubi-test-redis-cluster-headless.default.svc.cluster.local
+Address: 10.100.14.7
+Name:	kimdubi-test-redis-cluster-headless.default.svc.cluster.local
+Address: 10.100.79.12
+Name:	kimdubi-test-redis-cluster-headless.default.svc.cluster.local
+Address: 10.100.14.8
+Name:	kimdubi-test-redis-cluster-headless.default.svc.cluster.local
+Address: 10.100.79.11
+Name:	kimdubi-test-redis-cluster-headless.default.svc.cluster.local
+Address: 10.100.71.4
+</code></pre><p>=&gt; kimdubi-test-redis-cluster-headless service에 대해 nslookup 수행
+이 service에 binding 된 모든 Pod의 IP를 return 받음
+<!-- raw HTML omitted --></p>
+<h1 id="service--template-">Service 생성 template을 살펴보자</h1>
+<h2 id="kimdubitestrediscluster">kimdubi-test-redis-cluster</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">$ kubectl get service kimdubi-test-redis-cluster -o yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kimdubi-test
+    meta.helm.sh/release-namespace: default
+  creationTimestamp: <span style="color:#e6db74">&#34;2021-02-21T07:33:55Z&#34;</span>
+  labels:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    helm.sh/chart: redis-cluster<span style="color:#ae81ff">-4.3</span><span style="color:#ae81ff">.0</span>
+  name: kimdubi-test-redis-cluster
+  namespace: default
+  resourceVersion: <span style="color:#e6db74">&#34;24613&#34;</span>
+  selfLink: /api/v1/namespaces/default/services/kimdubi-test-redis-cluster
+  uid: c7a73d74-a532<span style="color:#ae81ff">-4689</span>-8d9e-45287df887b3
+spec:
+  clusterIP: <span style="color:#ae81ff">10.254</span><span style="color:#ae81ff">.8</span><span style="color:#ae81ff">.60</span>
+  ports:
+  - name: tcp-redis
+    port: <span style="color:#ae81ff">6379</span>
+    protocol: TCP
+    targetPort: tcp-redis
+  selector:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/name: redis-cluster
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}
+</code></pre></div><h3 id="specclusterip">.spec.clusterIP</h3>
+<ul>
+<li>clusterIP type으로 생성된 service를 지정한 IP로 생성되도록 설정</li>
+<li>이 service는 10.254.8.60 IP를 할당받게됨</li>
+</ul>
+<h3 id="specports">.spec.ports[]</h3>
+<ul>
+<li>해당 서비스의 label selector 에 매치되는 Pod의 특정 Port (targetPort) 를 service의 6379 port에 매핑시킴</li>
+</ul>
+<h3 id="specselector">.spec.selector</h3>
+<ul>
+<li>해당 service가 연결해야하는 대상 Pod의 label 조건</li>
+<li>kimdubi-test , redis-cluster 의 label이 달린 Pod는 이 service를 통해 접근할 수 있음</li>
+</ul>
+<h3 id="specsessionaffinity">.spec.sessionAffinity</h3>
+<ul>
+<li>특정 클라이언트가 특정 Pod에 붙어야할 때 사용하는 설정</li>
+</ul>
+<h3 id="spectype">.spec.type</h3>
+<ul>
+<li>service의 type으로 default는 ClusterIP</li>
+</ul>
+<h2 id="kimdubitestredisclusterheadless">kimdubi-test-redis-cluster-headless</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">$ kubectl get service kimdubi-test-redis-cluster-headless -o yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kimdubi-test
+    meta.helm.sh/release-namespace: default
+  creationTimestamp: <span style="color:#e6db74">&#34;2021-02-21T07:33:55Z&#34;</span>
+  labels:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    helm.sh/chart: redis-cluster<span style="color:#ae81ff">-4.3</span><span style="color:#ae81ff">.0</span>
+  name: kimdubi-test-redis-cluster-headless
+  namespace: default
+  resourceVersion: <span style="color:#e6db74">&#34;24611&#34;</span>
+  selfLink: /api/v1/namespaces/default/services/kimdubi-test-redis-cluster-headless
+  uid: eb2da26a<span style="color:#ae81ff">-9264</span>-46a7-91f1-7a3cfa241889
+spec:
+  clusterIP: None
+  ports:
+  - name: tcp-redis
+    port: <span style="color:#ae81ff">6379</span>
+    protocol: TCP
+    targetPort: tcp-redis
+  - name: tcp-redis-bus
+    port: <span style="color:#ae81ff">16379</span>
+    protocol: TCP
+    targetPort: tcp-redis-bus
+  publishNotReadyAddresses: <span style="color:#66d9ef">true</span>
+  selector:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/name: redis-cluster
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}
+</code></pre></div><h3 id="specclusterip1">.spec.clusterIP</h3>
+<ul>
+<li>위에서 본 kimdubi-test-redis-cluster service와는 다르게 clusterIP 값이 None 으로 설정하여 headless service를 생성함</li>
+</ul>
+<h3 id="specports1">.spec.ports[]</h3>
+<ul>
+<li>해당 서비스의 label selector 에 매치되는 Pod의 특정 Port (targetPort) 를 service의 6379 port에 매핑시킴</li>
+</ul>
+<h3 id="specselector1">.spec.selector</h3>
+<ul>
+<li>해당 service가 연결해야하는 대상 Pod의 label 조건</li>
+<li>kimdubi-test , redis-cluster 의 label이 달린 Pod는 이 service를 통해 접근할 수 있음</li>
+</ul>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

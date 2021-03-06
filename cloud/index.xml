@@ -5,89 +5,10 @@
     <description>Recent content in Clouds on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 06 Mar 2021 15:04:58 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 06 Mar 2021 15:04:53 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/cloud/index.xml" rel="self" type="application/rss+xml" />
     
-    
-    <item>
-      <title>Kubernetes에서 redis cluster를 돌려보자 - 구성요소</title>
-      <link>https://kimdubi.github.io/cloud/k8s_redis_components/</link>
-      <pubDate>Sat, 06 Mar 2021 15:04:58 +0900</pubDate>
-      
-      <guid>https://kimdubi.github.io/cloud/k8s_redis_components/</guid>
-      <description>&lt;h1 id=&#34;heading&#34;&gt;구성요소&lt;/h1&gt;
-&lt;h3 id=&#34;node&#34;&gt;node&lt;/h3&gt;
-&lt;pre&gt;&lt;code&gt;$ kubectl get node
-NAME                                         STATUS   ROLES    AGE     VERSION
-kimdubi-test-default-w-46niimovcith-node-0   Ready    &amp;lt;none&amp;gt;   4h56m   v1.17.6
-kimdubi-test-default-w-46niimovcith-node-1   Ready    &amp;lt;none&amp;gt;   4h56m   v1.17.6
-kimdubi-test-default-w-46niimovcith-node-2   Ready    &amp;lt;none&amp;gt;   4h56m   v1.17.6
-&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
-&lt;li&gt;worker node 3개&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&#34;pod&#34;&gt;Pod&lt;/h3&gt;
-&lt;pre&gt;&lt;code&gt;$ kubectl get pod
-NAME                                              READY   STATUS      RESTARTS   AGE
-kimdubi-test-redis-cluster-0                      1/1     Running     0          3h10m
-kimdubi-test-redis-cluster-1                      1/1     Running     0          3h10m
-kimdubi-test-redis-cluster-2                      1/1     Running     2          3h10m
-kimdubi-test-redis-cluster-3                      1/1     Running     1          3h10m
-kimdubi-test-redis-cluster-4                      1/1     Running     1          3h10m
-kimdubi-test-redis-cluster-5                      1/1     Running     1          3h10m
-kimdubi-test-redis-cluster-cluster-create-gjwsk   0/1     Completed   0          3h10m
-&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
-&lt;li&gt;redis cluster 용도의 Pod 6개&lt;/li&gt;
-&lt;li&gt;Job / batch 용으로 1회성으로 생성된 Pod 1개&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&#34;service&#34;&gt;Service&lt;/h3&gt;
-&lt;pre&gt;&lt;code&gt;$ kubectl get service
-NAME                                  TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)              AGE
-kimdubi-test-redis-cluster            ClusterIP   10.254.8.60   &amp;lt;none&amp;gt;        6379/TCP             3h13m
-kimdubi-test-redis-cluster-headless   ClusterIP   None          &amp;lt;none&amp;gt;        6379/TCP,16379/TCP   3h13m
-&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
-&lt;li&gt;headless service&lt;/li&gt;
-&lt;li&gt;내부에서 동작하는 ClusterIP service&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&#34;statefulset&#34;&gt;StatefulSet&lt;/h3&gt;
-&lt;pre&gt;&lt;code&gt;$ kubectl get statefulset
-NAME                         READY   AGE
-kimdubi-test-redis-cluster   6/6     3h13m
-&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
-&lt;li&gt;Pod 관리하는 statefulset 1개&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&#34;job&#34;&gt;Job&lt;/h3&gt;
-&lt;pre&gt;&lt;code&gt;NAME                                                COMPLETIONS   DURATION   AGE
-job.batch/kimdubi-test-redis-cluster-cluster-create   1/1           44s        23h
-job.batch/kimdubi-test-redis-cluster-cluster-update   1/1           2s         26h
-&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
-&lt;li&gt;hook 으로 동작하는 job&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&#34;pvc--pv&#34;&gt;pvc / pv&lt;/h3&gt;
-&lt;pre&gt;&lt;code&gt;$ kubectl get pv,pvc
-NAME                                                        CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                                             STORAGECLASS   REASON   AGE
-persistentvolume/pvc-10412da7-46bb-43e0-b791-a810774b7c87   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-1   kimdubi-test            3h15m
-persistentvolume/pvc-3b7c88ff-6e56-428a-885f-58301e05478f   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-0   kimdubi-test            3h15m
-persistentvolume/pvc-6a5aa328-8ca2-4450-a308-1c07cc7aab60   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-2   kimdubi-test            3h15m
-persistentvolume/pvc-92e41155-d644-4799-b974-2a35c19ada8b   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-4   kimdubi-test            3h15m
-persistentvolume/pvc-b198c891-2d0c-474e-9113-2ad0f198a336   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-3   kimdubi-test            3h15m
-persistentvolume/pvc-b2fe7621-e748-4cc7-aa4c-2efee2fc0cd8   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-5   kimdubi-test            3h15m
-
-NAME                                                            STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
-persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-0   Bound    pvc-3b7c88ff-6e56-428a-885f-58301e05478f   2Gi        RWO            kimdubi-test   3h15m
-persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-1   Bound    pvc-10412da7-46bb-43e0-b791-a810774b7c87   2Gi        RWO            kimdubi-test   3h15m
-persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-2   Bound    pvc-6a5aa328-8ca2-4450-a308-1c07cc7aab60   2Gi        RWO            kimdubi-test   3h15m
-persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-3   Bound    pvc-b198c891-2d0c-474e-9113-2ad0f198a336   2Gi        RWO            kimdubi-test   3h15m
-persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-4   Bound    pvc-92e41155-d644-4799-b974-2a35c19ada8b   2Gi        RWO            kimdubi-test   3h15m
-persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-5   Bound    pvc-b2fe7621-e748-4cc7-aa4c-2efee2fc0cd8   2Gi        RWO            kimdubi-test   3h15m
-
-&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;configmap&#34;&gt;configmap&lt;/h3&gt;
-&lt;pre&gt;&lt;code&gt;$ kubectl get configmap
-NAME                                 DATA   AGE
-kimdubi-test-redis-cluster-default   1      3h15m
-kimdubi-test-redis-cluster-scripts   2      3h15m
-&lt;/code&gt;&lt;/pre&gt;</description>
-    </item>
     
     <item>
       <title>Kubernetes에서 redis cluster를 돌려보자 - Configmap</title>
@@ -799,8 +720,7 @@ status:
 &lt;li&gt;Pod 에는 여러개의 container가 포함될 수 있고 Pod 내 container들은 storage와 network를 공유하며 내부통신이 가능함&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2 id=&#34;pod--&#34;&gt;Pod 사용 현황&lt;/h2&gt;
-&lt;pre&gt;&lt;code&gt;~~~
-$ kubectl get pod
+&lt;pre&gt;&lt;code&gt;$ kubectl get pod
 NAME                           READY   STATUS    RESTARTS   AGE
 kimdubi-test-redis-cluster-0   1/1     Running   0          23h
 kimdubi-test-redis-cluster-1   1/1     Running   0          2d1h
@@ -808,7 +728,6 @@ kimdubi-test-redis-cluster-2   1/1     Running   1          23h
 kimdubi-test-redis-cluster-3   1/1     Running   1          2d1h
 kimdubi-test-redis-cluster-4   1/1     Running   0          23h
 kimdubi-test-redis-cluster-5   1/1     Running   0          23h
-~~~
 &lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
 &lt;li&gt;본문에서 사용하는 helm chart 에서는 Redis Pod을 6대 생성함&lt;/li&gt;
 &lt;li&gt;3대는 Master , 3대는 Slave 로 동작 중&lt;/li&gt;
@@ -1291,6 +1210,85 @@ status:
 &lt;li&gt;memory나 disk 가 부족한지 등의 상태가 나오기 때문에 Pod 이 생성 안되거나 이상이 있을 때 확인해야하는 정보임&lt;/li&gt;
 &lt;/ul&gt;
 </description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - 구성요소</title>
+      <link>https://kimdubi.github.io/cloud/k8s_redis_components/</link>
+      <pubDate>Sat, 06 Mar 2021 15:01:02 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_redis_components/</guid>
+      <description>&lt;h1 id=&#34;heading&#34;&gt;구성요소&lt;/h1&gt;
+&lt;h3 id=&#34;node&#34;&gt;node&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get node
+NAME                                         STATUS   ROLES    AGE     VERSION
+kimdubi-test-default-w-46niimovcith-node-0   Ready    &amp;lt;none&amp;gt;   4h56m   v1.17.6
+kimdubi-test-default-w-46niimovcith-node-1   Ready    &amp;lt;none&amp;gt;   4h56m   v1.17.6
+kimdubi-test-default-w-46niimovcith-node-2   Ready    &amp;lt;none&amp;gt;   4h56m   v1.17.6
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;worker node 3개&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;pod&#34;&gt;Pod&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pod
+NAME                                              READY   STATUS      RESTARTS   AGE
+kimdubi-test-redis-cluster-0                      1/1     Running     0          3h10m
+kimdubi-test-redis-cluster-1                      1/1     Running     0          3h10m
+kimdubi-test-redis-cluster-2                      1/1     Running     2          3h10m
+kimdubi-test-redis-cluster-3                      1/1     Running     1          3h10m
+kimdubi-test-redis-cluster-4                      1/1     Running     1          3h10m
+kimdubi-test-redis-cluster-5                      1/1     Running     1          3h10m
+kimdubi-test-redis-cluster-cluster-create-gjwsk   0/1     Completed   0          3h10m
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;redis cluster 용도의 Pod 6개&lt;/li&gt;
+&lt;li&gt;Job / batch 용으로 1회성으로 생성된 Pod 1개&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;service&#34;&gt;Service&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get service
+NAME                                  TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)              AGE
+kimdubi-test-redis-cluster            ClusterIP   10.254.8.60   &amp;lt;none&amp;gt;        6379/TCP             3h13m
+kimdubi-test-redis-cluster-headless   ClusterIP   None          &amp;lt;none&amp;gt;        6379/TCP,16379/TCP   3h13m
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;headless service&lt;/li&gt;
+&lt;li&gt;내부에서 동작하는 ClusterIP service&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;statefulset&#34;&gt;StatefulSet&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get statefulset
+NAME                         READY   AGE
+kimdubi-test-redis-cluster   6/6     3h13m
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;Pod 관리하는 statefulset 1개&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;job&#34;&gt;Job&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;NAME                                                COMPLETIONS   DURATION   AGE
+job.batch/kimdubi-test-redis-cluster-cluster-create   1/1           44s        23h
+job.batch/kimdubi-test-redis-cluster-cluster-update   1/1           2s         26h
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;hook 으로 동작하는 job&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;pvc--pv&#34;&gt;pvc / pv&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pv,pvc
+NAME                                                        CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                                             STORAGECLASS   REASON   AGE
+persistentvolume/pvc-10412da7-46bb-43e0-b791-a810774b7c87   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-1   kimdubi-test            3h15m
+persistentvolume/pvc-3b7c88ff-6e56-428a-885f-58301e05478f   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-0   kimdubi-test            3h15m
+persistentvolume/pvc-6a5aa328-8ca2-4450-a308-1c07cc7aab60   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-2   kimdubi-test            3h15m
+persistentvolume/pvc-92e41155-d644-4799-b974-2a35c19ada8b   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-4   kimdubi-test            3h15m
+persistentvolume/pvc-b198c891-2d0c-474e-9113-2ad0f198a336   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-3   kimdubi-test            3h15m
+persistentvolume/pvc-b2fe7621-e748-4cc7-aa4c-2efee2fc0cd8   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-5   kimdubi-test            3h15m
+
+NAME                                                            STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-0   Bound    pvc-3b7c88ff-6e56-428a-885f-58301e05478f   2Gi        RWO            kimdubi-test   3h15m
+persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-1   Bound    pvc-10412da7-46bb-43e0-b791-a810774b7c87   2Gi        RWO            kimdubi-test   3h15m
+persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-2   Bound    pvc-6a5aa328-8ca2-4450-a308-1c07cc7aab60   2Gi        RWO            kimdubi-test   3h15m
+persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-3   Bound    pvc-b198c891-2d0c-474e-9113-2ad0f198a336   2Gi        RWO            kimdubi-test   3h15m
+persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-4   Bound    pvc-92e41155-d644-4799-b974-2a35c19ada8b   2Gi        RWO            kimdubi-test   3h15m
+persistentvolumeclaim/redis-data-kimdubi-test-redis-cluster-5   Bound    pvc-b2fe7621-e748-4cc7-aa4c-2efee2fc0cd8   2Gi        RWO            kimdubi-test   3h15m
+
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;configmap&#34;&gt;configmap&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get configmap
+NAME                                 DATA   AGE
+kimdubi-test-redis-cluster-default   1      3h15m
+kimdubi-test-redis-cluster-scripts   2      3h15m
+&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
     
     <item>

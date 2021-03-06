@@ -143,8 +143,7 @@
 <li>Pod 에는 여러개의 container가 포함될 수 있고 Pod 내 container들은 storage와 network를 공유하며 내부통신이 가능함</li>
 </ul>
 <h2 id="pod--">Pod 사용 현황</h2>
-<pre><code>~~~
-$ kubectl get pod
+<pre><code>$ kubectl get pod
 NAME                           READY   STATUS    RESTARTS   AGE
 kimdubi-test-redis-cluster-0   1/1     Running   0          23h
 kimdubi-test-redis-cluster-1   1/1     Running   0          2d1h
@@ -152,7 +151,6 @@ kimdubi-test-redis-cluster-2   1/1     Running   1          23h
 kimdubi-test-redis-cluster-3   1/1     Running   1          2d1h
 kimdubi-test-redis-cluster-4   1/1     Running   0          23h
 kimdubi-test-redis-cluster-5   1/1     Running   0          23h
-~~~
 </code></pre><ul>
 <li>본문에서 사용하는 helm chart 에서는 Redis Pod을 6대 생성함</li>
 <li>3대는 Master , 3대는 Slave 로 동작 중</li>

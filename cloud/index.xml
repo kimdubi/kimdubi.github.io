@@ -5,10 +5,325 @@
     <description>Recent content in Clouds on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 06 Mar 2021 15:04:53 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 06 Mar 2021 17:55:30 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/cloud/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Job/batch</title>
+      <link>https://kimdubi.github.io/cloud/k8s_redis_job/</link>
+      <pubDate>Sat, 06 Mar 2021 17:55:30 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_redis_job/</guid>
+      <description>&lt;h1 id=&#34;job&#34;&gt;Job?&lt;/h1&gt;
+&lt;h2 id=&#34;job1&#34;&gt;Job개념&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_job01.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;일회성으로 실행되고 나서 종료되어야 하는 성격의 작업을 실행할 때 사용되는 controller&lt;/li&gt;
+&lt;li&gt;helm chart 에서는 주로 hook 의 개념으로 helm의 life cycle 중 (helm install, helm upgrade 등) 특정 단계에서 사전에 정의해둔 Job이 수행되도록 trigger 처럼 동작하게 많이 사용함&lt;/li&gt;
+&lt;li&gt;linux의 crontab 처럼 정해진 스케쥴 마다 Job이 수행되게 하는 cronjob 도 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;job-&#34;&gt;Job 사용현황&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get job
+
+NAME                                                  COMPLETIONS   DURATION   AGE
+job.batch/kimdubi-test-redis-cluster-cluster-create   1/1           37s        4m27s
+job.batch/kimdubi-test-redis-cluster-cluster-update   1/1           24s        3m50s
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;kimdubi-test-redis-cluster-cluster-create Job은 helm install로 redis cluster를 구성할 때 위 Job이 install 후에 수행되어 redis cluster를 구성하는 용도로 사용되고 있음&lt;/li&gt;
+&lt;li&gt;kimdubi-test-redis-cluster-cluster-update Job은 helm upgrade 커맨드로 redis cluster의 node를 추가할 때 동작하는 Job&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;job-template-&#34;&gt;Job template을 살펴보자&lt;/h1&gt;
+&lt;h3 id=&#34;jobbatchkimdubitestredisclusterclustercreate&#34;&gt;job.batch/kimdubi-test-redis-cluster-cluster-create&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;$ kubectl get -o yaml job.batch/kimdubi-test-redis-cluster-cluster-create
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+  creationTimestamp: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-21T07:33:55Z&amp;#34;&lt;/span&gt;
+  labels:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    helm.sh/chart: redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-4.3&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;
+  name: kimdubi-test-redis-cluster-cluster-create
+  namespace: default
+  resourceVersion: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;25079&amp;#34;&lt;/span&gt;
+  selfLink: /apis/batch/v1/namespaces/default/jobs/kimdubi-test-redis-cluster-cluster-create
+  uid: 91756ad1-444b&lt;span style=&#34;color:#ae81ff&#34;&gt;-4593&lt;/span&gt;-90d1-8703a170cbc8
+spec:
+  activeDeadlineSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;600&lt;/span&gt;
+  backoffLimit: &lt;span style=&#34;color:#ae81ff&#34;&gt;6&lt;/span&gt;
+  completions: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+  parallelism: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+  selector:
+    matchLabels:
+      controller-uid: 91756ad1-444b&lt;span style=&#34;color:#ae81ff&#34;&gt;-4593&lt;/span&gt;-90d1-8703a170cbc8
+  template:
+    metadata:
+      creationTimestamp: &lt;span style=&#34;color:#66d9ef&#34;&gt;null&lt;/span&gt;
+      labels:
+        app.kubernetes.io/instance: kimdubi-test
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: redis-cluster
+        controller-uid: 91756ad1-444b&lt;span style=&#34;color:#ae81ff&#34;&gt;-4593&lt;/span&gt;-90d1-8703a170cbc8
+        helm.sh/chart: redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-4.3&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;
+        job-name: kimdubi-test-redis-cluster-cluster-create
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: kimdubi-test
+                  app.kubernetes.io/name: redis-cluster
+              namespaces:
+              - default
+              topologyKey: kubernetes.io/hostname
+            weight: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+      containers:
+      - args:
+        - &lt;span style=&#34;color:#e6db74&#34;&gt;|
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;         &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;# Backwards compatibility change&lt;/span&gt;
+          if ! [[ -f /opt/bitnami/redis/etc/redis.conf ]]; then
+              cp /opt/bitnami/redis/etc/redis-default.conf /opt/bitnami/redis/etc/redis.conf
+          fi
+          /opt/bitnami/scripts/redis-cluster/entrypoint.sh /opt/bitnami/scripts/redis-cluster/run.sh
+        command:
+        - /bin/bash
+        - -c
+        env:
+        - name: REDIS_TLS_ENABLED
+          value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;no&amp;#34;&lt;/span&gt;
+        - name: REDIS_PORT
+          value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;6379&amp;#34;&lt;/span&gt;
+        - name: REDIS_NODES
+          value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;kimdubi-test-redis-cluster-0.kimdubi-test-redis-cluster-headless
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;            kimdubi-test-redis-cluster-1.kimdubi-test-redis-cluster-headless kimdubi-test-redis-cluster-2.kimdubi-test-redis-cluster-headless
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;            kimdubi-test-redis-cluster-3.kimdubi-test-redis-cluster-headless kimdubi-test-redis-cluster-4.kimdubi-test-redis-cluster-headless
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;            kimdubi-test-redis-cluster-5.kimdubi-test-redis-cluster-headless &amp;#39;&lt;/span&gt;
+        - name: REDISCLI_AUTH
+          valueFrom:
+            secretKeyRef:
+              key: redis-password
+              name: kimdubi-test-redis-cluster
+        - name: REDIS_CLUSTER_CREATOR
+          value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;yes&amp;#34;&lt;/span&gt;
+        - name: REDIS_CLUSTER_REPLICAS
+          value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt;
+        image: docker.io/bitnami/redis-cluster:&lt;span style=&#34;color:#ae81ff&#34;&gt;6.0&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.10&lt;/span&gt;-debian&lt;span style=&#34;color:#ae81ff&#34;&gt;-10&lt;/span&gt;-r5
+        imagePullPolicy: IfNotPresent
+        name: trigger
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 50m
+            memory: 50Mi
+        securityContext:
+          runAsUser: &lt;span style=&#34;color:#ae81ff&#34;&gt;1001&lt;/span&gt;
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: OnFailure
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: &lt;span style=&#34;color:#ae81ff&#34;&gt;1001&lt;/span&gt;
+      serviceAccount: default
+      serviceAccountName: default
+      terminationGracePeriodSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;30&lt;/span&gt;
+status:
+  completionTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-21T07:34:55Z&amp;#34;&lt;/span&gt;
+  conditions:
+  - lastProbeTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-21T07:34:55Z&amp;#34;&lt;/span&gt;
+    lastTransitionTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-21T07:34:55Z&amp;#34;&lt;/span&gt;
+    status: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;True&amp;#34;&lt;/span&gt;
+    type: Complete
+  startTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-02-21T07:33:56Z&amp;#34;&lt;/span&gt;
+  succeeded: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;metatdataannotations&#34;&gt;.metatdata.annotations&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;여지껏 본 다른 오브젝트들과는 다르게 helm.sh/hook: post-install,post-upgrade 이라는 설정이 있음&lt;/li&gt;
+&lt;li&gt;Hook은 생성한 chart를 생성하거나 update 수행 등 chart 의 cycle 중에 trigger 처럼 어떤 action을 추가할 수 있게 해주는 기능&lt;/li&gt;
+&lt;li&gt;위처럼 annotation 으로 helm hook 임을 명시하고 post-install,post-upgrade 처럼 어느 시점에 이 Job이 수행될 것인지를 정의 할 수 있음&lt;/li&gt;
+&lt;li&gt;이 Job은 helm chart 설치 후, helm chart upgrade 후 수행되는 Job임&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;speccompletion--specparallelism&#34;&gt;.spec.completion &amp;amp;&amp;amp; .spec.parallelism&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;parallelism 은 해당 Job을 수행하는 Pod가 병렬로 생성되어 실행되는 개 수, parallelistm 3이면 Pod는 3개가 떠서 동작함&lt;/li&gt;
+&lt;li&gt;completion 은 Job이 작업을 완료해야하는 Pod의 개 수&lt;/li&gt;
+&lt;li&gt;parallelism 5 &amp;amp; completion 2 일 때 Pod를 동시에 5개를 띄울 수 있으나 Pod 2개만 작업 성공하면 되기 때문에 Pod 2개만 뜨게됨&lt;/li&gt;
+&lt;li&gt;parallelistm 2 &amp;amp; completion 5 일 때 Pod는 동시에 2개를 띄울 수 있고 작업이 완료되려면 completion 5를 채워야 하기 때문에 Pod 2대, 2대, 1대 씩 떠서 작업을 처리하게됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;spectemplatespec&#34;&gt;.spec.template.spec&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Pod 생성 template과 동일하지만 .spec.template.spec.containers.env 부분에 추가되는 내용이 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;spectemplatespeccontainersenv&#34;&gt;.spec.template.spec.containers.env&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;        - name: REDIS_CLUSTER_CREATOR
+          value: &amp;quot;yes&amp;quot;
+        - name: REDIS_CLUSTER_REPLICAS
+          value: &amp;quot;1&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;전체적으로 Pod 생성구문과 비슷하나 Job에서 생성하는 Pod은 위 환경 변수가 추가되었음&lt;/li&gt;
+&lt;li&gt;이 환경 변수는 container 생성 시 수행되는 스크립트에서 redis cluster를 구성하는 key로써 동작하게 됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;      containers:
+      - args:
+        - |
+          # Backwards compatibility change
+          if ! [[ -f /opt/bitnami/redis/etc/redis.conf ]]; then
+              cp /opt/bitnami/redis/etc/redis-default.conf /opt/bitnami/redis/etc/redis.conf
+          fi
+          /opt/bitnami/scripts/redis-cluster/entrypoint.sh /opt/bitnami/scripts/redis-cluster/run.sh
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;Pod 내 redis container 가 생성되고 /opt/bitnami/scripts/redis-cluster/run.sh 이 스크립트를 수행할 때 REDIS_CLUSTER_CREATOR : yes 인 값을 가지고 생성된 container와 아닌 container가 분기되어 다른 역할을 수행함&lt;/li&gt;
+&lt;li&gt;이 Job을 통해 생성된 Pod는 helm install 후에 hook 호출 되어 REDIS_CLUSTER_CREATOR 값을 가지고 앞서 생성된 Pod들을 cluster구성하는 역할을 수행하고 종료됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;jobbatchkimdubitestredisclusterclusterupdate&#34;&gt;job.batch/kimdubi-test-redis-cluster-cluster-update&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;$ kubectl get -o yaml job.batch/kimdubi-test-redis-cluster-cluster-update
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    helm.sh/hook: post-upgrade
+  creationTimestamp: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-03-06T08:32:53Z&amp;#34;&lt;/span&gt;
+  labels:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    helm.sh/chart: redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-4.4&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;
+  name: kimdubi-test-redis-cluster-cluster-update
+  namespace: default
+  resourceVersion: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;4073462&amp;#34;&lt;/span&gt;
+  selfLink: /apis/batch/v1/namespaces/default/jobs/kimdubi-test-redis-cluster-cluster-update
+  uid: 1f2e3f6f-ba6e&lt;span style=&#34;color:#ae81ff&#34;&gt;-4150&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;-88e8&lt;/span&gt;-e5c692dbc801
+spec:
+  activeDeadlineSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;600&lt;/span&gt;
+  backoffLimit: &lt;span style=&#34;color:#ae81ff&#34;&gt;6&lt;/span&gt;
+  completions: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+  parallelism: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+  selector:
+    matchLabels:
+      controller-uid: 1f2e3f6f-ba6e&lt;span style=&#34;color:#ae81ff&#34;&gt;-4150&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;-88e8&lt;/span&gt;-e5c692dbc801
+  template:
+    metadata:
+      creationTimestamp: &lt;span style=&#34;color:#66d9ef&#34;&gt;null&lt;/span&gt;
+      labels:
+        app.kubernetes.io/instance: kimdubi-test
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: redis-cluster
+        controller-uid: 1f2e3f6f-ba6e&lt;span style=&#34;color:#ae81ff&#34;&gt;-4150&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;-88e8&lt;/span&gt;-e5c692dbc801
+        helm.sh/chart: redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-4.4&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.0&lt;/span&gt;
+        job-name: kimdubi-test-redis-cluster-cluster-update
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: kimdubi-test
+                  app.kubernetes.io/name: redis-cluster
+              namespaces:
+              - default
+              topologyKey: kubernetes.io/hostname
+            weight: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+      containers:
+      - args:
+        - &lt;span style=&#34;color:#e6db74&#34;&gt;|
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;         &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;. /opt/bitnami/scripts/libnet.sh&lt;/span&gt;
+          . /opt/bitnami/scripts/libos.sh
+          &lt;span style=&#34;color:#75715e&#34;&gt;# Backwards compatibility change&lt;/span&gt;
+          if ! [[ -f /opt/bitnami/redis/etc/redis.conf ]]; then
+              cp /opt/bitnami/redis/etc/redis-default.conf /opt/bitnami/redis/etc/redis.conf
+          fi
+          previousNodeIp=&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&amp;#34;&lt;/span&gt;
+          firstNodeIp=$(wait_for_dns_lookup kimdubi-test-redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-0.&lt;/span&gt;kimdubi-test-redis-cluster-headless &lt;span style=&#34;color:#ae81ff&#34;&gt;120&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;)
+          for node in $(seq $((&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;+6&lt;/span&gt;)) &lt;span style=&#34;color:#ae81ff&#34;&gt;7&lt;/span&gt;); do
+            new_node_index=&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;$(($node - 1))&amp;#34;&lt;/span&gt;
+            new_node_ip=$(wait_for_dns_lookup kimdubi-test-redis-cluster-&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;$new_node_index&amp;#34;&lt;/span&gt;.kimdubi-test-redis-cluster-headless &lt;span style=&#34;color:#ae81ff&#34;&gt;120&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;)
+            while [[ $(redis-cli -h &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;$new_node_ip&amp;#34;&lt;/span&gt; -p &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;$REDIS_PORT&amp;#34;&lt;/span&gt; ping) != &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;PONG&amp;#39;&lt;/span&gt; ]]; do
+              echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Node $new_node_ip not ready, waiting for all the nodes to be ready...&amp;#34;&lt;/span&gt;
+              sleep &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+            done
+            slave=()
+            if (( $REDIS_CLUSTER_REPLICAS &amp;gt;= &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; )) &lt;span style=&#34;color:#75715e&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; (( new_node_index % (( $REDIS_CLUSTER_REPLICAS + &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt; )) )); then
+              slave+=(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;--cluster-slave&amp;#34;&lt;/span&gt;)
+              [ -z previousNodeIp ] &lt;span style=&#34;color:#75715e&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; previousNodeIp=$firstNodeIp
+              if [ -z &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;$REDISCLI_AUTH&amp;#34;&lt;/span&gt; ]; then
+                masterID=$(redis-cli -c -h $previousNodeIp cluster myid)
+              else
+                masterID=$(redis-cli -c -h $previousNodeIp -a $REDISCLI_AUTH cluster myid)
+              fi
+              slave+=(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;--cluster-master-id $masterID&amp;#34;&lt;/span&gt;)
+              echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Adding Node $new_node_index ${new_node_ip} as slave of ${masterID}&amp;#34;&lt;/span&gt;
+            else
+              previousNodeIp=$new_node_ip
+              echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Adding Node $new_node_index ${new_node_ip} as master&amp;#34;&lt;/span&gt;
+            fi
+            while ! redis-cli --cluster add-node &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;${new_node_ip}:${REDIS_PORT}&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;${firstNodeIp}:${REDIS_PORT}&amp;#34;&lt;/span&gt; ${slave[@]}; do
+              echo &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Add-node ${new_node_index} ${new_node_ip} failed, retrying&amp;#34;&lt;/span&gt;
+              sleep &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+              firstNodeIp=$(wait_for_dns_lookup kimdubi-test-redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-0.&lt;/span&gt;kimdubi-test-redis-cluster-headless &lt;span style=&#34;color:#ae81ff&#34;&gt;120&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;)
+            done
+          done
+        command:
+        - /bin/bash
+        - -c
+        env:
+        - name: REDIS_PORT
+          value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;6379&amp;#34;&lt;/span&gt;
+        - name: REDIS_CLUSTER_REPLICAS
+          value: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;1&amp;#34;&lt;/span&gt;
+        - name: REDISCLI_AUTH
+          valueFrom:
+            secretKeyRef:
+              key: redis-password
+              name: kimdubi-test-redis-cluster
+        image: docker.io/bitnami/redis-cluster:&lt;span style=&#34;color:#ae81ff&#34;&gt;6.0&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.12&lt;/span&gt;-debian&lt;span style=&#34;color:#ae81ff&#34;&gt;-10&lt;/span&gt;-r0
+        imagePullPolicy: IfNotPresent
+        name: trigger
+        resources: {}
+        securityContext:
+          runAsUser: &lt;span style=&#34;color:#ae81ff&#34;&gt;1001&lt;/span&gt;
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: OnFailure
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: &lt;span style=&#34;color:#ae81ff&#34;&gt;1001&lt;/span&gt;
+      serviceAccount: default
+      serviceAccountName: default
+      terminationGracePeriodSeconds: &lt;span style=&#34;color:#ae81ff&#34;&gt;30&lt;/span&gt;
+status:
+  completionTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-03-06T08:33:17Z&amp;#34;&lt;/span&gt;
+  conditions:
+  - lastProbeTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-03-06T08:33:17Z&amp;#34;&lt;/span&gt;
+    lastTransitionTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-03-06T08:33:17Z&amp;#34;&lt;/span&gt;
+    status: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;True&amp;#34;&lt;/span&gt;
+    type: Complete
+  startTime: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-03-06T08:32:53Z&amp;#34;&lt;/span&gt;
+  succeeded: &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;metatdataannotations1&#34;&gt;.metatdata.annotations&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;helm.sh/hook: post-upgrade , upgrade 수행 시 생성되는 Job으로 아래 커맨드 수행 시 동작함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;helm upgrade --timeout 600s kimdubi-test --set &amp;quot;password=${REDIS_PASSWORD},cluster.nodes=7,cluster.update.addNodes=true,cluster.update.currentNumberOfNodes=6,global.storageClass=kimdubi-test&amp;quot;  bitnami/redis-cluster
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;spectemplatespeccontainerargs&#34;&gt;.spec.template.spec.container.args&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;새로운 Pod 내 redis container 생성하면서 redis cluster에 신규 node를 추가하기 위한 스크립트를 전달함&lt;/li&gt;
+&lt;li&gt;자세한 내용은 autoscale 편에서 다룸&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>Kubernetes에서 redis cluster를 돌려보자 - Configmap</title>

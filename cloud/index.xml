@@ -5,10 +5,290 @@
     <description>Recent content in Clouds on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 24 Jan 2021 19:22:14 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 06 Mar 2021 15:01:01 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/cloud/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - install</title>
+      <link>https://kimdubi.github.io/cloud/k8s_redis_install/</link>
+      <pubDate>Sat, 06 Mar 2021 15:01:01 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_redis_install/</guid>
+      <description>&lt;h2 id=&#34;heading&#34;&gt;목적&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;kubernentes 에서 redis cluster를 쉽게 배포해보자&lt;/li&gt;
+&lt;li&gt;Horizontal Pod Autoscaler (HPA) 기능을 이용하여 redis cluster를 autoscaling 해보자&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;--&#34;&gt;왜 쿠버네티스 ?&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;resource limit &amp;amp; request 설정으로 Redis Container를 kubernetes Node에 효율적인 분산 배치 가능&lt;/li&gt;
+&lt;li&gt;장애 시엔 자동화된 프로세스에 의해 복구됨 (auto healing)&lt;/li&gt;
+&lt;li&gt;Memory 부족 등, 필요한 경우 Scale up 뿐만 아니라 Scale out 까지 가능&lt;/li&gt;
+&lt;li&gt;모든 작업을 &amp;lsquo;선언적&#39;으로 자동화할 수 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;prerequisites&#34;&gt;Prerequisites&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;kubernetes 1.20 이상
+&lt;ul&gt;
+&lt;li&gt;1.20 이상부터 HPA metric으로 memory 추가됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;helm 3.0.1 이상&lt;/li&gt;
+&lt;li&gt;bitnami 에서 제공하는 redis cluster helm chart&lt;/li&gt;
+&lt;li&gt;NHN Cloud kubernetes 서비스
+&lt;ul&gt;
+&lt;li&gt;NHN Cloud 지원 kubernetes 버전은 v1.17 으로 HPA metric memory 사용 불가능&lt;/li&gt;
+&lt;li&gt;이 포스팅에서는 설치 및 아키텍처 소개는 NHN cloud, memory 사용에 따른 autoscale은 개인 PC환경에서 다루고 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;heading1&#34;&gt;설치&lt;/h2&gt;
+&lt;h3 id=&#34;kubernetes-&#34;&gt;kubernetes 설치&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_node01.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;NHN cloud Container 서비스 탭에서 kubernetes cluster를 간단히 생성할 수 있음&lt;/li&gt;
+&lt;li&gt;worker node 3개 짜리 kubernetes cluster를 생성함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;-kubernetes-&#34;&gt;설치한 kubernetes에 접속해보자&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_node02.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;### 다운받은 kubeconfig 파일을 환경변수로 설정함
+$ export KUBECONFIG=kimdubi-test_kubeconfig.yaml
+
+### 설치한 kubernetes 접속 확인
+
+$ kubectl get all
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/kubernetes   ClusterIP   10.254.0.1   &amp;lt;none&amp;gt;        443/TCP   46m
+
+$ kubectl get nodes
+NAME                                         STATUS   ROLES    AGE   VERSION
+kimdubi-test-default-w-46niimovcith-node-0   Ready    &amp;lt;none&amp;gt;   43m   v1.17.6
+kimdubi-test-default-w-46niimovcith-node-1   Ready    &amp;lt;none&amp;gt;   42m   v1.17.6
+kimdubi-test-default-w-46niimovcith-node-2   Ready    &amp;lt;none&amp;gt;   42m   v1.17.6
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;storageclass-&#34;&gt;storageClass 생성&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;### 처음 구성 시 storage class가 없음
+
+$ kubectl get sc
+No resources found
+
+
+$ cat storage_class.yaml
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: kimdubi-test
+provisioner: kubernetes.io/cinder
+parameters:
+  type: General HDD
+  availability: kr-pub-b
+
+### Storage class 생성
+
+$ kubectl apply -f storage_class.yaml
+storageclass.storage.k8s.io/kimdubi-test created
+
+$ kubectl get sc
+NAME           PROVISIONER            RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
+kimdubi-test   kubernetes.io/cinder   Delete          Immediate           false                  2s
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;Pod 에 PVC 를 연결해서 사용하기 위해서는 storageClass 가 있어야함&lt;/li&gt;
+&lt;li&gt;처음 세팅 후엔 storageClass 가 없기 때문에 provisioner: kubernetes.io/cinder 를 사용하는 Storage class를 생성해준다&lt;/li&gt;
+&lt;li&gt;생성하지 않으면 아래부터 진행할 redis pod 생성이 PVC 생성 실패로 pending 됨&lt;/li&gt;
+&lt;li&gt;아래 링크에서 NHN cloud에서 제공하는 Storage type과 생성 조건을 확인
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://docs.toast.com/ko/Container/Kubernetes/ko/user-guide/#_32&#34;&gt;https://docs.toast.com/ko/Container/Kubernetes/ko/user-guide/#_32&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;helm-chart-&#34;&gt;helm chart 받아오기&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ helm repo add bitnami https://charts.bitnami.com/bitnami
+$ helm fetch bitnami/redis-cluster
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;helm-chart-1&#34;&gt;helm chart 살펴보자&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ tree redis-cluster
+redis-cluster
+├── Chart.lock
+├── Chart.yaml
+├── README.md
+├── charts
+│   └── common
+│       ├── Chart.yaml
+│       ├── README.md
+│       ├── templates
+│       │   ├── _affinities.tpl
+│       │   ├── _capabilities.tpl
+│       │   ├── _errors.tpl
+│       │   ├── _images.tpl
+│       │   ├── _ingress.tpl
+│       │   ├── _labels.tpl
+│       │   ├── _names.tpl
+│       │   ├── _secrets.tpl
+│       │   ├── _storage.tpl
+│       │   ├── _tplvalues.tpl
+│       │   ├── _utils.tpl
+│       │   ├── _warnings.tpl
+│       │   └── validations
+│       │       ├── _cassandra.tpl
+│       │       ├── _mariadb.tpl
+│       │       ├── _mongodb.tpl
+│       │       ├── _postgresql.tpl
+│       │       ├── _redis.tpl
+│       │       └── _validations.tpl
+│       └── values.yaml
+├── img
+│   ├── redis-cluster-topology.png
+│   └── redis-topology.png
+├── templates
+│   ├── NOTES.txt
+│   ├── _helpers.tpl
+│   ├── configmap.yaml
+│   ├── extra-list.yaml
+│   ├── headless-svc.yaml
+│   ├── init-cluster.yaml
+│   ├── metrics-prometheus.yaml
+│   ├── metrics-svc.yaml
+│   ├── networkpolicy.yaml
+│   ├── poddisruptionbudget.yaml
+│   ├── prometheusrule.yaml
+│   ├── psp.yaml
+│   ├── redis-role.yaml
+│   ├── redis-rolebinding.yaml
+│   ├── redis-serviceaccount.yaml
+│   ├── redis-statefulset.yaml
+│   ├── redis-svc.yaml
+│   ├── scripts-configmap.yaml
+│   ├── secret.yaml
+│   ├── svc-cluster-external-access.yaml
+│   └── update-cluster.yaml
+└── values.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;object, controller에 공통으로 적용될 설정은 .charts.common.templates, .chrats.common.values.yaml 에 정의됨&lt;/li&gt;
+&lt;li&gt;redis cluster를 구성하는 template과 설정은 .templates, .values.yaml에 정의되어 있음&lt;/li&gt;
+&lt;li&gt;customizing이 필요한 부분은 .values.yaml에서 값을 수정하여 helm을 재배포하면 됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;helm-chart-values-&#34;&gt;helm chart values 수정&lt;/h3&gt;
+&lt;p&gt;간단히 redis Pod의 리소스 사용률을 제한하는 부분과 PV, redis.conf 만 수정하겠음&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;resource requests / limits  수정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ vi helm위치/values.yaml 
+
+177   resources:
+178     requests:
+179       memory: 50Mi
+180       cpu: 50m
+181     limits:
+182       memory: 100Mi
+183       cpu: 100m
+
+
+383   resources:
+384     ## We usually recommend not to specify default resources and to leave this as a conscious
+385     ## choice for the user. This also increases chances charts run on environments with little
+386     ## resources, such as Minikube. If you do want to specify resources, uncomment the following
+387     ## lines, adjust them as necessary, and remove the curly braces after &#39;resources:&#39;.
+388     ##
+389     limits: 
+390       cpu: 100m
+391       memory: 100Mi
+392     ##
+393     requests: 
+394       cpu: 50m
+395       memory: 50Mi
+396     ##
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;redis physical volume size 수정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ vi helm위치/values.yaml 
+
+705   storageClass: kimdubi-test
+706   accessModes:
+707     - ReadWriteOnce
+708   size: 2Gi    
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; storageClass 지정 및 size: 8Gi -&amp;gt; 2Gi 수정&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;configmap 수정 (redis.conf)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ vi helm위치/templates/configmap.yaml
+
+maxmemory 80M
+maxmemory-policy allkeys-lru
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;helm-install&#34;&gt;helm install&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ helm install kimdubi-test ./redis-cluster
+
+$ helm install kimdubi-test ./redis-cluster
+WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /Users/mac/Downloads/kimdubi-test_kubeconfig.yaml
+WARNING: Kubernetes configuration file is world-readable. This is insecure. Location: /Users/mac/Downloads/kimdubi-test_kubeconfig.yaml
+
+NAME: kimdubi-test
+LAST DEPLOYED: Sun Feb 21 16:33:55 2021
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+** Please be patient while the chart is being deployed **
+
+
+To get your password run:
+    export REDIS_PASSWORD=$(kubectl get secret --namespace default kimdubi-test-redis-cluster -o jsonpath=&amp;quot;{.data.redis-password}&amp;quot; | base64 --decode)
+
+You have deployed a Redis(TM) Cluster accessible only from within you Kubernetes Cluster.INFO: The Job to create the cluster will be created.To connect to your Redis(TM) cluster:
+
+1. Run a Redis(TM) pod that you can use as a client:
+kubectl run --namespace default kimdubi-test-redis-cluster-client --rm --tty -i --restart=&#39;Never&#39; \
+ --env REDIS_PASSWORD=$REDIS_PASSWORD \
+--image docker.io/bitnami/redis-cluster:6.0.10-debian-10-r5 -- bash
+
+2. Connect using the Redis(TM) CLI:
+
+redis-cli -c -h kimdubi-test-redis-cluster -a $REDIS_PASSWORD
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;redis-cluster--&#34;&gt;redis cluster 구성 확인&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;dori:helm mac$ kubectl get all
+NAME                                                  READY   STATUS      RESTARTS   AGE
+pod/kimdubi-test-redis-cluster-0                      1/1     Running     0          5m19s
+pod/kimdubi-test-redis-cluster-1                      1/1     Running     0          5m19s
+pod/kimdubi-test-redis-cluster-2                      1/1     Running     2          5m19s
+pod/kimdubi-test-redis-cluster-3                      1/1     Running     1          5m19s
+pod/kimdubi-test-redis-cluster-4                      1/1     Running     1          5m19s
+pod/kimdubi-test-redis-cluster-5                      1/1     Running     1          5m19s
+pod/kimdubi-test-redis-cluster-cluster-create-gjwsk   0/1     Completed   0          5m19s
+
+NAME                                          TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)              AGE
+service/kimdubi-test-redis-cluster            ClusterIP   10.254.8.60   &amp;lt;none&amp;gt;        6379/TCP             5m19s
+service/kimdubi-test-redis-cluster-headless   ClusterIP   None          &amp;lt;none&amp;gt;        6379/TCP,16379/TCP   5m19s
+service/kubernetes                            ClusterIP   10.254.0.1    &amp;lt;none&amp;gt;        443/TCP              115m
+
+NAME                                          READY   AGE
+statefulset.apps/kimdubi-test-redis-cluster   6/6     5m19s
+
+NAME                                                  COMPLETIONS   DURATION   AGE
+job.batch/kimdubi-test-redis-cluster-cluster-create   1/1           59s        5m19s
+dori:helm mac$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                                             STORAGECLASS   REASON   AGE
+pvc-10412da7-46bb-43e0-b791-a810774b7c87   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-1   kimdubi-test            5m24s
+pvc-3b7c88ff-6e56-428a-885f-58301e05478f   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-0   kimdubi-test            5m11s
+pvc-6a5aa328-8ca2-4450-a308-1c07cc7aab60   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-2   kimdubi-test            5m24s
+pvc-92e41155-d644-4799-b974-2a35c19ada8b   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-4   kimdubi-test            5m24s
+pvc-b198c891-2d0c-474e-9113-2ad0f198a336   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-3   kimdubi-test            5m24s
+pvc-b2fe7621-e748-4cc7-aa4c-2efee2fc0cd8   2Gi        RWO            Delete           Bound    default/redis-data-kimdubi-test-redis-cluster-5   kimdubi-test            5m24s
+dori:helm mac$ kubectl get pvc
+NAME                                      STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+redis-data-kimdubi-test-redis-cluster-0   Bound    pvc-3b7c88ff-6e56-428a-885f-58301e05478f   2Gi        RWO            kimdubi-test   5m28s
+redis-data-kimdubi-test-redis-cluster-1   Bound    pvc-10412da7-46bb-43e0-b791-a810774b7c87   2Gi        RWO            kimdubi-test   5m28s
+redis-data-kimdubi-test-redis-cluster-2   Bound    pvc-6a5aa328-8ca2-4450-a308-1c07cc7aab60   2Gi        RWO            kimdubi-test   5m28s
+redis-data-kimdubi-test-redis-cluster-3   Bound    pvc-b198c891-2d0c-474e-9113-2ad0f198a336   2Gi        RWO            kimdubi-test   5m28s
+redis-data-kimdubi-test-redis-cluster-4   Bound    pvc-92e41155-d644-4799-b974-2a35c19ada8b   2Gi        RWO            kimdubi-test   5m28s
+redis-data-kimdubi-test-redis-cluster-5   Bound    pvc-b2fe7621-e748-4cc7-aa4c-2efee2fc0cd8   2Gi        RWO            kimdubi-test   5m28s
+dori:helm mac$ kubectl get configmap
+NAME                                 DATA   AGE
+kimdubi-test-redis-cluster-default   1      5m34s
+kimdubi-test-redis-cluster-scripts   2      5m34s
+
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>kubernetes Volume</title>

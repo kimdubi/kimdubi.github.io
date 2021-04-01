@@ -5,10 +5,225 @@
     <description>Recent content in Clouds on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 06 Mar 2021 17:55:30 +0900</lastBuildDate>
+    <lastBuildDate>Thu, 01 Apr 2021 11:08:41 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/cloud/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자- node추가(수동)</title>
+      <link>https://kimdubi.github.io/cloud/k8s_redis_scaleout/</link>
+      <pubDate>Thu, 01 Apr 2021 11:08:41 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_redis_scaleout/</guid>
+      <description>&lt;h1 id=&#34;redis-node--&#34;&gt;Redis Node 추가하는 경우&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;Redis node의 memory 사용률이 높아 분산이 필요할 때 node를 추가하여 hashslot을 분산한다.&lt;/li&gt;
+&lt;li&gt;kubernetes 1.20v 부터는 Memory 사용률을 metric으로 추가할 수 있어 Memory 사용률에 따른 autoscale이 가능하나 그 아래 버전에서는 아래와 같이 수동으로 추가해야함&lt;/li&gt;
+&lt;li&gt;NHN cloud 제공 kubernetes는 1.17v 를 제공함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;node--&#34;&gt;Node 추가 과정&lt;/h1&gt;
+&lt;h3 id=&#34;-&#34;&gt;처음 상태&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get all
+
+
+NAME                                                  READY   STATUS      RESTARTS   AGE
+pod/kimdubi-test-redis-cluster-0                      1/1     Running     0          31m
+pod/kimdubi-test-redis-cluster-1                      1/1     Running     0          31m
+pod/kimdubi-test-redis-cluster-2                      1/1     Running     0          31m
+pod/kimdubi-test-redis-cluster-3                      1/1     Running     0          31m
+pod/kimdubi-test-redis-cluster-4                      1/1     Running     0          31m
+pod/kimdubi-test-redis-cluster-5                      1/1     Running     0          31m
+pod/kimdubi-test-redis-cluster-cluster-create-6wp5g   0/1     Completed   0          31m
+
+NAME                                          TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)              AGE
+service/kimdubi-test-redis-cluster            ClusterIP   10.254.123.224   &amp;lt;none&amp;gt;        6379/TCP             31m
+service/kimdubi-test-redis-cluster-headless   ClusterIP   None             &amp;lt;none&amp;gt;        6379/TCP,16379/TCP   31m
+service/kubernetes                            ClusterIP   10.254.0.1       &amp;lt;none&amp;gt;        443/TCP              18d
+
+NAME                                          READY   AGE
+statefulset.apps/kimdubi-test-redis-cluster   6/6     31m
+
+NAME                                                  COMPLETIONS   DURATION   AGE
+job.batch/kimdubi-test-redis-cluster-cluster-create   1/1           28s        31m
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;node---&#34;&gt;node 추가 커맨드 수행&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ export REDIS_PASSWORD=$(kubectl get secret --namespace default kimdubi-test-redis-cluster -o jsonpath=&amp;quot;{.data.redis-password}&amp;quot; | base64 --decode)
+
+$ helm upgrade --timeout 600s kimdubi-test --set &amp;quot;password=${REDIS_PASSWORD},cluster.nodes=7,cluster.update.addNodes=true,cluster.update.currentNumberOfNodes=6,global.storageClass=kimdubi-test&amp;quot;  ./redis-cluster
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;Job/batch 편에서 본 것처럼 helm upgrade 작업을 수행하면 hook 동작으로 upgrade Job을 호출함&lt;/li&gt;
+&lt;li&gt;cluster.update.currentNumberOfNodes=6 : 현재 6개 Node으로 이뤄진 cluster 를&lt;br&gt;
+cluster.nodes=7 : 일곱개의 node로&lt;br&gt;
+cluster.update.addNodes=true : node 추가하겠다는 커맨드&lt;/li&gt;
+&lt;li&gt;global.storageClass=kimdubi-test : PVC를 할당할 때 사용되는 StorageClass는 맨처음 생성했던 kimdubi-test storageclass 으로 설정하겠다는 의미&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;--&#34;&gt;커맨드 수행 직후&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ $ kubectl get all
+NAME                                                  READY   STATUS        RESTARTS   AGE
+pod/kimdubi-test-redis-cluster-0                      1/1     Running       0          33m
+pod/kimdubi-test-redis-cluster-1                      1/1     Running       0          33m
+pod/kimdubi-test-redis-cluster-2                      1/1     Running       0          33m
+pod/kimdubi-test-redis-cluster-3                      1/1     Running       0          33m
+pod/kimdubi-test-redis-cluster-4                      1/1     Running       0          33m
+pod/kimdubi-test-redis-cluster-5                      0/1     Terminating   0          33m
+pod/kimdubi-test-redis-cluster-6                      1/1     Running       0          25s
+pod/kimdubi-test-redis-cluster-cluster-create-79d77   0/1     Completed     0          24s
+pod/kimdubi-test-redis-cluster-cluster-update-mtr76   1/1     Running       0          2s
+pod/testnet                                           1/1     Running       0          11d
+
+NAME                                          TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)              AGE
+service/kimdubi-test-redis-cluster            ClusterIP   10.254.123.224   &amp;lt;none&amp;gt;        6379/TCP             33m
+service/kimdubi-test-redis-cluster-headless   ClusterIP   None             &amp;lt;none&amp;gt;        6379/TCP,16379/TCP   33m
+service/kubernetes                            ClusterIP   10.254.0.1       &amp;lt;none&amp;gt;        443/TCP              18d
+
+NAME                                          READY   AGE
+statefulset.apps/kimdubi-test-redis-cluster   6/7     25s
+
+NAME                                                  COMPLETIONS   DURATION   AGE
+job.batch/kimdubi-test-redis-cluster-cluster-create   1/1           21s        24s
+job.batch/kimdubi-test-redis-cluster-cluster-update   0/1           2s         2s
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;pod/kimdubi-test-redis-cluster-6 신규 Pod 가 추가 생성됨&lt;/li&gt;
+&lt;li&gt;StatefulSet에 변경사항이 생겼고 updateStrategy가 RollingUpdate 이기 때문에 다른 Pod들도 하나씩 재생성됨&lt;/li&gt;
+&lt;li&gt;재생성은 index 6 -&amp;gt; 0 순서로 진행되고 재기동 후에도 Master - Slave 관계는 유지됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;redis-cluster-info&#34;&gt;redis cluster info&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;node 추가 전 처음 상태&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6379&amp;gt; cluster nodes
+2d518c1ad99e6b2dbedcf8f0027ac5ebc8507021 10.100.79.103:6379@16379 slave d4053b7b22c11550cc504bb6e89b615a24c0d9c1 0 1615684830021 9 connected
+d2f4db52d7cbf4e4dba981ad190d8dae6195dd52 10.100.14.116:6379@16379 myself,master - 0 1615684827000 8 connected 5461-10922
+77068c99f97ba1f03d2106701f3150c0299b4c74 10.100.71.86:6379@16379 slave d2f4db52d7cbf4e4dba981ad190d8dae6195dd52 0 1615684827000 8 connected
+d4053b7b22c11550cc504bb6e89b615a24c0d9c1 10.100.71.85:6379@16379 master - 0 1615684828000 9 connected 0-5460
+55ff96c5dc4c106d703bb833dbe9284ee2a6d7de 10.100.14.118:6379@16379 slave 9243566b8b590661198ced938bb7f1748c985d39 0 1615684827000 7 connected
+9243566b8b590661198ced938bb7f1748c985d39 10.100.14.117:6379@16379 master - 0 1615684829016 7 connected 10923-16383
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;node 1개 추가 후 상태&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6379&amp;gt; cluster info
+cluster_state:ok
+cluster_slots_assigned:16384
+cluster_slots_ok:16384
+cluster_slots_pfail:0
+cluster_slots_fail:0
+cluster_known_nodes:6
+cluster_size:3   &amp;lt;====  아래에서 보듯 Master node는 4개지만 새로 추가된 Master node는 hashslot 분배 받은 게 없어 cluster size는 3임
+
+
+127.0.0.1:6379&amp;gt; cluster nodes
+2d518c1ad99e6b2dbedcf8f0027ac5ebc8507021 10.100.79.103:6379@16379 slave d4053b7b22c11550cc504bb6e89b615a24c0d9c1 0 1615684830021 9 connected
+d2f4db52d7cbf4e4dba981ad190d8dae6195dd52 10.100.14.116:6379@16379 myself,master - 0 1615684827000 8 connected 5461-10922
+77068c99f97ba1f03d2106701f3150c0299b4c74 10.100.71.86:6379@16379 slave d2f4db52d7cbf4e4dba981ad190d8dae6195dd52 0 1615684827000 8 connected
+d4053b7b22c11550cc504bb6e89b615a24c0d9c1 10.100.71.85:6379@16379 master - 0 1615684828000 9 connected 0-5460
+d9195d121b334ec98959fbe30faed25e9a8414a8 10.100.79.102:6379@16379 master - 0 1615684829000 0 connected
+55ff96c5dc4c106d703bb833dbe9284ee2a6d7de 10.100.14.118:6379@16379 slave 9243566b8b590661198ced938bb7f1748c985d39 0 1615684827000 7 connected
+9243566b8b590661198ced938bb7f1748c985d39 10.100.14.117:6379@16379 master - 0 1615684829016 7 connected 10923-16383
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt;  d9195d121b334ec98959fbe30faed25e9a8414a8 10.100.79.102:6379@16379 master - 0 1615684829000 0 connected
+node가 새로 master 로 추가됐으나 slot을 분배 받지 못한 상황임&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;hashslot reblancing&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ redis-cli --cluster info kimdubi-test-redis-cluster-6.kimdubi-test-redis-cluster-headless:6379
+kimdubi-test-redis-cluster-6.kimdubi-test-redis-cluster-headless:6379 (d9195d12...) -&amp;gt; 0 keys | 0 slots | 0 slaves.
+10.100.14.117:6379 (9243566b...) -&amp;gt; 0 keys | 5461 slots | 1 slaves.
+10.100.71.85:6379 (d4053b7b...) -&amp;gt; 0 keys | 5461 slots | 1 slaves.
+10.100.14.116:6379 (d2f4db52...) -&amp;gt; 0 keys | 5462 slots | 1 slaves.
+[OK] 0 keys in 4 masters.
+0.00 keys per slot on average.
+
+
+$ redis-cli --cluster rebalance --cluster-use-empty-masters kimdubi-test-redis-cluster-6.kimdubi-test-redis-cluster-headless:6379
+&amp;gt;&amp;gt;&amp;gt; Performing Cluster Check (using node kimdubi-test-redis-cluster-6.kimdubi-test-redis-cluster-headless:6379)
+[OK] All nodes agree about slots configuration.
+&amp;gt;&amp;gt;&amp;gt; Check for open slots...
+&amp;gt;&amp;gt;&amp;gt; Check slots coverage...
+[OK] All 16384 slots covered.
+&amp;gt;&amp;gt;&amp;gt; Rebalancing across 4 nodes. Total weight = 4.00
+Moving 1366 slots from 10.100.14.116:6379 to kimdubi-test-redis-cluster-6.kimdubi-test-redis-cluster-headless:6379
+##################################################################################################################
+Moving 1365 slots from 10.100.71.85:6379 to kimdubi-test-redis-cluster-6.kimdubi-test-redis-cluster-headless:6379
+##################################################################################################################
+Moving 1365 slots from 10.100.14.117:6379 to kimdubi-test-redis-cluster-6.kimdubi-test-redis-cluster-headless:6379
+##################################################################################################################
+
+
+$ redis-cli --cluster info kimdubi-test-redis-cluster-6.kimdubi-test-redis-cluster-headless:6379
+kimdubi-test-redis-cluster-6.kimdubi-test-redis-cluster-headless:6379 (d9195d12...) -&amp;gt; 0 keys | 4096 slots | 0 slaves.
+10.100.14.117:6379 (9243566b...) -&amp;gt; 0 keys | 4096 slots | 1 slaves.
+10.100.71.85:6379 (d4053b7b...) -&amp;gt; 0 keys | 4096 slots | 1 slaves.
+10.100.14.116:6379 (d2f4db52...) -&amp;gt; 0 keys | 4096 slots | 1 slaves.
+[OK] 0 keys in 4 masters.
+0.00 keys per slot on average.
+
+
+127.0.0.1:6379&amp;gt; cluster info
+cluster_state:ok
+cluster_slots_assigned:16384
+cluster_slots_ok:16384
+cluster_slots_pfail:0
+cluster_slots_fail:0
+cluster_known_nodes:7
+cluster_size:4    &amp;lt;===== 3-&amp;gt; 4 로 증가함
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt;  새로운 Node를 rebalancing 하여 redis cluster 의 Master node로 추가시켜줌.&lt;br&gt;
+이때 statefulset의 특성을 이용해 새로운 Node의 IP가 아니라 domain 주소를 사용할 수 있음&lt;/p&gt;
+&lt;h3 id=&#34;node----&#34;&gt;Node 하나 더 추가하면 ?&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;node 하나 더 추가 ( node 7 -&amp;gt; 8 )&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ helm upgrade --timeout 600s kimdubi-test --set &amp;quot;password=${REDIS_PASSWORD},cluster.nodes=8,cluster.update.addNodes=true,cluster.update.currentNumberOfNodes=7,global.storageClass=kimdubi-test&amp;quot;  ./redis-cluster
+
+$ kubectl get all
+NAME                                                  READY   STATUS              RESTARTS   AGE
+pod/kimdubi-test-redis-cluster-0                      1/1     Running             0          22m
+pod/kimdubi-test-redis-cluster-1                      1/1     Running             0          22m
+pod/kimdubi-test-redis-cluster-2                      1/1     Running             0          23m
+pod/kimdubi-test-redis-cluster-3                      1/1     Running             0          23m
+pod/kimdubi-test-redis-cluster-4                      1/1     Running             0          24m
+pod/kimdubi-test-redis-cluster-5                      1/1     Running             0          24m
+pod/kimdubi-test-redis-cluster-6                      1/1     Running             0          24m
+pod/kimdubi-test-redis-cluster-7                      0/1     ContainerCreating   0          13s
+pod/kimdubi-test-redis-cluster-cluster-create-hkwgg   1/1     Running             0          13s
+pod/testnet                                           1/1     Running             0          13d
+
+NAME                                          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)              AGE
+service/kimdubi-test-redis-cluster            ClusterIP   10.254.36.167   &amp;lt;none&amp;gt;        6379/TCP             40m
+service/kimdubi-test-redis-cluster-headless   ClusterIP   None            &amp;lt;none&amp;gt;        6379/TCP,16379/TCP   40m
+service/kubernetes                            ClusterIP   10.254.0.1      &amp;lt;none&amp;gt;        443/TCP              20d
+
+NAME                                          READY   AGE
+statefulset.apps/kimdubi-test-redis-cluster   7/8     40m
+
+NAME                                                  COMPLETIONS   DURATION   AGE
+job.batch/kimdubi-test-redis-cluster-cluster-create   0/1           13s        13s
+job.batch/kimdubi-test-redis-cluster-cluster-update   0/1           24m        24m
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; pod/kimdubi-test-redis-cluster-7                      0/1     ContainerCreating   0          13s 새로운 Pod 추가 생성 중&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;redis cluster info&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6379&amp;gt; cluster nodes
+55ff96c5dc4c106d703bb833dbe9284ee2a6d7de 10.100.14.121:6379@16379 slave 9243566b8b590661198ced938bb7f1748c985d39 0 1615685299000 7 connected
+9243566b8b590661198ced938bb7f1748c985d39 10.100.14.120:6379@16379 master - 0 1615685300852 7 connected 12288-16383
+d2f4db52d7cbf4e4dba981ad190d8dae6195dd52 10.100.14.119:6379@16379 myself,master - 0 1615685298000 8 connected 6827-10922
+2d518c1ad99e6b2dbedcf8f0027ac5ebc8507021 10.100.79.108:6379@16379 slave d4053b7b22c11550cc504bb6e89b615a24c0d9c1 0 1615685299000 9 connected
+d4053b7b22c11550cc504bb6e89b615a24c0d9c1 10.100.71.88:6379@16379 master - 0 1615685301000 9 connected 1365-5460
+aae532ecf5c137bfbdd4f9fa805e8cc409237666 10.100.71.87:6379@16379 slave d9195d121b334ec98959fbe30faed25e9a8414a8 0 1615685301000 10 connected
+77068c99f97ba1f03d2106701f3150c0299b4c74 10.100.79.107:6379@16379 slave d2f4db52d7cbf4e4dba981ad190d8dae6195dd52 0 1615685302866 8 connected
+d9195d121b334ec98959fbe30faed25e9a8414a8 10.100.79.106:6379@16379 master - 0 1615685301866 10 connected 0-1364 5461-6826 10923-12287
+
+
+I have no name!@kimdubi-test-redis-cluster-5:/$ redis-cli --cluster info kimdubi-test-redis-cluster-6.kimdubi-test-redis-cluster-headless:6379
+kimdubi-test-redis-cluster-6.kimdubi-test-redis-cluster-headless:6379 (d9195d12...) -&amp;gt; 0 keys | 4096 slots | 1 slaves.
+10.100.14.120:6379 (9243566b...) -&amp;gt; 0 keys | 4096 slots | 1 slaves.
+10.100.71.88:6379 (d4053b7b...) -&amp;gt; 0 keys | 4096 slots | 1 slaves.
+10.100.14.119:6379 (d2f4db52...) -&amp;gt; 0 keys | 4096 slots | 1 slaves.
+[OK] 0 keys in 4 masters.
+0.00 keys per slot on average.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; 자동으로 위에서 추가한 Master node의 Slave로 추가 됨&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>Kubernetes에서 redis cluster를 돌려보자 - Job/batch</title>

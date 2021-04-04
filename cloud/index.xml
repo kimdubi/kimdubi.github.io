@@ -5,10 +5,206 @@
     <description>Recent content in Clouds on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 01 Apr 2021 11:08:41 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 04 Apr 2021 15:38:51 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/cloud/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>kubernetes에서 redis cluster를 돌려보자 - monitoring(grafana,prometheus)</title>
+      <link>https://kimdubi.github.io/cloud/k8s_redis_mon/</link>
+      <pubDate>Sun, 04 Apr 2021 15:38:51 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_redis_mon/</guid>
+      <description>&lt;h1 id=&#34;prometheus-operator&#34;&gt;Prometheus Operator?&lt;/h1&gt;
+&lt;h2 id=&#34;heading&#34;&gt;개념&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_mon1.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Operator :&lt;/li&gt;
+&lt;li&gt;Service : Kubernetes에서 돌고있는 application, 본문에서는 Redis cluster 를 의미함&lt;/li&gt;
+&lt;li&gt;ServiceMonitor : 위의 service, 즉 redis cluster를 scraping 하는 동작을 의미함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;kubernetes 위에서 Pod는 유동적으로 변하지만 ServiceMonitor는 Pod를 label로 구분하여 scraping 하고,&lt;br&gt;
+Operator는 이 ServiceMonitor만 바라보면 되기 때문에 운영자 입장에서는 application 배포, 운영관리가 자동화되는 효과가 있음&lt;/p&gt;
+&lt;h1 id=&#34;-&#34;&gt;모니터링을 구축해보자&lt;/h1&gt;
+&lt;h3 id=&#34;-rediscluster-helm-chart-&#34;&gt;기존 redis-cluster helm chart 수정&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;helm values.yaml 수정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;## Prometheus Exporter / Metrics
+
+metrics:
+  enabled: true
+  
+  # Enable this if you&#39;re using https://github.com/coreos/prometheus-operator
+  serviceMonitor:
+    enabled: true
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; redis-cluster Pod에 Prometheus Exporter 를 띄우겠다는 설정&lt;br&gt;
+metrics와 serviceMonitor를 띄워 metric를 수집하도록 설정함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;redis-exporter 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get pod
+NAME                                              READY   STATUS      RESTARTS   AGE
+kimdubi-test-redis-cluster-0                      2/2     Running     0          3m21s
+kimdubi-test-redis-cluster-1                      2/2     Running     0          3m53s
+kimdubi-test-redis-cluster-2                      2/2     Running     0          4m28s
+kimdubi-test-redis-cluster-3                      2/2     Running     0          5m12s
+kimdubi-test-redis-cluster-4                      2/2     Running     0          5m53s
+kimdubi-test-redis-cluster-5                      2/2     Running     0          6m18s
+
+$ kubectl exec -it kimdubi-test-redis-cluster-0 -c metrics /bin/sh
+
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [POD] -- [COMMAND] instead.
+
+$ ps -ef
+UID        PID  PPID  C STIME TTY          TIME CMD
+1001         1     0  0 07:35 ?        00:00:00 redis_exporter
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; Pod 내 container가 1/1 -&amp;gt; 2/2, Pod 하나에 Container 두대가 떴다는 의미&lt;br&gt;
+Pod 접속 시 -c 옵션을 통해 Container명을 지정해서 접속할 수 있음&lt;/p&gt;
+&lt;h3 id=&#34;prometheusopertor-&#34;&gt;prometheus-opertor 설치&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;prometheus-operator 다운로드&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ helm fetch stable/prometheus-operator
+$ tar zxvpf prometheus-operator-9.3.2.tgz
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;helm chart 수정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;### vi ~/prometheus-operator/charts/grafana
+
+persistence:
+  type: pvc
+  enabled: true
+  storageClassName: kimdubi-test
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;helm install&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ helm install --namespace monitoring --create-namespace monitoring ./prometheus-operator
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;구성 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ helm ls -n monitoring
+
+NAME      	NAMESPACE 	REVISION	UPDATED                             	STATUS  	CHART                    	APP VERSION
+monitoring	monitoring	1       	2021-03-17 16:13:07.047828 +0900 KST	deployed	prometheus-operator-9.3.2	0.38.1
+
+$ kubectl get all -n monitoring
+NAME                                                         READY   STATUS    RESTARTS   AGE
+pod/alertmanager-monitoring-prometheus-oper-alertmanager-0   2/2     Running   0          4m13s
+pod/monitoring-grafana-5694798c88-dhnqf                      2/2     Running   0          4m20s
+pod/monitoring-kube-state-metrics-5f4d9ddc46-qfmrj           1/1     Running   0          4m20s
+pod/monitoring-prometheus-node-exporter-6vd26                1/1     Running   0          4m20s
+pod/monitoring-prometheus-node-exporter-r99gf                1/1     Running   0          4m20s
+pod/monitoring-prometheus-node-exporter-x4qfw                1/1     Running   0          4m20s
+pod/monitoring-prometheus-oper-operator-8bd4fb5b8-7xr9q      2/2     Running   0          4m20s
+pod/prometheus-monitoring-prometheus-oper-prometheus-0       3/3     Running   1          4m3s
+
+NAME                                              TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+service/alertmanager-operated                     ClusterIP   None             &amp;lt;none&amp;gt;        9093/TCP,9094/TCP,9094/UDP   4m13s
+service/monitoring-grafana                        ClusterIP   10.254.108.201   &amp;lt;none&amp;gt;        80/TCP                       4m20s
+service/monitoring-kube-state-metrics             ClusterIP   10.254.87.45     &amp;lt;none&amp;gt;        8080/TCP                     4m20s
+service/monitoring-prometheus-node-exporter       ClusterIP   10.254.160.157   &amp;lt;none&amp;gt;        9100/TCP                     4m20s
+service/monitoring-prometheus-oper-alertmanager   ClusterIP   10.254.129.73    &amp;lt;none&amp;gt;        9093/TCP                     4m20s
+service/monitoring-prometheus-oper-operator       ClusterIP   10.254.163.131   &amp;lt;none&amp;gt;        8080/TCP,443/TCP             4m20s
+service/monitoring-prometheus-oper-prometheus     ClusterIP   10.254.29.59     &amp;lt;none&amp;gt;        9090/TCP                     4m20s
+service/prometheus-operated                       ClusterIP   None             &amp;lt;none&amp;gt;        9090/TCP                     4m3s
+
+NAME                                                 DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/monitoring-prometheus-node-exporter   3         3         3       3            3           &amp;lt;none&amp;gt;          4m20s
+
+NAME                                                  READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/monitoring-grafana                    1/1     1            1           4m20s
+deployment.apps/monitoring-kube-state-metrics         1/1     1            1           4m20s
+deployment.apps/monitoring-prometheus-oper-operator   1/1     1            1           4m20s
+
+NAME                                                            DESIRED   CURRENT   READY   AGE
+replicaset.apps/monitoring-grafana-5694798c88                   1         1         1       4m20s
+replicaset.apps/monitoring-kube-state-metrics-5f4d9ddc46        1         1         1       4m20s
+replicaset.apps/monitoring-prometheus-oper-operator-8bd4fb5b8   1         1         1       4m20s
+
+NAME                                                                    READY   AGE
+statefulset.apps/alertmanager-monitoring-prometheus-oper-alertmanager   1/1     4m13s
+statefulset.apps/prometheus-monitoring-prometheus-oper-prometheus       1/1     4m13s
+
+
+$ kubectl get servicemonitor -n monitoring
+NAME                                                 AGE
+monitoring-prometheus-oper-alertmanager              23h
+monitoring-prometheus-oper-apiserver                 23h
+monitoring-prometheus-oper-coredns                   23h
+monitoring-prometheus-oper-grafana                   23h
+monitoring-prometheus-oper-kube-controller-manager   23h
+monitoring-prometheus-oper-kube-etcd                 23h
+monitoring-prometheus-oper-kube-proxy                23h
+monitoring-prometheus-oper-kube-scheduler            23h
+monitoring-prometheus-oper-kube-state-metrics        23h
+monitoring-prometheus-oper-kubelet                   23h
+monitoring-prometheus-oper-node-exporter             23h
+monitoring-prometheus-oper-operator                  23h
+monitoring-prometheus-oper-prometheus                23h
+
+
+$ kubectl get crd -n monitoring
+NAME                                    CREATED AT
+alertmanagers.monitoring.coreos.com     2021-03-15T15:13:43Z
+podmonitors.monitoring.coreos.com       2021-03-15T15:13:43Z
+probes.monitoring.coreos.com            2021-03-15T15:13:43Z
+prometheuses.monitoring.coreos.com      2021-03-15T15:13:44Z
+prometheusrules.monitoring.coreos.com   2021-03-15T15:13:44Z
+servicemonitors.monitoring.coreos.com   2021-03-15T15:13:44Z
+thanosrulers.monitoring.coreos.com      2021-03-15T15:13:44Z
+
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;prometheusoperator-&#34;&gt;prometheus-operator 연동&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;grafana service 수정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl edit service/monitoring-grafana -n monitoring
+
+spec:
+  clusterIP: 10.254.108.201
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: service
+    nodePort: 31000
+    port: 80
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app.kubernetes.io/instance: monitoring
+    app.kubernetes.io/name: grafana
+  sessionAffinity: None
+  type: NodePort
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; grafana Pod를 외부 port로 접속하기 위해 매핑된 Service를 ClusterIP -&amp;gt; NodePort type으로 변경해준다&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;redis-cluster Servicemonitor 수정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl edit servicemonitor kimdubi-test-redis-cluster
+
+  labels:
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    helm.sh/chart: redis-cluster-4.3.1
+    release: monitoring
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; lables 설정에 release: monitoring 을 추가하여 Prometheus-operator 가 인식할 수 있게 함&lt;br&gt;
+각각의 redis Pod은 건드릴 필요 없이 Opertor가 바라보는 Serviemonitor만 수정해주면 되기 때문에 Pod가 확장 되거나 축소되어도 모니터링엔 영향없음&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;외부 접근을 위해 kubernetes node 중 하나에 FIP를 할당해준다&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_mon2.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;grafana dashboard 접속 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_mon3.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;default 접속 정보 admin / prom-opertor&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>Kubernetes에서 redis cluster를 돌려보자- node추가(수동)</title>

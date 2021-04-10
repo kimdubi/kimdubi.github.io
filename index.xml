@@ -5,7 +5,7 @@
     <description>Recent content on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 04 Apr 2021 15:38:51 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 10 Apr 2021 23:15:22 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/index.xml" rel="self" type="application/rss+xml" />
     
@@ -13,9 +13,18 @@
     <item>
       <title>Clouds</title>
       <link>https://kimdubi.github.io/cloud/</link>
-      <pubDate>Sun, 04 Apr 2021 15:38:51 +0900</pubDate>
+      <pubDate>Sat, 10 Apr 2021 23:15:22 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/cloud/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Postgresqls</title>
+      <link>https://kimdubi.github.io/postgresql/</link>
+      <pubDate>Sat, 10 Apr 2021 23:10:56 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/postgresql/</guid>
       <description></description>
     </item>
     
@@ -25,15 +34,6 @@
       <pubDate>Sun, 14 Feb 2021 16:28:44 +0900</pubDate>
       
       <guid>https://kimdubi.github.io/mysql/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Postgresqls</title>
-      <link>https://kimdubi.github.io/postgresql/</link>
-      <pubDate>Thu, 11 Feb 2021 20:39:19 +0900</pubDate>
-      
-      <guid>https://kimdubi.github.io/postgresql/</guid>
       <description></description>
     </item>
     

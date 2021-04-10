@@ -5,10 +5,208 @@
     <description>Recent content in Clouds on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 04 Apr 2021 15:38:51 +0900</lastBuildDate>
+    <lastBuildDate>Sat, 10 Apr 2021 23:15:22 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/cloud/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>kubernetes에서 redis cluster를 돌려보자 - alertmanager</title>
+      <link>https://kimdubi.github.io/cloud/k8s_alertmanager/</link>
+      <pubDate>Sat, 10 Apr 2021 23:15:22 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/cloud/k8s_alertmanager/</guid>
+      <description>&lt;h2 id=&#34;heading&#34;&gt;구성&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;helm 으로 설치한 prometheus-operator 의 prometheus와 alertmanager를 사용함&lt;/li&gt;
+&lt;li&gt;신규로 redis용 PrometheusRule object를 생성하고 이를 prometheus와 연동함
+&lt;ul&gt;
+&lt;li&gt;PrometheusRule는 새로 생성되거나 delete 되는 Pod도 자동으로 인식할 수 있게 helm chart 와 Pod에 연동되어야함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;slack api를 webhook으로 사용&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;prometheusrules-&#34;&gt;prometheusrules 생성&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;vi redis-rule.yaml&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kimdubi-test
+    meta.helm.sh/release-namespace: default
+  labels:
+    app: prometheus-operator
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    helm.sh/chart: redis-cluster&lt;span style=&#34;color:#ae81ff&#34;&gt;-4.3&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;.1&lt;/span&gt;
+    release: monitoring
+  name: kimdubi-test-redis-cluster
+  namespace: default
+spec:
+  groups:
+  - name: redis-cluster
+    rules:
+    - alert: RedisDown
+      annotations:
+        description: Redis(TM) instance {{$labels.pod}}  is down.
+        summary: Redis(TM) instance {{$labels.pod}} is down
+      expr: redis_up{service=&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;kimdubi-test-redis-cluster-metrics&amp;#34;&lt;/span&gt;} == &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;
+      for: 1s
+      labels:
+        severity: error
+    - alert: RedisMemoryHigh
+      annotations:
+        description: Redis(TM) instance {{$labels.pod}}  is using {{ $value }} of
+          its available memory.
+        summary: Redis(TM) instance {{$labels.pod}}  is using too much memory
+      expr: &lt;span style=&#34;color:#e6db74&#34;&gt;|
+&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;       &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;redis_memory_used_bytes{service=&amp;#34;kimdubi-test-redis-cluster-metrics&amp;#34;} * 100 / redis_memory_max_bytes{service=&amp;#34;kimdubi-test-redis-cluster-metrics&amp;#34;} &amp;gt; 90&lt;/span&gt;
+      for: 2m
+      labels:
+        severity: error
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;rule 생성&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl apply -f redis-rule.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;alertmanager-&#34;&gt;alertmanager 연동&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;prometheus 설정 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get prometheus -n monitoring
+NAME                                    VERSION   REPLICAS   AGE
+monitoring-prometheus-oper-prometheus   v2.18.2   1          9m55s
+
+$ kubectl describe prometheus monitoring-prometheus-oper-prometheus -n monitoring
+
+.
+.
+.
+  Rule Namespace Selector:
+  Rule Selector:
+    Match Labels:
+      App:      prometheus-operator
+      Release:  monitoring
+.
+.
+.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; prometheus 는 Rule Selector 설정을 통해 release: monitoring label 이 달린 PrometheusRule 만 alert 체크를 함&lt;br&gt;
+위에서 새로 생성하는 PrometheusRule label에도 release: monitoring 을 달아줘야 정상적으로 체크가 된다&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;alertmanager service 수정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl edit service/monitoring-prometheus-oper-alertmanager -n monitoring
+
+spec:
+  clusterIP: 10.254.88.241
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: web
+    nodePort: 30903
+    port: 9093
+    protocol: TCP
+    targetPort: 9093
+  selector:
+    alertmanager: monitoring-prometheus-oper-alertmanager
+    app: alertmanager
+  sessionAffinity: None
+  type: NodePort
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; type : ClusterIP -&amp;gt; NodePort 로 변경, 9093 port를 30903 port 로 매핑시킴&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;prometheus service 수정&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl edit service/monitoring-prometheus-oper-prometheus -n monitoring
+
+spec:
+  clusterIP: 10.254.41.25
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: web
+    nodePort: 30900
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app: prometheus
+    prometheus: monitoring-prometheus-oper-prometheus
+  sessionAffinity: None
+  type: NodePort
+
+
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; type : ClusterIP -&amp;gt; NodePort 로 변경, 9090 port를 30900 port 로 매핑시킴&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;수정된 service 확인&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;$ kubectl get service -n monitoring
+
+NAME                                              TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+service/alertmanager-operated                     ClusterIP   None             &amp;lt;none&amp;gt;        9093/TCP,9094/TCP,9094/UDP   2m14s
+service/monitoring-grafana                        NodePort    10.254.217.6     &amp;lt;none&amp;gt;        80:31000/TCP                 2m19s
+service/monitoring-kube-state-metrics             ClusterIP   10.254.89.125    &amp;lt;none&amp;gt;        8080/TCP                     2m19s
+service/monitoring-prometheus-node-exporter       ClusterIP   10.254.233.58    &amp;lt;none&amp;gt;        9100/TCP                     2m19s
+service/monitoring-prometheus-oper-alertmanager   NodePort    10.254.165.227   &amp;lt;none&amp;gt;        9093:30903/TCP               2m19s
+service/monitoring-prometheus-oper-operator       ClusterIP   10.254.239.202   &amp;lt;none&amp;gt;        8080/TCP,443/TCP             2m19s
+service/monitoring-prometheus-oper-prometheus     NodePort    10.254.41.25     &amp;lt;none&amp;gt;        9090:30900/TCP               2m19s
+service/prometheus-operated                       ClusterIP   None             &amp;lt;none&amp;gt;        9090/TCP                     2m4s
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; grafana, alertmanager, prometheus 를 ClusterIP -&amp;gt; NodePort로 변경하고 외부 port 매핑됨&lt;/p&gt;
+&lt;h2 id=&#34;alert-&#34;&gt;alert 확인&lt;/h2&gt;
+&lt;p&gt;토클에서 매핑시킨 FIP 와 NodePort를 통해 매핑한 외부포트로 접근 가능함&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;rule
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_alert2.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;alert
+&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_alert1.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;=&amp;gt; alert 체크 되는지 확인을 위해 redis up ==1 로 수정하였음. 잘된다&lt;/p&gt;
+&lt;h2 id=&#34;webhook-&#34;&gt;webhook 연동&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;vi prometheus-operator helm 위치 /values.yaml&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;  config:
+    global:
+      slack_api_url: &#39;https://hooks.slack.com/services/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&#39;
+    route:
+      receiver: &#39;redis-team&#39;
+      group_by: [&#39;alertname&#39;]
+      group_wait: 0s
+      group_interval: 30s
+      routes:
+      - receiver: &#39;redis-team&#39;
+        group_wait: 0s
+    receivers:
+    - name: &#39;redis-team&#39;
+      slack_configs:
+      - channel: &#39;#kimdubi&#39;
+        text: &#39;{{ template &amp;quot;custom_title&amp;quot; . }}{{- &amp;quot;\n&amp;quot; -}}{{ template &amp;quot;custom_slack_message&amp;quot; . }}&#39;
+    templates:
+    - /alertmanager/template.tmpl
+  templateFiles:
+    template.tmpl: |-
+      {{ define &amp;quot;custom_title&amp;quot; }}
+              {{- if (eq .Status &amp;quot;firing&amp;quot;) -}}
+                      {{- printf &amp;quot;*Triggered: %s (%s)*\n&amp;quot; .CommonAnnotations.triggered .CommonAnnotations.identifier -}}
+              {{- else if (eq .Status &amp;quot;resolved&amp;quot;) -}}
+                      {{- printf &amp;quot;*Recovered: %s (%s)*\n&amp;quot; .CommonAnnotations.resolved .CommonAnnotations.identifier -}}
+              {{- else -}}
+                      {{- printf &amp;quot;Unknown status repored: %s\n&amp;quot; .CommonAnnotations.triggered -}}
+              {{- end -}}
+      {{ end }}
+      {{ define &amp;quot;custom_slack_message&amp;quot; }}
+              {{- if gt (len .Alerts.Firing) 0 -}}
+                      {{- range .Alerts.Firing -}}
+                              {{- printf &amp;quot;[alerts] : %s\n&amp;quot; .Annotations.summary -}}
+                      {{- end -}}
+              {{- end -}}
+      {{ end }}
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>kubernetes에서 redis cluster를 돌려보자 - monitoring(grafana,prometheus)</title>

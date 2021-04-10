@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>kubernetes에서 redis cluster를 돌려보자 - alertmanager</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">kubernetes에서 redis cluster를 돌려보자 - alertmanager</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>kubernetes에서 redis cluster를 돌려보자 - alertmanager</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><h2 id="heading">구성</h2>
+<ul>
+<li>helm 으로 설치한 prometheus-operator 의 prometheus와 alertmanager를 사용함</li>
+<li>신규로 redis용 PrometheusRule object를 생성하고 이를 prometheus와 연동함
+<ul>
+<li>PrometheusRule는 새로 생성되거나 delete 되는 Pod도 자동으로 인식할 수 있게 helm chart 와 Pod에 연동되어야함</li>
+</ul>
+</li>
+<li>slack api를 webhook으로 사용</li>
+</ul>
+<h2 id="prometheusrules-">prometheusrules 생성</h2>
+<ul>
+<li>vi redis-rule.yaml</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kimdubi-test
+    meta.helm.sh/release-namespace: default
+  labels:
+    app: prometheus-operator
+    app.kubernetes.io/instance: kimdubi-test
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis-cluster
+    helm.sh/chart: redis-cluster<span style="color:#ae81ff">-4.3</span><span style="color:#ae81ff">.1</span>
+    release: monitoring
+  name: kimdubi-test-redis-cluster
+  namespace: default
+spec:
+  groups:
+  - name: redis-cluster
+    rules:
+    - alert: RedisDown
+      annotations:
+        description: Redis(TM) instance {{$labels.pod}}  is down.
+        summary: Redis(TM) instance {{$labels.pod}} is down
+      expr: redis_up{service=<span style="color:#e6db74">&#34;kimdubi-test-redis-cluster-metrics&#34;</span>} == <span style="color:#ae81ff">0</span>
+      for: 1s
+      labels:
+        severity: error
+    - alert: RedisMemoryHigh
+      annotations:
+        description: Redis(TM) instance {{$labels.pod}}  is using {{ $value }} of
+          its available memory.
+        summary: Redis(TM) instance {{$labels.pod}}  is using too much memory
+      expr: <span style="color:#e6db74">|
+</span><span style="color:#e6db74">       </span><span style="color:#e6db74"> </span><span style="color:#e6db74">redis_memory_used_bytes{service=&#34;kimdubi-test-redis-cluster-metrics&#34;} * 100 / redis_memory_max_bytes{service=&#34;kimdubi-test-redis-cluster-metrics&#34;} &gt; 90</span>
+      for: 2m
+      labels:
+        severity: error
+
+</code></pre></div><ul>
+<li>rule 생성</li>
+</ul>
+<pre><code>$ kubectl apply -f redis-rule.yaml
+</code></pre><h2 id="alertmanager-">alertmanager 연동</h2>
+<ul>
+<li>prometheus 설정 확인</li>
+</ul>
+<pre><code>$ kubectl get prometheus -n monitoring
+NAME                                    VERSION   REPLICAS   AGE
+monitoring-prometheus-oper-prometheus   v2.18.2   1          9m55s
+
+$ kubectl describe prometheus monitoring-prometheus-oper-prometheus -n monitoring
+
+.
+.
+.
+  Rule Namespace Selector:
+  Rule Selector:
+    Match Labels:
+      App:      prometheus-operator
+      Release:  monitoring
+.
+.
+.
+</code></pre><p>=&gt; prometheus 는 Rule Selector 설정을 통해 release: monitoring label 이 달린 PrometheusRule 만 alert 체크를 함<br>
+위에서 새로 생성하는 PrometheusRule label에도 release: monitoring 을 달아줘야 정상적으로 체크가 된다</p>
+<ul>
+<li>alertmanager service 수정</li>
+</ul>
+<pre><code>$ kubectl edit service/monitoring-prometheus-oper-alertmanager -n monitoring
+
+spec:
+  clusterIP: 10.254.88.241
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: web
+    nodePort: 30903
+    port: 9093
+    protocol: TCP
+    targetPort: 9093
+  selector:
+    alertmanager: monitoring-prometheus-oper-alertmanager
+    app: alertmanager
+  sessionAffinity: None
+  type: NodePort
+</code></pre><p>=&gt; type : ClusterIP -&gt; NodePort 로 변경, 9093 port를 30903 port 로 매핑시킴</p>
+<ul>
+<li>prometheus service 수정</li>
+</ul>
+<pre><code>$ kubectl edit service/monitoring-prometheus-oper-prometheus -n monitoring
+
+spec:
+  clusterIP: 10.254.41.25
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: web
+    nodePort: 30900
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app: prometheus
+    prometheus: monitoring-prometheus-oper-prometheus
+  sessionAffinity: None
+  type: NodePort
+
+
+</code></pre><p>=&gt; type : ClusterIP -&gt; NodePort 로 변경, 9090 port를 30900 port 로 매핑시킴</p>
+<ul>
+<li>수정된 service 확인</li>
+</ul>
+<pre><code>$ kubectl get service -n monitoring
+
+NAME                                              TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+service/alertmanager-operated                     ClusterIP   None             &lt;none&gt;        9093/TCP,9094/TCP,9094/UDP   2m14s
+service/monitoring-grafana                        NodePort    10.254.217.6     &lt;none&gt;        80:31000/TCP                 2m19s
+service/monitoring-kube-state-metrics             ClusterIP   10.254.89.125    &lt;none&gt;        8080/TCP                     2m19s
+service/monitoring-prometheus-node-exporter       ClusterIP   10.254.233.58    &lt;none&gt;        9100/TCP                     2m19s
+service/monitoring-prometheus-oper-alertmanager   NodePort    10.254.165.227   &lt;none&gt;        9093:30903/TCP               2m19s
+service/monitoring-prometheus-oper-operator       ClusterIP   10.254.239.202   &lt;none&gt;        8080/TCP,443/TCP             2m19s
+service/monitoring-prometheus-oper-prometheus     NodePort    10.254.41.25     &lt;none&gt;        9090:30900/TCP               2m19s
+service/prometheus-operated                       ClusterIP   None             &lt;none&gt;        9090/TCP                     2m4s
+</code></pre><p>=&gt; grafana, alertmanager, prometheus 를 ClusterIP -&gt; NodePort로 변경하고 외부 port 매핑됨</p>
+<h2 id="alert-">alert 확인</h2>
+<p>토클에서 매핑시킨 FIP 와 NodePort를 통해 매핑한 외부포트로 접근 가능함</p>
+<ul>
+<li>
+<p>rule
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_alert2.png" alt=""></p>
+</li>
+<li>
+<p>alert
+<img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/cloud/k8s/k8s_redis_alert1.png" alt=""></p>
+</li>
+</ul>
+<p>=&gt; alert 체크 되는지 확인을 위해 redis up ==1 로 수정하였음. 잘된다</p>
+<h2 id="webhook-">webhook 연동</h2>
+<ul>
+<li>vi prometheus-operator helm 위치 /values.yaml</li>
+</ul>
+<pre><code>  config:
+    global:
+      slack_api_url: 'https://hooks.slack.com/services/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'
+    route:
+      receiver: 'redis-team'
+      group_by: ['alertname']
+      group_wait: 0s
+      group_interval: 30s
+      routes:
+      - receiver: 'redis-team'
+        group_wait: 0s
+    receivers:
+    - name: 'redis-team'
+      slack_configs:
+      - channel: '#kimdubi'
+        text: '{{ template &quot;custom_title&quot; . }}{{- &quot;\n&quot; -}}{{ template &quot;custom_slack_message&quot; . }}'
+    templates:
+    - /alertmanager/template.tmpl
+  templateFiles:
+    template.tmpl: |-
+      {{ define &quot;custom_title&quot; }}
+              {{- if (eq .Status &quot;firing&quot;) -}}
+                      {{- printf &quot;*Triggered: %s (%s)*\n&quot; .CommonAnnotations.triggered .CommonAnnotations.identifier -}}
+              {{- else if (eq .Status &quot;resolved&quot;) -}}
+                      {{- printf &quot;*Recovered: %s (%s)*\n&quot; .CommonAnnotations.resolved .CommonAnnotations.identifier -}}
+              {{- else -}}
+                      {{- printf &quot;Unknown status repored: %s\n&quot; .CommonAnnotations.triggered -}}
+              {{- end -}}
+      {{ end }}
+      {{ define &quot;custom_slack_message&quot; }}
+              {{- if gt (len .Alerts.Firing) 0 -}}
+                      {{- range .Alerts.Firing -}}
+                              {{- printf &quot;[alerts] : %s\n&quot; .Annotations.summary -}}
+                      {{- end -}}
+              {{- end -}}
+      {{ end }}
+</code></pre></div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

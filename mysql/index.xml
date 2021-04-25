@@ -5,10 +5,262 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 14 Feb 2021 16:28:44 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 25 Apr 2021 16:58:00 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL shell을 통한 Table dump&amp;load</title>
+      <link>https://kimdubi.github.io/mysql/mysqlsh_dump/</link>
+      <pubDate>Sun, 25 Apr 2021 16:58:00 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/mysqlsh_dump/</guid>
+      <description>&lt;p&gt;기존 mysqldump 같은 Logical backup의 단점은 사용은 간편하나, dump&amp;amp;load 시 single thread를 사용하여 굉장히 느리다는 단점이 있는데&lt;br&gt;
+mysqlshell 의 dump , load 기능을 사용하면 logical 백업도 빠르게 수행할 수 있습니다.&lt;br&gt;
+이번 글에서는 mysqlshell을 통해 특정 테이블만 dump&amp;amp;load test를 해보겠습니다. 물론 instance, schema 단위로도 백업 가능합니다.&lt;br&gt;
+mysqlshell은 8.0 뿐만 아니라 5.6, 5.7에서도 사용이 가능합니다. ( backup lock 등 버전 별 기능차이로 인해 안되는 기능도 있음)&lt;/p&gt;
+&lt;h1 id=&#34;mysqlshell-&#34;&gt;mysqlshell 설치&lt;/h1&gt;
+&lt;pre&gt;&lt;code&gt;$ sudo yum install mysql-shell
+Loaded plugins: fastestmirror, security
+Setting up Install Process
+Loading mirror speeds from cached hostfile
+Resolving Dependencies
+--&amp;gt; Running transaction check
+---&amp;gt; Package mysql-shell.x86_64 0:8.0.23-1.el6 will be installed
+--&amp;gt; Finished Dependency Resolution
+
+Dependencies Resolved
+
+================================================================================================================================================================================================================================================================================
+ Package                                                        Arch                                                      Version                                                            Repository                                                                    Size
+================================================================================================================================================================================================================================================================================
+Installing:
+ mysql-shell                                                    x86_64                                                    8.0.23-1.el6                                                       mysql-tools-community-el6                                                     32 M
+
+Transaction Summary
+================================================================================================================================================================================================================================================================================
+Install       1 Package(s)
+
+Total download size: 32 M
+Installed size: 141 M
+Is this ok [y/N]: y
+Downloading Packages:
+mysql-shell-8.0.23-1.el6.x86_64.rpm                                                                                                                                                                                                                      |  32 MB     00:00
+Running rpm_check_debug
+Running Transaction Test
+Transaction Test Succeeded
+Running Transaction
+  Installing : mysql-shell-8.0.23-1.el6.x86_64                                                                                                                                                                                                                              1/1
+  Verifying  : mysql-shell-8.0.23-1.el6.x86_64                                                                                                                                                                                                                              1/1
+
+Installed:
+  mysql-shell.x86_64 0:8.0.23-1.el6
+
+Complete!
+&lt;/code&gt;&lt;/pre&gt;&lt;h1 id=&#34;mysqlsh-&#34;&gt;mysqlsh 접속&lt;/h1&gt;
+&lt;pre&gt;&lt;code&gt;$ mysqlsh
+
+MySQL Shell 8.0.23
+
+Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+Oracle is a registered trademark of Oracle Corporation and/or its affiliates.
+Other names may be trademarks of their respective owners.
+
+Type &#39;\help&#39; or &#39;\?&#39; for help; &#39;\quit&#39; to exit.
+ MySQL  JS &amp;gt;
+ MySQL  JS &amp;gt; \connect testuser@localhost:13306
+Creating a session to &#39;testuser@localhost:13306&#39;
+Fetching schema names for autocompletion... Press ^C to stop.
+Your MySQL connection id is 982607
+Server version: 8.0.16 MySQL Community Server - GPL
+No default schema selected; type \use &amp;lt;schema&amp;gt; to set one.
+ MySQL  localhost:13306 ssl  JS &amp;gt; \use testdb
+Default schema set to `testdb`.
+ MySQL  localhost:13306 ssl  testdb  JS &amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;h1 id=&#34;mysqlsh-dump&#34;&gt;mysqlsh dump&lt;/h1&gt;
+&lt;h3 id=&#34;utildumptables&#34;&gt;util.dumpTables&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt; MySQL  localhost:13306 ssl  testdb  JS &amp;gt; util.
+checkForServerUpgrade()  dumpInstance()           dumpTables()             help()                   importTable()
+configureOci()           dumpSchemas()            exportTable()            importJson()             loadDump()
+
+
+ MySQL  localhost:13306 ssl  testdb  JS &amp;gt; util.dumpTables(&amp;quot;testdb&amp;quot;,[&amp;quot;tb_test&amp;quot;],&amp;quot;/home1/testuser/db/work/&amp;quot;)
+Acquiring global read lock
+Global read lock acquired
+Gathering information - done
+All transactions have been started
+Locking instance for backup
+Global read lock has been released
+Writing global DDL files
+Preparing data dump for table `testdb`.`tb_test`
+Writing DDL for schema `testdb`
+Writing DDL for table `testdb`.`tb_test`
+Data dump for table `testdb`.`tb_test` will be chunked using column `tb_test_no`
+Running data dump using 4 threads.
+NOTE: Progress information uses estimated values and may not be accurate.
+Data dump for table `testdb`.`tb_test` will be written to 247 files
+1 thds dumping - 106% (79.56M rows / ~74.49M rows), 672.89K rows/s, 118.70 MB/s uncompressed, 19.94 MB/s compressed
+Duration: 00:02:21s
+Schemas dumped: 1
+Tables dumped: 1
+Uncompressed data size: 14.03 GB
+Compressed data size: 2.36 GB
+Compression ratio: 5.9
+Rows written: 79564325
+Bytes written: 2.36 GB
+Average uncompressed throughput: 98.80 MB/s
+Average compressed throughput: 16.62 MB/s
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;14GB 데이터를 PK 기준으로 chunk 단위로 4개 thread를 활용하여 백업을 수행함&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;백업 후 결과는 2.36GB이며 zst 파일로 압축 수행함&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;2분20초 소요됨&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;백업을 위해 read lock &amp;amp; backup lock 을 순간적으로 걸게됨&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;2021-04-25T05:56:27.492374Z     982893 Query    FLUSH TABLES
+2021-04-25T05:56:27.500004Z     982893 Query    FLUSH TABLES WITH READ LOCK
+2021-04-25T05:56:27.500186Z     982893 Query    SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ
+2021-04-25T05:56:27.500280Z     982893 Query    START TRANSACTION WITH CONSISTENT SNAPSHOT
+2021-04-25T05:56:27.558601Z     982893 Query    LOCK INSTANCE FOR BACKUP
+2021-04-25T05:56:27.558715Z     982893 Query    UNLOCK TABLES
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;default 로 4개의 thread 가 PK를 기준으로 chunk 단위로 백업을 수행함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select id,user,state,info from information_schema.processlist where user=&#39;testuser&#39;\G;
+
+*************************** 2. row ***************************
+   id: 982896
+ user: testuser
+state: Sending data
+ info: SELECT SQL_NO_CACHE `tb_test_no`,`tb_test_ymdt`,`tb_test_bundle_no`,`origin_tb_test_no`,`order_no`,`member_seq`,`trade_type`,`tb_test_amount`,`taxable_amount`,`taxfree_amount`,`vat_amount`,`service_amount`,`cancel_possible_amount`,`pg_code`,`pg_cp_code`,`pg_id` FROM `testdb`.`tb_test` WHERE `tb_test_no` BETWEEN &#39;202010012712327236&#39; AND &#39;202010022712820928&#39; ORDER BY `tb_test_no`,`tb_test_ymdt` /* mysqlsh dumpTables, dumping table `testdb`.`tb_test`, chunk ID: 221 */
+*************************** 3. row ***************************
+   id: 982897
+ user: testuser
+state: Sending data
+ info: SELECT SQL_NO_CACHE `tb_test_no` FROM `testdb`.`tb_test` WHERE `tb_test_no` &amp;gt; &#39;202010182721965634&#39; ORDER BY `tb_test_no`,`tb_test_ymdt` LIMIT 323231,1 /* mysqlsh dumpTables, chunking table `testdb`.`tb_test`, chunk ID: 242 */
+
+*************************** 5. row ***************************
+   id: 982894
+ user: testuser
+state: Sending to client
+ info: SELECT SQL_NO_CACHE `tb_test_no`,`tb_test_ymdt`,`tb_test_bundle_no`,`origin_tb_test_no`,`order_no`,`member_seq`,`trade_type`,`tb_test_amount`,`taxable_amount`,`taxfree_amount`,`vat_amount`,`service_amount`,`cancel_possible_amount`,`pg_code`,`pg_cp_code`,`pg_id` FROM `testdb`.`tb_test` WHERE `tb_test_no` BETWEEN &#39;202009302711832424&#39; AND &#39;202010012712327233&#39; ORDER BY `tb_test_no`,`tb_test_ymdt` /* mysqlsh dumpTables, dumping table `testdb`.`tb_test`, chunk ID: 220 */
+*************************** 6. row ***************************
+   id: 982895
+ user: testuser
+state: Sending data
+ info: SELECT SQL_NO_CACHE `tb_test_no`,`tb_test_ymdt`,`tb_test_bundle_no`,`origin_tb_test_no`,`order_no`,`member_seq`,`trade_type`,`tb_test_amount`,`taxable_amount`,`taxfree_amount`,`vat_amount`,`service_amount`,`cancel_possible_amount`,`pg_code`,`pg_cp_code`,`pg_id` FROM `testdb`.`tb_test` WHERE `tb_test_no` BETWEEN &#39;202010022712820929&#39; AND &#39;202010032713303142&#39; ORDER BY `tb_test_no`,`tb_test_ymdt` /* mysqlsh dumpTables, dumping table `testdb`.`tb_test`, chunk ID: 222 */
+6 rows in set (0.00 sec)
+
+ERROR:
+No query specified
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;dump-&#34;&gt;dump 결과&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;$ ls -ltr
+total 2308840
+-rw-r----- 1 testuser testuser     977 Apr 25 14:56 testdb@tb_test.json
+-rw-r----- 1 testuser testuser     235 Apr 25 14:56 testdb.json
+-rw-r----- 1 testuser testuser     240 Apr 25 14:56 @.sql
+-rw-r----- 1 testuser testuser     240 Apr 25 14:56 @.post.sql
+-rw-r----- 1 testuser testuser     601 Apr 25 14:56 @.json
+-rw-r----- 1 testuser testuser     480 Apr 25 14:56 testdb.sql
+-rw-r----- 1 testuser testuser    3951 Apr 25 14:56 testdb@tb_test.sql
+-rw-r----- 1 testuser testuser     432 Apr 25 14:56 testdb@tb_test@0.tsv.zst.idx
+-rw-r----- 1 testuser testuser 9221571 Apr 25 14:56 testdb@tb_test@0.tsv.zst
+-rw-r----- 1 testuser testuser     432 Apr 25 14:56 testdb@tb_test@1.tsv.zst.idx
+-rw-r----- 1 testuser testuser 9258971 Apr 25 14:56 testdb@tb_test@1.tsv.zst
+-rw-r----- 1 testuser testuser     432 Apr 25 14:56 testdb@tb_test@2.tsv.zst.idx
+-rw-r----- 1 testuser testuser 9207598 Apr 25 14:56 testdb@tb_test@2.tsv.zst
+-rw-r----- 1 testuser testuser     432 Apr 25 14:56 testdb@tb_test@3.tsv.zst.idx
+-rw-r----- 1 testuser testuser 9337070 Apr 25 14:56 testdb@tb_test@3.tsv.zst
+-rw-r----- 1 testuser testuser     432 Apr 25 14:56 testdb@tb_test@4.tsv.zst.idx
+-rw-r----- 1 testuser testuser 9377277 Apr 25 14:56 testdb@tb_test@4.tsv.zst
+-rw-r----- 1 testuser testuser     432 Apr 25 14:56 testdb@tb_test@5.tsv.zst.idx
+-rw-r----- 1 testuser testuser 9436864 Apr 25 14:56 testdb@tb_test@5.tsv.zst
+-rw-r----- 1 testuser testuser     432 Apr 25 14:56 testdb@tb_test@6.tsv.zst.idx
+-rw-r----- 1 testuser testuser 9296173 Apr 25 14:56 testdb@tb_test@6.tsv.zst
+.
+.
+.
+-rw-r----- 1 testuser testuser 1482164 Apr 25 14:58 testdb@tb_test@@246.tsv.zst
+-rw-r----- 1 testuser testuser     440 Apr 25 14:58 testdb@tb_test@243.tsv.zst.idx
+-rw-r----- 1 testuser testuser 9639678 Apr 25 14:58 testdb@tb_test@243.tsv.zst
+-rw-r----- 1 testuser testuser     440 Apr 25 14:58 testdb@tb_test@245.tsv.zst.idx
+-rw-r----- 1 testuser testuser 9521770 Apr 25 14:58 testdb@tb_test@245.tsv.zst
+-rw-r----- 1 testuser testuser   12930 Apr 25 14:58 @.done.json
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;chunk 단위로 분할되어 떨어지며 zstd 형태로 압축되어있음&lt;/li&gt;
+&lt;li&gt;json, sql 파일 형태로 백업 관련 테이블의 DDL 이나 백업 메타정보등이 기록됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;mysqlsh-load&#34;&gt;mysqlsh load&lt;/h1&gt;
+&lt;h3 id=&#34;utilloaddump&#34;&gt;util.loadDump()&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt; MySQL  localhost:13306 ssl  testdb  JS &amp;gt; util.loadDump(&amp;quot;/home1/testuser/db/work/&amp;quot;,{schema:&amp;quot;testdb2&amp;quot;})
+Loading DDL and Data from &#39;/home1/testuser/db/work/&#39; using 4 threads.
+Opening dump...
+Target is MySQL 8.0.16. Dump was produced from MySQL 8.0.16
+Checking for pre-existing objects...
+Executing common preamble SQL
+[Worker001] Executing DDL script for `testdb2`.`tb_test`
+[Worker002] testdb@tb_test@0.tsv.zst: Records: 323232  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker003] testdb@tb_test@1.tsv.zst: Records: 323232  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker000] testdb@tb_test@2.tsv.zst: Records: 323232  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker001] testdb@tb_test@3.tsv.zst: Records: 323232  Deleted: 0  Skipped: 0  Warnings: 0
+.
+.
+.
+[Worker003] testdb@tb_test@242.tsv.zst: Records: 323232  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker000] testdb@tb_test@243.tsv.zst: Records: 323232  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker003] testdb@tb_test@@246.tsv.zst: Records: 49253  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker001] testdb@tb_test@244.tsv.zst: Records: 323232  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker002] testdb@tb_test@245.tsv.zst: Records: 323232  Deleted: 0  Skipped: 0  Warnings: 0
+
+Executing common postamble SQL
+
+247 chunks (79.56M rows, 14.03 GB) for 1 tables in 1 schemas were loaded in 27 min 27 sec (avg throughput 8.52 MB/s)
+0 warnings were reported during the load.
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;4개 thread에서 병렬로 수행됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;mysql&amp;gt; select id,user,state,info from information_schema.processlist where user=&#39;testuser&#39;\G;
+
+
+*************************** 2. row ***************************
+   id: 984376
+ user: testuser
+state: executing
+ info: /* mysqlsh loadDump(), thread 1, table `testdb2`.`tb_test`, chunk ID: 3 */ LOAD DATA LOCAL INFILE &#39;/home1/testuser/db/work/testdb@tb_test@3.tsv.zst&#39; REPLACE INTO TABLE `testdb2`.`tb_test` CHARACTER SET &#39;utf8mb4&#39; FIELDS TERMINATED BY &#39;     &#39; ESCAPED BY &#39;\\&#39; LINES STARTING BY &#39;&#39; TERMINATED BY &#39;\n&#39; (`tb_test_no`, `tb_test_ymdt`, `tb_test_bundle_no`, `origin_tb_test_no`, `order_no`, `member_seq`, `trade_type`, `tb_test_amount`, `taxable_amount`, `taxfree_amount`, `vat_amount`, `service_amount`, `cancel_possible_amount`, `pg_code`, `pg_cp_code`, `pg_id`)
+*************************** 3. row ***************************
+   id: 984377
+ user: testuser
+state: executing
+ info: /* mysqlsh loadDump(), thread 2, table `testdb2`.`tb_test`, chunk ID: 4 */ LOAD DATA LOCAL INFILE &#39;/home1/testuser/db/work/testdb@tb_test@4.tsv.zst&#39; REPLACE INTO TABLE `testdb2`.`tb_test` CHARACTER SET &#39;utf8mb4&#39; FIELDS TERMINATED BY &#39;     &#39; ESCAPED BY &#39;\\&#39; LINES STARTING BY &#39;&#39; TERMINATED BY &#39;\n&#39; (`tb_test_no`, `tb_test_ymdt`, `tb_test_bundle_no`, `origin_tb_test_no`, `order_no`, `member_seq`, `trade_type`, `tb_test_amount`, `taxable_amount`, `taxfree_amount`, `vat_amount`, `service_amount`, `cancel_possible_amount`, `pg_code`, `pg_cp_code`, `pg_id`)
+*************************** 4. row ***************************
+   id: 984378
+ user: testuser
+state: executing
+ info: /* mysqlsh loadDump(), thread 3, table `testdb2`.`tb_test`, chunk ID: 1 */ LOAD DATA LOCAL INFILE &#39;/home1/testuser/db/work/testdb@tb_test@1.tsv.zst&#39; REPLACE INTO TABLE `testdb2`.`tb_test` CHARACTER SET &#39;utf8mb4&#39; FIELDS TERMINATED BY &#39;     &#39; ESCAPED BY &#39;\\&#39; LINES STARTING BY &#39;&#39; TERMINATED BY &#39;\n&#39; (`tb_test_no`, `tb_test_ymdt`, `tb_test_bundle_no`, `origin_tb_test_no`, `order_no`, `member_seq`, `trade_type`, `tb_test_amount`, `taxable_amount`, `taxfree_amount`, `vat_amount`, `service_amount`, `cancel_possible_amount`, `pg_code`, `pg_cp_code`, `pg_id`)
+
+*************************** 6. row ***************************
+   id: 984375
+ user: testuser
+state: executing
+ info: /* mysqlsh loadDump(), thread 0, table `testdb2`.`tb_test`, chunk ID: 2 */ LOAD DATA LOCAL INFILE &#39;/home1/testuser/db/work/testdb@tb_test@2.tsv.zst&#39; REPLACE INTO TABLE `testdb2`.`tb_test` CHARACTER SET &#39;utf8mb4&#39; FIELDS TERMINATED BY &#39;     &#39; ESCAPED BY &#39;\\&#39; LINES STARTING BY &#39;&#39; TERMINATED BY &#39;\n&#39; (`tb_test_no`, `tb_test_ymdt`, `tb_test_bundle_no`, `origin_tb_test_no`, `order_no`, `member_seq`, `trade_type`, `tb_test_amount`, `taxable_amount`, `taxfree_amount`, `vat_amount`, `service_amount`, `cancel_possible_amount`, `pg_code`, `pg_cp_code`, `pg_id`)
+6 rows in set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;h1 id=&#34;-&#34;&gt;빠른이유 ?&lt;/h1&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/mysql_dump_load.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;순서대로 mysqldump, mysqlpump,mysqldumper, mysqlshell 의 성능 그래프&lt;/li&gt;
+&lt;li&gt;mysqlshell은 테이블을 chunk 단위로 잘게 쪼개서 dump &amp;amp; load를 수행하고 mysqldumper에 비해 별도의 스케쥴링 로직이 있어 효율적으로 작업이 수행됨&lt;/li&gt;
+&lt;li&gt;추가로 MySQL 8.0.21 버전부터는  ALTER INSTANCE DISABLE INNODB REDO_LOG 커맨드를 통해 redo log 에 의한 I/O 병목을 줄일 수 있음&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>MySQL의 Transaction Isolation에 대해</title>

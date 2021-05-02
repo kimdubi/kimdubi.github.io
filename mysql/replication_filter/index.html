@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MySQL replication_do_db 사용시 주의사항</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">MySQL replication_do_db 사용시 주의사항</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>MySQL replication_do_db 사용시 주의사항</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><p>하나의 DB서버에 여러 논리DB들이 있고 그 중 특정 논리DB를 다른 DB서버로 분리하는 작업을 종종 합니다.<br>
+이때 무중단으로 분리하기 위해서 replication filter 기능을 사용하는데요<br>
+이 때의 주의사항을 알아보도록 하겠습니다.</p>
+<h2 id="replication-filter">Replication filter 개요</h2>
+<ul>
+<li>리플리케이션 필터는 MySQL 복제 구성 시에 DB인스턴스 전체를 복제하는 것이 아닌 특정 논리DB만 복제해야할 때 사용할 수 있는 기능</li>
+<li>옵션의 종류는 아래와 같이 존재
+<ul>
+<li>REPLICATE_DO_DB &ndash; 특정디비만</li>
+<li>REPLICATE_IGNORE_DB  &ndash; 특정디비제외</li>
+<li>REPLICATE_DO_TABLE  &ndash; 특정테이블만</li>
+<li>REPLICATE_IGNORE_TABLE  &ndash; 특정테이블 제외</li>
+<li>REPLICATE_WILD_DO_TABLE  &ndash; 특정패턴테이블만</li>
+<li>REPLICATE_WILD_IGNORE_TABLE  &ndash; 특정패턴테이블 제외</li>
+<li>REPLICATE_REWRITE_DB  &ndash; DB명 바꿔서</li>
+</ul>
+</li>
+<li>CHANGE REPLICATION FILTER 구문 사용시 동일종류 필터는 마지막 수행된 쿼리만 사용됨
+ex)</li>
+</ul>
+<pre><code>change replication filter replicate_do_db=(kimdubi_db),replicate_do_db=(kimdubi_db2,kimdubi_db3);
+</code></pre><p>=&gt; kimdubi_db2, kimdubi_db3 만 replication 하도록 반영됨</p>
+<h2 id="replicatedodb">REPLICATE_DO_DB</h2>
+<h3 id="heading">참고링크</h3>
+<ul>
+<li><a href="https://dev.mysql.com/doc/refman/5.7/en/change-replication-filter.html"><a href="https://dev.mysql.com/doc/refman/5.7/en/change-replication-filter.html">https://dev.mysql.com/doc/refman/5.7/en/change-replication-filter.html</a></a></li>
+<li><a href="https://dev.mysql.com/doc/refman/5.7/en/replication-options-replica.html#option_mysqld_replicate-do-db"><a href="https://dev.mysql.com/doc/refman/5.7/en/replication-options-replica.html#option">https://dev.mysql.com/doc/refman/5.7/en/replication-options-replica.html#option</a>_mysqld_replicate-do-db</a></li>
+</ul>
+<h3 id="heading1">주의사항</h3>
+<ul>
+<li>binlog_format=statement / mixed 일때 cross database query 복제안됨</li>
+<li>default database 를 선언하지 않고 db명.테이블명 형태로 쿼리하는 경우도 복제 안됨</li>
+</ul>
+<pre><code>--replicate-do-db=sales
+USE prices;
+UPDATE sales.january SET amount=amount+1000;
+</code></pre><p>=&gt; prices DB에 접속 후 sales.테이블을 찾는 경우 Slave에 반영 안됨<br>
+default database 를 선언하지 않고 db명.테이블명 형태로 쿼리하는 경우도 복제 안됨</p>
+<ul>
+<li>user 생성 복제 실패</li>
+</ul>
+<pre><code>
+### SLAVE 복제 정보 
+replication_do_db=kimdubi_db,mysql,information_schema
+
+mysql&gt; show slave status\G;
+*************************** 1. row ***************************
+               Slave_IO_State: Waiting for master to send event
+
+              Master_Log_File: mysql-bin.000162
+          Read_Master_Log_Pos: 484079558
+               Relay_Log_File: relay-bin.000005
+                Relay_Log_Pos: 892
+        Relay_Master_Log_File: mysql-bin.000162
+
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+              Replicate_Do_DB: kimdubi_db,mysql,information_schema
+
+
+### Master user 생성
+mysql&gt; create user 'test2'@'%' identified with mysql_native_password by 'test123';
+Query OK, 0 rows affected (0.00 sec)
+
+### Slave user 조회
+mysql&gt; select user,host from mysql.user where user='test2';
+Empty set (0.00 sec)
+</code></pre><ul>
+<li>filter 외 다른 DB에서 수행한 DDL에 의해 복제 깨지는 케이스</li>
+</ul>
+<pre><code>replication filter 적용된 DB에서 다른 논리DB의 오브젝트에 DDL을 수행하는경우
+
+### master
+
+mysql&gt; create table testdb2.tb_filter  (a int auto_increment, b varchar(10), c datetime, primary key (a));
+Query OK, 0 rows affected (0.09 sec)
+
+mysql&gt; use testdb2;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql&gt; drop table testdb2.tb_filter;
+Query OK, 0 rows affected (0.23 sec)
+
+### SLAVE 복제 깨짐
+
+mysql&gt; show slave status\G;
+*************************** 1. row ***************************
+               Slave_IO_State: Waiting for master to send event
+
+              Master_Log_File: mysql-bin.000162
+          Read_Master_Log_Pos: 484079558
+               Relay_Log_File: relay-bin.000005
+                Relay_Log_Pos: 892
+        Relay_Master_Log_File: mysql-bin.000162
+
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+              Replicate_Do_DB: kimdubi_db,mysql,information_schema
+
+                   Last_Errno: 1051
+                   Last_Error: Error 'Unknown table 'testdb2.tb_filter'' on query. Default database: 'kimdubi_db'. Query: 'DROP TABLE `testdb2`.`tb_filter` /* generated by server */'
+                 Skip_Counter: 0
+</code></pre><h3 id="binlogformat-">binlog_format 개요</h3>
+<ul>
+<li>참고링크 : <a href="https://dev.mysql.com/doc/refman/5.7/en/binary-log-setting.html"><a href="https://dev.mysql.com/doc/refman/5.7/en/binary-log-setting.html">https://dev.mysql.com/doc/refman/5.7/en/binary-log-setting.html</a></a></li>
+<li>종류
+<ul>
+<li>statement / 데이터 변경에 사용된 쿼리를 그대로 슬레이브에 전달하는 형태</li>
+<li>row / 데이터 변경이 일어난 row의 정보를 어플리케이션에서 인지하는 포멧으로 슬레이브에 전달하는 형태</li>
+<li>mixed / 위 두 방식을 혼합한 방식으로 대부분 statement로 진행하고, 일부 row방식으로 동작
+<ul>
+<li>(limit, now() 등 수행하는 서버,시점에 따라 결과 값이 달라질 수 있는 쿼리들에 대해선 row로 동작)</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>특징
+<ul>
+<li>동적으로 변경가능</li>
+<li>global / session  변경 가능</li>
+<li>쿼리 수행에는 영향이 없고 복제에만 영향 줌</li>
+</ul>
+</li>
+</ul>
+<h2 id="heading2">해결방안</h2>
+<ul>
+<li>binlog_format 을 ROW로 사용한다
+<ul>
+<li>이 방법은 DB서버를 재기동해야 하기 때문에 개발팀과의 협의가 필요함 (set session binlog_format=row 로는 한계가 있음)</li>
+<li>binlog 저장량이 급증하는 이슈가 있음</li>
+</ul>
+</li>
+<li>어플리케이션의 JDBC 설정에 접근하는 논리DB에 대한 설정이 정확히 설정됐는지 확인</li>
+<li>서로 다른 논리DB 간 cross database query 가 없는지 확인할 것</li>
+</ul>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

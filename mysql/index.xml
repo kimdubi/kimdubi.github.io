@@ -5,10 +5,156 @@
     <description>Recent content in Mysqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 25 Apr 2021 16:58:00 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 02 May 2021 15:19:07 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/mysql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>MySQL replication_do_db 사용시 주의사항</title>
+      <link>https://kimdubi.github.io/mysql/replication_filter/</link>
+      <pubDate>Sun, 02 May 2021 15:19:07 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/mysql/replication_filter/</guid>
+      <description>&lt;p&gt;하나의 DB서버에 여러 논리DB들이 있고 그 중 특정 논리DB를 다른 DB서버로 분리하는 작업을 종종 합니다.&lt;br&gt;
+이때 무중단으로 분리하기 위해서 replication filter 기능을 사용하는데요&lt;br&gt;
+이 때의 주의사항을 알아보도록 하겠습니다.&lt;/p&gt;
+&lt;h2 id=&#34;replication-filter&#34;&gt;Replication filter 개요&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;리플리케이션 필터는 MySQL 복제 구성 시에 DB인스턴스 전체를 복제하는 것이 아닌 특정 논리DB만 복제해야할 때 사용할 수 있는 기능&lt;/li&gt;
+&lt;li&gt;옵션의 종류는 아래와 같이 존재
+&lt;ul&gt;
+&lt;li&gt;REPLICATE_DO_DB &amp;ndash; 특정디비만&lt;/li&gt;
+&lt;li&gt;REPLICATE_IGNORE_DB  &amp;ndash; 특정디비제외&lt;/li&gt;
+&lt;li&gt;REPLICATE_DO_TABLE  &amp;ndash; 특정테이블만&lt;/li&gt;
+&lt;li&gt;REPLICATE_IGNORE_TABLE  &amp;ndash; 특정테이블 제외&lt;/li&gt;
+&lt;li&gt;REPLICATE_WILD_DO_TABLE  &amp;ndash; 특정패턴테이블만&lt;/li&gt;
+&lt;li&gt;REPLICATE_WILD_IGNORE_TABLE  &amp;ndash; 특정패턴테이블 제외&lt;/li&gt;
+&lt;li&gt;REPLICATE_REWRITE_DB  &amp;ndash; DB명 바꿔서&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;CHANGE REPLICATION FILTER 구문 사용시 동일종류 필터는 마지막 수행된 쿼리만 사용됨
+ex)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;change replication filter replicate_do_db=(kimdubi_db),replicate_do_db=(kimdubi_db2,kimdubi_db3);
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; kimdubi_db2, kimdubi_db3 만 replication 하도록 반영됨&lt;/p&gt;
+&lt;h2 id=&#34;replicatedodb&#34;&gt;REPLICATE_DO_DB&lt;/h2&gt;
+&lt;h3 id=&#34;heading&#34;&gt;참고링크&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://dev.mysql.com/doc/refman/5.7/en/change-replication-filter.html&#34;&gt;&lt;a href=&#34;https://dev.mysql.com/doc/refman/5.7/en/change-replication-filter.html&#34;&gt;https://dev.mysql.com/doc/refman/5.7/en/change-replication-filter.html&lt;/a&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://dev.mysql.com/doc/refman/5.7/en/replication-options-replica.html#option_mysqld_replicate-do-db&#34;&gt;&lt;a href=&#34;https://dev.mysql.com/doc/refman/5.7/en/replication-options-replica.html#option&#34;&gt;https://dev.mysql.com/doc/refman/5.7/en/replication-options-replica.html#option&lt;/a&gt;_mysqld_replicate-do-db&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;heading1&#34;&gt;주의사항&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;binlog_format=statement / mixed 일때 cross database query 복제안됨&lt;/li&gt;
+&lt;li&gt;default database 를 선언하지 않고 db명.테이블명 형태로 쿼리하는 경우도 복제 안됨&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;--replicate-do-db=sales
+USE prices;
+UPDATE sales.january SET amount=amount+1000;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; prices DB에 접속 후 sales.테이블을 찾는 경우 Slave에 반영 안됨&lt;br&gt;
+default database 를 선언하지 않고 db명.테이블명 형태로 쿼리하는 경우도 복제 안됨&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;user 생성 복제 실패&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;
+### SLAVE 복제 정보 
+replication_do_db=kimdubi_db,mysql,information_schema
+
+mysql&amp;gt; show slave status\G;
+*************************** 1. row ***************************
+               Slave_IO_State: Waiting for master to send event
+
+              Master_Log_File: mysql-bin.000162
+          Read_Master_Log_Pos: 484079558
+               Relay_Log_File: relay-bin.000005
+                Relay_Log_Pos: 892
+        Relay_Master_Log_File: mysql-bin.000162
+
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+              Replicate_Do_DB: kimdubi_db,mysql,information_schema
+
+
+### Master user 생성
+mysql&amp;gt; create user &#39;test2&#39;@&#39;%&#39; identified with mysql_native_password by &#39;test123&#39;;
+Query OK, 0 rows affected (0.00 sec)
+
+### Slave user 조회
+mysql&amp;gt; select user,host from mysql.user where user=&#39;test2&#39;;
+Empty set (0.00 sec)
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;filter 외 다른 DB에서 수행한 DDL에 의해 복제 깨지는 케이스&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;replication filter 적용된 DB에서 다른 논리DB의 오브젝트에 DDL을 수행하는경우
+
+### master
+
+mysql&amp;gt; create table testdb2.tb_filter  (a int auto_increment, b varchar(10), c datetime, primary key (a));
+Query OK, 0 rows affected (0.09 sec)
+
+mysql&amp;gt; use testdb2;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql&amp;gt; drop table testdb2.tb_filter;
+Query OK, 0 rows affected (0.23 sec)
+
+### SLAVE 복제 깨짐
+
+mysql&amp;gt; show slave status\G;
+*************************** 1. row ***************************
+               Slave_IO_State: Waiting for master to send event
+
+              Master_Log_File: mysql-bin.000162
+          Read_Master_Log_Pos: 484079558
+               Relay_Log_File: relay-bin.000005
+                Relay_Log_Pos: 892
+        Relay_Master_Log_File: mysql-bin.000162
+
+             Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+              Replicate_Do_DB: kimdubi_db,mysql,information_schema
+
+                   Last_Errno: 1051
+                   Last_Error: Error &#39;Unknown table &#39;testdb2.tb_filter&#39;&#39; on query. Default database: &#39;kimdubi_db&#39;. Query: &#39;DROP TABLE `testdb2`.`tb_filter` /* generated by server */&#39;
+                 Skip_Counter: 0
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;binlogformat-&#34;&gt;binlog_format 개요&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;참고링크 : &lt;a href=&#34;https://dev.mysql.com/doc/refman/5.7/en/binary-log-setting.html&#34;&gt;&lt;a href=&#34;https://dev.mysql.com/doc/refman/5.7/en/binary-log-setting.html&#34;&gt;https://dev.mysql.com/doc/refman/5.7/en/binary-log-setting.html&lt;/a&gt;&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;종류
+&lt;ul&gt;
+&lt;li&gt;statement / 데이터 변경에 사용된 쿼리를 그대로 슬레이브에 전달하는 형태&lt;/li&gt;
+&lt;li&gt;row / 데이터 변경이 일어난 row의 정보를 어플리케이션에서 인지하는 포멧으로 슬레이브에 전달하는 형태&lt;/li&gt;
+&lt;li&gt;mixed / 위 두 방식을 혼합한 방식으로 대부분 statement로 진행하고, 일부 row방식으로 동작
+&lt;ul&gt;
+&lt;li&gt;(limit, now() 등 수행하는 서버,시점에 따라 결과 값이 달라질 수 있는 쿼리들에 대해선 row로 동작)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;특징
+&lt;ul&gt;
+&lt;li&gt;동적으로 변경가능&lt;/li&gt;
+&lt;li&gt;global / session  변경 가능&lt;/li&gt;
+&lt;li&gt;쿼리 수행에는 영향이 없고 복제에만 영향 줌&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;heading2&#34;&gt;해결방안&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;binlog_format 을 ROW로 사용한다
+&lt;ul&gt;
+&lt;li&gt;이 방법은 DB서버를 재기동해야 하기 때문에 개발팀과의 협의가 필요함 (set session binlog_format=row 로는 한계가 있음)&lt;/li&gt;
+&lt;li&gt;binlog 저장량이 급증하는 이슈가 있음&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;어플리케이션의 JDBC 설정에 접근하는 논리DB에 대한 설정이 정확히 설정됐는지 확인&lt;/li&gt;
+&lt;li&gt;서로 다른 논리DB 간 cross database query 가 없는지 확인할 것&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>MySQL shell을 통한 Table dump&amp;load</title>

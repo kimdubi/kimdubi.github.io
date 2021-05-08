@@ -511,7 +511,8 @@ Executing common postamble SQL
 [Worker002] testdb1@card@63.tsv.zst: Records: 376470  Deleted: 0  Skipped: 0  Warnings: 0
 [Worker000] testdb1@service@34.tsv.zst: Records: 357541  Deleted: 0  Skipped: 0  Warnings: 0
 4 thds loading | 34% (11.94 GB / 35.27 GB), 17.83 MB/s, 4 / 49 tables done
-</code></pre><ul>
+</code></pre><h3 id="--2">주로 사용하는 옵션</h3>
+<ul>
 <li>
 <p>excludeSchemas /excludeTables : 특정 schema / table 제외, deafault empty</p>
 </li>
@@ -566,7 +567,7 @@ mysql&gt; SHOW GLOBAL STATUS LIKE 'Innodb_redo_log_enabled';
 +-------------------------+-------+
 | Innodb_redo_log_enabled | ON    |
 +-------------------------+-------+
-</code></pre><h1 id="--2">더 고민해볼만한 점?</h1>
+</code></pre><h1 id="--3">더 고민해볼만한 점?</h1>
 <ul>
 <li>gtid를 안쓰는데 MySQL에서 뭔가 추가로 개발되는 기능은 점점 더 gtid 를 기본으로 설정하는 듯한 느낌,,, gtid에 대해 고민해봐야할지,,,,</li>
 <li>mysqldump의 dump-slave 같은 옵션이 없음. 백업스크립트에서 사용한다면 stop sql_thread; show slave status; 구문 포함해서 사용,,,</li>

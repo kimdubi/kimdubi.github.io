@@ -5,10 +5,113 @@
     <description>Recent content in Nosqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 04 Dec 2020 21:47:22 +0900</lastBuildDate>
+    <lastBuildDate>Sun, 09 May 2021 23:46:12 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/nosql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Redis bind에 대한 오해</title>
+      <link>https://kimdubi.github.io/nosql/redis_bind/</link>
+      <pubDate>Sun, 09 May 2021 23:46:12 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/nosql/redis_bind/</guid>
+      <description>&lt;p&gt;그동안 어째서인지 모르겠지만&lt;br&gt;
+redis.conf의 bind 파라미터가 Redis 서버로 접속 가능한 client ip 를 제어하는 ACL 기능이라고 생각해왔는데&lt;br&gt;
+그게 잘못된 것이라는 것을 이제야 알게 되어 내용을 정리합니다.&lt;/p&gt;
+&lt;h2 id=&#34;bind-&#34;&gt;bind 파라미터란?&lt;/h2&gt;
+&lt;p&gt;Redis는 TCP/IP 통신을 사용하기 때문에 요청을 받아줄 IP:Port를 설정하고 그 IP:Port로 들어오는 클라이언트의 요청을 받아들이게 되는데요&lt;br&gt;
+bind 파라미터는 Redis가 클라이언트의 요청을 받아주기 위해 열어놓은 IP를 설정하는 파라미터입니다.&lt;br&gt;
+즉! Redis 서버에서 ifconfig로 확인했을 때 나오는 IP들, 아래에서는 127.0.0.1 , 172.20.0.10, 0.0.0.0 이 값들만 가질 수 있게 됩니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;redis.conf bind 파라미터 설명&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;# By default, if no &amp;quot;bind&amp;quot; configuration directive is specified, Redis listens
+# for connections from all the network interfaces available on the server.
+# It is possible to listen to just one or multiple selected interfaces using
+# the &amp;quot;bind&amp;quot; configuration directive, followed by one or more IP addresses.
+&lt;/code&gt;&lt;/pre&gt;&lt;pre&gt;&lt;code&gt;[root@edd0a396ddfd tmp]# ip addr
+1: lo: &amp;lt;LOOPBACK,UP,LOWER_UP&amp;gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+10: eth0@if11: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu 1500 qdisc noqueue state UP group default
+    link/ether 02:42:ac:14:00:0a brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 172.20.0.10/24 brd 172.20.0.255 scope global eth0
+       valid_lft forever preferred_lft forever
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;bind 파라미터는 서버에 할당된 사용가능한 IP를 bind 파라미터에 설정하여 해당 IP로 들어오는 클라이언트의 요청만 받아들이겠다 라는 의미가 됩니다.&lt;br&gt;
+PostgreSQL의 pg_hba.conf, MySQL 계정의 host 처럼 ACL의 역할을 하는 파라미터가 아니었던 거죠..ㅎㅎ&lt;/p&gt;
+&lt;p&gt;위 서버의 Redis 서버는 bind 파라미터로 아래와 같은 값을 가질 수 있는데 각각의 의미는 다음과 같습니다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;bind 127.0.0.1 : local 접근만 허용, 외부에서는 접근 안됨&lt;/li&gt;
+&lt;li&gt;bind 172.20.0.10 : 외부에서의 접근만 허용, local에선 접근 안됨&lt;/li&gt;
+&lt;li&gt;bind 0.0.0.0 : local 접근 + 외부 접근 허용&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;간단한 테스트를 통해 어떻게 동작하는지 확인해보겠습니다.&lt;/p&gt;
+&lt;h2 id=&#34;heading&#34;&gt;테스트&lt;/h2&gt;
+&lt;p&gt;TEST 수행은 아래와 같은 설정에서 진행했습니다&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;protected-mode yes
+require-pass qhdks123 
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;protected-mode yes 설정은 requiere-pass,bind 둘다 설정되지 않은 경우, 로컬에서의 접속만 허용하는 설정입니다&lt;/li&gt;
+&lt;li&gt;위와 같이 require-pass 가 존재하는 경우에는 no / yes 차이가 없습니다.&lt;/li&gt;
+&lt;li&gt;bind 파라미터는 동적으로 변경이 안되기 때문에 재기동이 필요하다
+&lt;ul&gt;
+&lt;li&gt;Redis 6 버전부터는 bind, port 동적으로 변경 가능&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;bind-127001&#34;&gt;bind 127.0.0.1&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;[root@edd0a396ddfd redis-stable]# redis-cli -a qhdks123
+Warning: Using a password with &#39;-a&#39; or &#39;-u&#39; option on the command line interface may not be safe.
+127.0.0.1:6379&amp;gt;
+
+[root@edd0a396ddfd redis-stable]# redis-cli -h 172.20.0.10 -a qhdks123
+Warning: Using a password with &#39;-a&#39; or &#39;-u&#39; option on the command line interface may not be safe.
+Could not connect to Redis at 172.20.0.10:6379: Connection refused
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; localhost로 접속 성공, 172.20.0.10 으로 접속 실패&lt;/p&gt;
+&lt;h3 id=&#34;bind-17220010&#34;&gt;bind 172.20.0.10&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;[root@edd0a396ddfd redis-stable]# redis-cli -a qhdks123
+Warning: Using a password with &#39;-a&#39; or &#39;-u&#39; option on the command line interface may not be safe.
+Could not connect to Redis at 127.0.0.1:6379: Connection refused
+not connected&amp;gt;
+
+[root@edd0a396ddfd redis-stable]# redis-cli -h 172.20.0.10 -a qhdks123
+Warning: Using a password with &#39;-a&#39; or &#39;-u&#39; option on the command line interface may not be safe.
+172.20.0.10:6379&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; localhost로 접속 실패, 172.20.0.10 으로 접속 성공&lt;/p&gt;
+&lt;h3 id=&#34;bind-0000&#34;&gt;bind 0.0.0.0&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;[root@edd0a396ddfd redis-stable]# redis-cli -a qhdks123
+Warning: Using a password with &#39;-a&#39; or &#39;-u&#39; option on the command line interface may not be safe.
+
+[root@edd0a396ddfd redis-stable]# redis-cli -h 172.20.0.10 -a qhdks123
+Warning: Using a password with &#39;-a&#39; or &#39;-u&#39; option on the command line interface may not be safe.
+172.20.0.10:6379&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; localhost, 172.20.0.10 둘다 성공&lt;/p&gt;
+&lt;h3 id=&#34;bind-x&#34;&gt;bind x&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;172.20.0.10:6379&amp;gt; config get protected-mode
+1) &amp;quot;protected-mode&amp;quot;
+2) &amp;quot;yes&amp;quot;
+172.20.0.10:6379&amp;gt; config get bind
+1) &amp;quot;bind&amp;quot;
+2) &amp;quot;&amp;quot;
+
+[root@edd0a396ddfd redis-stable]# redis-cli -a qhdks123
+Warning: Using a password with &#39;-a&#39; or &#39;-u&#39; option on the command line interface may not be safe.
+127.0.0.1:6379&amp;gt;
+
+[root@edd0a396ddfd redis-stable]# redis-cli -h 172.20.0.10 -a qhdks123
+Warning: Using a password with &#39;-a&#39; or &#39;-u&#39; option on the command line interface may not be safe.
+172.20.0.10:6379&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; localhost, 172.20.0.10 둘다 성공&lt;/p&gt;
+&lt;h2 id=&#34;heading1&#34;&gt;결론&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;bind 파라미터는 접속가능한 client ip를 관리하는 ACL 기능이 아니다!&lt;/li&gt;
+&lt;li&gt;위와 같은 기능을 제공하려면 Redis 서버 iptables 단에서 제어해야한다&lt;/li&gt;
+&lt;li&gt;뇌피셜을 지양하고 공식문서를 잘 읽어보자&amp;hellip;..&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>Sentinel Failover 이벤트 발생 시 메일 받기</title>

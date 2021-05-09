@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Redis bind에 대한 오해</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Redis bind에 대한 오해</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Redis bind에 대한 오해</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><p>그동안 어째서인지 모르겠지만<br>
+redis.conf의 bind 파라미터가 Redis 서버로 접속 가능한 client ip 를 제어하는 ACL 기능이라고 생각해왔는데<br>
+그게 잘못된 것이라는 것을 이제야 알게 되어 내용을 정리합니다.</p>
+<h2 id="bind-">bind 파라미터란?</h2>
+<p>Redis는 TCP/IP 통신을 사용하기 때문에 요청을 받아줄 IP:Port를 설정하고 그 IP:Port로 들어오는 클라이언트의 요청을 받아들이게 되는데요<br>
+bind 파라미터는 Redis가 클라이언트의 요청을 받아주기 위해 열어놓은 IP를 설정하는 파라미터입니다.<br>
+즉! Redis 서버에서 ifconfig로 확인했을 때 나오는 IP들, 아래에서는 127.0.0.1 , 172.20.0.10, 0.0.0.0 이 값들만 가질 수 있게 됩니다.</p>
+<ul>
+<li>redis.conf bind 파라미터 설명</li>
+</ul>
+<pre><code># By default, if no &quot;bind&quot; configuration directive is specified, Redis listens
+# for connections from all the network interfaces available on the server.
+# It is possible to listen to just one or multiple selected interfaces using
+# the &quot;bind&quot; configuration directive, followed by one or more IP addresses.
+</code></pre><pre><code>[root@edd0a396ddfd tmp]# ip addr
+1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+10: eth0@if11: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default
+    link/ether 02:42:ac:14:00:0a brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 172.20.0.10/24 brd 172.20.0.255 scope global eth0
+       valid_lft forever preferred_lft forever
+</code></pre><p>bind 파라미터는 서버에 할당된 사용가능한 IP를 bind 파라미터에 설정하여 해당 IP로 들어오는 클라이언트의 요청만 받아들이겠다 라는 의미가 됩니다.<br>
+PostgreSQL의 pg_hba.conf, MySQL 계정의 host 처럼 ACL의 역할을 하는 파라미터가 아니었던 거죠..ㅎㅎ</p>
+<p>위 서버의 Redis 서버는 bind 파라미터로 아래와 같은 값을 가질 수 있는데 각각의 의미는 다음과 같습니다.</p>
+<ul>
+<li>bind 127.0.0.1 : local 접근만 허용, 외부에서는 접근 안됨</li>
+<li>bind 172.20.0.10 : 외부에서의 접근만 허용, local에선 접근 안됨</li>
+<li>bind 0.0.0.0 : local 접근 + 외부 접근 허용</li>
+</ul>
+<p>간단한 테스트를 통해 어떻게 동작하는지 확인해보겠습니다.</p>
+<h2 id="heading">테스트</h2>
+<p>TEST 수행은 아래와 같은 설정에서 진행했습니다</p>
+<pre><code>protected-mode yes
+require-pass qhdks123 
+</code></pre><ul>
+<li>protected-mode yes 설정은 requiere-pass,bind 둘다 설정되지 않은 경우, 로컬에서의 접속만 허용하는 설정입니다</li>
+<li>위와 같이 require-pass 가 존재하는 경우에는 no / yes 차이가 없습니다.</li>
+<li>bind 파라미터는 동적으로 변경이 안되기 때문에 재기동이 필요하다
+<ul>
+<li>Redis 6 버전부터는 bind, port 동적으로 변경 가능</li>
+</ul>
+</li>
+</ul>
+<h3 id="bind-127001">bind 127.0.0.1</h3>
+<pre><code>[root@edd0a396ddfd redis-stable]# redis-cli -a qhdks123
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+127.0.0.1:6379&gt;
+
+[root@edd0a396ddfd redis-stable]# redis-cli -h 172.20.0.10 -a qhdks123
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+Could not connect to Redis at 172.20.0.10:6379: Connection refused
+</code></pre><p>=&gt; localhost로 접속 성공, 172.20.0.10 으로 접속 실패</p>
+<h3 id="bind-17220010">bind 172.20.0.10</h3>
+<pre><code>[root@edd0a396ddfd redis-stable]# redis-cli -a qhdks123
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+Could not connect to Redis at 127.0.0.1:6379: Connection refused
+not connected&gt;
+
+[root@edd0a396ddfd redis-stable]# redis-cli -h 172.20.0.10 -a qhdks123
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+172.20.0.10:6379&gt;
+</code></pre><p>=&gt; localhost로 접속 실패, 172.20.0.10 으로 접속 성공</p>
+<h3 id="bind-0000">bind 0.0.0.0</h3>
+<pre><code>[root@edd0a396ddfd redis-stable]# redis-cli -a qhdks123
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+
+[root@edd0a396ddfd redis-stable]# redis-cli -h 172.20.0.10 -a qhdks123
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+172.20.0.10:6379&gt;
+</code></pre><p>=&gt; localhost, 172.20.0.10 둘다 성공</p>
+<h3 id="bind-x">bind x</h3>
+<pre><code>172.20.0.10:6379&gt; config get protected-mode
+1) &quot;protected-mode&quot;
+2) &quot;yes&quot;
+172.20.0.10:6379&gt; config get bind
+1) &quot;bind&quot;
+2) &quot;&quot;
+
+[root@edd0a396ddfd redis-stable]# redis-cli -a qhdks123
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+127.0.0.1:6379&gt;
+
+[root@edd0a396ddfd redis-stable]# redis-cli -h 172.20.0.10 -a qhdks123
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+172.20.0.10:6379&gt;
+</code></pre><p>=&gt; localhost, 172.20.0.10 둘다 성공</p>
+<h2 id="heading1">결론</h2>
+<ul>
+<li>bind 파라미터는 접속가능한 client ip를 관리하는 ACL 기능이 아니다!</li>
+<li>위와 같은 기능을 제공하려면 Redis 서버 iptables 단에서 제어해야한다</li>
+<li>뇌피셜을 지양하고 공식문서를 잘 읽어보자&hellip;..</li>
+</ul>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

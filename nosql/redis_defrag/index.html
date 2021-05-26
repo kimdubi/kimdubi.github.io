@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Redis memory fragmentation 해소하기</title>
+        
+        <style>
+
+
+    html body {
+        text-align: center;
+        width : 100%;
+        height: 100%;
+        font-family: 'Raleway', sans-serif;
+        background-color: white;
+    }
+
+    :root {
+        --accent: black;
+        --border-width:  5px ;
+    }
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://kimdubi.github.io/css/main.css">
+
+
+
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
+
+
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+ 
+
+
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+
+<script>$(document).on('click', function() { $('.collapse').collapse('hide'); })</script>
+ <meta name="generator" content="Hugo 0.60.1" />
+        
+
+        
+            <script async src="https://www.googletagmanager.com/gtag/js?id=UA-123-45"></script>
+            <script>
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments)};
+              gtag('js', new Date());
+              gtag('config', 'UA-123-45');
+            </script>
+        
+
+        
+            <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
+
+        
+
+    </head>
+
+    <body>
+        
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand visible-xs" href="#">Redis memory fragmentation 해소하기</a>
+                    <button class="navbar-toggle" data-target=".navbar-collapse" data-toggle="collapse">
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                </div>
+                <div class="collapse navbar-collapse">
+                    
+                        <ul class="nav navbar-nav">
+                            
+                                <li><a href="/">Home</a></li>
+                            
+                                <li><a href="/mysql/">MySQL &amp; MariaDB</a></li>
+                            
+                                <li><a href="/nosql/">Redis &amp; MongoDB</a></li>
+                            
+                                <li><a href="/oracle/">Oracle</a></li>
+                            
+                                <li><a href="/postgresql/">PostgreSQL</a></li>
+                            
+                                <li><a href="/cloud/">Cloud</a></li>
+                            
+                                <li><a href="/etc/">Etc..</a></li>
+                            
+                        </ul>
+                    
+                    
+                        <ul class="nav navbar-nav navbar-right">
+                            
+                                <li class="navbar-icon"><a href="mailto:kimdubi12@gmail.com"><i class="fa fa-envelope-o"></i></a></li>
+                            
+                                <li class="navbar-icon"><a href="https://www.linkedin.com/in/dohee-kim-072996181/"><i class="fa fa-linkedin"></i></a></li>
+                            
+                        </ul>
+                    
+                </div>
+            </div>
+        </nav>
+
+
+<main>
+
+    <div>
+        <h2>Redis memory fragmentation 해소하기</h2>
+        <h5></h5>
+        
+
+    </div>
+
+    <div align="start" class="content" text-align="center"><h1 id="heading">이슈상황</h1>
+<ul>
+<li>
+<p>Redis를 maxmemory 까지 쓰는 상황</p>
+</li>
+<li>
+<p>지속적으로 set 커맨드가 유입되고 이로 인해 key eviction이 발생하면서 memory 단편화가 심해짐</p>
+</li>
+<li>
+<p>이는 곧 서버 메모리 사용량 상승을 초래하고 심하면 OOME 까지도 유발할 수 있음</p>
+</li>
+<li>
+<p>Replica도 Master와 같은 데이터를 처리하기 때문에 memory fragmentation 현상도 동일하게 겪게되어 Replica도 동일하게 OOME 발생위험이 있음</p>
+</li>
+<li>
+<p>아래 모니터링 지표는 NHN cloud의 EasyCache에서 제공하는 기능임</p>
+</li>
+</ul>
+<h3 id="redis-memoryrss">redis memory(rss)</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_1.png" alt=""></p>
+<h3 id="-">서버 메모리</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_2.png" alt=""></p>
+<h3 id="memory-fragmentation">memory fragmentation</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_3.png" alt=""></p>
+<h3 id="key-eviction">key eviction</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_4.png" alt=""></p>
+<h3 id="set--get-call">set / get call</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_5.png" alt=""></p>
+<h1 id="activedefrag">activedefrag?</h1>
+<p>Redis key를 메모리에 할당할 때 연속적인 block에 할당하게 되고 key가 삭제되면 그 공간도 비워주게됨<br>
+만약 새로 들어오는 key의 크기가 균일하지 않고 들쭉날쭉하면 비워진 block에 key를 할당할 수 없게되어 새로운 연속된 block을 찾아 key를 할당하게 됨<br>
+이런 현상이 심해지면 군데군데 이 빠진 fragmentation 이 심해져 실제 Redis memory 사용량 보다 더 많은 서버 memory를 차지하게 되는데<br>
+이러한 fragmentation을 online 중에 정리할 수 있는 기능이 activcedefrag 기능임<br>
+Redis 4.0 부터 사용가능하며 5.0부터 많이 안정화 되었다고함</p>
+<h3 id="-1">발동 조건</h3>
+<ul>
+<li>
+<p>ACTIVE-DEFRAG-IGNORE-BYTES  :</p>
+<ul>
+<li>조각모음을 시작하기 위한 최소량</li>
+<li>info memory에서 조회된 allocator_frag_bytes = active - allocated 값이 설정한 값보다 작으면 activedefrag 하지 않음. default 100MB</li>
+</ul>
+</li>
+<li>
+<p>ACTIVE-DEFRAG-THRESHOLD-LOWER</p>
+<ul>
+<li>조각모음을 시작할 최소 조각화 비율</li>
+<li>allocator_frag_ratio = active / allocated 값이 설정한 값보다 작으면 activedefrag 수행하지않음 default 10%</li>
+</ul>
+</li>
+<li>
+<p>mem_allocator</p>
+<ul>
+<li>jemalloc 을 사용해야 하며 linux에서 Redis 설치 시 default임</li>
+</ul>
+</li>
+<li>
+<p>두 조건이 모두 만족할 때 수행됨</p>
+</li>
+</ul>
+<pre><code>127.0.0.1:6379&gt; config get ACTIVE-DEFRAG-IGNORE-BYTES 
+1) &quot;active-defrag-ignore-bytes&quot;
+2) &quot;104857600&quot;
+127.0.0.1:6379&gt; config get ACTIVE-DEFRAG-THRESHOLD-LOWER
+1) &quot;active-defrag-threshold-lower&quot;
+2) &quot;10&quot;
+
+</code></pre><h3 id="heading1">원리</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag.png" alt=""></p>
+<ul>
+<li>연속된 free memory block을 만들어주기 위해 중간에 알박기 하고있는 데이터를 옆으로 이동시키고 memory block을 병합시키는 원리인듯함</li>
+</ul>
+<h1 id="heading2">효과</h1>
+<p>빨간선 -&gt; REPLICA, activedefrag 비활성<br>
+파란선 -&gt; MASTER, activedefrag 활성</p>
+<h3 id="redis-memoryrss1">redis memory(rss)</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_6.png" alt=""></p>
+<h3 id="heading3">서버메모리</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_7.png" alt=""></p>
+<h3 id="memory-fragmentation1">memory fragmentation</h3>
+<p><img src="https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_8.png" alt=""></p>
+<h1 id="defrag-----">defrag 수행 전 / 후 지표</h1>
+<h2 id="-2">수행 전</h2>
+<h3 id="os-cpu--">OS CPU / 메모리</h3>
+<pre><code>  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+13119 redis     20   0 9570612 6.358g   1380 S   0.0 83.2   1969:27 redis-server
+</code></pre><h3 id="redis-info">redis info</h3>
+<pre><code># Memory
+
+used_memory_human:5.38G
+used_memory_rss_human:6.33G
+used_memory_peak_human:5.39G
+
+allocator_allocated:5782084072
+allocator_active:6677209088
+
+total_system_memory_human:7.64G
+
+maxmemory_human:5.38G
+
+allocator_frag_bytes:922989456
+allocator_frag_ratio:1.15
+
+mem_fragmentation_ratio:1.18
+mem_allocator:jemalloc-5.1.0
+active_defrag_running:0
+
+# Stats
+active_defrag_hits:0
+active_defrag_misses:0
+active_defrag_key_hits:0
+active_defrag_key_misses:0
+</code></pre><ul>
+<li>실제 Redis 메모리 사용량은 used_memory_human:5.38G</li>
+<li>mem_fragmentation_ratio:1.18 에 달해 서버 메모리 used_memory_rss_human:6.33G 까지 쓰고있는 상황</li>
+<li>정리 대상 fragmentation data 크기는 allocator_frag_bytes:922989456, 900MB정도</li>
+<li>allocator_frag_ratio:1.15 비율은 10%를 넘긴 상황</li>
+<li>발동조건이 만족되었기 때문에 activedefrag yes로 설정 시 activedefrag 기능이 바로 수행될 것임</li>
+</ul>
+<h2 id="-3">수행 중</h2>
+<h3 id="activedefrag-yes">activedefrag yes</h3>
+<pre><code>127.0.0.1:10379&gt; TC_EASYCACHE_CONFIG set activedefrag yes
+OK
+</code></pre><h3 id="os-cpu--1">OS CPU / 메모리</h3>
+<pre><code>  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+13119 redis     20   0 9570612 6.359g   1408 S   8.8 83.2   1969:28 redis-server
+</code></pre><h3 id="redis-info1">redis info</h3>
+<pre><code># Memory
+
+used_memory_human:5.39G
+used_memory_rss_human:5.79G
+used_memory_peak_human:5.39G
+
+allocator_allocated:5785638544
+allocator_active:6075428864
+
+total_system_memory_human:7.64G
+
+maxmemory_human:5.38G
+
+allocator_frag_ratio:1.05
+mem_fragmentation_ratio:1.07
+mem_allocator:jemalloc-5.1.0
+active_defrag_running:9
+</code></pre><ul>
+<li>active_defrag_running : 9 , active_defrag가 돌면서 메모리도 많이 정리되는 중임</li>
+<li>activedefrag 돌면서 CPU는 조금 쓰는 모습</li>
+</ul>
+<h2 id="-4">수행 후</h2>
+<h3 id="os-cpu--2">OS CPU / 메모리</h3>
+<pre><code>  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+13119 redis     20   0 9570612 6.359g   1408 S   1.1 72.9   1969:28 redis-server
+</code></pre><h3 id="redis-info2">redis info</h3>
+<pre><code># Memory
+
+used_memory_human:5.38G
+used_memory_rss_human:5.55G
+used_memory_peak_human:5.39G
+
+allocator_allocated:5781963352
+allocator_active:5837156352
+
+total_system_memory_human:7.64G
+
+maxmemory_human:5.38G
+
+allocator_frag_bytes:83108768
+allocator_frag_ratio:1.01
+
+mem_fragmentation_ratio:1.03
+mem_allocator:jemalloc-5.1.0
+active_defrag_running:0
+
+# Stats
+active_defrag_hits:5134002
+active_defrag_misses:23330219
+active_defrag_key_hits:2994915
+active_defrag_key_misses:3473898
+</code></pre><h1 id="heading4">정리</h1>
+<ul>
+<li>메모리 단편화가 심할 때 activedefarg 켜주면 효과가 정말 좋음
+<ul>
+<li>메모리 빡빡하게 쓰는 서비스는 항시 켜놓는 것이 좋을듯</li>
+</ul>
+</li>
+<li>운영 중 set / get 커맨드가 많이 들어오는 환경에서도 서비스에 이슈 없음</li>
+<li>defrag 정리 중 CPU만 조금 쓰는데 미비한 수준, CPU limit 관련 설정도 있는데 굳이 건드릴 필요 없을듯</li>
+<li>정확히 시간은 체크 못했으나 6.33G -&gt; 5.55G 약 1GB 정리하는데 10분안쪽으로 소요된듯</li>
+<li>maxmemory 를 해소하는 건 아님!! maxmeomry 는 별개로 redis 스펙업 해줘야함, activedefrag는 단편화 해소하는 기능</li>
+<li>관련 설정은 <a href="http://redisgate.kr/redis/server/redis_conf_han.php">http://redisgate.kr/redis/server/redis_conf_han.php</a> 참고</li>
+</ul>
+</div>
+
+</main>
+
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+
+(function() {
+    
+    
+    if (window.location.hostname == "localhost")
+        return;
+
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    var disqus_shortname = 'kimdubia';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+        <footer>
+            <p class="copyright text-muted">© All rights reserved. Powered by <a href="https://gohugo.io">Hugo</a> and <a href="https://github.com/calintat/minimal">Minimal</a>.</p>
+        </footer>
+
+        
+
+        
+    </body>
+
+</html>
+

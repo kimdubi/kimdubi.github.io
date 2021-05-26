@@ -5,10 +5,210 @@
     <description>Recent content in Nosqls on kimDuBiA</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 09 May 2021 23:46:12 +0900</lastBuildDate>
+    <lastBuildDate>Wed, 26 May 2021 14:44:55 +0900</lastBuildDate>
     
         <atom:link href="https://kimdubi.github.io/nosql/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Redis memory fragmentation 해소하기</title>
+      <link>https://kimdubi.github.io/nosql/redis_defrag/</link>
+      <pubDate>Wed, 26 May 2021 14:44:55 +0900</pubDate>
+      
+      <guid>https://kimdubi.github.io/nosql/redis_defrag/</guid>
+      <description>&lt;h1 id=&#34;heading&#34;&gt;이슈상황&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Redis를 maxmemory 까지 쓰는 상황&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;지속적으로 set 커맨드가 유입되고 이로 인해 key eviction이 발생하면서 memory 단편화가 심해짐&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;이는 곧 서버 메모리 사용량 상승을 초래하고 심하면 OOME 까지도 유발할 수 있음&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Replica도 Master와 같은 데이터를 처리하기 때문에 memory fragmentation 현상도 동일하게 겪게되어 Replica도 동일하게 OOME 발생위험이 있음&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;아래 모니터링 지표는 NHN cloud의 EasyCache에서 제공하는 기능임&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;redis-memoryrss&#34;&gt;redis memory(rss)&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_1.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;-&#34;&gt;서버 메모리&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_2.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;memory-fragmentation&#34;&gt;memory fragmentation&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_3.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;key-eviction&#34;&gt;key eviction&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_4.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;set--get-call&#34;&gt;set / get call&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_5.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h1 id=&#34;activedefrag&#34;&gt;activedefrag?&lt;/h1&gt;
+&lt;p&gt;Redis key를 메모리에 할당할 때 연속적인 block에 할당하게 되고 key가 삭제되면 그 공간도 비워주게됨&lt;br&gt;
+만약 새로 들어오는 key의 크기가 균일하지 않고 들쭉날쭉하면 비워진 block에 key를 할당할 수 없게되어 새로운 연속된 block을 찾아 key를 할당하게 됨&lt;br&gt;
+이런 현상이 심해지면 군데군데 이 빠진 fragmentation 이 심해져 실제 Redis memory 사용량 보다 더 많은 서버 memory를 차지하게 되는데&lt;br&gt;
+이러한 fragmentation을 online 중에 정리할 수 있는 기능이 activcedefrag 기능임&lt;br&gt;
+Redis 4.0 부터 사용가능하며 5.0부터 많이 안정화 되었다고함&lt;/p&gt;
+&lt;h3 id=&#34;-1&#34;&gt;발동 조건&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;ACTIVE-DEFRAG-IGNORE-BYTES  :&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;조각모음을 시작하기 위한 최소량&lt;/li&gt;
+&lt;li&gt;info memory에서 조회된 allocator_frag_bytes = active - allocated 값이 설정한 값보다 작으면 activedefrag 하지 않음. default 100MB&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;ACTIVE-DEFRAG-THRESHOLD-LOWER&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;조각모음을 시작할 최소 조각화 비율&lt;/li&gt;
+&lt;li&gt;allocator_frag_ratio = active / allocated 값이 설정한 값보다 작으면 activedefrag 수행하지않음 default 10%&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;mem_allocator&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;jemalloc 을 사용해야 하며 linux에서 Redis 설치 시 default임&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;두 조건이 모두 만족할 때 수행됨&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:6379&amp;gt; config get ACTIVE-DEFRAG-IGNORE-BYTES 
+1) &amp;quot;active-defrag-ignore-bytes&amp;quot;
+2) &amp;quot;104857600&amp;quot;
+127.0.0.1:6379&amp;gt; config get ACTIVE-DEFRAG-THRESHOLD-LOWER
+1) &amp;quot;active-defrag-threshold-lower&amp;quot;
+2) &amp;quot;10&amp;quot;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;heading1&#34;&gt;원리&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;연속된 free memory block을 만들어주기 위해 중간에 알박기 하고있는 데이터를 옆으로 이동시키고 memory block을 병합시키는 원리인듯함&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;heading2&#34;&gt;효과&lt;/h1&gt;
+&lt;p&gt;빨간선 -&amp;gt; REPLICA, activedefrag 비활성&lt;br&gt;
+파란선 -&amp;gt; MASTER, activedefrag 활성&lt;/p&gt;
+&lt;h3 id=&#34;redis-memoryrss1&#34;&gt;redis memory(rss)&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_6.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;heading3&#34;&gt;서버메모리&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_7.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h3 id=&#34;memory-fragmentation1&#34;&gt;memory fragmentation&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/redis/redis_defrag_8.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h1 id=&#34;defrag-----&#34;&gt;defrag 수행 전 / 후 지표&lt;/h1&gt;
+&lt;h2 id=&#34;-2&#34;&gt;수행 전&lt;/h2&gt;
+&lt;h3 id=&#34;os-cpu--&#34;&gt;OS CPU / 메모리&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+13119 redis     20   0 9570612 6.358g   1380 S   0.0 83.2   1969:27 redis-server
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;redis-info&#34;&gt;redis info&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;# Memory
+
+used_memory_human:5.38G
+used_memory_rss_human:6.33G
+used_memory_peak_human:5.39G
+
+allocator_allocated:5782084072
+allocator_active:6677209088
+
+total_system_memory_human:7.64G
+
+maxmemory_human:5.38G
+
+allocator_frag_bytes:922989456
+allocator_frag_ratio:1.15
+
+mem_fragmentation_ratio:1.18
+mem_allocator:jemalloc-5.1.0
+active_defrag_running:0
+
+# Stats
+active_defrag_hits:0
+active_defrag_misses:0
+active_defrag_key_hits:0
+active_defrag_key_misses:0
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;실제 Redis 메모리 사용량은 used_memory_human:5.38G&lt;/li&gt;
+&lt;li&gt;mem_fragmentation_ratio:1.18 에 달해 서버 메모리 used_memory_rss_human:6.33G 까지 쓰고있는 상황&lt;/li&gt;
+&lt;li&gt;정리 대상 fragmentation data 크기는 allocator_frag_bytes:922989456, 900MB정도&lt;/li&gt;
+&lt;li&gt;allocator_frag_ratio:1.15 비율은 10%를 넘긴 상황&lt;/li&gt;
+&lt;li&gt;발동조건이 만족되었기 때문에 activedefrag yes로 설정 시 activedefrag 기능이 바로 수행될 것임&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;-3&#34;&gt;수행 중&lt;/h2&gt;
+&lt;h3 id=&#34;activedefrag-yes&#34;&gt;activedefrag yes&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;127.0.0.1:10379&amp;gt; TC_EASYCACHE_CONFIG set activedefrag yes
+OK
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;os-cpu--1&#34;&gt;OS CPU / 메모리&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+13119 redis     20   0 9570612 6.359g   1408 S   8.8 83.2   1969:28 redis-server
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;redis-info1&#34;&gt;redis info&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;# Memory
+
+used_memory_human:5.39G
+used_memory_rss_human:5.79G
+used_memory_peak_human:5.39G
+
+allocator_allocated:5785638544
+allocator_active:6075428864
+
+total_system_memory_human:7.64G
+
+maxmemory_human:5.38G
+
+allocator_frag_ratio:1.05
+mem_fragmentation_ratio:1.07
+mem_allocator:jemalloc-5.1.0
+active_defrag_running:9
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;active_defrag_running : 9 , active_defrag가 돌면서 메모리도 많이 정리되는 중임&lt;/li&gt;
+&lt;li&gt;activedefrag 돌면서 CPU는 조금 쓰는 모습&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;-4&#34;&gt;수행 후&lt;/h2&gt;
+&lt;h3 id=&#34;os-cpu--2&#34;&gt;OS CPU / 메모리&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+13119 redis     20   0 9570612 6.359g   1408 S   1.1 72.9   1969:28 redis-server
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;redis-info2&#34;&gt;redis info&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;# Memory
+
+used_memory_human:5.38G
+used_memory_rss_human:5.55G
+used_memory_peak_human:5.39G
+
+allocator_allocated:5781963352
+allocator_active:5837156352
+
+total_system_memory_human:7.64G
+
+maxmemory_human:5.38G
+
+allocator_frag_bytes:83108768
+allocator_frag_ratio:1.01
+
+mem_fragmentation_ratio:1.03
+mem_allocator:jemalloc-5.1.0
+active_defrag_running:0
+
+# Stats
+active_defrag_hits:5134002
+active_defrag_misses:23330219
+active_defrag_key_hits:2994915
+active_defrag_key_misses:3473898
+&lt;/code&gt;&lt;/pre&gt;&lt;h1 id=&#34;heading4&#34;&gt;정리&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;메모리 단편화가 심할 때 activedefarg 켜주면 효과가 정말 좋음
+&lt;ul&gt;
+&lt;li&gt;메모리 빡빡하게 쓰는 서비스는 항시 켜놓는 것이 좋을듯&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;운영 중 set / get 커맨드가 많이 들어오는 환경에서도 서비스에 이슈 없음&lt;/li&gt;
+&lt;li&gt;defrag 정리 중 CPU만 조금 쓰는데 미비한 수준, CPU limit 관련 설정도 있는데 굳이 건드릴 필요 없을듯&lt;/li&gt;
+&lt;li&gt;정확히 시간은 체크 못했으나 6.33G -&amp;gt; 5.55G 약 1GB 정리하는데 10분안쪽으로 소요된듯&lt;/li&gt;
+&lt;li&gt;maxmemory 를 해소하는 건 아님!! maxmeomry 는 별개로 redis 스펙업 해줘야함, activedefrag는 단편화 해소하는 기능&lt;/li&gt;
+&lt;li&gt;관련 설정은 &lt;a href=&#34;http://redisgate.kr/redis/server/redis_conf_han.php&#34;&gt;http://redisgate.kr/redis/server/redis_conf_han.php&lt;/a&gt; 참고&lt;/li&gt;
+&lt;/ul&gt;
+</description>
+    </item>
     
     <item>
       <title>Redis bind에 대한 오해</title>

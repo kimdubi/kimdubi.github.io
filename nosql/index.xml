@@ -11,11 +11,11 @@
     
     
     <item>
-      <title>Redis memory fragmentation 해소하기</title>
-      <link>https://kimdubi.github.io/nosql/redis_defrag/</link>
+      <title>Redis memory fragmentation 해소하기(activedefrag)</title>
+      <link>https://kimdubi.github.io/nosql/redis_activedefrag/</link>
       <pubDate>Wed, 26 May 2021 14:44:55 +0900</pubDate>
       
-      <guid>https://kimdubi.github.io/nosql/redis_defrag/</guid>
+      <guid>https://kimdubi.github.io/nosql/redis_activedefrag/</guid>
       <description>&lt;h1 id=&#34;heading&#34;&gt;이슈상황&lt;/h1&gt;
 &lt;ul&gt;
 &lt;li&gt;

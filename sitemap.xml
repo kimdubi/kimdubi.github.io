@@ -17,7 +17,7 @@
   </url>
   
   <url>
-    <loc>https://kimdubi.github.io/nosql/redis_defrag/</loc>
+    <loc>https://kimdubi.github.io/nosql/redis_activedefrag/</loc>
     <lastmod>2021-05-26T14:44:55+09:00</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.5</priority>

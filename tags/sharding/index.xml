@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>sharding on kimDuBiA</title>
+    <link>/tags/sharding/</link>
+    <description>Recent content in sharding on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 06 Oct 2021 00:31:52 +0900</lastBuildDate><atom:link href="/tags/sharding/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>PostgreSQL Citus 간단히 살펴보기</title>
+      <link>/postgresql/citus/</link>
+      <pubDate>Wed, 06 Oct 2021 00:31:52 +0900</pubDate>
+      
+      <guid>/postgresql/citus/</guid>
+      <description>2년전에 citus가 어떤 것인지 궁금해서 구성 관련 간단히 테스트했던 내용입니다.
+깊이있는 내용은 전혀 아니고 지금 다시 읽어보니 거의 저만 이해할 수 있게 써놨네요…..
+현재는 citus나 postgresql 버전이 테스트 당시와 상이할 수 있어 틀린 내용이 많을 수 있습니다.
+목차  Citus 란? HA 방식에 따른 아키텍처 성능 테스트 Citus 설치 방법 Query processing Distributed deadlock Query plan 참고 내용  Citus -. PostgreSQL 의 scale-out 용도 extension ( mysql plugin )</description>
+    </item>
+    
+  </channel>
+</rss>

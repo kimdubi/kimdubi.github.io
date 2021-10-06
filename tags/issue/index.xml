@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>issue on kimDuBiA</title>
+    <link>/tags/issue/</link>
+    <description>Recent content in issue on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Tue, 05 Oct 2021 23:31:29 +0900</lastBuildDate><atom:link href="/tags/issue/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>pg_replication_slot 사용 시 wal logfile이 계속 쌓일때</title>
+      <link>/postgresql/pg_slot_issue/</link>
+      <pubDate>Tue, 05 Oct 2021 23:31:29 +0900</pubDate>
+      
+      <guid>/postgresql/pg_slot_issue/</guid>
+      <description>PostgreSQL 의 복제구성으로 가장 널리 쓰이는 방법은
+streaming replication + physical replication slot 입니다.
+특히 physical replication slot 을 사용하는 경우에는 DB에서 slave 가 필요로 하는 WAL logfile 정보를 관리하기 때문에
+운영자가 wal_keep_segments , max_wal_size 같은 WAL 보관 설정에 대해 고민할 필요가 없습니다.
+그러나 이 편리한 replication slot 기능에도 예외상황이 있는데요
+slave DB가 계속 replication 을 받지 못하는 상황이거나,
+사용하지 않는 replication slot이 방치 된 경우
+DB는 WAL logfile들이 나중엔 반영될 거라고 보기 때문에 계속~ 무한정 ~ file들을 저장하게 됩니다.</description>
+    </item>
+    
+    <item>
+      <title>index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size)</title>
+      <link>/mysql/range_optimizer_max_mem_size/</link>
+      <pubDate>Mon, 04 Oct 2021 21:28:19 +0900</pubDate>
+      
+      <guid>/mysql/range_optimizer_max_mem_size/</guid>
+      <description>index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size) Index 잘 타던 쿼리가 fullscan을 하면서 CPU가 100% 를 치는 이슈가 발생했습니다.
+range_optimizer_max_mem_size 라는 생소한 파라미터를 설정하여 이슈 해결한 사례를 공유합니다.
+이슈 상황 DB server에서 갑자기 CPU가 100%를 치는 상황이 발생
+원인은 아래 Slow query 가 수행되면서 발생한것으로 추측
+SELECT * FROM tb_test tb1 LEFT OUTER JOIN tb_test2 AS tb2 ON tb1.name = tb2.name WHERE tb1.status = &#39;active&#39; AND tb1.resource_id in (1,2 ......... N)  =&amp;gt; where IN절에 bind값이 많기는 하지만 필요한 인덱스는 모두 있어서 문제될 법한 쿼리는 아닌 듯 했으나 full scan을 하면서 CPU가 급증함</description>
+    </item>
+    
+    <item>
+      <title>MySQL 5.7.15 Master-Slave datetime 이슈</title>
+      <link>/mysql/mysql5715_datetime_issue/</link>
+      <pubDate>Mon, 04 Oct 2021 21:15:20 +0900</pubDate>
+      
+      <guid>/mysql/mysql5715_datetime_issue/</guid>
+      <description>MySQL 5.7.15 Master-Slave datetime 이슈 얼마전 운영하는 MySQL에서 재미있는 이슈가 하나 터졌습니다.
+datetime 컬럼에 대해 Master / Slave 간 1초 씩 차이나서 데이터가 안맞는 이슈였는데요
+간단히 정리하면 이런 버그였습니다.
+datetime 칼럼 insert문이 binary log에 millisecond 값이 생략되어 마스터-슬레이브 값 차이가 1초씩 발생 (server-side prepared statements 사용시, timestamp의 millisecond 부분이 master에서는 정상적으로 반올림 되는데 slave에서는 잘리는 버그) 버그 리포트 : https://bugs.mysql.com/bug.php?id=74550 5.7.18 버전에서 패치  이슈 위에서 보이듯이 Master / Slave 간 datetime 값이 1초씩 차이가 납니다.</description>
+    </item>
+    
+    <item>
+      <title>Xtrabackup long transacion issue</title>
+      <link>/mysql/xtrabackup_longtran_issue/</link>
+      <pubDate>Mon, 04 Oct 2021 21:00:38 +0900</pubDate>
+      
+      <guid>/mysql/xtrabackup_longtran_issue/</guid>
+      <description>Xtrabackup 사용 시 주의사항 Xtrabackup 은 mysqldump 대신 많이 사용되는 오픈소스 hotbackup utility 입니다.
+널리 사용되는 유틸리티라서 사용하는데에 큰 이슈는 없지만 다만 사용할 때 꼭 기억해둬야할 주의점이 있습니다.
+Xtrabackup은 백업 수행이후 FLUSH TABLES WITH READ LOCK을 수행하는데 이 때 실행되는 쿼리가 있는 경우 flush 구문은 테이블락을 획득하지 못하고 waiting하며
+lockwait timeout 이후 세션이 종료되어 백업이 완료되지 못하거나 backup이 비정상적으로 길어지는 현상이 발생할 수 있다는 점입니다.
+백업서버에서 롱 쿼리 수행 mysql&amp;gt; select a,b,c,count(*) from tb_test group by a,b,c order by a,b,c desc ;  동시에 xtrabackup 수행 [testuser ]$ innobackupex --defaults-file=/home1/testuser/db/mysql/my.</description>
+    </item>
+    
+    <item>
+      <title>MySQL 8.0 to MySQL 5.7 replication 구성 시 collation issue</title>
+      <link>/mysql/mysql8to57_collation/</link>
+      <pubDate>Mon, 04 Oct 2021 20:45:34 +0900</pubDate>
+      
+      <guid>/mysql/mysql8to57_collation/</guid>
+      <description>MySQL 8.0 to MySQL 5.7 replication 구성 시 collation issue 이번에 MySQL 5.7을 사용하는 서비스를 MySQL 8.0으로 업그레이드 하는 작업을 진행했습니다.
+MySQL 8.0 은 MySQL 5.7에서 받은 mysqldump 로 신규 구성 후 MMM 을 사용하여 role change 과정을 통해 MySQL 8.0을 한대 씩 투입하여
+최종적으로는 MySQL 8.0 두대를 서비스에 투입하고, 기존에 사용하던 MySQL 5.7은 혹시모를 롤백용으로 MySQL 8.0 -&amp;gt; MySQL 5.7로의 복제 구성하도록 남겨두는 게 시나리오였습니다.
+MySQL 8.0 과 5.7 의 default collation이 달라서 실패했고 트러블 슈팅한 내용을 정리해봤습니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL INSERT INTO ON DUPLICATE KEY UPDATE로 인한 deadlock 이슈</title>
+      <link>/mysql/insert_on_duplicate_lock/</link>
+      <pubDate>Mon, 04 Oct 2021 20:01:46 +0900</pubDate>
+      
+      <guid>/mysql/insert_on_duplicate_lock/</guid>
+      <description>MySQL INSERT INTO ON DUPLICATE KEY UPDATE 로 인한 LOCK 이슈 MySQL의 편리한 기능 중 INSERT INTO ~ ON DUPLICATE KEY UPDATE 구문이 있습니다.
+unique key, primary key 로 unique 제약조건이 걸려 있는 상황에서 중복된 데이터가 들어오면 DUPLICATE KEY UPDATE 구문으로 update 를 수행하는 구문인데요.
+ORACLE 이나 기타 DB에서는 REPLCAE 에 해당하는 구문입니다.
+참 편리한 기능이지만 DML이 많이 발생하는 상황에서 동일한 ROW 에 UPDATE 를 시도하는 세션이 많이 쌓이는 경우</description>
+    </item>
+    
+    <item>
+      <title>MySQL 특정 테이블만 시점복구 하기</title>
+      <link>/mysql/restore_specific_table/</link>
+      <pubDate>Mon, 04 Oct 2021 19:03:39 +0900</pubDate>
+      
+      <guid>/mysql/restore_specific_table/</guid>
+      <description>MySQL 특정 테이블만 시점복구 하기 얼마 전 서비스 로직 이슈로 특정 데이터들이 CASCADE 삭제되어 데이터가 유실되는 일이 발생했습니다.
+영향 받은 테이블들은 전체 테이블들 중 두개였고 전체 서비스를 장애 시점 이전으로 롤백시킬 수는 없는 상황이었기 때문에 해당 테이블들만 복구를 진행했습니다.
+대상 테이블들은 특히 또 FOREIGN KEY constraint 가 걸려있어서 여러모로 생각해줘야 하는 부분들이 많았습니다.
+먼저 복구 시나리오는 아래와 같습니다.
+* 복구 시점 찾기 * 최신 백업본 로드 (10/30일 새벽 백업본) * 10/30일 새벽 백업본 + 장애 시점 전 까지의 binary log 적용 ( 대상 테이블 관련 DML만 추출해서 적용하기 ) * 장애유발쿼리 제거하고 그 이후부터 현재까지의 binary log 적용 (대상 테이블 관련 DML만 추출해서 적용하기 )   복구 대상 binlog 추출  $ mysqlbinlog mysql-bin.</description>
+    </item>
+    
+    <item>
+      <title>MySQL Foreign Key 1215 error</title>
+      <link>/mysql/fk_error/</link>
+      <pubDate>Mon, 04 Oct 2021 18:37:54 +0900</pubDate>
+      
+      <guid>/mysql/fk_error/</guid>
+      <description>MySQL Foreign Key 1215 error 얼마전 담당하는 MySQL 서비스의 복제본 한벌을 더 추가 구성하게 되었습니다.
+single-transaction + dump-slave 혹은 single-transaction + master-data 옵션으로 mysqldump 를 받은 뒤
+새 서버에 반영해주고 dumpfile에 dump-slave / master-data 옵션으로 인해 딸려온 change master to 구문을 확인하여
+replication을 맺어주면 되는 아주 간단한 작업인데요
+그런데 실패했습니다…
+ replication error log  show slave status\G; . . Last_Errno: 1146 Last_Error: Error &#39;Table &#39;xxxxx.xxxx&#39; doesn&#39;t exist&#39; on query. Default database: &#39;xxxxxxxxxxxx&#39;.</description>
+    </item>
+    
+  </channel>
+</rss>

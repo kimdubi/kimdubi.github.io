@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>운영 on kimDuBiA</title>
+    <link>/tags/%EC%9A%B4%EC%98%81/</link>
+    <description>Recent content in 운영 on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 06 Oct 2021 00:30:41 +0900</lastBuildDate><atom:link href="/tags/%EC%9A%B4%EC%98%81/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>쿼리 실행 통계 확인을 위한 pg_stat_monitor</title>
+      <link>/postgresql/pg_stat_monitor/</link>
+      <pubDate>Wed, 06 Oct 2021 00:30:41 +0900</pubDate>
+      
+      <guid>/postgresql/pg_stat_monitor/</guid>
+      <description>PostgreSQL에는 pg_stat_statements 라는 DB서버에서 수행된 모든 SQL문의 실행 통계를 제공하는 유용한 extension이 있습니다.
+그러나 몇가지 단점이 있는데
+ 수행된 시간대가 표시안되어 pg_stat_statements 만으로는 피크시간대 수행된 쿼리를 확인하기 어려움 쿼리에서 접근한 테이블이 따로 저장안됨 쿼리를 수행한 client IP 표시가 안됨  이러한 단점들을 모두 해결한 것이 percona에서 나온 pt_stat_monitor라는 extension 입니다.
+installation sudo yum install -y https://repo.percona.com/yum/percona-release-latest.noarch.rpm sudo percona-release setup ppg-12 sudo yum install -y percona-postgresql12-devel ### postgresql stop 후 $ vi postgresql.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL AutoVacuum 최적화</title>
+      <link>/postgresql/pg_autovacuum/</link>
+      <pubDate>Wed, 06 Oct 2021 00:20:28 +0900</pubDate>
+      
+      <guid>/postgresql/pg_autovacuum/</guid>
+      <description>PostgreSQL 에는 다른 DBMS 에서는 볼 수 없는 Vacuum 이라는 개념이 존재합니다.
+이는 MVCC 구현 방법이 ORACLE이나 MySQL 같은 다른 DBMS와 다르다는 차이점에서 오는 문제점을 해결하기 위한 PostgreSQL 만의 특별한 동작인데요.
+PostgreSQL은 Vacuum 동작을 자동으로 수행하는 AutoVacuum을 통해 아래 두가지 작업을 수행합니다.
+ transaction id wraparound 방지 임계치 이상으로 발생한 dead tuple을 정리하여 FSM (Free Space Map) 으로 반환  위 두가지를 수행하지 않고 방치하면 어떤 문제점이 생기는지에 대해서는 PostgreSQL을 소개하며 간단히 다룬 적이 있으니 참고하시기 바랍니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL pgpool-II recovery node</title>
+      <link>/postgresql/pg_pgpool_recovery/</link>
+      <pubDate>Wed, 06 Oct 2021 00:15:33 +0900</pubDate>
+      
+      <guid>/postgresql/pg_pgpool_recovery/</guid>
+      <description>PostgreSQL의 auto-failover 솔루션인 pgpool 은 multi-master 를 지원하지 않기 때문에
+MySQL의 MMM 처럼 failover 된 OLD Master 를 자동으로 cluster의 slave 로 포함시키는 기능이 없습니다.
+그래서 old master 를 new master의 slave 로 재구성하는 작업을 수작업으로 해야만 하는데
+이 과정을 pgpool 의 recovery_node 기능을 통해 자동화 할 수 있습니다.
+pgpool 구성 방법은 아래 내용 참고
+ https://kimdubi.github.io/postgresql/postgresql_pgpool/  자동화 설정 수행 과정  db down pgpool failover 감지  failover command 수행 됨   failover 완료 후 pcp_recovery_node -n node-id ( new slave 노드 ) 커맨드 수행  pgpool.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL synchronus_commit</title>
+      <link>/postgresql/pg_sync_commit/</link>
+      <pubDate>Tue, 05 Oct 2021 23:57:38 +0900</pubDate>
+      
+      <guid>/postgresql/pg_sync_commit/</guid>
+      <description>replication 구성에서 중요하게 생각할 부분 중 하나로 sync 방식이 있습니다.
+MySQL의 경우 sync,async,semi sync 방식으로 설정할 수 있는데요.
+이번 글에서는 PostgreSQL의 sync replication 설정과 주의사항에 대해서 알아보겠습니다.
+WAL 전달에 따른 ACK  백엔드 프로세스는 XLogInsert () 및 XLogFlush () 함수를 실행하여 WAL 세그먼트 파일에 WAL 데이터를 쓰고 플러시 합니다. Primary의 walsender 프로세스는 WAL 세그먼트에 기록 된 WAL 데이터를 Standby의 walreceiver 프로세스로 보냅니다. WAL 데이터를 보낸 후 백엔드 프로세스는 Standby의 ACK 응답을 계속 대기합니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL service 등록하기</title>
+      <link>/postgresql/pg_service/</link>
+      <pubDate>Tue, 05 Oct 2021 23:54:37 +0900</pubDate>
+      
+      <guid>/postgresql/pg_service/</guid>
+      <description>yum 설치가 아닌 source 설치를 했을 때는 postgresql 기동 관련 service 설정을 따로해줘야합니다.
+이번 글에서는 centos6 / 7 에서 각각 service 등록하는 방법을 알아보겠습니다.
+설치한 path는 환경에 맞게 수정하시면 됩니다.
+postgres service 등록 - centos6 irteamsu) sudo vi /etc/init.d/postgres #!/bin/bash # chkconfig:2345 90 20 # Installation prefix prefix=/home1/irteam/psql/engn/postgresql-11.7 # Data directory PGDATA=&amp;quot;/home1/irteam/psql/engn/PGSQL&amp;quot; # Who to run the postmaster as, usually &amp;quot;postgres&amp;quot;. (NOT &amp;quot;root&amp;quot;) PGUSER=irteam # Where to keep a log file PGLOG=&amp;quot;/home1/irteam/psql/logs/testdb/error_log/alert_testdb.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL schema 의미 및 권한관리</title>
+      <link>/postgresql/pg_schema/</link>
+      <pubDate>Tue, 05 Oct 2021 23:26:51 +0900</pubDate>
+      
+      <guid>/postgresql/pg_schema/</guid>
+      <description>MySQL이나 ORACLE 을 다루다가
+PostgreSQL을 처음 다룰 때 가장 헷갈리는 것 중 하나는 바로 schema의 개념입니다.
+ORACLE에서는 오브젝트를 가진 USER, MySQL은 논리DB를 schema 라고 하는 반면에
+PostgreSQL 에서는 database , schema , user 의 개념이 모두 있기 때문에 처음엔 헷갈릴 수 있는데요
+이번 글에서는 PostgreSQL의 schema 와 권한 관리에 대해 알아보겠습니다.
+PostgreSQL Schema MySQL에서는 논리 Database를 schema 와 같은 의미로 사용합니다.
+반면 PostgreSQL에서는 database와 schema 두가지 개념 모두 사용되며 database는 schema의 상위 개념이라 할 수 있습니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL configure 설정</title>
+      <link>/postgresql/postgresql_conf/</link>
+      <pubDate>Tue, 05 Oct 2021 22:20:28 +0900</pubDate>
+      
+      <guid>/postgresql/postgresql_conf/</guid>
+      <description>yum 설치가 아닌 source make 설치라 디렉토리 구성 등이 다를 수 있습니다.
+bash_profile $ vi ~/.bash_profile export POSTGRES_HOME=/home1/kimdubi/psql/engn/postgresql-11.7 export PGLIB=$POSTGRES_HOME/lib export PGDATA=/home1/kimdubi/psql/engn/PGSQL export MANPATH=$MANPATH:$POSTGRES_HOME/man export PATH=$POSTGRES_HOME/bin:$PATH  postgresql.conf #------------------------------------------------------------------------------ # CONNECTIONS AND AUTHENTICATION #------------------------------------------------------------------------------ # - Connection Settings - listen_addresses = &#39;*&#39; port = 3000 max_connections = 1000 #------------------------------------------------------------------------------ # RESOURCE USAGE (except WAL) #------------------------------------------------------------------------------ # - Memory - shared_buffers = 1024MB work_mem = 4MB maintenance_work_mem = 512MB dynamic_shared_memory_type = posix effective_io_concurrency = 200 max_worker_processes=8 max_parallel_workers_per_gather = 2 max_parallel_workers = 8 #------------------------------------------------------------------------------ # WRITE AHEAD LOG #------------------------------------------------------------------------------ # - Settings - wal_level = logical wal_buffers = 2MB max_wal_size = 1GB # - Archiving - archive_mode = on archive_command = &#39;cp %p /home1/kimdubi/psql/arch/testdb/%f&#39; #------------------------------------------------------------------------------ # QUERY TUNING #------------------------------------------------------------------------------ random_page_cost = 1.</description>
+    </item>
+    
+    <item>
+      <title>MySQL Shell을 통한 Table dump&amp;load</title>
+      <link>/mysql/mysqlshell_dump/</link>
+      <pubDate>Mon, 04 Oct 2021 22:11:03 +0900</pubDate>
+      
+      <guid>/mysql/mysqlshell_dump/</guid>
+      <description>MySQL shell을 통한 Table dump&amp;amp;load 기존 mysqldump 같은 Logical backup의 단점은 사용은 간편하나, dump&amp;amp;load 시 single thread를 사용하여 굉장히 느리다는 단점이 있는데
+mysqlshell 의 dump , load 기능을 사용하면 logical 백업도 빠르게 수행할 수 있습니다.
+이번 글에서는 mysqlshell을 통해 특정 테이블만 dump&amp;amp;load test를 해보겠습니다. 물론 instance, schema 단위로도 백업 가능합니다.
+mysqlshell은 8.0 뿐만 아니라 5.6, 5.7에서도 사용이 가능합니다. ( backup lock 등 버전 별 기능차이로 인해 안되는 기능도 있음)
+mysqlshell 설치 $ sudo yum install mysql-shell Loaded plugins: fastestmirror, security Setting up Install Process Loading mirror speeds from cached hostfile Resolving Dependencies --&amp;gt; Running transaction check ---&amp;gt; Package mysql-shell.</description>
+    </item>
+    
+    <item>
+      <title>MySQL Shell parallel dump&amp;load</title>
+      <link>/mysql/mysqlshell_parallel_dump/</link>
+      <pubDate>Mon, 04 Oct 2021 22:02:29 +0900</pubDate>
+      
+      <guid>/mysql/mysqlshell_parallel_dump/</guid>
+      <description>mysqlshell 이란 ? MySQL 8.0 과 함께 출시 된 MySQL 용 클라이언트 툴로 아래와 같은 기능을 제공한다
+Document에는 MySQL 5.7 이상부터 지원한다고 하나, 일부 기능 제외하면 MySQL 5.6에서도 사용가능함
+ex). MySQL 5.6에서는 util.dumpInstance()의 backup lock, user backup 같은 기능을 사용 못함
+ SQL, Python, 자바 스크립트를 활용한 데이터 질의 기능 Admin API  InnoDB cluster, MySQL router, InnoDB ReplicaSet 관리 기능   JSON data load Instance, schema, table 단위로 parallel dump 기능 (logical backup)  이 중 data parallel dump 기능은 기존 mysqldump, mydumper, mysqlpump 의 한계를 보완하여 빠른 dump / load 기능을 제공할 수 있을 것으로 기대됨</description>
+    </item>
+    
+    <item>
+      <title>MySQL replication filter 사용 시 주의사항</title>
+      <link>/mysql/replication_filter_issue/</link>
+      <pubDate>Mon, 04 Oct 2021 21:49:23 +0900</pubDate>
+      
+      <guid>/mysql/replication_filter_issue/</guid>
+      <description>MySQL replication_do_db 사용시 주의사항 하나의 DB서버에 여러 논리DB들이 있고 그 중 특정 논리DB를 다른 DB서버로 분리하는 작업을 종종 합니다.
+이때 무중단으로 분리하기 위해서 replication filter 기능을 사용하는데요
+이 때의 주의사항을 알아보도록 하겠습니다.
+Replication filter 개요  리플리케이션 필터는 MySQL 복제 구성 시에 DB인스턴스 전체를 복제하는 것이 아닌 특정 논리DB만 복제해야할 때 사용할 수 있는 기능 옵션의 종류는 아래와 같이 존재  REPLICATE_DO_DB – 특정디비만 REPLICATE_IGNORE_DB – 특정디비제외 REPLICATE_DO_TABLE – 특정테이블만 REPLICATE_IGNORE_TABLE – 특정테이블 제외 REPLICATE_WILD_DO_TABLE – 특정패턴테이블만 REPLICATE_WILD_IGNORE_TABLE – 특정패턴테이블 제외 REPLICATE_REWRITE_DB – DB명 바꿔서   CHANGE REPLICATION FILTER 구문 사용시 동일종류 필터는 마지막 수행된 쿼리만 사용됨 ex)  change replication filter replicate_do_db=(kimdubi_db),replicate_do_db=(kimdubi_db2,kimdubi_db3); =&amp;gt; kimdubi_db2, kimdubi_db3 만 replication 하도록 반영됨</description>
+    </item>
+    
+    <item>
+      <title>index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size)</title>
+      <link>/mysql/range_optimizer_max_mem_size/</link>
+      <pubDate>Mon, 04 Oct 2021 21:28:19 +0900</pubDate>
+      
+      <guid>/mysql/range_optimizer_max_mem_size/</guid>
+      <description>index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size) Index 잘 타던 쿼리가 fullscan을 하면서 CPU가 100% 를 치는 이슈가 발생했습니다.
+range_optimizer_max_mem_size 라는 생소한 파라미터를 설정하여 이슈 해결한 사례를 공유합니다.
+이슈 상황 DB server에서 갑자기 CPU가 100%를 치는 상황이 발생
+원인은 아래 Slow query 가 수행되면서 발생한것으로 추측
+SELECT * FROM tb_test tb1 LEFT OUTER JOIN tb_test2 AS tb2 ON tb1.name = tb2.name WHERE tb1.status = &#39;active&#39; AND tb1.resource_id in (1,2 ......... N)  =&amp;gt; where IN절에 bind값이 많기는 하지만 필요한 인덱스는 모두 있어서 문제될 법한 쿼리는 아닌 듯 했으나 full scan을 하면서 CPU가 급증함</description>
+    </item>
+    
+    <item>
+      <title>Xtrabackup long transacion issue</title>
+      <link>/mysql/xtrabackup_longtran_issue/</link>
+      <pubDate>Mon, 04 Oct 2021 21:00:38 +0900</pubDate>
+      
+      <guid>/mysql/xtrabackup_longtran_issue/</guid>
+      <description>Xtrabackup 사용 시 주의사항 Xtrabackup 은 mysqldump 대신 많이 사용되는 오픈소스 hotbackup utility 입니다.
+널리 사용되는 유틸리티라서 사용하는데에 큰 이슈는 없지만 다만 사용할 때 꼭 기억해둬야할 주의점이 있습니다.
+Xtrabackup은 백업 수행이후 FLUSH TABLES WITH READ LOCK을 수행하는데 이 때 실행되는 쿼리가 있는 경우 flush 구문은 테이블락을 획득하지 못하고 waiting하며
+lockwait timeout 이후 세션이 종료되어 백업이 완료되지 못하거나 backup이 비정상적으로 길어지는 현상이 발생할 수 있다는 점입니다.
+백업서버에서 롱 쿼리 수행 mysql&amp;gt; select a,b,c,count(*) from tb_test group by a,b,c order by a,b,c desc ;  동시에 xtrabackup 수행 [testuser ]$ innobackupex --defaults-file=/home1/testuser/db/mysql/my.</description>
+    </item>
+    
+    <item>
+      <title>MySQL 8.0 to MySQL 5.7 replication 구성 시 collation issue</title>
+      <link>/mysql/mysql8to57_collation/</link>
+      <pubDate>Mon, 04 Oct 2021 20:45:34 +0900</pubDate>
+      
+      <guid>/mysql/mysql8to57_collation/</guid>
+      <description>MySQL 8.0 to MySQL 5.7 replication 구성 시 collation issue 이번에 MySQL 5.7을 사용하는 서비스를 MySQL 8.0으로 업그레이드 하는 작업을 진행했습니다.
+MySQL 8.0 은 MySQL 5.7에서 받은 mysqldump 로 신규 구성 후 MMM 을 사용하여 role change 과정을 통해 MySQL 8.0을 한대 씩 투입하여
+최종적으로는 MySQL 8.0 두대를 서비스에 투입하고, 기존에 사용하던 MySQL 5.7은 혹시모를 롤백용으로 MySQL 8.0 -&amp;gt; MySQL 5.7로의 복제 구성하도록 남겨두는 게 시나리오였습니다.
+MySQL 8.0 과 5.7 의 default collation이 달라서 실패했고 트러블 슈팅한 내용을 정리해봤습니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL online으로 일반테이블 파티셔닝 전환하기</title>
+      <link>/mysql/ptosc_partitioning/</link>
+      <pubDate>Mon, 04 Oct 2021 18:57:20 +0900</pubDate>
+      
+      <guid>/mysql/ptosc_partitioning/</guid>
+      <description>MySQL online으로 일반테이블 파티셔닝 전환하기 기존 일반테이블을 파티셔닝 테이블로 변환할 때 pt-osc 를 활용하여 온라인 작업으로 할 수 없을까 검색하던 중
+카카오에서는 아래의 내용처럼 pt-osc를 수정하여 사용한다는 것을 알게 되었습니다
+http://small-dbtalk.blogspot.com/2014/04/pt-online-schema-change-modified-pt.html
+간단하게 요약하자면
+MySQL에서 하나의 ALTER 문으로 처리하지 못하는 DDL작업들을 pt-osc에서도 처리하지 못했는데요.
+대표적으로 일반테이블을 파티션테이블로 전환하는 경우
+PK 구성 변경과 파티셔닝 커맨드를 하나의 ALTER문으로 표현할 수 없기 때문에 pt-osc를 활용할 수 없습니다.
+이런 점을 개선하기 위해
+–prompt-before-copy 라는 커맨드를 추가하여</description>
+    </item>
+    
+    <item>
+      <title>MySQL mysqladmin utility로 간단하게 모니터링하기</title>
+      <link>/mysql/mysqladmin_utility/</link>
+      <pubDate>Mon, 04 Oct 2021 18:50:05 +0900</pubDate>
+      
+      <guid>/mysql/mysqladmin_utility/</guid>
+      <description>mysqladmin utility로 간단하게 모니터링하기 운영환경의 MySQL 서버들은 보통 prometheus 와 grafana 등을 통해 구축된 모니터링 시스템으로 모니터링 및 로깅을 하고 있습니다.
+그러나 외부 프로젝트 등으로 이러한 모니터링 시스템을 활용할 수 없는 경우에는 어떻게 해야할까요?
+OS 상태는 iostat, vmstat 등으로 로깅할 수 있겠고 MySQL은 show global status 와 show processlist 등을 로깅하는 프로그램을 짤 수 있겠죠?
+이 방법보다 더 간단한 방법이 있는데 바로 mysqladmin utility 입니다.
+mysqladmin processlist status extended-status -uroot -pxxx --sleep=10 --count=1000 --relative -c, --count=# Number of iterations to make.</description>
+    </item>
+    
+    <item>
+      <title>MySQL8 skip locked / nowait 활용하기</title>
+      <link>/mysql/mysql8_skip_locked_nowait/</link>
+      <pubDate>Mon, 04 Oct 2021 18:46:41 +0900</pubDate>
+      
+      <guid>/mysql/mysql8_skip_locked_nowait/</guid>
+      <description>MySQL8.0 SKIP LOCKED / NOWAIT 활용하기 MySQL 8.0 버전부터는 읽기 일관성을 위한 read lock 에 대해 두가지 옵션이 추가되었습니다.
+ NOWAIT : 쿼리를 실행 후 읽으려는 row에 lock이 걸려있으면 바로 트랜잭션 실패 처리 (innodb_lock_wait_timeout 만큼 기다리지 않고 바로) SKIP LOCKED : 쿼리를 실행 후 읽으려는 row에 lock 이 걸려있으면 해당 row skip 하고 resultset return  동시성 이슈를 해결하기 위해 select ~ for update , select ~ for shared mode 같은 쿼리를 수행할 때 위 옵션을 줄 수 있는데 언제 사용하면 좋을까요?</description>
+    </item>
+    
+    <item>
+      <title>MySQL Foreign Key 1215 error</title>
+      <link>/mysql/fk_error/</link>
+      <pubDate>Mon, 04 Oct 2021 18:37:54 +0900</pubDate>
+      
+      <guid>/mysql/fk_error/</guid>
+      <description>MySQL Foreign Key 1215 error 얼마전 담당하는 MySQL 서비스의 복제본 한벌을 더 추가 구성하게 되었습니다.
+single-transaction + dump-slave 혹은 single-transaction + master-data 옵션으로 mysqldump 를 받은 뒤
+새 서버에 반영해주고 dumpfile에 dump-slave / master-data 옵션으로 인해 딸려온 change master to 구문을 확인하여
+replication을 맺어주면 되는 아주 간단한 작업인데요
+그런데 실패했습니다…
+ replication error log  show slave status\G; . . Last_Errno: 1146 Last_Error: Error &#39;Table &#39;xxxxx.xxxx&#39; doesn&#39;t exist&#39; on query. Default database: &#39;xxxxxxxxxxxx&#39;.</description>
+    </item>
+    
+    <item>
+      <title>MySQL innodb_rollback_on_timeout 설정</title>
+      <link>/mysql/innodb_rollback_on_timeout/</link>
+      <pubDate>Mon, 04 Oct 2021 18:06:40 +0900</pubDate>
+      
+      <guid>/mysql/innodb_rollback_on_timeout/</guid>
+      <description>MySQL innodb_rollback_on_timeout 설정 흔히 transaction 이라 하면 자동적으로 떠오르는게 트랜잭션의 특성인 ACID 입니다.
+MySQL의 Innodb도 transaction을 지원하는 storage engine으로 당연히 ACID 또한 지켜질텐데요.
+그런데 Innodb에서 이 ACID에도 예외사항이 있다는 사실을 알고 계셨나요?
+공식 manual 의 문서대로 innodb는 timeout이 발생한 transaction에 대해
+옵션에 따라 전체 트랜잭션을 rollback 하거나, 마지막 커맨드만 rollback (default)을 합니다.
+그리고 이것을 결정 짓는 파라미터가 바로 innodb_rollback_on_timeout 인데요
+지금부터 innodb_rollback_on_timeout 설정에 따른 rollback 테스트를 살펴보겠습니다.
+innodb_rollback_on_timeout=off (default) test 는 아래와 같이 진행했습니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL fragmentaion 원인과 해결방법</title>
+      <link>/mysql/table_fragmentation/</link>
+      <pubDate>Mon, 04 Oct 2021 18:00:06 +0900</pubDate>
+      
+      <guid>/mysql/table_fragmentation/</guid>
+      <description>MySQL fragmentation 원인과 해결방법 MySQL에서 테이블 fragmentation 현상을 경험해보신 적 있으신가요?
+fragmentation이란 insert &amp;amp; delete 가 수차례 반복되면서 page 안에 회수가 안되는 사용되지 않는 부분이 많아지면서 발생하게 되는데
+그 영향으로 테이블이 실제로 가져야 하는 OS 공간 보다 더 많은 공간을 차지하게 됩니다.
+얼마전에 저도 운영하는 서비스에서 단편화가 심하게 된 테이블을 발견하게 되었는데요
+이번 글에서는 단편화현상을 해소하는 방법과 그 원인에 대해서 알아보도록 하겠습니다.
+fragmentation 확인  대상 테이블 OS 사이즈  $ du -sh tb_test* 12K tb_test.</description>
+    </item>
+    
+    <item>
+      <title>MySQL self replication으로 빠른 복구하기</title>
+      <link>/mysql/mysql_self_replication/</link>
+      <pubDate>Mon, 04 Oct 2021 15:38:28 +0900</pubDate>
+      
+      <guid>/mysql/mysql_self_replication/</guid>
+      <description>MySQL 시점복구 빠르게 수행하는 팁 mysql에서 시점복구를 할 때 가장 흔히 사용하는 방법이 mysqlbinlog를 통해
+binary log을 parsing 하고 이를 순차적으로 적용하는 방법인데요
+이 방법은 single thread로 수행되기 때문에 그 속도가 굉장히 느릴 수 있습니다.
+MariaDB에서에서 이러한 문제점을 피하기 위해 mysql replication의 SQL-thread을
+사용한 방법을 공유한 적이 있습니다.
+https://sarc.io/index.php/mariadb/1438-mariadb-point-in-time-recovery
+mysql 과 mariadb는 gtid 사용방법이 조금 달라서 위의 방법도 조금 다른데요
+이번 글에서는 mysql에서 수행하는 방법을 공유드리겠습니다.
+필요 설정 gtid-mode = ON enforce-gtid-consistency replicate-same-server-id=1 =&amp;gt; 원래 replication은 node 간의 server-id 가 달라야하는데</description>
+    </item>
+    
+    <item>
+      <title>MySQL CPU많이 쓰는 session(thread) 찾기</title>
+      <link>/mysql/mysql_thread_pidstat/</link>
+      <pubDate>Mon, 04 Oct 2021 15:32:38 +0900</pubDate>
+      
+      <guid>/mysql/mysql_thread_pidstat/</guid>
+      <description>MySQL CPU 많이 사용하는 세션 찾기 MySQL은 PostgreSQL, Oracle 과 같은 프로세스 기반 DB가 아니라 쓰레드 기반 DBMS입니다.
+MySQL의 DB 내부 쓰레드와 OS 쓰레드를 일치시켜서 확인하는 도구가 없기 때문에
+DB의 어떤 세션이 리소스를 특별히 많이 잡고 있는지 확인할 때 OS의 utility 를 사용하는 데 있어서 제한점이 있었는데요
+이 문제는 5.7 버전으로 올라오면서 PERFORMANCE_SCHEMA.THREADS 테이블에 thread_os_id 컬럼이 추가되면서 확인이 쉬워졌습니다.
+확인 방법  OS - pidstat  [test@testserver 22:09:12 ~ ]$ pidstat -t -p `/sbin/pidof mysqld` 5 Linux 2.</description>
+    </item>
+    
+    <item>
+      <title>MySQL 대량 데이터 delete</title>
+      <link>/mysql/mysql_delete/</link>
+      <pubDate>Mon, 04 Oct 2021 11:07:44 +0900</pubDate>
+      
+      <guid>/mysql/mysql_delete/</guid>
+      <description>MySQL 대량 데이터 삭제하는 방법 대용량 테이블의 과거 데이터를 지우는 작업을 종종 할 때가 있는데요
+파티션 테이블의 경우에는 exchange partition 를 통해서 손쉽게 작업을 할 수 있지만
+일반 테이블의 경우에는 repetable-read 일 때 next key lock 영향을 최소화 하기위해
+pk를 기준으로 row 단위로 끊어서 삭제하는 방법이 필요합니다.
+이번 글에서는 각각 상황에 맞는 데이터 삭제 방법을 공유하겠습니다.
+partition table partition table 의 경우 exchange partition 커맨드를 통해 손쉽게 과거 데이터를 삭제할 수 있습니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL VARCHAR online ddl 변경 시 주의사항</title>
+      <link>/mysql/varchar_online_ddl/</link>
+      <pubDate>Mon, 04 Oct 2021 11:03:00 +0900</pubDate>
+      
+      <guid>/mysql/varchar_online_ddl/</guid>
+      <description>MySQL online DDL varchar 변경 시 주의사항 MySQL의 버전이 올라갈수록 online DDL 지원 범위가 넓어지고 있습니다.
+그런데 의외로 자유자재로 변경가능할 것 같은 varchar column의 사이즈 변경이 특정 케이스에서는
+online DDL이 안되기 때문에 주의가 필요합니다.
+(MySQL 8.0 버전도 동일)
+ VARCHAR column 256 bytes 미만에서 그 이상으로 변경 VARCHAR size 줄이기  varchar size 256 bytes 이상으로 변경하는 경우  table charset=utf8mb4   Table: test Create Table: CREATE TABLE `test` ( `a` varchar(1) DEFAULT NULL, `b` varchar(64) DEFAULT NULL ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ### varchar(1) =&amp;gt; varchar(63) mysql&amp;gt; alter table test modify a varchar(63), algorithm=inplace, lock = none; Query OK, 0 rows affected (0.</description>
+    </item>
+    
+    <item>
+      <title>MySQL metadata lock 확인하는 procedure</title>
+      <link>/mysql/metadata_procedure/</link>
+      <pubDate>Mon, 04 Oct 2021 10:52:03 +0900</pubDate>
+      
+      <guid>/mysql/metadata_procedure/</guid>
+      <description>MySQL metadata lock 상황 한눈에 확인하기 트래픽이 많아 쿼리가 많이 수행되는 환경에서는 단순 쿼리로는 metadata lock 을 찾기 힘들 때도 있습니다.
+percona에서 공유한 metadata lock holder와 waiter를 쉽게 확인할 수 있는 프로시져 관련 글이 있어 공유드립니다.
+(https://www.percona.com/blog/2016/12/28/quickly-troubleshooting-metadata-locks-mysql-5-7/)
+procedure USE test; DROP PROCEDURE IF EXISTS procShowMetadataLockSummary; delimiter // CREATE PROCEDURE procShowMetadataLockSummary() BEGIN DECLARE table_schema VARCHAR(64); DECLARE table_name VARCHAR(64); DECLARE id bigint; DECLARE time bigint; DECLARE info longtext; DECLARE curMdlCount INT DEFAULT 0; DECLARE curMdlCtr INT DEFAULT 0; DECLARE curMdl CURSOR FOR SELECT * FROM tmp_blocked_metadata; DROP TEMPORARY TABLE IF EXISTS tmp_blocked_metadata; CREATE TEMPORARY TABLE IF NOT EXISTS tmp_blocked_metadata ( table_schema varchar(64) , table_name varchar(64) , id bigint , time bigint , info longtext , PRIMARY KEY(table_schema, table_name) ); REPLACE tmp_blocked_metadata(table_schema,table_name,id,time,info) SELECT mdl.</description>
+    </item>
+    
+    <item>
+      <title>MySQL / ORACLE PARTITION DDL 비교</title>
+      <link>/mysql/partition_ddl/</link>
+      <pubDate>Mon, 04 Oct 2021 10:39:52 +0900</pubDate>
+      
+      <guid>/mysql/partition_ddl/</guid>
+      <description>이번 글에서는 ORACLE과 MySQL의 파티션 테이블 구문의 차이점에 대해서 알아보겠습니다.
+ORACLE / MySQL partition DDL 차이점    기능 ORACLE MySQL     ADD ALTER TABLE PARTITION_TEST ADD PARTITION P1 VALUES LESS THAN (&amp;lsquo;2020-03-01&amp;rsquo;) TABLESPACE TABS1 ALTER TABLE PARTITION_TEST ADD PARTITION (PARTITION P1 VALUES LESS THAN (&amp;lsquo;2020-03-01&amp;rsquo;) TABLESPACE TABS1)   DROP ALTER TABLE PARTITION_TEST DROP PARTITION P1 ALTER TABLE PARTITION_TEST DROP PARTITION P1   SPLIT ALTER TABLE SPLIT PARTITION P_MAX AT (&amp;lsquo;2020-04-01&amp;rsquo;) INTO (PARTITION P2 TABLESPACE TABS2, PARTITION P_MAX TABLESPACE TABS) ALTER TABLE PARTITION_TEST REORGANIZE PARTITION P1,P2 INTO (PARTITION P2 LESS THAN (&amp;lsquo;2020-04-01&amp;rsquo;))   MERGE ALTER TABLE PARTITION_TEST MERGE PARTITION P1,P2 INTO P2 ALTER TABLE PARTITION_TEST REORGANIZE PARTITION P1,P2 INTO (PARTITION P2 LESS THAN (&amp;lsquo;2020-04-01&amp;rsquo;))   TRUNCATE ALTER TABLE PARTITION_TEST TRUNCATE PARTITION P1 ALTER TABLE PARTITION_TEST TRUNCATE PARTITION P1   EXCHANGE ALTER TABLE PARTITION_TEST EXCHANGE PARTITION P1 WITH TABLE NONPARTITION_TEST ALTER TABLE PARTITION_TEST EXCHANGE PARTITION P1 WITH TABLE NONPARTITION_TEST   MOVE ALTER TABLE PARTITION_TEST MOVE PARTITION P1 TABLESPACE TABS1 -   RENAME ALTER TABLE PARTITION_TEST RENAME PARTITION P1 TO P1_RENAME -    이외에도 아래와 같은 차이점이 더 있습니다</description>
+    </item>
+    
+    <item>
+      <title>MySQL binlog2sql으로 flashback 복구하기</title>
+      <link>/mysql/binlog2sql_flashback/</link>
+      <pubDate>Mon, 04 Oct 2021 10:28:20 +0900</pubDate>
+      
+      <guid>/mysql/binlog2sql_flashback/</guid>
+      <description>MySQL Flashback recovery MySQL에서는 flashback recovery가 아직 지원되지 않습니다.
+그래서 MariaDB의 mysqlbinlog utility를 가져와서 사용하곤 했는데
+binlog2sql 이라는 utility를 사용하면 MySQL에서도 flashback recovery를 할 수 있습니다.
+binlog2sql  mysqlbinlog 처럼 binary log를 parsing 하는 유틸리티 MariaDB 에서는 제공되던 flashback 기능을 mysql 에서 binlog2sql을 통해 사용할 수 있음 schema-fileter 기능 (database,table) query-filter 기능 (dml-insert,update,delete) interval-filter 기능 (file,datetime) GTID 는 지원하지않음  install git clone https://github.com/danfengcao/binlog2sql.git cd binlog2sql pip install -r requirements.txt   mysql8 버전은 PyMySQL , mysql-replication 아래 버전 이상 사용해야함  PyMySQL==0.</description>
+    </item>
+    
+    <item>
+      <title>MySQL의 timeout 설정</title>
+      <link>/mysql/mysql_timeout/</link>
+      <pubDate>Mon, 04 Oct 2021 10:07:48 +0900</pubDate>
+      
+      <guid>/mysql/mysql_timeout/</guid>
+      <description>MySQL의 timeout 설정 sleep 세션 client-mysql 서버와 연결 후 다음 query 수행까지 대기중인 상태의 세션
+sleep 세션이 너무 많고 정리가 안되는 경우 connection full 로 인해 신규 세션 접속이 불가능해지고
+session 별 할당 되는 메모리로 인해 memory 부족 현상 발생할 수 있음
+timeout 관련 설정  connect_timeout : MySQL 서버 접속시에 접속실패를 메시지를 보내기까지 대기하는 시간 delayed_insert_timeout : insert시 delay될 경우 대기하는 시간 innodb_lock_wait_timeout : innodb에 transaction 처리중 lock이 걸렸을 시 롤백 될때까지 대기하는 시간으로 innodb는 자동으로 데드락을 검색해서 롤백시킴 innodb_rollback_on_timeout : innodb의 마지막 구문을 롤백시킬지 결정하는 파라미터</description>
+    </item>
+    
+    <item>
+      <title>MySQL mysqldump 테이블별로 쪼개는 법</title>
+      <link>/mysql/mysql_dump_split/</link>
+      <pubDate>Mon, 04 Oct 2021 10:02:52 +0900</pubDate>
+      
+      <guid>/mysql/mysql_dump_split/</guid>
+      <description>MySQL full backup dumpfile 테이블별로 쪼개는법 운영환경에서 DB 백업을 받을 때 보통 xtrabackup이나 mysqldump 으로 풀백업을 받으실텐데요
+사이즈가 엄청 큰 DB를 mysqldump 로 풀백업 받은 경우 복구 시 병렬처리가 안되고 싱글 쓰레드로 처리되기 때문에 굉장히 많은 시간이 소요됩니다.
+이 때 dumpfile을 테이블 별로 쪼개면 병렬로 수행할 수 있게 됩니다.
+이번 글에서는 mysqldump로 받은 풀백업본 dumpfile 을 table별로 쪼개는 방법에 대해 공유 드리겠습니다
+mysqldump 준비 mysqldump --opt --single-transaction -R -Q --all-databases -S /home1/irteam/db/mysql/tmp/mysql.</description>
+    </item>
+    
+    <item>
+      <title>MySQL online DDL을 위한 TOOL 비교 ( pt-osc &amp; gh-ost )</title>
+      <link>/mysql/online_schema_change/</link>
+      <pubDate>Mon, 04 Oct 2021 03:54:13 +0900</pubDate>
+      
+      <guid>/mysql/online_schema_change/</guid>
+      <description>MySQL online DDL을 위한 TOOL pt-osc &amp;amp; gh-ost ONLINE DDL MySQL은 DDL에 대해서 한정적으로 online 작업을 지원합니다.
+online ddl 방식으로는 INPLACE, INSTANT (mysql 8.0부터) 가 있고
+주로 쓰이는 algorithm=INPLACE 방식은 아래와 같은 절차로 ONLINE DDL을 지원합니다.
+1. INPLACE 스키마 변경이 지원되는 커맨드인지, 스토리지 엔진(InnoDB) 인지 확인 2. online 스키마 변경 작업동안 변경되는 데이터를 저장할 준비 (innodb_online_alter_log_max_size) 3. 테이블 스키마 변경 및 DML 로깅 4. 변경 완료된 테이블에 DML 로깅 적용 5.</description>
+    </item>
+    
+  </channel>
+</rss>

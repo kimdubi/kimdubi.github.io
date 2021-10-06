@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Etc on kimDuBiA</title>
+    <link>/categories/etc/</link>
+    <description>Recent content in Etc on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 06 Oct 2021 21:44:00 +0900</lastBuildDate><atom:link href="/categories/etc/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Private Repository 서버 구축하기</title>
+      <link>/etc/private_repository/</link>
+      <pubDate>Wed, 06 Oct 2021 21:44:00 +0900</pubDate>
+      
+      <guid>/etc/private_repository/</guid>
+      <description>DB 서버들은 보통 인터넷망과 연결되지 않은 경우가 보통입니다.
+클라우드에서도 DB서버들은 private subnet에 위치하게 하여 인터넷이 안되도록 하는데요.
+이런 경우 외부에서 뭔가 필요한 rpm 등 s/w 를 설치할 때 여러 경로를 통해야하는 불편이 있습니다.
+yum 설치를 하는데 필요한 rpm들이 서로 물리고 물리는 경우 머리가 어질해지는데요
+이런 경우를 위해 보통 private repository 서버를 두고 이 repository 서버에 업무에 필요한 rpm 들을 설치해놓습니다
+그리고 DB서버 등 운영서버가 이 private repository 서버를 바라보게 하여 여기에서 필요한 파일들을 가져오게 하면 DB서버가 인터넷이 안되어도 상관없게 됩니다</description>
+    </item>
+    
+    <item>
+      <title>Ansible ROLE 사용하여 MySQL 설치</title>
+      <link>/etc/ansible_mysql_install/</link>
+      <pubDate>Wed, 06 Oct 2021 21:41:20 +0900</pubDate>
+      
+      <guid>/etc/ansible_mysql_install/</guid>
+      <description>ansible은 코드 재사용성, 클린 코드를 위해 “ROLE” 이라는 표준화 된 구성 기능을 제공합니다.
+사용하기 어렵지만 그만큼 간결하게 원하는 작업들을 정의할 수 있는데요
+이 ROLE을 사용하여 MySQL을 설치하는 ansible task를 정의해보겠습니다.
+ansible role 생성 [root@8429d3d8f01b roles]# ansible-galaxy init mysql - Role mysql was created successfully [root@8429d3d8f01b roles]# tree mysql mysql |-- README.md |-- defaults | `-- main.yml |-- files |-- handlers | `-- main.yml |-- meta | `-- main.yml |-- tasks | `-- main.</description>
+    </item>
+    
+    <item>
+      <title>Ansible로 MySQL 관리하기</title>
+      <link>/etc/ansible_mysql_query/</link>
+      <pubDate>Wed, 06 Oct 2021 21:40:19 +0900</pubDate>
+      
+      <guid>/etc/ansible_mysql_query/</guid>
+      <description>ansible 설치 [root@test_ansible]# git clone https://github.com/ansible/ansible.git [root@test_ansible]# make [root@test_ansible]# make install   make error 발생 시  Traceback (most recent call last): File &amp;quot;packaging/release/versionhelper/version_helper.py&amp;quot;, line 9, in &amp;lt;module&amp;gt; from packaging.version import Version, VERSION_PATTERN ImportError: No module named packaging.version Makefile:40: *** &amp;quot;version_helper failed&amp;quot;. Stop. [root@test_ansible]# pip install --upgrade setuptools [root@test_ansible]# pip install packaging =&amp;gt; 설치 후 make 재시도
+ ansible configure 파일 설정  $ vi ~/.bash_profile ansible 사용 계정 profile에 아래 환경변수 설정 시 ansible command 수행할 때 아래의 ansible.</description>
+    </item>
+    
+  </channel>
+</rss>

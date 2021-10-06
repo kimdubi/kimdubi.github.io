@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>복구 on kimDuBiA</title>
+    <link>/tags/%EB%B3%B5%EA%B5%AC/</link>
+    <description>Recent content in 복구 on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Tue, 05 Oct 2021 22:51:18 +0900</lastBuildDate><atom:link href="/tags/%EB%B3%B5%EA%B5%AC/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>PostgreSQL 백업 복구 테스트</title>
+      <link>/postgresql/pg_backup_restore/</link>
+      <pubDate>Tue, 05 Oct 2021 22:51:18 +0900</pubDate>
+      
+      <guid>/postgresql/pg_backup_restore/</guid>
+      <description>pg_dump PostgreSQL에서 기본 제공하는 logical backup 방식으로 mysqldump 와 같은 방법
+백업 수행 시점의 스냅샷만 가능하며 시점복구는 불가함
+pg_dump는 단일 DB backup, pg_dumpall은 전체 DB backup할 때 사용함
+backup script #!/bin/bash DEL_FILE=$(date -d &#39;2 day ago&#39; +&#39;%Y-%m-%d_&#39;)&amp;quot;*.dump&amp;quot; FILENAME=$(date +&amp;quot;%Y-%m-%d_%H%M&amp;quot;).dump BACKUP_DIR=/home1/irteam/psql/backup/testdb PG_USER=&amp;quot;irteam&amp;quot; PASSWORD=&amp;quot;&amp;quot; cd $BACKUP_DIR echo &amp;quot;DB backup start time : &amp;quot; $(date +&amp;quot;%Y-%m-%d %H:%M:%S&amp;quot;) pg_dumpall -h localhost -p 3000 -U $PG_USER -v -j 3 -f &amp;quot;${BACKUP_DIR}/${FILENAME}&amp;quot; &amp;gt;&amp;amp; &amp;quot;${BACKUP_DIR}/${FILENAME}&amp;quot;.log? echo &amp;quot;Successful db backup ( ${BACKUP_DIR}/DBNAME_${FILENAME} )&amp;quot; echo &amp;quot;Delete old file DBNAME_${DEL_FILE}&amp;quot; rm &amp;quot;${BACKUP_DIR}/DBNAME_${DEL_FILE}&amp;quot; echo &amp;quot;BACKUP - End time : &amp;quot; $(date +&amp;quot;%Y-%m-%d %H:%M:%S&amp;quot;)   -d, –dbname : Backup할 Database 명 -h, –host : Database 주소 -U, –username : Database 접속 시 User ID -f, –file : Backup File Name -t, –table : 특정 Table만 Backup하려할 때 대상이 되는 Table 명 -j, –jobs : Backup 시 병렬 처리 -v, –verbose : 진행 과정 표시  restore test psql -p 3000 -d postgres -f 2020-04-10_1431.</description>
+    </item>
+    
+    <item>
+      <title>MySQL Shell을 통한 Table dump&amp;load</title>
+      <link>/mysql/mysqlshell_dump/</link>
+      <pubDate>Mon, 04 Oct 2021 22:11:03 +0900</pubDate>
+      
+      <guid>/mysql/mysqlshell_dump/</guid>
+      <description>MySQL shell을 통한 Table dump&amp;amp;load 기존 mysqldump 같은 Logical backup의 단점은 사용은 간편하나, dump&amp;amp;load 시 single thread를 사용하여 굉장히 느리다는 단점이 있는데
+mysqlshell 의 dump , load 기능을 사용하면 logical 백업도 빠르게 수행할 수 있습니다.
+이번 글에서는 mysqlshell을 통해 특정 테이블만 dump&amp;amp;load test를 해보겠습니다. 물론 instance, schema 단위로도 백업 가능합니다.
+mysqlshell은 8.0 뿐만 아니라 5.6, 5.7에서도 사용이 가능합니다. ( backup lock 등 버전 별 기능차이로 인해 안되는 기능도 있음)
+mysqlshell 설치 $ sudo yum install mysql-shell Loaded plugins: fastestmirror, security Setting up Install Process Loading mirror speeds from cached hostfile Resolving Dependencies --&amp;gt; Running transaction check ---&amp;gt; Package mysql-shell.</description>
+    </item>
+    
+    <item>
+      <title>MySQL Shell parallel dump&amp;load</title>
+      <link>/mysql/mysqlshell_parallel_dump/</link>
+      <pubDate>Mon, 04 Oct 2021 22:02:29 +0900</pubDate>
+      
+      <guid>/mysql/mysqlshell_parallel_dump/</guid>
+      <description>mysqlshell 이란 ? MySQL 8.0 과 함께 출시 된 MySQL 용 클라이언트 툴로 아래와 같은 기능을 제공한다
+Document에는 MySQL 5.7 이상부터 지원한다고 하나, 일부 기능 제외하면 MySQL 5.6에서도 사용가능함
+ex). MySQL 5.6에서는 util.dumpInstance()의 backup lock, user backup 같은 기능을 사용 못함
+ SQL, Python, 자바 스크립트를 활용한 데이터 질의 기능 Admin API  InnoDB cluster, MySQL router, InnoDB ReplicaSet 관리 기능   JSON data load Instance, schema, table 단위로 parallel dump 기능 (logical backup)  이 중 data parallel dump 기능은 기존 mysqldump, mydumper, mysqlpump 의 한계를 보완하여 빠른 dump / load 기능을 제공할 수 있을 것으로 기대됨</description>
+    </item>
+    
+    <item>
+      <title>MySQL 특정 테이블만 시점복구 하기</title>
+      <link>/mysql/restore_specific_table/</link>
+      <pubDate>Mon, 04 Oct 2021 19:03:39 +0900</pubDate>
+      
+      <guid>/mysql/restore_specific_table/</guid>
+      <description>MySQL 특정 테이블만 시점복구 하기 얼마 전 서비스 로직 이슈로 특정 데이터들이 CASCADE 삭제되어 데이터가 유실되는 일이 발생했습니다.
+영향 받은 테이블들은 전체 테이블들 중 두개였고 전체 서비스를 장애 시점 이전으로 롤백시킬 수는 없는 상황이었기 때문에 해당 테이블들만 복구를 진행했습니다.
+대상 테이블들은 특히 또 FOREIGN KEY constraint 가 걸려있어서 여러모로 생각해줘야 하는 부분들이 많았습니다.
+먼저 복구 시나리오는 아래와 같습니다.
+* 복구 시점 찾기 * 최신 백업본 로드 (10/30일 새벽 백업본) * 10/30일 새벽 백업본 + 장애 시점 전 까지의 binary log 적용 ( 대상 테이블 관련 DML만 추출해서 적용하기 ) * 장애유발쿼리 제거하고 그 이후부터 현재까지의 binary log 적용 (대상 테이블 관련 DML만 추출해서 적용하기 )   복구 대상 binlog 추출  $ mysqlbinlog mysql-bin.</description>
+    </item>
+    
+    <item>
+      <title>MySQL Foreign Key 1215 error</title>
+      <link>/mysql/fk_error/</link>
+      <pubDate>Mon, 04 Oct 2021 18:37:54 +0900</pubDate>
+      
+      <guid>/mysql/fk_error/</guid>
+      <description>MySQL Foreign Key 1215 error 얼마전 담당하는 MySQL 서비스의 복제본 한벌을 더 추가 구성하게 되었습니다.
+single-transaction + dump-slave 혹은 single-transaction + master-data 옵션으로 mysqldump 를 받은 뒤
+새 서버에 반영해주고 dumpfile에 dump-slave / master-data 옵션으로 인해 딸려온 change master to 구문을 확인하여
+replication을 맺어주면 되는 아주 간단한 작업인데요
+그런데 실패했습니다…
+ replication error log  show slave status\G; . . Last_Errno: 1146 Last_Error: Error &#39;Table &#39;xxxxx.xxxx&#39; doesn&#39;t exist&#39; on query. Default database: &#39;xxxxxxxxxxxx&#39;.</description>
+    </item>
+    
+    <item>
+      <title>MySQL xtrabackup lsn 유실 이슈</title>
+      <link>/mysql/xtrabackup_lsn_error/</link>
+      <pubDate>Mon, 04 Oct 2021 16:57:19 +0900</pubDate>
+      
+      <guid>/mysql/xtrabackup_lsn_error/</guid>
+      <description>MySQL Xtrabackup LSN 유실 에러 xtrabackup 백업 본으로 복구 할 때 LSN이 유실되었던 이슈가 발생해서 원인과 해결방법을 공유드리겠습니다.
+Xtrabackup 복구 후 MySQL 기동 실패 InnoDB: Starting an apply batch of log records to the database... InnoDB: Progress in percent: InnoDB: Page [page id: space=695, page number=81921] log sequence number 11324236422964 is in the future! Current system log sequence number 11324230185692. InnoDB: Your database may be corrupt or you may have copied the InnoDB tablespace but not the InnoDB log files.</description>
+    </item>
+    
+    <item>
+      <title>MySQL self replication으로 빠른 복구하기</title>
+      <link>/mysql/mysql_self_replication/</link>
+      <pubDate>Mon, 04 Oct 2021 15:38:28 +0900</pubDate>
+      
+      <guid>/mysql/mysql_self_replication/</guid>
+      <description>MySQL 시점복구 빠르게 수행하는 팁 mysql에서 시점복구를 할 때 가장 흔히 사용하는 방법이 mysqlbinlog를 통해
+binary log을 parsing 하고 이를 순차적으로 적용하는 방법인데요
+이 방법은 single thread로 수행되기 때문에 그 속도가 굉장히 느릴 수 있습니다.
+MariaDB에서에서 이러한 문제점을 피하기 위해 mysql replication의 SQL-thread을
+사용한 방법을 공유한 적이 있습니다.
+https://sarc.io/index.php/mariadb/1438-mariadb-point-in-time-recovery
+mysql 과 mariadb는 gtid 사용방법이 조금 달라서 위의 방법도 조금 다른데요
+이번 글에서는 mysql에서 수행하는 방법을 공유드리겠습니다.
+필요 설정 gtid-mode = ON enforce-gtid-consistency replicate-same-server-id=1 =&amp;gt; 원래 replication은 node 간의 server-id 가 달라야하는데</description>
+    </item>
+    
+    <item>
+      <title>MySQL binlog2sql으로 flashback 복구하기</title>
+      <link>/mysql/binlog2sql_flashback/</link>
+      <pubDate>Mon, 04 Oct 2021 10:28:20 +0900</pubDate>
+      
+      <guid>/mysql/binlog2sql_flashback/</guid>
+      <description>MySQL Flashback recovery MySQL에서는 flashback recovery가 아직 지원되지 않습니다.
+그래서 MariaDB의 mysqlbinlog utility를 가져와서 사용하곤 했는데
+binlog2sql 이라는 utility를 사용하면 MySQL에서도 flashback recovery를 할 수 있습니다.
+binlog2sql  mysqlbinlog 처럼 binary log를 parsing 하는 유틸리티 MariaDB 에서는 제공되던 flashback 기능을 mysql 에서 binlog2sql을 통해 사용할 수 있음 schema-fileter 기능 (database,table) query-filter 기능 (dml-insert,update,delete) interval-filter 기능 (file,datetime) GTID 는 지원하지않음  install git clone https://github.com/danfengcao/binlog2sql.git cd binlog2sql pip install -r requirements.txt   mysql8 버전은 PyMySQL , mysql-replication 아래 버전 이상 사용해야함  PyMySQL==0.</description>
+    </item>
+    
+    <item>
+      <title>MySQL mysqldump 테이블별로 쪼개는 법</title>
+      <link>/mysql/mysql_dump_split/</link>
+      <pubDate>Mon, 04 Oct 2021 10:02:52 +0900</pubDate>
+      
+      <guid>/mysql/mysql_dump_split/</guid>
+      <description>MySQL full backup dumpfile 테이블별로 쪼개는법 운영환경에서 DB 백업을 받을 때 보통 xtrabackup이나 mysqldump 으로 풀백업을 받으실텐데요
+사이즈가 엄청 큰 DB를 mysqldump 로 풀백업 받은 경우 복구 시 병렬처리가 안되고 싱글 쓰레드로 처리되기 때문에 굉장히 많은 시간이 소요됩니다.
+이 때 dumpfile을 테이블 별로 쪼개면 병렬로 수행할 수 있게 됩니다.
+이번 글에서는 mysqldump로 받은 풀백업본 dumpfile 을 table별로 쪼개는 방법에 대해 공유 드리겠습니다
+mysqldump 준비 mysqldump --opt --single-transaction -R -Q --all-databases -S /home1/irteam/db/mysql/tmp/mysql.</description>
+    </item>
+    
+  </channel>
+</rss>

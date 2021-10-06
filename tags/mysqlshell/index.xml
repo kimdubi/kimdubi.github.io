@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>mysqlshell on kimDuBiA</title>
+    <link>/tags/mysqlshell/</link>
+    <description>Recent content in mysqlshell on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Mon, 04 Oct 2021 22:11:03 +0900</lastBuildDate><atom:link href="/tags/mysqlshell/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL Shell을 통한 Table dump&amp;load</title>
+      <link>/mysql/mysqlshell_dump/</link>
+      <pubDate>Mon, 04 Oct 2021 22:11:03 +0900</pubDate>
+      
+      <guid>/mysql/mysqlshell_dump/</guid>
+      <description>MySQL shell을 통한 Table dump&amp;amp;load 기존 mysqldump 같은 Logical backup의 단점은 사용은 간편하나, dump&amp;amp;load 시 single thread를 사용하여 굉장히 느리다는 단점이 있는데
+mysqlshell 의 dump , load 기능을 사용하면 logical 백업도 빠르게 수행할 수 있습니다.
+이번 글에서는 mysqlshell을 통해 특정 테이블만 dump&amp;amp;load test를 해보겠습니다. 물론 instance, schema 단위로도 백업 가능합니다.
+mysqlshell은 8.0 뿐만 아니라 5.6, 5.7에서도 사용이 가능합니다. ( backup lock 등 버전 별 기능차이로 인해 안되는 기능도 있음)
+mysqlshell 설치 $ sudo yum install mysql-shell Loaded plugins: fastestmirror, security Setting up Install Process Loading mirror speeds from cached hostfile Resolving Dependencies --&amp;gt; Running transaction check ---&amp;gt; Package mysql-shell.</description>
+    </item>
+    
+    <item>
+      <title>MySQL Shell parallel dump&amp;load</title>
+      <link>/mysql/mysqlshell_parallel_dump/</link>
+      <pubDate>Mon, 04 Oct 2021 22:02:29 +0900</pubDate>
+      
+      <guid>/mysql/mysqlshell_parallel_dump/</guid>
+      <description>mysqlshell 이란 ? MySQL 8.0 과 함께 출시 된 MySQL 용 클라이언트 툴로 아래와 같은 기능을 제공한다
+Document에는 MySQL 5.7 이상부터 지원한다고 하나, 일부 기능 제외하면 MySQL 5.6에서도 사용가능함
+ex). MySQL 5.6에서는 util.dumpInstance()의 backup lock, user backup 같은 기능을 사용 못함
+ SQL, Python, 자바 스크립트를 활용한 데이터 질의 기능 Admin API  InnoDB cluster, MySQL router, InnoDB ReplicaSet 관리 기능   JSON data load Instance, schema, table 단위로 parallel dump 기능 (logical backup)  이 중 data parallel dump 기능은 기존 mysqldump, mydumper, mysqlpump 의 한계를 보완하여 빠른 dump / load 기능을 제공할 수 있을 것으로 기대됨</description>
+    </item>
+    
+  </channel>
+</rss>

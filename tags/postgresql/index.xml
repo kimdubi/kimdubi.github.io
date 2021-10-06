@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>postgresql on kimDuBiA</title>
+    <link>/tags/postgresql/</link>
+    <description>Recent content in postgresql on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 06 Oct 2021 00:31:52 +0900</lastBuildDate><atom:link href="/tags/postgresql/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>PostgreSQL Citus 간단히 살펴보기</title>
+      <link>/postgresql/citus/</link>
+      <pubDate>Wed, 06 Oct 2021 00:31:52 +0900</pubDate>
+      
+      <guid>/postgresql/citus/</guid>
+      <description>2년전에 citus가 어떤 것인지 궁금해서 구성 관련 간단히 테스트했던 내용입니다.
+깊이있는 내용은 전혀 아니고 지금 다시 읽어보니 거의 저만 이해할 수 있게 써놨네요…..
+현재는 citus나 postgresql 버전이 테스트 당시와 상이할 수 있어 틀린 내용이 많을 수 있습니다.
+목차  Citus 란? HA 방식에 따른 아키텍처 성능 테스트 Citus 설치 방법 Query processing Distributed deadlock Query plan 참고 내용  Citus -. PostgreSQL 의 scale-out 용도 extension ( mysql plugin )</description>
+    </item>
+    
+    <item>
+      <title>쿼리 실행 통계 확인을 위한 pg_stat_monitor</title>
+      <link>/postgresql/pg_stat_monitor/</link>
+      <pubDate>Wed, 06 Oct 2021 00:30:41 +0900</pubDate>
+      
+      <guid>/postgresql/pg_stat_monitor/</guid>
+      <description>PostgreSQL에는 pg_stat_statements 라는 DB서버에서 수행된 모든 SQL문의 실행 통계를 제공하는 유용한 extension이 있습니다.
+그러나 몇가지 단점이 있는데
+ 수행된 시간대가 표시안되어 pg_stat_statements 만으로는 피크시간대 수행된 쿼리를 확인하기 어려움 쿼리에서 접근한 테이블이 따로 저장안됨 쿼리를 수행한 client IP 표시가 안됨  이러한 단점들을 모두 해결한 것이 percona에서 나온 pt_stat_monitor라는 extension 입니다.
+installation sudo yum install -y https://repo.percona.com/yum/percona-release-latest.noarch.rpm sudo percona-release setup ppg-12 sudo yum install -y percona-postgresql12-devel ### postgresql stop 후 $ vi postgresql.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL wal_level=replica / logical 차이</title>
+      <link>/postgresql/pg_wal_level/</link>
+      <pubDate>Wed, 06 Oct 2021 00:27:21 +0900</pubDate>
+      
+      <guid>/postgresql/pg_wal_level/</guid>
+      <description>PostgreSQL 설정 중 wal_level 이라는 설정이 있습니다.
+WAL 에 저장되는 데이터의 양이나 수준을 지정하는 설정으로
+streaming replication 을 위해서는 최소 wal_level = replica
+logical replication을 위해서는 최소 wal_level = logical 설정이 필요한데
+정확히 이 두 설정값에 따라 데이터가 어떻게 저장되는지에 대한 설명이 부족해서 찾아본 내용을 공유합니다.
+logical replicaion 원리  WAL record가 생성되면 logical decoding 을 거쳐 변경된 데이터를 RecorderBufferChange (HeapTupleData)로 재구성합니다. pgoutput plugin이 이 tuple을 subscriber, 즉 슬레이브에게 보냅니다 HeapTupleData를 받은 slave는 변경 전 데이터 (tuple-old)를 찾아 tuple-new 로 바꿔주는 DML 구문을 재 수행합니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL AutoVacuum 최적화</title>
+      <link>/postgresql/pg_autovacuum/</link>
+      <pubDate>Wed, 06 Oct 2021 00:20:28 +0900</pubDate>
+      
+      <guid>/postgresql/pg_autovacuum/</guid>
+      <description>PostgreSQL 에는 다른 DBMS 에서는 볼 수 없는 Vacuum 이라는 개념이 존재합니다.
+이는 MVCC 구현 방법이 ORACLE이나 MySQL 같은 다른 DBMS와 다르다는 차이점에서 오는 문제점을 해결하기 위한 PostgreSQL 만의 특별한 동작인데요.
+PostgreSQL은 Vacuum 동작을 자동으로 수행하는 AutoVacuum을 통해 아래 두가지 작업을 수행합니다.
+ transaction id wraparound 방지 임계치 이상으로 발생한 dead tuple을 정리하여 FSM (Free Space Map) 으로 반환  위 두가지를 수행하지 않고 방치하면 어떤 문제점이 생기는지에 대해서는 PostgreSQL을 소개하며 간단히 다룬 적이 있으니 참고하시기 바랍니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL pgpool-II recovery node</title>
+      <link>/postgresql/pg_pgpool_recovery/</link>
+      <pubDate>Wed, 06 Oct 2021 00:15:33 +0900</pubDate>
+      
+      <guid>/postgresql/pg_pgpool_recovery/</guid>
+      <description>PostgreSQL의 auto-failover 솔루션인 pgpool 은 multi-master 를 지원하지 않기 때문에
+MySQL의 MMM 처럼 failover 된 OLD Master 를 자동으로 cluster의 slave 로 포함시키는 기능이 없습니다.
+그래서 old master 를 new master의 slave 로 재구성하는 작업을 수작업으로 해야만 하는데
+이 과정을 pgpool 의 recovery_node 기능을 통해 자동화 할 수 있습니다.
+pgpool 구성 방법은 아래 내용 참고
+ https://kimdubi.github.io/postgresql/postgresql_pgpool/  자동화 설정 수행 과정  db down pgpool failover 감지  failover command 수행 됨   failover 완료 후 pcp_recovery_node -n node-id ( new slave 노드 ) 커맨드 수행  pgpool.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL Monitoring</title>
+      <link>/postgresql/pg_monitoring/</link>
+      <pubDate>Wed, 06 Oct 2021 00:07:10 +0900</pubDate>
+      
+      <guid>/postgresql/pg_monitoring/</guid>
+      <description>PostgreSQL 모니터링은 Prometheus,alertmanager,grafana를 활용하여 구축할 수 있습니다.
+방법은 이전에 MySQL 모니터링 구축하는 방법에 대해 공유했던 글을 참고 부탁드리며
+ https://kimdubi.github.io/mysql/mysql_pmm/ https://kimdubi.github.io/mysql/alertmanager/  이번 글에서는 제가 사용하는 모니터링 항목과 그에 따른 alert rule을 공유드리겠습니다.
+exporter  exporter 기동 커맨드  ### postgres_exporter wget https://github.com/wrouesnel/postgres_exporter/releases/download/v0.8.0/postgres_exporter_v0.8.0_linux-amd64.tar.gz export DATA_SOURCE_NAME=&amp;quot;postgresql://login:password@hostname:port/dbname&amp;quot; ./postgres_exporter --exclude-databases=&amp;quot;template0,template1&amp;quot; --web.listen-address=:9187 --extend.query-path=&#39;./queries.yaml&#39; queries.yaml postgres_exporter 는 DB 내 pg_stat* view 의 데이터를 긁어오는데 이외에도 다른 데이터를 수집하고 싶다면
+exporter 기동 시 –extend.query-path=’./queries.yaml’ 옵션을 지정해주고 queries.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL HOT update</title>
+      <link>/postgresql/pg_hot/</link>
+      <pubDate>Wed, 06 Oct 2021 00:01:31 +0900</pubDate>
+      
+      <guid>/postgresql/pg_hot/</guid>
+      <description>PostgreSQL의 MVCC 는 ORACLE이나 MySQL의 동작 방식과 다릅니다.
+과거 데이터를 별도의 UNDO 영역에 저장하는 게 아니라 과거의 tuple을 invalid 처리 후
+update 후의 새로운 tuple 을 추가하는 방식으로 동작하는데요
+장점으로는
+ UNDO 영역을 따로 관리할 필요가 없다 ROLLBACK 처리기 매우 빠르다  단점으로는
+ invalid 된 오래된 dead tuple들을 정리할 vacuum 작업이 필요하다 과도한 업데이트로 인한 dead tuple 로 테이블이 비대해 질 수 있다 update 로 인한 인덱스 수정이 필요하다  같은 장단점이 있습니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL synchronus_commit</title>
+      <link>/postgresql/pg_sync_commit/</link>
+      <pubDate>Tue, 05 Oct 2021 23:57:38 +0900</pubDate>
+      
+      <guid>/postgresql/pg_sync_commit/</guid>
+      <description>replication 구성에서 중요하게 생각할 부분 중 하나로 sync 방식이 있습니다.
+MySQL의 경우 sync,async,semi sync 방식으로 설정할 수 있는데요.
+이번 글에서는 PostgreSQL의 sync replication 설정과 주의사항에 대해서 알아보겠습니다.
+WAL 전달에 따른 ACK  백엔드 프로세스는 XLogInsert () 및 XLogFlush () 함수를 실행하여 WAL 세그먼트 파일에 WAL 데이터를 쓰고 플러시 합니다. Primary의 walsender 프로세스는 WAL 세그먼트에 기록 된 WAL 데이터를 Standby의 walreceiver 프로세스로 보냅니다. WAL 데이터를 보낸 후 백엔드 프로세스는 Standby의 ACK 응답을 계속 대기합니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL service 등록하기</title>
+      <link>/postgresql/pg_service/</link>
+      <pubDate>Tue, 05 Oct 2021 23:54:37 +0900</pubDate>
+      
+      <guid>/postgresql/pg_service/</guid>
+      <description>yum 설치가 아닌 source 설치를 했을 때는 postgresql 기동 관련 service 설정을 따로해줘야합니다.
+이번 글에서는 centos6 / 7 에서 각각 service 등록하는 방법을 알아보겠습니다.
+설치한 path는 환경에 맞게 수정하시면 됩니다.
+postgres service 등록 - centos6 irteamsu) sudo vi /etc/init.d/postgres #!/bin/bash # chkconfig:2345 90 20 # Installation prefix prefix=/home1/irteam/psql/engn/postgresql-11.7 # Data directory PGDATA=&amp;quot;/home1/irteam/psql/engn/PGSQL&amp;quot; # Who to run the postmaster as, usually &amp;quot;postgres&amp;quot;. (NOT &amp;quot;root&amp;quot;) PGUSER=irteam # Where to keep a log file PGLOG=&amp;quot;/home1/irteam/psql/logs/testdb/error_log/alert_testdb.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL replication을 위한 WAL 전달과정</title>
+      <link>/postgresql/pg_replication_wal/</link>
+      <pubDate>Tue, 05 Oct 2021 23:42:16 +0900</pubDate>
+      
+      <guid>/postgresql/pg_replication_wal/</guid>
+      <description>PostgreSQL replication을 위한 WAL 전달과정 ORACLE의 RAC 처럼 공유디스크를 사용하지 않는 이상 DBMS는 Master - Slave 구성을 위해 어떤 방식으로든 Master에서 수행한 트랜잭션을 Slave로 전파해야 합니다.
+MySQL은 SQL 커맨드를 전파하는 방식으로 하는 반면, PostgreSQL은 트랜잭션 로그를 전달하는 방식으로 replication을 수행합니다.
+이 두개의 방식은 비슷한듯, 아래와 같이 다르게 조금은 동작합니다.
+ MySQL   PostgreSQL  왜 이런 차이가 발생하는 건지 이번 글에서는 PostgreSQL의 Streaming Replication 기준으로 복제 방식을 살펴보겠습니다.
+MySQL의 replication 방식은 아래 글을 참고해주세요</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL to MySQL Migration</title>
+      <link>/postgresql/pg_pg2mysql/</link>
+      <pubDate>Tue, 05 Oct 2021 23:38:34 +0900</pubDate>
+      
+      <guid>/postgresql/pg_pg2mysql/</guid>
+      <description>MySQL을 PostgreSQL 로 이관하는 방법은 PostgreSQL에서 제공하는 기능인 pgloader 를 사용하면 오브젝트부터 데이터까지 쉽게 이관할 수 있지만
+반대인 PostgreSQL -&amp;gt; MySQL 은 적당한 툴도 없고, 두 DB의 schema 개념도 달라 사전에 알아둬야 할 점이 많습니다.
+이번에 이관했던 서비스를 예시로 PostgreSQL =&amp;gt; MySQL 이관 방법을 정리해보았습니다.
+PostgreSQL 과 MySQL schema 차이  PostgreSQL에서는 테이블의 집합이 schema ( 위 그림에서 public, myschema ) schema 의 집합이 database ( 위 그림에서 postgres , mydb ) 테이블의 집합 = schema 가 곧 논리 database 인 MySQL과는 개념이 다름 단 아래와 같이 DB 내에 사용하는 schema 가 단 하나일 땐 PostgreSQL database -&amp;gt; MySQL database 1:1 매핑이 가능함  amon=# \dn List of schemas Name | Owner --------------------+-------------- information_schema | testuser pg_catalog | testuser pg_toast | testuser pg_toast_temp_1 | testuser public | testuser (5 rows) =&amp;gt; public 을 제외한 나머지 schema는 시스템 관련 스키마, pulic은 모든 schema가 접근 가능한 default schema test=# select count(*) from information_schema.</description>
+    </item>
+    
+    <item>
+      <title>pg_replication_slot 사용 시 wal logfile이 계속 쌓일때</title>
+      <link>/postgresql/pg_slot_issue/</link>
+      <pubDate>Tue, 05 Oct 2021 23:31:29 +0900</pubDate>
+      
+      <guid>/postgresql/pg_slot_issue/</guid>
+      <description>PostgreSQL 의 복제구성으로 가장 널리 쓰이는 방법은
+streaming replication + physical replication slot 입니다.
+특히 physical replication slot 을 사용하는 경우에는 DB에서 slave 가 필요로 하는 WAL logfile 정보를 관리하기 때문에
+운영자가 wal_keep_segments , max_wal_size 같은 WAL 보관 설정에 대해 고민할 필요가 없습니다.
+그러나 이 편리한 replication slot 기능에도 예외상황이 있는데요
+slave DB가 계속 replication 을 받지 못하는 상황이거나,
+사용하지 않는 replication slot이 방치 된 경우
+DB는 WAL logfile들이 나중엔 반영될 거라고 보기 때문에 계속~ 무한정 ~ file들을 저장하게 됩니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL schema 의미 및 권한관리</title>
+      <link>/postgresql/pg_schema/</link>
+      <pubDate>Tue, 05 Oct 2021 23:26:51 +0900</pubDate>
+      
+      <guid>/postgresql/pg_schema/</guid>
+      <description>MySQL이나 ORACLE 을 다루다가
+PostgreSQL을 처음 다룰 때 가장 헷갈리는 것 중 하나는 바로 schema의 개념입니다.
+ORACLE에서는 오브젝트를 가진 USER, MySQL은 논리DB를 schema 라고 하는 반면에
+PostgreSQL 에서는 database , schema , user 의 개념이 모두 있기 때문에 처음엔 헷갈릴 수 있는데요
+이번 글에서는 PostgreSQL의 schema 와 권한 관리에 대해 알아보겠습니다.
+PostgreSQL Schema MySQL에서는 논리 Database를 schema 와 같은 의미로 사용합니다.
+반면 PostgreSQL에서는 database와 schema 두가지 개념 모두 사용되며 database는 schema의 상위 개념이라 할 수 있습니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL background process 살펴보기</title>
+      <link>/postgresql/pg_bgprocess/</link>
+      <pubDate>Tue, 05 Oct 2021 23:22:35 +0900</pubDate>
+      
+      <guid>/postgresql/pg_bgprocess/</guid>
+      <description>시작하며 PostgreSQL의 background process는 기본 프로세스인 Postmaster에서 fork() 된 프로세스들입니다.
+각 fork() 된 background process들은 DBMS 운영을 위해 각자 맡은 역할을 수행하게 되는데요.
+지난 글에서 PostgreSQL의 architecture에 대해 살펴보며 간략하게 말씀드렸지만
+이번 글에서는 PostgreSQL의 background process들에 대해 좀 더 자세히 살펴보겠습니다.
+PostgreSQL background process Postmaster Postmaster 는 모든 background process들을 제어하고 client =&amp;gt; DBMS로의 connection을 생성하고 닫아주는 최초의 프로세스입니다.
+ DB 기동 시 Postmaster는 다른 background process를 fork() 하는 역할과 client가 PostgreSQL DBMS에 connection을 요청하면 Postmaster는 설정된 인증방법(pg_hba.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL을 소개합니다</title>
+      <link>/postgresql/pg_intro2/</link>
+      <pubDate>Tue, 05 Oct 2021 23:18:30 +0900</pubDate>
+      
+      <guid>/postgresql/pg_intro2/</guid>
+      <description>시작하며 세상엔 저마다의 특징과 장점을 뽐내는 다양한 DBMS들이 있습니다.
+이들 각각의 특장점이 무엇인지 파악하고 자신의 서비스에서 어떤 DBMS가 최고의 퍼포먼스를 낼 수 있는지 파악하는 것이 중요하기 때문에
+다양한 DBMS 에 대한 이해가 점점 중요해지고 있습니다.
+ORACLE은 강력한 엔터프라이즈 개발 기능과 안정성을, MySQL은 대표적인 오픈소스 DB로 뛰어난 OLTP 성능을 보여주고, CUBRID는 뛰어난 부하 분산 기능을 자랑하는 DBMS입니다.
+그리고 이 글에서 소개해드릴 PostgreSQL은 GIS 지리 정보 처리와 엔터프라이즈급 DBMS의 기능을 제공하는 오픈소스 DBMS입니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL migration tool pgloader 사용법</title>
+      <link>/postgresql/pg_pgloader/</link>
+      <pubDate>Tue, 05 Oct 2021 23:03:26 +0900</pubDate>
+      
+      <guid>/postgresql/pg_pgloader/</guid>
+      <description>pgloader란? csv 같은 File이나 실제 DB로부터 데이터를 읽어와 target postgresql 로 데이터 migration을 지원해주는 툴
+아래와 같은 단계로 source DB로 부터 데이터를 읽어와 target DB로 copy 수행
+ Fetch meta data and catalogs  ### table, column metadata select c.table_name, t.table_comment, c.column_name, c.column_comment, c.data_type, c.column_type, c.column_default, c.is_nullable, c.extra from information_schema.columns c join information_schema.tables t using(table_schema, table_name) where c.table_schema = &#39;source DB&#39; and t.table_type = &#39;BASE TABLE&#39; ### FK 제약조건 SELECT s.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL 백업 복구 테스트</title>
+      <link>/postgresql/pg_backup_restore/</link>
+      <pubDate>Tue, 05 Oct 2021 22:51:18 +0900</pubDate>
+      
+      <guid>/postgresql/pg_backup_restore/</guid>
+      <description>pg_dump PostgreSQL에서 기본 제공하는 logical backup 방식으로 mysqldump 와 같은 방법
+백업 수행 시점의 스냅샷만 가능하며 시점복구는 불가함
+pg_dump는 단일 DB backup, pg_dumpall은 전체 DB backup할 때 사용함
+backup script #!/bin/bash DEL_FILE=$(date -d &#39;2 day ago&#39; +&#39;%Y-%m-%d_&#39;)&amp;quot;*.dump&amp;quot; FILENAME=$(date +&amp;quot;%Y-%m-%d_%H%M&amp;quot;).dump BACKUP_DIR=/home1/irteam/psql/backup/testdb PG_USER=&amp;quot;irteam&amp;quot; PASSWORD=&amp;quot;&amp;quot; cd $BACKUP_DIR echo &amp;quot;DB backup start time : &amp;quot; $(date +&amp;quot;%Y-%m-%d %H:%M:%S&amp;quot;) pg_dumpall -h localhost -p 3000 -U $PG_USER -v -j 3 -f &amp;quot;${BACKUP_DIR}/${FILENAME}&amp;quot; &amp;gt;&amp;amp; &amp;quot;${BACKUP_DIR}/${FILENAME}&amp;quot;.log? echo &amp;quot;Successful db backup ( ${BACKUP_DIR}/DBNAME_${FILENAME} )&amp;quot; echo &amp;quot;Delete old file DBNAME_${DEL_FILE}&amp;quot; rm &amp;quot;${BACKUP_DIR}/DBNAME_${DEL_FILE}&amp;quot; echo &amp;quot;BACKUP - End time : &amp;quot; $(date +&amp;quot;%Y-%m-%d %H:%M:%S&amp;quot;)   -d, –dbname : Backup할 Database 명 -h, –host : Database 주소 -U, –username : Database 접속 시 User ID -f, –file : Backup File Name -t, –table : 특정 Table만 Backup하려할 때 대상이 되는 Table 명 -j, –jobs : Backup 시 병렬 처리 -v, –verbose : 진행 과정 표시  restore test psql -p 3000 -d postgres -f 2020-04-10_1431.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL pgpool을 활용한 auto-failover 구성</title>
+      <link>/postgresql/postgresql_pgpool/</link>
+      <pubDate>Tue, 05 Oct 2021 22:45:42 +0900</pubDate>
+      
+      <guid>/postgresql/postgresql_pgpool/</guid>
+      <description>Pgpool-II 이란?  Pgpool-II 는 PostgreSQL DB서버와 클라이언트 사이에 위치하는 proxy 개념의 미들웨어로 아래의 세가지 기능을 제공함 connection pooling : DB서버와의 연결을 유지하고 동일한 속성(user,db,protocol) 을 가진 새로운 연결 요청이 오면 이를 재사용함 load balancing : replication 을 사용하는 서비스에서 DB서버의 편중된 load를 줄이기 위해 SELECT 쿼리를 처리 가능한 서버 간 배포하는 기능 automated failover : DB 서버 중 하나가 down되면 이를 차단하고 나머지 DB에서 서비스를 지속함, master down 될 시엔 다른 standby 서버를 승격시킴  PGPool 구성방법 pgpool 설치   https://pgpool.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL Replication 설정-Streaming Replication</title>
+      <link>/postgresql/postgresql_replication/</link>
+      <pubDate>Tue, 05 Oct 2021 22:30:22 +0900</pubDate>
+      
+      <guid>/postgresql/postgresql_replication/</guid>
+      <description>REPLICATION 방식 log shipping  file-based 복제로 master의 WAL file이 생성되면 이 파일을 scp를 통해 standby서버로 전달하여 반영함 wal file이 생길 때 까지 replication gap 이 발생할 수 있음  logical replication  pub / sub 구조로 양방향 replication 가능 특정 테이블만 복제하는 partial replication 가능 DDL 복제는 안되기 때문에 각각 수행해줘야함  streaming replication  Master는 standyby 에게 transaction log entires 를 전달하고 standby 는 WAL file을 기다리지 않고 record 단위로 복제 수행 일반적으로 가장 많이 사용되는 복제 방식  streaming replication 설정 1.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL configure 설정</title>
+      <link>/postgresql/postgresql_conf/</link>
+      <pubDate>Tue, 05 Oct 2021 22:20:28 +0900</pubDate>
+      
+      <guid>/postgresql/postgresql_conf/</guid>
+      <description>yum 설치가 아닌 source make 설치라 디렉토리 구성 등이 다를 수 있습니다.
+bash_profile $ vi ~/.bash_profile export POSTGRES_HOME=/home1/kimdubi/psql/engn/postgresql-11.7 export PGLIB=$POSTGRES_HOME/lib export PGDATA=/home1/kimdubi/psql/engn/PGSQL export MANPATH=$MANPATH:$POSTGRES_HOME/man export PATH=$POSTGRES_HOME/bin:$PATH  postgresql.conf #------------------------------------------------------------------------------ # CONNECTIONS AND AUTHENTICATION #------------------------------------------------------------------------------ # - Connection Settings - listen_addresses = &#39;*&#39; port = 3000 max_connections = 1000 #------------------------------------------------------------------------------ # RESOURCE USAGE (except WAL) #------------------------------------------------------------------------------ # - Memory - shared_buffers = 1024MB work_mem = 4MB maintenance_work_mem = 512MB dynamic_shared_memory_type = posix effective_io_concurrency = 200 max_worker_processes=8 max_parallel_workers_per_gather = 2 max_parallel_workers = 8 #------------------------------------------------------------------------------ # WRITE AHEAD LOG #------------------------------------------------------------------------------ # - Settings - wal_level = logical wal_buffers = 2MB max_wal_size = 1GB # - Archiving - archive_mode = on archive_command = &#39;cp %p /home1/kimdubi/psql/arch/testdb/%f&#39; #------------------------------------------------------------------------------ # QUERY TUNING #------------------------------------------------------------------------------ random_page_cost = 1.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL source compile install</title>
+      <link>/postgresql/postgresql_install/</link>
+      <pubDate>Tue, 05 Oct 2021 22:17:44 +0900</pubDate>
+      
+      <guid>/postgresql/postgresql_install/</guid>
+      <description>간단하게 yum install 할 수도 있지만
+디렉토리 구성 등을 기본 default 설정과는 다르게 구성하여 관리하고 싶어 source 파일을 다운받아 컴파일 설치하는 식으로 구성해봤습니다.
+때문에 여기서의 디렉토리는 default 설정이 아닌 제 임의로 설정한 구성입니다.
+postgresql 버전 확인  https://www.postgresql.org/ftp/source/  설치  directory 생성 (kimdubi 계정)  mkdir -p /home1/kimdubi/psql/engn/ =&amp;gt; PostgreSQL engine 영역 mkdir -p /home1/kimdubi/psql/data/testdb =&amp;gt; tablespace 등data 저장공간 mkdir -p /home1/kimdubi/psql/logs/testdb/error_log =&amp;gt; error log mkdir -p /home1/kimdubi/psql/arch/testdb =&amp;gt; pg_wal 아카이빙하는 공간  11.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL Architecture (PostgreSQL 시작하기)</title>
+      <link>/postgresql/postgresql_intro/</link>
+      <pubDate>Tue, 05 Oct 2021 22:11:37 +0900</pubDate>
+      
+      <guid>/postgresql/postgresql_intro/</guid>
+      <description>postgresql은 프로세스 기반의 GIS 기능으로 유명한 오픈소스DB 입니다.
+세계적인 인기(?) 에 비해 유독 우리나라에선 postgresql 을 사용하는 곳이 드문데
+저도 아무것도 모르지만 설치부터 하나하나 공부해가는 마음으로 포스팅을 시작하겠습니다.
+제가 구성하고자 하는 PostgreSQL 아키텍처는 아래와 같습니다.
+셋업 환경 OS &amp;amp; DB  OS : CentOS release 6.9 DB : PostgreSQL 11.7 (20.02 기준 postgresql 12 버전 출시되었으나 안정화된 11버전 설치)  replication : streaming-replication (master-standby) auto-failover : pgpool-II backup : pg_start_backup    아래는 위 아키텍처 요소들에 대한 간단한 설명입니다.</description>
+    </item>
+    
+  </channel>
+</rss>

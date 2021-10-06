@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>pg_dump on kimDuBiA</title>
+    <link>/tags/pg_dump/</link>
+    <description>Recent content in pg_dump on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Tue, 05 Oct 2021 22:51:18 +0900</lastBuildDate><atom:link href="/tags/pg_dump/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>PostgreSQL 백업 복구 테스트</title>
+      <link>/postgresql/pg_backup_restore/</link>
+      <pubDate>Tue, 05 Oct 2021 22:51:18 +0900</pubDate>
+      
+      <guid>/postgresql/pg_backup_restore/</guid>
+      <description>pg_dump PostgreSQL에서 기본 제공하는 logical backup 방식으로 mysqldump 와 같은 방법
+백업 수행 시점의 스냅샷만 가능하며 시점복구는 불가함
+pg_dump는 단일 DB backup, pg_dumpall은 전체 DB backup할 때 사용함
+backup script #!/bin/bash DEL_FILE=$(date -d &#39;2 day ago&#39; +&#39;%Y-%m-%d_&#39;)&amp;quot;*.dump&amp;quot; FILENAME=$(date +&amp;quot;%Y-%m-%d_%H%M&amp;quot;).dump BACKUP_DIR=/home1/irteam/psql/backup/testdb PG_USER=&amp;quot;irteam&amp;quot; PASSWORD=&amp;quot;&amp;quot; cd $BACKUP_DIR echo &amp;quot;DB backup start time : &amp;quot; $(date +&amp;quot;%Y-%m-%d %H:%M:%S&amp;quot;) pg_dumpall -h localhost -p 3000 -U $PG_USER -v -j 3 -f &amp;quot;${BACKUP_DIR}/${FILENAME}&amp;quot; &amp;gt;&amp;amp; &amp;quot;${BACKUP_DIR}/${FILENAME}&amp;quot;.log? echo &amp;quot;Successful db backup ( ${BACKUP_DIR}/DBNAME_${FILENAME} )&amp;quot; echo &amp;quot;Delete old file DBNAME_${DEL_FILE}&amp;quot; rm &amp;quot;${BACKUP_DIR}/DBNAME_${DEL_FILE}&amp;quot; echo &amp;quot;BACKUP - End time : &amp;quot; $(date +&amp;quot;%Y-%m-%d %H:%M:%S&amp;quot;)   -d, –dbname : Backup할 Database 명 -h, –host : Database 주소 -U, –username : Database 접속 시 User ID -f, –file : Backup File Name -t, –table : 특정 Table만 Backup하려할 때 대상이 되는 Table 명 -j, –jobs : Backup 시 병렬 처리 -v, –verbose : 진행 과정 표시  restore test psql -p 3000 -d postgres -f 2020-04-10_1431.</description>
+    </item>
+    
+  </channel>
+</rss>

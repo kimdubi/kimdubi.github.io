@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Tags on kimDuBiA</title>
+    <link>/tags/</link>
+    <description>Recent content in Tags on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 06 Oct 2021 21:41:20 +0900</lastBuildDate><atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ansible</title>
+      <link>/tags/ansible/</link>
+      <pubDate>Wed, 06 Oct 2021 21:41:20 +0900</pubDate>
+      
+      <guid>/tags/ansible/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>mysql</title>
+      <link>/tags/mysql/</link>
+      <pubDate>Wed, 06 Oct 2021 21:41:20 +0900</pubDate>
+      
+      <guid>/tags/mysql/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>docker</title>
+      <link>/tags/docker/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:52 +0900</pubDate>
+      
+      <guid>/tags/docker/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>redis</title>
+      <link>/tags/redis/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:52 +0900</pubDate>
+      
+      <guid>/tags/redis/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>replication</title>
+      <link>/tags/replication/</link>
+      <pubDate>Wed, 06 Oct 2021 21:23:09 +0900</pubDate>
+      
+      <guid>/tags/replication/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>kubernetes</title>
+      <link>/tags/kubernetes/</link>
+      <pubDate>Wed, 06 Oct 2021 21:18:45 +0900</pubDate>
+      
+      <guid>/tags/kubernetes/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>architecture</title>
+      <link>/tags/architecture/</link>
+      <pubDate>Wed, 06 Oct 2021 00:31:52 +0900</pubDate>
+      
+      <guid>/tags/architecture/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>citus</title>
+      <link>/tags/citus/</link>
+      <pubDate>Wed, 06 Oct 2021 00:31:52 +0900</pubDate>
+      
+      <guid>/tags/citus/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>postgresql</title>
+      <link>/tags/postgresql/</link>
+      <pubDate>Wed, 06 Oct 2021 00:31:52 +0900</pubDate>
+      
+      <guid>/tags/postgresql/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>sharding</title>
+      <link>/tags/sharding/</link>
+      <pubDate>Wed, 06 Oct 2021 00:31:52 +0900</pubDate>
+      
+      <guid>/tags/sharding/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>운영</title>
+      <link>/tags/%EC%9A%B4%EC%98%81/</link>
+      <pubDate>Wed, 06 Oct 2021 00:30:41 +0900</pubDate>
+      
+      <guid>/tags/%EC%9A%B4%EC%98%81/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>autovacuum</title>
+      <link>/tags/autovacuum/</link>
+      <pubDate>Wed, 06 Oct 2021 00:20:28 +0900</pubDate>
+      
+      <guid>/tags/autovacuum/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>HA</title>
+      <link>/tags/ha/</link>
+      <pubDate>Wed, 06 Oct 2021 00:15:33 +0900</pubDate>
+      
+      <guid>/tags/ha/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>pgpool</title>
+      <link>/tags/pgpool/</link>
+      <pubDate>Wed, 06 Oct 2021 00:15:33 +0900</pubDate>
+      
+      <guid>/tags/pgpool/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>monitoring</title>
+      <link>/tags/monitoring/</link>
+      <pubDate>Wed, 06 Oct 2021 00:07:10 +0900</pubDate>
+      
+      <guid>/tags/monitoring/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>issue</title>
+      <link>/tags/issue/</link>
+      <pubDate>Tue, 05 Oct 2021 23:31:29 +0900</pubDate>
+      
+      <guid>/tags/issue/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>pgloader</title>
+      <link>/tags/pgloader/</link>
+      <pubDate>Tue, 05 Oct 2021 23:03:26 +0900</pubDate>
+      
+      <guid>/tags/pgloader/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>pg_dump</title>
+      <link>/tags/pg_dump/</link>
+      <pubDate>Tue, 05 Oct 2021 22:51:18 +0900</pubDate>
+      
+      <guid>/tags/pg_dump/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>복구</title>
+      <link>/tags/%EB%B3%B5%EA%B5%AC/</link>
+      <pubDate>Tue, 05 Oct 2021 22:51:18 +0900</pubDate>
+      
+      <guid>/tags/%EB%B3%B5%EA%B5%AC/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>install</title>
+      <link>/tags/install/</link>
+      <pubDate>Tue, 05 Oct 2021 22:17:44 +0900</pubDate>
+      
+      <guid>/tags/install/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>mongodb</title>
+      <link>/tags/mongodb/</link>
+      <pubDate>Tue, 05 Oct 2021 09:06:44 +0900</pubDate>
+      
+      <guid>/tags/mongodb/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>oracle</title>
+      <link>/tags/oracle/</link>
+      <pubDate>Mon, 04 Oct 2021 22:16:47 +0900</pubDate>
+      
+      <guid>/tags/oracle/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>mysqlshell</title>
+      <link>/tags/mysqlshell/</link>
+      <pubDate>Mon, 04 Oct 2021 22:11:03 +0900</pubDate>
+      
+      <guid>/tags/mysqlshell/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>sql</title>
+      <link>/tags/sql/</link>
+      <pubDate>Mon, 04 Oct 2021 21:44:32 +0900</pubDate>
+      
+      <guid>/tags/sql/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>xtrabackup</title>
+      <link>/tags/xtrabackup/</link>
+      <pubDate>Mon, 04 Oct 2021 21:00:38 +0900</pubDate>
+      
+      <guid>/tags/xtrabackup/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>mysql8</title>
+      <link>/tags/mysql8/</link>
+      <pubDate>Mon, 04 Oct 2021 20:45:34 +0900</pubDate>
+      
+      <guid>/tags/mysql8/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>DDL</title>
+      <link>/tags/ddl/</link>
+      <pubDate>Mon, 04 Oct 2021 18:57:20 +0900</pubDate>
+      
+      <guid>/tags/ddl/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>percona</title>
+      <link>/tags/percona/</link>
+      <pubDate>Mon, 04 Oct 2021 18:57:20 +0900</pubDate>
+      
+      <guid>/tags/percona/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>pt-osc</title>
+      <link>/tags/pt-osc/</link>
+      <pubDate>Mon, 04 Oct 2021 18:57:20 +0900</pubDate>
+      
+      <guid>/tags/pt-osc/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>PMM</title>
+      <link>/tags/pmm/</link>
+      <pubDate>Mon, 04 Oct 2021 17:34:10 +0900</pubDate>
+      
+      <guid>/tags/pmm/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>MHA</title>
+      <link>/tags/mha/</link>
+      <pubDate>Mon, 04 Oct 2021 17:12:49 +0900</pubDate>
+      
+      <guid>/tags/mha/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>lock</title>
+      <link>/tags/lock/</link>
+      <pubDate>Mon, 04 Oct 2021 10:52:03 +0900</pubDate>
+      
+      <guid>/tags/lock/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>innodb</title>
+      <link>/tags/innodb/</link>
+      <pubDate>Mon, 04 Oct 2021 10:47:11 +0900</pubDate>
+      
+      <guid>/tags/innodb/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>test</title>
+      <link>/tags/test/</link>
+      <pubDate>Mon, 04 Oct 2021 10:10:54 +0900</pubDate>
+      
+      <guid>/tags/test/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>mysqldump</title>
+      <link>/tags/mysqldump/</link>
+      <pubDate>Mon, 04 Oct 2021 10:02:52 +0900</pubDate>
+      
+      <guid>/tags/mysqldump/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>gtid</title>
+      <link>/tags/gtid/</link>
+      <pubDate>Mon, 04 Oct 2021 03:24:01 +0900</pubDate>
+      
+      <guid>/tags/gtid/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>MMM</title>
+      <link>/tags/mmm/</link>
+      <pubDate>Mon, 04 Oct 2021 03:09:12 +0900</pubDate>
+      
+      <guid>/tags/mmm/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>

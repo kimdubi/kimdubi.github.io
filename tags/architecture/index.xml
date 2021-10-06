@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>architecture on kimDuBiA</title>
+    <link>/tags/architecture/</link>
+    <description>Recent content in architecture on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 06 Oct 2021 00:31:52 +0900</lastBuildDate><atom:link href="/tags/architecture/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>PostgreSQL Citus 간단히 살펴보기</title>
+      <link>/postgresql/citus/</link>
+      <pubDate>Wed, 06 Oct 2021 00:31:52 +0900</pubDate>
+      
+      <guid>/postgresql/citus/</guid>
+      <description>2년전에 citus가 어떤 것인지 궁금해서 구성 관련 간단히 테스트했던 내용입니다.
+깊이있는 내용은 전혀 아니고 지금 다시 읽어보니 거의 저만 이해할 수 있게 써놨네요…..
+현재는 citus나 postgresql 버전이 테스트 당시와 상이할 수 있어 틀린 내용이 많을 수 있습니다.
+목차  Citus 란? HA 방식에 따른 아키텍처 성능 테스트 Citus 설치 방법 Query processing Distributed deadlock Query plan 참고 내용  Citus -. PostgreSQL 의 scale-out 용도 extension ( mysql plugin )</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL HOT update</title>
+      <link>/postgresql/pg_hot/</link>
+      <pubDate>Wed, 06 Oct 2021 00:01:31 +0900</pubDate>
+      
+      <guid>/postgresql/pg_hot/</guid>
+      <description>PostgreSQL의 MVCC 는 ORACLE이나 MySQL의 동작 방식과 다릅니다.
+과거 데이터를 별도의 UNDO 영역에 저장하는 게 아니라 과거의 tuple을 invalid 처리 후
+update 후의 새로운 tuple 을 추가하는 방식으로 동작하는데요
+장점으로는
+ UNDO 영역을 따로 관리할 필요가 없다 ROLLBACK 처리기 매우 빠르다  단점으로는
+ invalid 된 오래된 dead tuple들을 정리할 vacuum 작업이 필요하다 과도한 업데이트로 인한 dead tuple 로 테이블이 비대해 질 수 있다 update 로 인한 인덱스 수정이 필요하다  같은 장단점이 있습니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL replication을 위한 WAL 전달과정</title>
+      <link>/postgresql/pg_replication_wal/</link>
+      <pubDate>Tue, 05 Oct 2021 23:42:16 +0900</pubDate>
+      
+      <guid>/postgresql/pg_replication_wal/</guid>
+      <description>PostgreSQL replication을 위한 WAL 전달과정 ORACLE의 RAC 처럼 공유디스크를 사용하지 않는 이상 DBMS는 Master - Slave 구성을 위해 어떤 방식으로든 Master에서 수행한 트랜잭션을 Slave로 전파해야 합니다.
+MySQL은 SQL 커맨드를 전파하는 방식으로 하는 반면, PostgreSQL은 트랜잭션 로그를 전달하는 방식으로 replication을 수행합니다.
+이 두개의 방식은 비슷한듯, 아래와 같이 다르게 조금은 동작합니다.
+ MySQL   PostgreSQL  왜 이런 차이가 발생하는 건지 이번 글에서는 PostgreSQL의 Streaming Replication 기준으로 복제 방식을 살펴보겠습니다.
+MySQL의 replication 방식은 아래 글을 참고해주세요</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL background process 살펴보기</title>
+      <link>/postgresql/pg_bgprocess/</link>
+      <pubDate>Tue, 05 Oct 2021 23:22:35 +0900</pubDate>
+      
+      <guid>/postgresql/pg_bgprocess/</guid>
+      <description>시작하며 PostgreSQL의 background process는 기본 프로세스인 Postmaster에서 fork() 된 프로세스들입니다.
+각 fork() 된 background process들은 DBMS 운영을 위해 각자 맡은 역할을 수행하게 되는데요.
+지난 글에서 PostgreSQL의 architecture에 대해 살펴보며 간략하게 말씀드렸지만
+이번 글에서는 PostgreSQL의 background process들에 대해 좀 더 자세히 살펴보겠습니다.
+PostgreSQL background process Postmaster Postmaster 는 모든 background process들을 제어하고 client =&amp;gt; DBMS로의 connection을 생성하고 닫아주는 최초의 프로세스입니다.
+ DB 기동 시 Postmaster는 다른 background process를 fork() 하는 역할과 client가 PostgreSQL DBMS에 connection을 요청하면 Postmaster는 설정된 인증방법(pg_hba.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL을 소개합니다</title>
+      <link>/postgresql/pg_intro2/</link>
+      <pubDate>Tue, 05 Oct 2021 23:18:30 +0900</pubDate>
+      
+      <guid>/postgresql/pg_intro2/</guid>
+      <description>시작하며 세상엔 저마다의 특징과 장점을 뽐내는 다양한 DBMS들이 있습니다.
+이들 각각의 특장점이 무엇인지 파악하고 자신의 서비스에서 어떤 DBMS가 최고의 퍼포먼스를 낼 수 있는지 파악하는 것이 중요하기 때문에
+다양한 DBMS 에 대한 이해가 점점 중요해지고 있습니다.
+ORACLE은 강력한 엔터프라이즈 개발 기능과 안정성을, MySQL은 대표적인 오픈소스 DB로 뛰어난 OLTP 성능을 보여주고, CUBRID는 뛰어난 부하 분산 기능을 자랑하는 DBMS입니다.
+그리고 이 글에서 소개해드릴 PostgreSQL은 GIS 지리 정보 처리와 엔터프라이즈급 DBMS의 기능을 제공하는 오픈소스 DBMS입니다.</description>
+    </item>
+    
+    <item>
+      <title>ORACLE Architecture 간단히 살펴보기</title>
+      <link>/oracle/oracle_architecture/</link>
+      <pubDate>Mon, 04 Oct 2021 22:16:47 +0900</pubDate>
+      
+      <guid>/oracle/oracle_architecture/</guid>
+      <description>ORACLE Architecture 간단히 살펴보기 Oracle Architecture Oracle server는 크게 세부분으로 나뉩니다.
+( SGA + Background Process + Files)
+메모리 영역 (SGA) SGA는 shared global area 라는 이름에서부터 알 수 있듯이 사용자들이 오라클에서 데이터를 읽거나 변경하기 위해 사용하는 공용 메모리 영역을 의미합니다. SGA는 크게 Data buffer cache, Redo log buffer , Shared pool 로 이루어져 있습니다.   Data buffer cache  데이터의 조회와 변경 등의 실제 작업이 일어나는 공간으로 사용자가 찾거나 변경하는 데이터는 반드시 data buffer cache에 존재해야 합니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL Crash-safe replication</title>
+      <link>/mysql/crash_safe/</link>
+      <pubDate>Mon, 04 Oct 2021 16:53:48 +0900</pubDate>
+      
+      <guid>/mysql/crash_safe/</guid>
+      <description>MySQL crash-safe replication MySQL crash-safe replication 기능은 5.6 버전부터 생긴 오래된 개념입니다.
+slave DB가 crash 되어 재기동 되는 경우에도 data 중복이나 유실 같은
+replication이 깨지는 경우를 막기 위한 기능인데요
+이번 글에서는 MySQL crash-safe replication 에 대해서 살펴보겠습니다.
+crash-safe replication 개념 replication 수행 중 Slave의 status를 file에 update 하기 전에 Slave DB가 crash 후 재기동 되는 경우 마지막 트랜잭션을 재수행 하기 때문에 중복 에러등으로 replication이 깨질 수 있습니다.
+이를 보완하기 위해 나온 설정이 relay_log_info_repository=TABLE 이며</description>
+    </item>
+    
+    <item>
+      <title>MySQL 버전 별 Innodb Architecture</title>
+      <link>/mysql/innodb_architecture/</link>
+      <pubDate>Mon, 04 Oct 2021 10:47:11 +0900</pubDate>
+      
+      <guid>/mysql/innodb_architecture/</guid>
+      <description>MySQL 버전 별 Innodb Architecture 이번 글에서는 MySQL 의 Innodb 엔진 아키텍처가 버전에 따라 어떻게 달라졌는지 간단히 살펴보겠습니다.
+MySQL 5.6 MySQL 5.7 5.6 =&amp;gt; 5.7 변경사항  MySQL 5.5 =&amp;gt; 5.6 으로 올라오면서 undo log를 System tablespace (ibdata) 에서 별도로 둘 수 있게됨 커진 undo log truncate 기능 (set global innodb_undo_log_truncate = ON)  innodb_max_undo_log_size 보다 커지면 truncate 수행 innodb_undo_tablespaces &amp;gt; 1 이상 설정하여 system tablespace에 undo 없도록 설정 필요   MySQL 5.</description>
+    </item>
+    
+    <item>
+      <title>MySQL lossless semi-sync replication</title>
+      <link>/mysql/semisync/</link>
+      <pubDate>Mon, 04 Oct 2021 03:39:53 +0900</pubDate>
+      
+      <guid>/mysql/semisync/</guid>
+      <description>MySQL lossless semi-sync replication MySQL은 ORACLE 과는 HighAvailibility를 충족시키는 방법이 다릅니다.
+하나의 스토리지에 데이터를 이중화,삼중화해서 저장하고 이를 여러 인스턴스가 공유하는 ORACLE의 RAC와는 달리
+MySQL은 Master-Slave의 개념으로 Master의 데이터를 Slave 서버로 복제하고 MHA나 MMM 같은 솔루션을 통해 Master가 down 되었을 때 실시간으로 복제해둔 Slave를 Master로 승격시키는 방식입니다.
+이 방식에는 한가지 문제점이 있는데요.
+바로 Slave가 Master의 데이터를 모두 복제하지 못한채로 Master로 승격이 되는 경우입니다.
+이 문제점을 해결하기 위해서는 단순하게는 Sync 방식으로 복제를 해오면 되겠지만 Slave에도 반영이 되어야 Master의 트랜잭션도 처리가 된다는 점에서 성능 이슈가 발생할 수 있습니다.</description>
+    </item>
+    
+  </channel>
+</rss>

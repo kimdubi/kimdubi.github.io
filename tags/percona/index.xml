@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>percona on kimDuBiA</title>
+    <link>/tags/percona/</link>
+    <description>Recent content in percona on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Mon, 04 Oct 2021 18:57:20 +0900</lastBuildDate><atom:link href="/tags/percona/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL online으로 일반테이블 파티셔닝 전환하기</title>
+      <link>/mysql/ptosc_partitioning/</link>
+      <pubDate>Mon, 04 Oct 2021 18:57:20 +0900</pubDate>
+      
+      <guid>/mysql/ptosc_partitioning/</guid>
+      <description>MySQL online으로 일반테이블 파티셔닝 전환하기 기존 일반테이블을 파티셔닝 테이블로 변환할 때 pt-osc 를 활용하여 온라인 작업으로 할 수 없을까 검색하던 중
+카카오에서는 아래의 내용처럼 pt-osc를 수정하여 사용한다는 것을 알게 되었습니다
+http://small-dbtalk.blogspot.com/2014/04/pt-online-schema-change-modified-pt.html
+간단하게 요약하자면
+MySQL에서 하나의 ALTER 문으로 처리하지 못하는 DDL작업들을 pt-osc에서도 처리하지 못했는데요.
+대표적으로 일반테이블을 파티션테이블로 전환하는 경우
+PK 구성 변경과 파티셔닝 커맨드를 하나의 ALTER문으로 표현할 수 없기 때문에 pt-osc를 활용할 수 없습니다.
+이런 점을 개선하기 위해
+–prompt-before-copy 라는 커맨드를 추가하여</description>
+    </item>
+    
+    <item>
+      <title>MySQL online DDL을 위한 TOOL 비교 ( pt-osc &amp; gh-ost )</title>
+      <link>/mysql/online_schema_change/</link>
+      <pubDate>Mon, 04 Oct 2021 03:54:13 +0900</pubDate>
+      
+      <guid>/mysql/online_schema_change/</guid>
+      <description>MySQL online DDL을 위한 TOOL pt-osc &amp;amp; gh-ost ONLINE DDL MySQL은 DDL에 대해서 한정적으로 online 작업을 지원합니다.
+online ddl 방식으로는 INPLACE, INSTANT (mysql 8.0부터) 가 있고
+주로 쓰이는 algorithm=INPLACE 방식은 아래와 같은 절차로 ONLINE DDL을 지원합니다.
+1. INPLACE 스키마 변경이 지원되는 커맨드인지, 스토리지 엔진(InnoDB) 인지 확인 2. online 스키마 변경 작업동안 변경되는 데이터를 저장할 준비 (innodb_online_alter_log_max_size) 3. 테이블 스키마 변경 및 DML 로깅 4. 변경 완료된 테이블에 DML 로깅 적용 5.</description>
+    </item>
+    
+  </channel>
+</rss>

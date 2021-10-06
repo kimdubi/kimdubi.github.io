@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Oracles on kimDuBiA</title>
+    <link>/oracle/</link>
+    <description>Recent content in Oracles on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Mon, 04 Oct 2021 22:16:47 +0900</lastBuildDate><atom:link href="/oracle/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ORACLE Architecture 간단히 살펴보기</title>
+      <link>/oracle/oracle_architecture/</link>
+      <pubDate>Mon, 04 Oct 2021 22:16:47 +0900</pubDate>
+      
+      <guid>/oracle/oracle_architecture/</guid>
+      <description>ORACLE Architecture 간단히 살펴보기 Oracle Architecture Oracle server는 크게 세부분으로 나뉩니다.
+( SGA + Background Process + Files)
+메모리 영역 (SGA) SGA는 shared global area 라는 이름에서부터 알 수 있듯이 사용자들이 오라클에서 데이터를 읽거나 변경하기 위해 사용하는 공용 메모리 영역을 의미합니다. SGA는 크게 Data buffer cache, Redo log buffer , Shared pool 로 이루어져 있습니다.   Data buffer cache  데이터의 조회와 변경 등의 실제 작업이 일어나는 공간으로 사용자가 찾거나 변경하는 데이터는 반드시 data buffer cache에 존재해야 합니다.</description>
+    </item>
+    
+  </channel>
+</rss>

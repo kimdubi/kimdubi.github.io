@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>lock on kimDuBiA</title>
+    <link>/tags/lock/</link>
+    <description>Recent content in lock on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Mon, 04 Oct 2021 10:52:03 +0900</lastBuildDate><atom:link href="/tags/lock/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL metadata lock 확인하는 procedure</title>
+      <link>/mysql/metadata_procedure/</link>
+      <pubDate>Mon, 04 Oct 2021 10:52:03 +0900</pubDate>
+      
+      <guid>/mysql/metadata_procedure/</guid>
+      <description>MySQL metadata lock 상황 한눈에 확인하기 트래픽이 많아 쿼리가 많이 수행되는 환경에서는 단순 쿼리로는 metadata lock 을 찾기 힘들 때도 있습니다.
+percona에서 공유한 metadata lock holder와 waiter를 쉽게 확인할 수 있는 프로시져 관련 글이 있어 공유드립니다.
+(https://www.percona.com/blog/2016/12/28/quickly-troubleshooting-metadata-locks-mysql-5-7/)
+procedure USE test; DROP PROCEDURE IF EXISTS procShowMetadataLockSummary; delimiter // CREATE PROCEDURE procShowMetadataLockSummary() BEGIN DECLARE table_schema VARCHAR(64); DECLARE table_name VARCHAR(64); DECLARE id bigint; DECLARE time bigint; DECLARE info longtext; DECLARE curMdlCount INT DEFAULT 0; DECLARE curMdlCtr INT DEFAULT 0; DECLARE curMdl CURSOR FOR SELECT * FROM tmp_blocked_metadata; DROP TEMPORARY TABLE IF EXISTS tmp_blocked_metadata; CREATE TEMPORARY TABLE IF NOT EXISTS tmp_blocked_metadata ( table_schema varchar(64) , table_name varchar(64) , id bigint , time bigint , info longtext , PRIMARY KEY(table_schema, table_name) ); REPLACE tmp_blocked_metadata(table_schema,table_name,id,time,info) SELECT mdl.</description>
+    </item>
+    
+  </channel>
+</rss>

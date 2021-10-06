@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>sql on kimDuBiA</title>
+    <link>/tags/sql/</link>
+    <description>Recent content in sql on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Mon, 04 Oct 2021 21:44:32 +0900</lastBuildDate><atom:link href="/tags/sql/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL의 Transacion isolation 간단히 살펴보기</title>
+      <link>/mysql/transacion_isolation/</link>
+      <pubDate>Mon, 04 Oct 2021 21:44:32 +0900</pubDate>
+      
+      <guid>/mysql/transacion_isolation/</guid>
+      <description>MySQL의 Transaction Isolation에 대해 MySQL에는 네가지 transaction isolation 레벨이 있습니다.
+transaction isolation 에 따라 쿼리의 결과가 달라지고 Lock의 범위가 달라지므로 간단히라도 꼭 알아둬야 하는 개념인데요
+이번 글에서는 MySQL의 transaction isolation에 대해 간단히 알아보겠습니다.
+repeatable-read 의 gap lock, next key lock 은 다음에………..
+READ-UNCOMMITTED 특징  lock 잡지 않음 dirty read , unrepeatable read, phantom read 발생  테스트  session 1   mysql&amp;gt; set session transaction_isolation=&#39;read-uncommitted&#39;; Query OK, 0 rows affected (0.</description>
+    </item>
+    
+    <item>
+      <title>MySQL5.7에서 window function 구현하기</title>
+      <link>/mysql/mysql_window_function/</link>
+      <pubDate>Mon, 04 Oct 2021 20:55:00 +0900</pubDate>
+      
+      <guid>/mysql/mysql_window_function/</guid>
+      <description>MySQL5.7 에서 Window function 구현하기 MySQL 8.0 부터는 rank() over , dense 등 window 함수를 지원하지만
+그 이전버전에서는 window 함수를 지원하지 않기 때문에 @rownum 같은 사용자변수를 활용해서 구현해야 합니다.
+이번 글에서는 Window함수 중에서도 자주 사용하는 rank over(), dense_rank over(), row_number over()를 MySQL 8.0 아래 버전에서 어떻게 우회해서 구현해야하는지 정리해보겠습니다.
+window 함수란 group by 같은 aggregation function (집계함수)는 현재 행과 관련 된 여러 행을 집계하여 그 결과를 단일 행으로 출력하지만
+window function은 개별 행에 계속 접근하여 여러행에 대한 집계 연산을 합니다.</description>
+    </item>
+    
+    <item>
+      <title>Subquery Tuning</title>
+      <link>/mysql/subquery_tuning/</link>
+      <pubDate>Mon, 04 Oct 2021 20:50:50 +0900</pubDate>
+      
+      <guid>/mysql/subquery_tuning/</guid>
+      <description>Subquery Tuning 서브쿼리 동작 방식 filter  서브쿼리의 결과 건수가 몇건이건 상관 없이 전체 쿼리의 결과는 최대 메인쿼리 결과만큼나옴 메인 쿼리 수행 결과 만큼 서브쿼리를 실행함, 쿼리 순서는 메인쿼리 -&amp;gt; 서브쿼리 고정 메인 쿼리 실행 결과 건 수 + 서브쿼리로 input 되는 값 에 따라 경우의 수 나뉠 수 있음  메인 쿼리 실행 결과 건 수 많음 + input 되는 값이 unique 한 경우 메인 쿼리 실행 결과 건 수 적음 + input 되는 값이 unique 한 경우 메인 쿼리 실행 결과 건 수 많음 + input 되는 값이 unique 하지 않고 중복되는 값이 많음 2&amp;gt;3&amp;gt;1 순으로 성능 나올 것 Filter 동작 방식은 메인쿼리의 실행 결과 건수가 많고 (조인 시도 횟수 증가),서브 쿼리에 제공하는 input 값의 종류가 많을 수록 성능이 좋지않음 (캐싱 효율 떨어짐)</description>
+    </item>
+    
+    <item>
+      <title>MySQL INSERT INTO ON DUPLICATE KEY UPDATE로 인한 deadlock 이슈</title>
+      <link>/mysql/insert_on_duplicate_lock/</link>
+      <pubDate>Mon, 04 Oct 2021 20:01:46 +0900</pubDate>
+      
+      <guid>/mysql/insert_on_duplicate_lock/</guid>
+      <description>MySQL INSERT INTO ON DUPLICATE KEY UPDATE 로 인한 LOCK 이슈 MySQL의 편리한 기능 중 INSERT INTO ~ ON DUPLICATE KEY UPDATE 구문이 있습니다.
+unique key, primary key 로 unique 제약조건이 걸려 있는 상황에서 중복된 데이터가 들어오면 DUPLICATE KEY UPDATE 구문으로 update 를 수행하는 구문인데요.
+ORACLE 이나 기타 DB에서는 REPLCAE 에 해당하는 구문입니다.
+참 편리한 기능이지만 DML이 많이 발생하는 상황에서 동일한 ROW 에 UPDATE 를 시도하는 세션이 많이 쌓이는 경우</description>
+    </item>
+    
+    <item>
+      <title>MySQL outer join or조건 튜닝</title>
+      <link>/mysql/outer_join_or_tuning/</link>
+      <pubDate>Mon, 04 Oct 2021 19:08:57 +0900</pubDate>
+      
+      <guid>/mysql/outer_join_or_tuning/</guid>
+      <description>OUTER JOIN OR 조건 튜닝 쿼리 검수를 하는데 처음 접하는 쿼리를 보게 되어 당황스러웠던 경험이 있습니다.
+바로 LEFT OUTER JOIN 의 JOIN 절에 OR 조건이 달려있는 쿼리였는데요.
+항상 JOIN on a.id = b.id 같은 단일조건, 조건이 더 달려 봤자 AND 조건이었는데 OR 조건은 처음 접하는 경험이었는데요
+저는 LEFT OUTER JOIN 절에 OR 조건이 포함되면 인덱스를 타지못해 성능이 좋지 않아 아래와 같이 쿼리를 튜닝했습니다.
+쿼리 확인 select tb1.`ymdt` as col_0_0_, tb1.`amount` as col_1_0_, .</description>
+    </item>
+    
+    <item>
+      <title>MySQL8 skip locked / nowait 활용하기</title>
+      <link>/mysql/mysql8_skip_locked_nowait/</link>
+      <pubDate>Mon, 04 Oct 2021 18:46:41 +0900</pubDate>
+      
+      <guid>/mysql/mysql8_skip_locked_nowait/</guid>
+      <description>MySQL8.0 SKIP LOCKED / NOWAIT 활용하기 MySQL 8.0 버전부터는 읽기 일관성을 위한 read lock 에 대해 두가지 옵션이 추가되었습니다.
+ NOWAIT : 쿼리를 실행 후 읽으려는 row에 lock이 걸려있으면 바로 트랜잭션 실패 처리 (innodb_lock_wait_timeout 만큼 기다리지 않고 바로) SKIP LOCKED : 쿼리를 실행 후 읽으려는 row에 lock 이 걸려있으면 해당 row skip 하고 resultset return  동시성 이슈를 해결하기 위해 select ~ for update , select ~ for shared mode 같은 쿼리를 수행할 때 위 옵션을 줄 수 있는데 언제 사용하면 좋을까요?</description>
+    </item>
+    
+    <item>
+      <title>MySQL IN조건은 &#39;=&#39;과 같을까</title>
+      <link>/mysql/mysql_in_tuning/</link>
+      <pubDate>Mon, 04 Oct 2021 17:53:52 +0900</pubDate>
+      
+      <guid>/mysql/mysql_in_tuning/</guid>
+      <description>MySQL IN조건은 &amp;lsquo;=&amp;lsquo;과 같을까 저같은 쿼리 왕초보들은 where 절의 IN list 조건을 보면
+‘=’ 과 동일하게 생각하는 경우가 드문드문 있을 것 같습니다. 일단 전 그랬습니다….
+쿼리 검수를 하다가 IN 조건이 무조건 ‘=&amp;lsquo;과 동일한 것은 아니다 라는 것을 알게 되어 기록남겨봅니다.
+SELECT t2.column1 , t3.column1 FROM tb_test1 t1 INNER JOIN tb_test2 t2 ON t2.column1 = t1.column1 INNER JOIN tb_test3 ON t3.column1 = t1.column1 WHERE t1.coulmn1 = #{idNo} AND t1.column2 = &#39;N&#39; AND t1.</description>
+    </item>
+    
+  </channel>
+</rss>

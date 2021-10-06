@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>PMM on kimDuBiA</title>
+    <link>/tags/pmm/</link>
+    <description>Recent content in PMM on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Mon, 04 Oct 2021 17:34:10 +0900</lastBuildDate><atom:link href="/tags/pmm/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL PMM alertmanager로 알람받기</title>
+      <link>/mysql/alertmanager/</link>
+      <pubDate>Mon, 04 Oct 2021 17:34:10 +0900</pubDate>
+      
+      <guid>/mysql/alertmanager/</guid>
+      <description>PMM alertmanager 로 알람받기 지난 글에서 MySQL 에서 생기는 일들을 모니터링 하는 PMM 구축 방법에 대해 소개해드렸습니다.
+https://kimdubi.github.io/mysql/mysql_pmm/
+그러나 모니터링 서버가 있어도 바로 이슈를 전달 받지 못하면 아무 소용이 없겠죠?
+그래서 이번 글에서는 alertmanager 를 통해서 PMM에서 감지 된 이슈들을 sms으로 받는 방법에 대해 소개해드리겠습니다.
+alertmanager 란? prometheus 를 통해 수집된 metric에서 사전에 설정해둔 alert rule 에 해당하는
+이벤트가 발생하면 alertmanager 에게 알림이 가고
+alertmanager는 이 알람을 email,slack, web-hook 등 다양한 방법으로 전달하는 역할을 합니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL PMM 수동 설치</title>
+      <link>/mysql/mysql_pmm/</link>
+      <pubDate>Mon, 04 Oct 2021 15:27:46 +0900</pubDate>
+      
+      <guid>/mysql/mysql_pmm/</guid>
+      <description>MySQL PMM 수동 설치 이전에 docker 를 사용하여 PMM 구성하는 법을 다룬 적이 있는데 이번 글에서는 docker 가 아닌 수동으로 구성하는 방법에 대해 정리해보겠습니다.
+https://sarc.io/index.php/mariadb/1268-mariadb-monitoring-pmm
+https://sarc.io/index.php/mariadb/1269-mariadb-monitoring-pmm-2
+설치파일 wget https://github.com/prometheus/prometheus/releases/download/v1.2.3/prometheus-1.2.3.linux-amd64.tar.gz wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.9.0/mysqld_exporter-0.9.0.linux-amd64.tar.gz wget https://github.com/prometheus/node_exporter/releases/download/v0.13.0-rc.1/node_exporter-0.13.0-rc.1.linux-amd64.tar.gz wget https://dl.grafana.com/oss/release/grafana-6.4.2.linux-amd64.tar.gz  prometheus 설정 (모니터링 서버)  prometheus.yaml 설정  [root@b871f6768909 prometheus-1.2.3.linux-amd64]# cat prometheus.yml global: scrape_interval: 1m scrape_timeout : 1s scrape_configs: - job_name: linux static_configs: - targets: [&#39;localhost:9100&#39;] #내서버 ip:9100 node_exporter labels: instance : mysql_OS - job_name: mysql static_configs: - targets: [&#39;localhost:9104&#39;] #내서버 ip:9104 mysql_exporter labels: instance : mysql_DB  prometheus 기동  [root@b871f6768909 prometheus-1.</description>
+    </item>
+    
+  </channel>
+</rss>

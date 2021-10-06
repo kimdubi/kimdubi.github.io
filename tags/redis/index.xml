@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>redis on kimDuBiA</title>
+    <link>/tags/redis/</link>
+    <description>Recent content in redis on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 06 Oct 2021 21:25:52 +0900</lastBuildDate><atom:link href="/tags/redis/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Docker-compose로 Redis Cluster 자동 구성하기</title>
+      <link>/cloud/docker_redis_cluster/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:52 +0900</pubDate>
+      
+      <guid>/cloud/docker_redis_cluster/</guid>
+      <description>Docker-compose로 Redis Cluster 자동 구성하기 이번 글에서는 docker-compose 로 redis-cluster를 구성해보겠습니다. 여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에
+이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
+구성 * docker-compose.yml * redis_cluster_1a * Dockerfile * docker-entrypoint.sh * redis_cluster_2a * redis_cluster_3a * redis_cluster_1b * redis_cluster_2b * redis_cluster_3b  =&amp;gt; Master 3ea , Slave 3ea 생성
+docker-compose.yml version: &#39;3&#39; services: redis_cluster_1a: image: redis_image:cluster build: context: .</description>
+    </item>
+    
+    <item>
+      <title>Docker-compose로 Redis Sentinel 자동 구성하기</title>
+      <link>/cloud/docker_redis_sentinel/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:45 +0900</pubDate>
+      
+      <guid>/cloud/docker_redis_sentinel/</guid>
+      <description>Docker-compose로 Redis Sentinel 자동 구성하기 이번 글에서는 redis sentinel을 docker-compose 를 통해 구성하는 방법을 공유하겠습니다.
+여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에
+이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
+구성 * docker-compose.yml * redis_master * Dockerfile * docker-entrypoint.sh * redis_slave1 * Dockerfile * docker-entrypoint.sh * redis_slave2 * Dockerfile * docker-entrypoint.sh  docker-compose.yml version: &#39;3&#39; services: redis1: image: redis_image:master build: context: .</description>
+    </item>
+    
+    <item>
+      <title>Docker-compose로 Redis Replication 자동 구성하기</title>
+      <link>/cloud/docker_redis_repl/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:39 +0900</pubDate>
+      
+      <guid>/cloud/docker_redis_repl/</guid>
+      <description>Docker-compose로 Redis Replication 자동 구성하기 지난 글에서 docker-compose 를 통해 mysql replication 구성하는 방법을 공유했습니다.
+이번 글에서는 redis replication 구성하는 docker-compose.yml을 공유하겠습니다.
+여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에 이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
+본문에서 사용된 docker-compose.yml 이나 dockerfile의 옵션 등은 이전 글 참고 부탁드립니다. (https://kimdubi.github.io/cloud/docker_mysql_repl/ )
+구성 * docker-compose.yml * redis1 * Dockerfile * docker-entrypoint.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes에서 redis cluster를 돌려보자 - alertmanager</title>
+      <link>/cloud/k8s_redis_cluster_alertmanager/</link>
+      <pubDate>Wed, 06 Oct 2021 21:18:45 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_alertmanager/</guid>
+      <description>구성  helm 으로 설치한 prometheus-operator 의 prometheus와 alertmanager를 사용함 신규로 redis용 PrometheusRule object를 생성하고 이를 prometheus와 연동함  PrometheusRule는 새로 생성되거나 delete 되는 Pod도 자동으로 인식할 수 있게 helm chart 와 Pod에 연동되어야함   slack api를 webhook으로 사용  prometheusrules 생성  vi redis-rule.yaml  apiVersion: monitoring.coreos.com/v1 kind: PrometheusRule metadata: annotations: meta.helm.sh/release-name: kimdubi-test meta.helm.sh/release-namespace: default labels: app: prometheus-operator app.kubernetes.io/instance: kimdubi-test app.kubernetes.io/managed-by: Helm app.kubernetes.io/name: redis-cluster helm.sh/chart: redis-cluster-4.3.1 release: monitoring name: kimdubi-test-redis-cluster namespace: default spec: groups: - name: redis-cluster rules: - alert: RedisDown annotations: description: Redis(TM) instance {{$labels.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes에서 redis cluster를 돌려보자 - monitoring(grafana,prometheus)</title>
+      <link>/cloud/k8s_redis_cluster_monitoring/</link>
+      <pubDate>Wed, 06 Oct 2021 21:15:29 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_monitoring/</guid>
+      <description>Prometheus Operator? 개념  Operator : Service : Kubernetes에서 돌고있는 application, 본문에서는 Redis cluster 를 의미함 ServiceMonitor : 위의 service, 즉 redis cluster를 scraping 하는 동작을 의미함  kubernetes 위에서 Pod는 유동적으로 변하지만 ServiceMonitor는 Pod를 label로 구분하여 scraping 하고,
+Operator는 이 ServiceMonitor만 바라보면 되기 때문에 운영자 입장에서는 application 배포, 운영관리가 자동화되는 효과가 있음
+모니터링을 구축해보자 기존 redis-cluster helm chart 수정  helm values.yaml 수정  ## Prometheus Exporter / Metrics metrics: enabled: true # Enable this if you&#39;re using https://github.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자- node추가(수동)</title>
+      <link>/cloud/k8s_redis_cluster_scaleout/</link>
+      <pubDate>Wed, 06 Oct 2021 21:11:40 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_scaleout/</guid>
+      <description>Redis Node 추가하는 경우  Redis node의 memory 사용률이 높아 분산이 필요할 때 node를 추가하여 hashslot을 분산한다. kubernetes 1.20v 부터는 Memory 사용률을 metric으로 추가할 수 있어 Memory 사용률에 따른 autoscale이 가능하나 그 아래 버전에서는 아래와 같이 수동으로 추가해야함 NHN cloud 제공 kubernetes는 1.17v 를 제공함  Node 추가 과정 처음 상태 $ kubectl get all NAME READY STATUS RESTARTS AGE pod/kimdubi-test-redis-cluster-0 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-1 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-2 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-3 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-4 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-5 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-cluster-create-6wp5g 0/1 Completed 0 31m NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE service/kimdubi-test-redis-cluster ClusterIP 10.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Job/batch</title>
+      <link>/cloud/k8s_redis_cluster_job/</link>
+      <pubDate>Wed, 06 Oct 2021 20:55:32 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_job/</guid>
+      <description>Job? Job개념  일회성으로 실행되고 나서 종료되어야 하는 성격의 작업을 실행할 때 사용되는 controller helm chart 에서는 주로 hook 의 개념으로 helm의 life cycle 중 (helm install, helm upgrade 등) 특정 단계에서 사전에 정의해둔 Job이 수행되도록 trigger 처럼 동작하게 많이 사용함 linux의 crontab 처럼 정해진 스케쥴 마다 Job이 수행되게 하는 cronjob 도 있음  Job 사용현황 $ kubectl get job NAME COMPLETIONS DURATION AGE job.batch/kimdubi-test-redis-cluster-cluster-create 1/1 37s 4m27s job.batch/kimdubi-test-redis-cluster-cluster-update 1/1 24s 3m50s   kimdubi-test-redis-cluster-cluster-create Job은 helm install로 redis cluster를 구성할 때 위 Job이 install 후에 수행되어 redis cluster를 구성하는 용도로 사용되고 있음 kimdubi-test-redis-cluster-cluster-update Job은 helm upgrade 커맨드로 redis cluster의 node를 추가할 때 동작하는 Job  Job template을 살펴보자 job.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Configmap</title>
+      <link>/cloud/k8s_redis_cluster_configmap/</link>
+      <pubDate>Wed, 06 Oct 2021 18:05:57 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_configmap/</guid>
+      <description>configmap? configmap 개념  Pod 내 Container로 띄운 application ( Redis, apache …) 에서 사용하는 설정 값을 configmap 이라는 독립적인 오브젝트로 분리함 DEV용, TEST용, PROD용으로 configmap을 따로 관리하여 하나의 동일한 Container로 여러 환경에서 사용할 수 있음 수정 배포가 필요한 경우에도 Container 일일이 접속해서 수정하는 게 아니라 사용하는 Configmap을 수정하여 사용할 수 있음  configmap 사용현황 $ kubectl get configmap NAME DATA AGE kimdubi-test-redis-cluster-default 1 6d19h kimdubi-test-redis-cluster-scripts 2 6d19h   kimdubi-test-redis-cluster-default configmap은 redis.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Service</title>
+      <link>/cloud/k8s_redis_cluster_service/</link>
+      <pubDate>Wed, 06 Oct 2021 17:58:13 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_service/</guid>
+      <description>Service? Service 개념  Pod는 deployment, replicaset, statefulset 같은 controller에 의해 관리되기 때문에 새로 생겨나거나 없어지기도 하고 한 Node에만 떠있는 게 아니라 여러 Node를 옮겨다닐 수 있음 Pod는 이렇듯 동적으로 변하여 고정된 endpoint로의 호출이 어려운데 (Pod의 IP,hostname이 변하니까 ) 이러한 이슈를 해결하기 위한 오브젝트가 Service임 Client는 클러스터 안에서 Pod IP가 바뀌던 없어지건 새로 생기건 신경쓸 필요 없이 Service만 바라보면 고정된 endpoint로 접근이 가능함 Service는 크게 아래와 같이 네가지 Type으로 나뉨  ClusterIp : kubernets cluster 내부에서 사용하는 service.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Statefulset</title>
+      <link>/cloud/k8s_redis_cluster_statefulset/</link>
+      <pubDate>Wed, 06 Oct 2021 17:55:37 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_statefulset/</guid>
+      <description>StatefulSet ? StatefulSet 개념  StatefulSet은 Pod을 scale up&amp;amp;down 하여 새로 배포 할 때 각 Pod의 기존 Spec(hostname,Ip등) 을 유지하여 생성함 (stateful) stateless 한 deployment, replicaset 과는 다른점임 Pod 별로 각각의 PVC를 사용하거나 Pod 생성 순서가 중요할 때 (Master / Slave 구성이 필요할떄) statefulset 을 사용하여 Ordering을 보장하고 구분지을 수 있음 위 구성을 replicaSet , delpoyment를 사용했다면 pod-0 , pod-1 이 같은 PVC,PV를 사용하여 Pod 고유의 state가 사라지고 , 재기동 될 때마다 IP,hostname이 달라져 headless Service를 사용할 수 없음  StatefulSet 사용 현황 $ kubectl get statefulset NAME READY AGE kimdubi-test-redis-cluster 6/6 2d4h   statefulset 하나로 Pod 6대를 관리함, Pod이 down되어도 statefulset에 의해 자동으로 restart 됨 Pod,pvc 생성 구문은 statefulset 에서 정의됨  StatefulSet template을 살펴보자 $ kubectl get statefulset kimdubi-test-redis-cluster -o yaml apiVersion: apps/v1 kind: StatefulSet metadata: annotations: meta.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Volume</title>
+      <link>/cloud/k8s_redis_cluster_volume/</link>
+      <pubDate>Wed, 06 Oct 2021 17:53:38 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_volume/</guid>
+      <description>Volume ? volume 개념  컨테이너 내 파일은 stateless 하기 때문에 데이터 보존이 필요한 경우 Volume을 사용해야함 kubernetes에서 Volume은 Pod 에 종속되어 같은 Pod에 있는 container들은 volume을 공유함 Volume type에는 아래와 같은 여러 방식이 있음  emptyDir : Pod 와 함께 생성되고 Pod가 종료될 때 같이 삭제되는 임시볼륨 hostPath : Pod가 속한 node의 로컬 디스크의 디렉토리를 Pod에 마운트 해서 사용함, 동일 node에서 Pod이 재생성 되는 경우엔 데이터 보존이 가능하나 node가 달라지면 데이터 보존이 불가능함 nfs : 기존 NFS (네트워크파일시스템) 처럼 여러 Pod에서 동시에 마운트 할 수 있는 볼륨    PV / PV 개념  PV (Persistent Volume) : Pod에 종속적인 volume과는 달리 PV는 그 자체로 kubernetes cluster의 resource로 관리됨.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Pod</title>
+      <link>/cloud/k8s_redis_cluster_pod/</link>
+      <pubDate>Wed, 06 Oct 2021 13:13:46 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_pod/</guid>
+      <description>Pod ? Pod 개념  Pod은 kubernetes 클러스터 내 최소 배포단위 하나의 Pod는 하나의 node에 속하고 node 단위로 옮겨다닐 수 있음 Pod 에는 여러개의 container가 포함될 수 있고 Pod 내 container들은 storage와 network를 공유하며 내부통신이 가능함  Pod 사용 현황 $ kubectl get pod NAME READY STATUS RESTARTS AGE kimdubi-test-redis-cluster-0 1/1 Running 0 23h kimdubi-test-redis-cluster-1 1/1 Running 0 2d1h kimdubi-test-redis-cluster-2 1/1 Running 1 23h kimdubi-test-redis-cluster-3 1/1 Running 1 2d1h kimdubi-test-redis-cluster-4 1/1 Running 0 23h kimdubi-test-redis-cluster-5 1/1 Running 0 23h   본문에서 사용하는 helm chart 에서는 Redis Pod을 6대 생성함 3대는 Master , 3대는 Slave 로 동작 중 Pod은 statefulset 에 의해 생성되고 관리되며 Pod의 container image나 개수, 설정등을 변경하고 싶다면 helm chart 내 statefulset과 values.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Node</title>
+      <link>/cloud/k8s_redis_cluster_node/</link>
+      <pubDate>Wed, 06 Oct 2021 13:03:06 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_node/</guid>
+      <description>node? node 개념  Kubernetes 컴포넌트는 아래 세가지로 구분됨  master node worker node addon component (필수는아님)    Master node Master node는 kubernetes cluster 를 관리하는 node로 크게 아래의 컴포넌트로 이루어짐
+ kube-apiserver : kubernetes 로 오는 모든 요청을 apiserver가 받아서 이 요청이 유효한지 검증함. kubernetes 내 모든 컴포넌트는 kube-apiserver를 통해 필요한 정보를 주고받음 kube-scheduler : Pod 생성 요청이 왔을 때 affinity, anti-affinity, resource requests 등의 Pod 생성조건을 확인하여 조건에 부합하는 node를 찾아 Pod를 생성하는 역할을 수행함 kube-controller-manager : node , network routing, loadbalancer, volume 을 관리하는 역할 etcd : kubernetes 의 status를 key value 로 저장하는 kubernetes의 database 역할  Worker node Pod 실행 및 관리 등 kubernetes내 오브젝트들의 실행 환경을 제공하고 관리함</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - 구성요소</title>
+      <link>/cloud/k8s_redis_cluster_components/</link>
+      <pubDate>Wed, 06 Oct 2021 12:54:44 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_components/</guid>
+      <description>구성요소 node $ kubectl get node NAME STATUS ROLES AGE VERSION kimdubi-test-default-w-46niimovcith-node-0 Ready &amp;lt;none&amp;gt; 4h56m v1.17.6 kimdubi-test-default-w-46niimovcith-node-1 Ready &amp;lt;none&amp;gt; 4h56m v1.17.6 kimdubi-test-default-w-46niimovcith-node-2 Ready &amp;lt;none&amp;gt; 4h56m v1.17.6   worker node 3개  Pod $ kubectl get pod NAME READY STATUS RESTARTS AGE kimdubi-test-redis-cluster-0 1/1 Running 0 3h10m kimdubi-test-redis-cluster-1 1/1 Running 0 3h10m kimdubi-test-redis-cluster-2 1/1 Running 2 3h10m kimdubi-test-redis-cluster-3 1/1 Running 1 3h10m kimdubi-test-redis-cluster-4 1/1 Running 1 3h10m kimdubi-test-redis-cluster-5 1/1 Running 1 3h10m kimdubi-test-redis-cluster-cluster-create-gjwsk 0/1 Completed 0 3h10m   redis cluster 용도의 Pod 6개 Job / batch 용으로 1회성으로 생성된 Pod 1개  Service $ kubectl get service NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE kimdubi-test-redis-cluster ClusterIP 10.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - install</title>
+      <link>/cloud/k8s_redis_cluster_install/</link>
+      <pubDate>Wed, 06 Oct 2021 12:00:20 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_install/</guid>
+      <description>목적  kubernentes 에서 redis cluster를 쉽게 배포해보자 Horizontal Pod Autoscaler (HPA) 기능을 이용하여 redis cluster를 autoscaling 해보자  왜 쿠버네티스 ?  resource limit &amp;amp; request 설정으로 Redis Container를 kubernetes Node에 효율적인 분산 배치 가능 장애 시엔 자동화된 프로세스에 의해 복구됨 (auto healing) Memory 부족 등, 필요한 경우 Scale up 뿐만 아니라 Scale out 까지 가능 모든 작업을 ‘선언적&amp;rsquo;으로 자동화할 수 있음  Prerequisites  kubernetes 1.20 이상  1.</description>
+    </item>
+    
+    <item>
+      <title>Redis memory fragmentation 해소하기(activedefrag)</title>
+      <link>/redis/redis_activedefrag/</link>
+      <pubDate>Mon, 04 Oct 2021 23:38:09 +0900</pubDate>
+      
+      <guid>/redis/redis_activedefrag/</guid>
+      <description>이슈상황  Redis를 maxmemory 까지 쓰는 상황 지속적으로 set 커맨드가 유입되고 이로 인해 key eviction이 발생하면서 memory 단편화가 심해짐 이는 곧 서버 메모리 사용량 상승을 초래하고 심하면 OOME 까지도 유발할 수 있음 Replica도 Master와 같은 데이터를 처리하기 때문에 memory fragmentation 현상도 동일하게 겪게되어 Replica도 동일하게 OOME 발생위험이 있음 아래 모니터링 지표는 NHN cloud의 EasyCache에서 제공하는 기능임  redis memory(rss) 서버 메모리 memory fragmentation key eviction set / get call activedefrag?</description>
+    </item>
+    
+    <item>
+      <title>Redis bind에 대한 오해</title>
+      <link>/redis/redis_bind/</link>
+      <pubDate>Mon, 04 Oct 2021 23:32:29 +0900</pubDate>
+      
+      <guid>/redis/redis_bind/</guid>
+      <description>그동안 어째서인지 모르겠지만
+redis.conf의 bind 파라미터가 Redis 서버로 접속 가능한 client ip 를 제어하는 ACL 기능이라고 생각해왔는데
+그게 잘못된 것이라는 것을 이제야 알게 되어 내용을 정리합니다.
+bind 파라미터란? Redis는 TCP/IP 통신을 사용하기 때문에 요청을 받아줄 IP:Port를 설정하고 그 IP:Port로 들어오는 클라이언트의 요청을 받아들이게 되는데요
+bind 파라미터는 Redis가 클라이언트의 요청을 받아주기 위해 열어놓은 IP를 설정하는 파라미터입니다.
+즉! Redis 서버에서 ifconfig로 확인했을 때 나오는 IP들, 아래에서는 127.0.0.1 , 172.20.0.10, 0.0.0.0 이 값들만 가질 수 있게 됩니다.</description>
+    </item>
+    
+    <item>
+      <title>Sentinel Failover 이벤트 발생 시 메일 받기</title>
+      <link>/redis/sentinel_notify/</link>
+      <pubDate>Mon, 04 Oct 2021 23:31:00 +0900</pubDate>
+      
+      <guid>/redis/sentinel_notify/</guid>
+      <description>Redis 의 Auto Failover HA 솔루션으로는 Sentinel 이 있습니다.
+Master가 down 됐는지 Sentinel 간 sdown,odown 같은 투표과정을 통해 과반수 이상의 Sentinel이 Master가 Down됐다고 판단하면 다른 Slave 를 Master로 승격시키게 됩니다.
+Failover 가 발생했음을 알기 위해서 alertmanager 같은 오픈 소스를 사용하거나 별도로 스크립트를 설정해놔도 되겠지만
+기본적인 sentinel의 기능으로 Failover 가 발생했음을 noti 할 수 있는 ‘sentinel notification-script’ 라는 기능이 있습니다.
+사실 Failover만을 알람 받기 위한 기능은 아니고 Sentinel 의 여러 Warning 이벤트들을 noti 해주는 기능인데 주로 Failover를 위해 사용합니다.</description>
+    </item>
+    
+    <item>
+      <title>Redis memory 분석 툴 RMA</title>
+      <link>/redis/redis_rma/</link>
+      <pubDate>Mon, 04 Oct 2021 23:24:02 +0900</pubDate>
+      
+      <guid>/redis/redis_rma/</guid>
+      <description>Redis Memory 분석 툴은
+대상 Redis 서버에 각 data type 별 key 개수는 어떻게 되는지, 메모리 사용량은 어떻게 되는지 등을 파악하기 위해 사용되며
+분석 방법에 따라 크게 두가지로 나뉘고 대표적인 제품은 아래와 같습니다.
+ Live data Scan : RMA (Redis Memory Analyzer), Redis sampler rdb file : RDB tools  이 중에서 온라인 중에 scan 을 통해 안전하게 분석이 가능하고 detail한 정보를 보여주는 RMA 라는 tool 에 대해 알아보겠습니다.</description>
+    </item>
+    
+    <item>
+      <title>Redis data type 변경으로 Memory 아껴 써보자</title>
+      <link>/redis/redis_str_to_hash/</link>
+      <pubDate>Mon, 04 Oct 2021 23:20:16 +0900</pubDate>
+      
+      <guid>/redis/redis_str_to_hash/</guid>
+      <description>Redis 에 값을 저장할 때 key 하나 하나에 들어가는 overhead는 50 bytes 정도 (Redis 3.2 기준) 로 생각보다 큽니다.
+만약 관리의 편리성 때문에 String type 을 많이 쓰는 서비스가 있다면 다른 자료구조를 사용할 때 보다 많은 Key를 사용하게 될 것인데
+이때 String 을 Hash 로 바꾸면 데이터는 온전히 보전하면서 Key 자체 개수를 줄여 메모리를 좀 더 효율적으로 쓸 수 있지 않을까? 하는 생각에 테스트를 해보게 되었습니다.
+data Type 별 Key Memory usage 아래는 Redis 5.</description>
+    </item>
+    
+    <item>
+      <title>Redis client_output_buffer_limit</title>
+      <link>/redis/redis_client_output_buffer_limit/</link>
+      <pubDate>Mon, 04 Oct 2021 23:14:45 +0900</pubDate>
+      
+      <guid>/redis/redis_client_output_buffer_limit/</guid>
+      <description>Master - Slave 구성으로 운영중인 서비스가 있습니다.
+maxmemory, key ttl, hash key 하나에 너무 많은 value 넣지 않기 등
+운영 표준을 잘 지켜가며 안정적으로 운영중인 서비스인데 어느 순간부터인지 이런 로그들이 떨어지면서 Master - Slave 연결이 자꾸 끊어지는 현상이 발생했습니다.
+replconf scheduled to be closed ASAP for overcoming of output buffer limits. Connection with replica 10.111.111.111:6379 lost. psync scheduled to be closed ASAP for overcoming of output buffer limits.  output buffer limits 라는 부분이 눈에 띄는데 redis에는 client-output-buffer-limit 라는 설정이 있습니다.</description>
+    </item>
+    
+    <item>
+      <title>Redis unlink와 del 차이점</title>
+      <link>/redis/redis_unlink/</link>
+      <pubDate>Mon, 04 Oct 2021 22:58:52 +0900</pubDate>
+      
+      <guid>/redis/redis_unlink/</guid>
+      <description>Redis 4.0부터 unlink라는 Key 삭제 커맨드가 추가되었습니다.
+기존에도 del 이라는 Key 삭제 커맨드가 있는데 차이점은 무엇일까요?
+바로 unlink는 async 방식으로 background에서 별도의 Thread에 의해 처리된다는 점입니다.
+(del 은 sync 방식으로 main thread에서 처리됨)
+따라서 del 로 처리할 때 보다 훨씬 더 빨리 서비스에 영향 없이 처리할 수 있는데요
+이번 글에서는 unlink 커맨드에 대해 알아보겠습니다.
+redis의 unlink 관련 설정 * lazyfree-lazy-eviction yes =&amp;gt;maxmemory 까지 사용중일 때 maxmemory-policy 에 따라 key를 삭제하는 경우 del 대신 unlink 사용 * lazyfree-lazy-expire yes =&amp;gt; EXPIRE 커맨드로 TTL이 설정된 key를 삭제할 때 del 대신 unlink 사용 * lazyfree-lazy-server-del yes =&amp;gt; 기존에 있는 key를 set이나 rename 으로 엎어칠때 기존 값을 del 대신 unlink로 삭제함 * replica-lazy-flush yes =&amp;gt; replicaof 설정으로 master의 데이터를 처음 복제해올때 기존에 있던 값들을 del 대신 unlink로 삭제함  redis thread 확인 [root@e7900ebd4833 /]# ps -eLf | grep redis root 19 1 19 0 4 04:59 ?</description>
+    </item>
+    
+    <item>
+      <title>Redis 응답은 느리지만 Slowlog 안남을 때</title>
+      <link>/redis/redis_slowlog/</link>
+      <pubDate>Mon, 04 Oct 2021 22:53:25 +0900</pubDate>
+      
+      <guid>/redis/redis_slowlog/</guid>
+      <description>Redis 운영 중 Client 쪽에서 응답을 늦게 받았다고 확인 요청이 와서
+Redis의 slowlog 를 확인해봤더니 아무 slowlog가 없는 케이스가 발생했습니다.
+slowlog 확인 127.0.0.1:6001&amp;gt; config get slowlog-log-slower-than 1) &amp;quot;slowlog-log-slower-than&amp;quot; 2) &amp;quot;10000&amp;quot; ### 10000 microsecond 127.0.0.1:6001&amp;gt; slowlog get 10 (empty list or set)  slowlog는 언제 찍힐까? client가 느끼는 slowlog, 즉 latency 와 redis의 slowlog 기준은 조금 다릅니다.
+=&amp;gt; client latency : client가 redis 에 request 를 보내고 결과를 받을 때 까지의 시간</description>
+    </item>
+    
+    <item>
+      <title>Redis Data Structure</title>
+      <link>/redis/redis_datastructure/</link>
+      <pubDate>Mon, 04 Oct 2021 22:34:05 +0900</pubDate>
+      
+      <guid>/redis/redis_datastructure/</guid>
+      <description>지난 글에서 Redis와 Memcached 의 가장 큰 차이점으로 데이터를 저장할 수 있다는 점을 들며
+RDB, AOF에 대한 내용을 다뤘었는데요
+이번 글에서는 또 다른 차이점인 Redis의 다양한 자료구조에 대해 다뤄보겠습니다.
+Redis Data Structures 초기에는 String, Bitmap, Hash, List, Set, Sorted Set 정도의 데이터 타입만 제공하다가
+버전이 올라가면서 현재는 Geospatial Index, Hyperloglog, Stream 까지 지원하고 있습니다.
+이렇게 다양한 자료구조를 key-value 형태로 지원하는 점 뿐만 아니라
+각 자료구조를 효율적으로 사용할 수 있도록 도와주는 커맨드를 지원하는 덕분에 개발의 편의성과 효율성을 높일 수 있는 것이 큰 장점입니다.</description>
+    </item>
+    
+    <item>
+      <title>Redis AOF와 RDB에 대해</title>
+      <link>/redis/redis_persistence/</link>
+      <pubDate>Mon, 04 Oct 2021 22:27:34 +0900</pubDate>
+      
+      <guid>/redis/redis_persistence/</guid>
+      <description>Redis 와 Memcached 를 가장 크게 구분짓는 특징은 무엇일까요?
+간단하게는 아래와 같은 특징들이 있는데
+ Key-Value 만 지원하는 Memcached 에 비해 Key-value , list , hash , set , sorted set 다양한 자료구조를 지원 Redis의 데이터를 디스크로 저장하는 Persistent 기능  이번 글에서는 그 중에서도 data 영속성에 대해 다뤄보겠습니다.
+RDB Redis 인스턴스의 현재 메모리에 대한 dump (스냅샷) 를 생성하는 기능
+RDB 설정 save &amp;quot;&amp;quot; #save 900 1 #save 300 10 #save 60 10000 rdbchecksum yes stop-writes-on-bgsave-error no rdbcompression yes dbfilename redis_6001.</description>
+    </item>
+    
+  </channel>
+</rss>

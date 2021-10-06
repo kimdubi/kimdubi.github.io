@@ -1,0 +1,1352 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>kimDuBiA</title>
+    <link>/</link>
+    <description>Recent content on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 06 Oct 2021 21:44:00 +0900</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Private Repository 서버 구축하기</title>
+      <link>/etc/private_repository/</link>
+      <pubDate>Wed, 06 Oct 2021 21:44:00 +0900</pubDate>
+      
+      <guid>/etc/private_repository/</guid>
+      <description>DB 서버들은 보통 인터넷망과 연결되지 않은 경우가 보통입니다.
+클라우드에서도 DB서버들은 private subnet에 위치하게 하여 인터넷이 안되도록 하는데요.
+이런 경우 외부에서 뭔가 필요한 rpm 등 s/w 를 설치할 때 여러 경로를 통해야하는 불편이 있습니다.
+yum 설치를 하는데 필요한 rpm들이 서로 물리고 물리는 경우 머리가 어질해지는데요
+이런 경우를 위해 보통 private repository 서버를 두고 이 repository 서버에 업무에 필요한 rpm 들을 설치해놓습니다
+그리고 DB서버 등 운영서버가 이 private repository 서버를 바라보게 하여 여기에서 필요한 파일들을 가져오게 하면 DB서버가 인터넷이 안되어도 상관없게 됩니다</description>
+    </item>
+    
+    <item>
+      <title>Ansible ROLE 사용하여 MySQL 설치</title>
+      <link>/etc/ansible_mysql_install/</link>
+      <pubDate>Wed, 06 Oct 2021 21:41:20 +0900</pubDate>
+      
+      <guid>/etc/ansible_mysql_install/</guid>
+      <description>ansible은 코드 재사용성, 클린 코드를 위해 “ROLE” 이라는 표준화 된 구성 기능을 제공합니다.
+사용하기 어렵지만 그만큼 간결하게 원하는 작업들을 정의할 수 있는데요
+이 ROLE을 사용하여 MySQL을 설치하는 ansible task를 정의해보겠습니다.
+ansible role 생성 [root@8429d3d8f01b roles]# ansible-galaxy init mysql - Role mysql was created successfully [root@8429d3d8f01b roles]# tree mysql mysql |-- README.md |-- defaults | `-- main.yml |-- files |-- handlers | `-- main.yml |-- meta | `-- main.yml |-- tasks | `-- main.</description>
+    </item>
+    
+    <item>
+      <title>Ansible로 MySQL 관리하기</title>
+      <link>/etc/ansible_mysql_query/</link>
+      <pubDate>Wed, 06 Oct 2021 21:40:19 +0900</pubDate>
+      
+      <guid>/etc/ansible_mysql_query/</guid>
+      <description>ansible 설치 [root@test_ansible]# git clone https://github.com/ansible/ansible.git [root@test_ansible]# make [root@test_ansible]# make install   make error 발생 시  Traceback (most recent call last): File &amp;quot;packaging/release/versionhelper/version_helper.py&amp;quot;, line 9, in &amp;lt;module&amp;gt; from packaging.version import Version, VERSION_PATTERN ImportError: No module named packaging.version Makefile:40: *** &amp;quot;version_helper failed&amp;quot;. Stop. [root@test_ansible]# pip install --upgrade setuptools [root@test_ansible]# pip install packaging =&amp;gt; 설치 후 make 재시도
+ ansible configure 파일 설정  $ vi ~/.bash_profile ansible 사용 계정 profile에 아래 환경변수 설정 시 ansible command 수행할 때 아래의 ansible.</description>
+    </item>
+    
+    <item>
+      <title>Docker-compose로 Redis Cluster 자동 구성하기</title>
+      <link>/cloud/docker_redis_cluster/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:52 +0900</pubDate>
+      
+      <guid>/cloud/docker_redis_cluster/</guid>
+      <description>Docker-compose로 Redis Cluster 자동 구성하기 이번 글에서는 docker-compose 로 redis-cluster를 구성해보겠습니다. 여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에
+이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
+구성 * docker-compose.yml * redis_cluster_1a * Dockerfile * docker-entrypoint.sh * redis_cluster_2a * redis_cluster_3a * redis_cluster_1b * redis_cluster_2b * redis_cluster_3b  =&amp;gt; Master 3ea , Slave 3ea 생성
+docker-compose.yml version: &#39;3&#39; services: redis_cluster_1a: image: redis_image:cluster build: context: .</description>
+    </item>
+    
+    <item>
+      <title>Docker-compose로 Redis Sentinel 자동 구성하기</title>
+      <link>/cloud/docker_redis_sentinel/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:45 +0900</pubDate>
+      
+      <guid>/cloud/docker_redis_sentinel/</guid>
+      <description>Docker-compose로 Redis Sentinel 자동 구성하기 이번 글에서는 redis sentinel을 docker-compose 를 통해 구성하는 방법을 공유하겠습니다.
+여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에
+이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
+구성 * docker-compose.yml * redis_master * Dockerfile * docker-entrypoint.sh * redis_slave1 * Dockerfile * docker-entrypoint.sh * redis_slave2 * Dockerfile * docker-entrypoint.sh  docker-compose.yml version: &#39;3&#39; services: redis1: image: redis_image:master build: context: .</description>
+    </item>
+    
+    <item>
+      <title>Docker-compose로 Redis Replication 자동 구성하기</title>
+      <link>/cloud/docker_redis_repl/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:39 +0900</pubDate>
+      
+      <guid>/cloud/docker_redis_repl/</guid>
+      <description>Docker-compose로 Redis Replication 자동 구성하기 지난 글에서 docker-compose 를 통해 mysql replication 구성하는 방법을 공유했습니다.
+이번 글에서는 redis replication 구성하는 docker-compose.yml을 공유하겠습니다.
+여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에 이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
+본문에서 사용된 docker-compose.yml 이나 dockerfile의 옵션 등은 이전 글 참고 부탁드립니다. (https://kimdubi.github.io/cloud/docker_mysql_repl/ )
+구성 * docker-compose.yml * redis1 * Dockerfile * docker-entrypoint.</description>
+    </item>
+    
+    <item>
+      <title>Docker-compose로 Mysql Replication 자동 구성하기</title>
+      <link>/cloud/docker_mysql_repl/</link>
+      <pubDate>Wed, 06 Oct 2021 21:23:09 +0900</pubDate>
+      
+      <guid>/cloud/docker_mysql_repl/</guid>
+      <description>docker-compose 는 docker container를 생성하기 위한 명령어들을 미리 적어놓은 문서라고 할 수 있습니다.
+이번 글에서는 docker-compose 를 활용하여 mysql master - slave replication 구성된 container들을 올리는 방법을 공유하겠습니다.
+본문에서 사용하는 mysql image 는 개인적으로 생성하여 사용하는 이미지이기 때문에 다른 이미지를 사용하는 경우엔 그에 맞게 설정 확인이 필요합니다.
+구성  docker-compose  mysql_master  Dockerfile  docker-entrypoint.sh     mysql_slave  Dockerfile  docker-entrypoint.sh        docker-compose.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes에서 redis cluster를 돌려보자 - alertmanager</title>
+      <link>/cloud/k8s_redis_cluster_alertmanager/</link>
+      <pubDate>Wed, 06 Oct 2021 21:18:45 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_alertmanager/</guid>
+      <description>구성  helm 으로 설치한 prometheus-operator 의 prometheus와 alertmanager를 사용함 신규로 redis용 PrometheusRule object를 생성하고 이를 prometheus와 연동함  PrometheusRule는 새로 생성되거나 delete 되는 Pod도 자동으로 인식할 수 있게 helm chart 와 Pod에 연동되어야함   slack api를 webhook으로 사용  prometheusrules 생성  vi redis-rule.yaml  apiVersion: monitoring.coreos.com/v1 kind: PrometheusRule metadata: annotations: meta.helm.sh/release-name: kimdubi-test meta.helm.sh/release-namespace: default labels: app: prometheus-operator app.kubernetes.io/instance: kimdubi-test app.kubernetes.io/managed-by: Helm app.kubernetes.io/name: redis-cluster helm.sh/chart: redis-cluster-4.3.1 release: monitoring name: kimdubi-test-redis-cluster namespace: default spec: groups: - name: redis-cluster rules: - alert: RedisDown annotations: description: Redis(TM) instance {{$labels.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes에서 redis cluster를 돌려보자 - monitoring(grafana,prometheus)</title>
+      <link>/cloud/k8s_redis_cluster_monitoring/</link>
+      <pubDate>Wed, 06 Oct 2021 21:15:29 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_monitoring/</guid>
+      <description>Prometheus Operator? 개념  Operator : Service : Kubernetes에서 돌고있는 application, 본문에서는 Redis cluster 를 의미함 ServiceMonitor : 위의 service, 즉 redis cluster를 scraping 하는 동작을 의미함  kubernetes 위에서 Pod는 유동적으로 변하지만 ServiceMonitor는 Pod를 label로 구분하여 scraping 하고,
+Operator는 이 ServiceMonitor만 바라보면 되기 때문에 운영자 입장에서는 application 배포, 운영관리가 자동화되는 효과가 있음
+모니터링을 구축해보자 기존 redis-cluster helm chart 수정  helm values.yaml 수정  ## Prometheus Exporter / Metrics metrics: enabled: true # Enable this if you&#39;re using https://github.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자- node추가(수동)</title>
+      <link>/cloud/k8s_redis_cluster_scaleout/</link>
+      <pubDate>Wed, 06 Oct 2021 21:11:40 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_scaleout/</guid>
+      <description>Redis Node 추가하는 경우  Redis node의 memory 사용률이 높아 분산이 필요할 때 node를 추가하여 hashslot을 분산한다. kubernetes 1.20v 부터는 Memory 사용률을 metric으로 추가할 수 있어 Memory 사용률에 따른 autoscale이 가능하나 그 아래 버전에서는 아래와 같이 수동으로 추가해야함 NHN cloud 제공 kubernetes는 1.17v 를 제공함  Node 추가 과정 처음 상태 $ kubectl get all NAME READY STATUS RESTARTS AGE pod/kimdubi-test-redis-cluster-0 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-1 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-2 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-3 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-4 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-5 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-cluster-create-6wp5g 0/1 Completed 0 31m NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE service/kimdubi-test-redis-cluster ClusterIP 10.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Job/batch</title>
+      <link>/cloud/k8s_redis_cluster_job/</link>
+      <pubDate>Wed, 06 Oct 2021 20:55:32 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_job/</guid>
+      <description>Job? Job개념  일회성으로 실행되고 나서 종료되어야 하는 성격의 작업을 실행할 때 사용되는 controller helm chart 에서는 주로 hook 의 개념으로 helm의 life cycle 중 (helm install, helm upgrade 등) 특정 단계에서 사전에 정의해둔 Job이 수행되도록 trigger 처럼 동작하게 많이 사용함 linux의 crontab 처럼 정해진 스케쥴 마다 Job이 수행되게 하는 cronjob 도 있음  Job 사용현황 $ kubectl get job NAME COMPLETIONS DURATION AGE job.batch/kimdubi-test-redis-cluster-cluster-create 1/1 37s 4m27s job.batch/kimdubi-test-redis-cluster-cluster-update 1/1 24s 3m50s   kimdubi-test-redis-cluster-cluster-create Job은 helm install로 redis cluster를 구성할 때 위 Job이 install 후에 수행되어 redis cluster를 구성하는 용도로 사용되고 있음 kimdubi-test-redis-cluster-cluster-update Job은 helm upgrade 커맨드로 redis cluster의 node를 추가할 때 동작하는 Job  Job template을 살펴보자 job.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Configmap</title>
+      <link>/cloud/k8s_redis_cluster_configmap/</link>
+      <pubDate>Wed, 06 Oct 2021 18:05:57 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_configmap/</guid>
+      <description>configmap? configmap 개념  Pod 내 Container로 띄운 application ( Redis, apache …) 에서 사용하는 설정 값을 configmap 이라는 독립적인 오브젝트로 분리함 DEV용, TEST용, PROD용으로 configmap을 따로 관리하여 하나의 동일한 Container로 여러 환경에서 사용할 수 있음 수정 배포가 필요한 경우에도 Container 일일이 접속해서 수정하는 게 아니라 사용하는 Configmap을 수정하여 사용할 수 있음  configmap 사용현황 $ kubectl get configmap NAME DATA AGE kimdubi-test-redis-cluster-default 1 6d19h kimdubi-test-redis-cluster-scripts 2 6d19h   kimdubi-test-redis-cluster-default configmap은 redis.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Service</title>
+      <link>/cloud/k8s_redis_cluster_service/</link>
+      <pubDate>Wed, 06 Oct 2021 17:58:13 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_service/</guid>
+      <description>Service? Service 개념  Pod는 deployment, replicaset, statefulset 같은 controller에 의해 관리되기 때문에 새로 생겨나거나 없어지기도 하고 한 Node에만 떠있는 게 아니라 여러 Node를 옮겨다닐 수 있음 Pod는 이렇듯 동적으로 변하여 고정된 endpoint로의 호출이 어려운데 (Pod의 IP,hostname이 변하니까 ) 이러한 이슈를 해결하기 위한 오브젝트가 Service임 Client는 클러스터 안에서 Pod IP가 바뀌던 없어지건 새로 생기건 신경쓸 필요 없이 Service만 바라보면 고정된 endpoint로 접근이 가능함 Service는 크게 아래와 같이 네가지 Type으로 나뉨  ClusterIp : kubernets cluster 내부에서 사용하는 service.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Statefulset</title>
+      <link>/cloud/k8s_redis_cluster_statefulset/</link>
+      <pubDate>Wed, 06 Oct 2021 17:55:37 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_statefulset/</guid>
+      <description>StatefulSet ? StatefulSet 개념  StatefulSet은 Pod을 scale up&amp;amp;down 하여 새로 배포 할 때 각 Pod의 기존 Spec(hostname,Ip등) 을 유지하여 생성함 (stateful) stateless 한 deployment, replicaset 과는 다른점임 Pod 별로 각각의 PVC를 사용하거나 Pod 생성 순서가 중요할 때 (Master / Slave 구성이 필요할떄) statefulset 을 사용하여 Ordering을 보장하고 구분지을 수 있음 위 구성을 replicaSet , delpoyment를 사용했다면 pod-0 , pod-1 이 같은 PVC,PV를 사용하여 Pod 고유의 state가 사라지고 , 재기동 될 때마다 IP,hostname이 달라져 headless Service를 사용할 수 없음  StatefulSet 사용 현황 $ kubectl get statefulset NAME READY AGE kimdubi-test-redis-cluster 6/6 2d4h   statefulset 하나로 Pod 6대를 관리함, Pod이 down되어도 statefulset에 의해 자동으로 restart 됨 Pod,pvc 생성 구문은 statefulset 에서 정의됨  StatefulSet template을 살펴보자 $ kubectl get statefulset kimdubi-test-redis-cluster -o yaml apiVersion: apps/v1 kind: StatefulSet metadata: annotations: meta.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Volume</title>
+      <link>/cloud/k8s_redis_cluster_volume/</link>
+      <pubDate>Wed, 06 Oct 2021 17:53:38 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_volume/</guid>
+      <description>Volume ? volume 개념  컨테이너 내 파일은 stateless 하기 때문에 데이터 보존이 필요한 경우 Volume을 사용해야함 kubernetes에서 Volume은 Pod 에 종속되어 같은 Pod에 있는 container들은 volume을 공유함 Volume type에는 아래와 같은 여러 방식이 있음  emptyDir : Pod 와 함께 생성되고 Pod가 종료될 때 같이 삭제되는 임시볼륨 hostPath : Pod가 속한 node의 로컬 디스크의 디렉토리를 Pod에 마운트 해서 사용함, 동일 node에서 Pod이 재생성 되는 경우엔 데이터 보존이 가능하나 node가 달라지면 데이터 보존이 불가능함 nfs : 기존 NFS (네트워크파일시스템) 처럼 여러 Pod에서 동시에 마운트 할 수 있는 볼륨    PV / PV 개념  PV (Persistent Volume) : Pod에 종속적인 volume과는 달리 PV는 그 자체로 kubernetes cluster의 resource로 관리됨.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Pod</title>
+      <link>/cloud/k8s_redis_cluster_pod/</link>
+      <pubDate>Wed, 06 Oct 2021 13:13:46 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_pod/</guid>
+      <description>Pod ? Pod 개념  Pod은 kubernetes 클러스터 내 최소 배포단위 하나의 Pod는 하나의 node에 속하고 node 단위로 옮겨다닐 수 있음 Pod 에는 여러개의 container가 포함될 수 있고 Pod 내 container들은 storage와 network를 공유하며 내부통신이 가능함  Pod 사용 현황 $ kubectl get pod NAME READY STATUS RESTARTS AGE kimdubi-test-redis-cluster-0 1/1 Running 0 23h kimdubi-test-redis-cluster-1 1/1 Running 0 2d1h kimdubi-test-redis-cluster-2 1/1 Running 1 23h kimdubi-test-redis-cluster-3 1/1 Running 1 2d1h kimdubi-test-redis-cluster-4 1/1 Running 0 23h kimdubi-test-redis-cluster-5 1/1 Running 0 23h   본문에서 사용하는 helm chart 에서는 Redis Pod을 6대 생성함 3대는 Master , 3대는 Slave 로 동작 중 Pod은 statefulset 에 의해 생성되고 관리되며 Pod의 container image나 개수, 설정등을 변경하고 싶다면 helm chart 내 statefulset과 values.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Node</title>
+      <link>/cloud/k8s_redis_cluster_node/</link>
+      <pubDate>Wed, 06 Oct 2021 13:03:06 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_node/</guid>
+      <description>node? node 개념  Kubernetes 컴포넌트는 아래 세가지로 구분됨  master node worker node addon component (필수는아님)    Master node Master node는 kubernetes cluster 를 관리하는 node로 크게 아래의 컴포넌트로 이루어짐
+ kube-apiserver : kubernetes 로 오는 모든 요청을 apiserver가 받아서 이 요청이 유효한지 검증함. kubernetes 내 모든 컴포넌트는 kube-apiserver를 통해 필요한 정보를 주고받음 kube-scheduler : Pod 생성 요청이 왔을 때 affinity, anti-affinity, resource requests 등의 Pod 생성조건을 확인하여 조건에 부합하는 node를 찾아 Pod를 생성하는 역할을 수행함 kube-controller-manager : node , network routing, loadbalancer, volume 을 관리하는 역할 etcd : kubernetes 의 status를 key value 로 저장하는 kubernetes의 database 역할  Worker node Pod 실행 및 관리 등 kubernetes내 오브젝트들의 실행 환경을 제공하고 관리함</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - 구성요소</title>
+      <link>/cloud/k8s_redis_cluster_components/</link>
+      <pubDate>Wed, 06 Oct 2021 12:54:44 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_components/</guid>
+      <description>구성요소 node $ kubectl get node NAME STATUS ROLES AGE VERSION kimdubi-test-default-w-46niimovcith-node-0 Ready &amp;lt;none&amp;gt; 4h56m v1.17.6 kimdubi-test-default-w-46niimovcith-node-1 Ready &amp;lt;none&amp;gt; 4h56m v1.17.6 kimdubi-test-default-w-46niimovcith-node-2 Ready &amp;lt;none&amp;gt; 4h56m v1.17.6   worker node 3개  Pod $ kubectl get pod NAME READY STATUS RESTARTS AGE kimdubi-test-redis-cluster-0 1/1 Running 0 3h10m kimdubi-test-redis-cluster-1 1/1 Running 0 3h10m kimdubi-test-redis-cluster-2 1/1 Running 2 3h10m kimdubi-test-redis-cluster-3 1/1 Running 1 3h10m kimdubi-test-redis-cluster-4 1/1 Running 1 3h10m kimdubi-test-redis-cluster-5 1/1 Running 1 3h10m kimdubi-test-redis-cluster-cluster-create-gjwsk 0/1 Completed 0 3h10m   redis cluster 용도의 Pod 6개 Job / batch 용으로 1회성으로 생성된 Pod 1개  Service $ kubectl get service NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE kimdubi-test-redis-cluster ClusterIP 10.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - install</title>
+      <link>/cloud/k8s_redis_cluster_install/</link>
+      <pubDate>Wed, 06 Oct 2021 12:00:20 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_install/</guid>
+      <description>목적  kubernentes 에서 redis cluster를 쉽게 배포해보자 Horizontal Pod Autoscaler (HPA) 기능을 이용하여 redis cluster를 autoscaling 해보자  왜 쿠버네티스 ?  resource limit &amp;amp; request 설정으로 Redis Container를 kubernetes Node에 효율적인 분산 배치 가능 장애 시엔 자동화된 프로세스에 의해 복구됨 (auto healing) Memory 부족 등, 필요한 경우 Scale up 뿐만 아니라 Scale out 까지 가능 모든 작업을 ‘선언적&amp;rsquo;으로 자동화할 수 있음  Prerequisites  kubernetes 1.20 이상  1.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes Volume</title>
+      <link>/cloud/k8s_volume/</link>
+      <pubDate>Wed, 06 Oct 2021 09:22:43 +0900</pubDate>
+      
+      <guid>/cloud/k8s_volume/</guid>
+      <description>혼자 쿠버네티스 정리하기 위한 글, 오늘은 volume 편
+여태 생성했던 Pod들은 stateless container를 사용하고 있었다. 그래서 Pod나 Node가 재기동되면 그 데이터가 사라지는 단점이 있었다.
+만약 제공해야하는 서비스에서 이런 경우에도 데이터를 계속 보존해야한다면 kubernetes에서는 Volume을 사용해야한다.
+volume emptyDir Pod가 실행되는 host의 disk를 Contatiner의 volume으로 할당하는 기능,
+Container가 재기동 되어도 데이터는 보존되지만 Pod가 종료되면 emptyDir에 할당했던 volume 내 데이터도 사라진다.
+이 점이 앞서 살펴봤던 kubectl drain node 수행 시 emptyDir 사용하는 Pod이 있는 경우 에러가 발생하는 이유인듯</description>
+    </item>
+    
+    <item>
+      <title>kubernetes Pod Scheduling - cordon &amp; drain</title>
+      <link>/cloud/k8s_cordon_drain/</link>
+      <pubDate>Wed, 06 Oct 2021 09:17:51 +0900</pubDate>
+      
+      <guid>/cloud/k8s_cordon_drain/</guid>
+      <description>혼자 쿠버네티스 정리를 위한 글 오늘은 cordon, drain 편
+특정 node의 점검, 정책 변경 등으로 특정 노드에 있는 pod들을 다른 노드로 옮기거나
+작업시간 동안 특정 node에는 Pod scheduling 을 막아놓을 필요가 있을 때 사용하는 기능이 cordon과 drain이다.
+cordon cordon 은 지정한 node에 pod scheduling 되는 것을 막는 기능임
+ cordon 설정  $ kubectl get deploy,pod NAME READY UP-TO-DATE AVAILABLE AGE deployment.apps/redis-deployment2 2/2 2 2 22h NAME READY STATUS RESTARTS AGE pod/redis-deployment2-6bcb64f4d4-lq5pc 1/1 Running 0 22h pod/redis-deployment2-6bcb64f4d4-sq6vb 1/1 Running 0 22h $ kubectl cordon minikube node/minikube cordoned $ kubectl get node NAME STATUS ROLES AGE VERSION minikube Ready,SchedulingDisabled master 6d18h v1.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes Pod Scheduling - taint&amp;tolerations</title>
+      <link>/cloud/k8s_taint/</link>
+      <pubDate>Wed, 06 Oct 2021 09:14:08 +0900</pubDate>
+      
+      <guid>/cloud/k8s_taint/</guid>
+      <description>혼자 정리하기위한 쿠버네티스 pod scheduling - taint &amp;amp; toleration 편
+taint란, taint를 설정한 node에는 pod이 scheduling 되지 않도록 하는 기능으로 key=value:effect 로 구성된다.
+effect는 NoSchedule, PreferNoSchedule or NoExecute 세가지가 있으며 모두 세부적인 건 다르지만 어쨋든 pod를 scheduling 하지 않는다는 설정으로
+만약 taint가 설정된 Node에 pod을 scheduling 하려면 추가로 toleration을 설정해야 한다.
+즉, taint와 toleration을 설정함으로써 특정 pod들만 실행하고, 다른 pod들은 실행하지 못하게 하여 node를 특정 역할만 하도록 만들 수 있다.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes Pod Scheduling - affinity</title>
+      <link>/cloud/k8s_affinity/</link>
+      <pubDate>Wed, 06 Oct 2021 09:10:57 +0900</pubDate>
+      
+      <guid>/cloud/k8s_affinity/</guid>
+      <description>혼자 정리하기 위한 쿠버네티스 pod scheduling - affinity 편
+쿠버네티스엔 pod을 어떤 노드에 실행시킬 것인지 scheduling 하는 여러 옵션들이 있다.
+특정 node를 선택해서 pod를 scheduling 할 수도 있고 ( node selector)
+특정 pod들을 같은 node에 모아놓거나 (podAffinity) 반대로 흩어지게 하거나 (podAntiAffinity)
+특정 node에 있는 pod들을 다른 node로 옮길 수도 있다(drain)
+nodeSelctor POD가 어떤 node에서 실행될지를 nodeSelector 기능을 통해 key-value 값으로 설정
+ node label 확인  $ kubectl get nodes --show-labels NAME STATUS ROLES AGE VERSION LABELS minikube Ready master 2d23h v1.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes label 정리</title>
+      <link>/cloud/k8s_label/</link>
+      <pubDate>Wed, 06 Oct 2021 08:59:28 +0900</pubDate>
+      
+      <guid>/cloud/k8s_label/</guid>
+      <description>kubernetes label 정리 혼자 보기위해 정리하는 쿠버네티스2 오늘은 label 편
+label은 key:value 로 구성되며 오브젝트나 컨트롤러를 만들 때 메타데이터 필드에서 설정함
+label key는 컨트롤러들이 pod를 관리할 때 자신이 관리해야할 pod를 구분하는 역할을 하며 label을 변경하면 pod를 인식하지 못함
+특정 label의 리소스만 선택해서 관리하게 하는 기능이 selector 인데 selector는 두가지 종류가 있다.
+ 등호 기반  environment=develop release=stable   집합 기반  environment in (develop, stage) release notin (latest,canary) gpu !</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes command 정리-1</title>
+      <link>/cloud/k8s_command/</link>
+      <pubDate>Wed, 06 Oct 2021 08:53:13 +0900</pubDate>
+      
+      <guid>/cloud/k8s_command/</guid>
+      <description>혼자 쿠버네티스 커맨드 익숙해지고자 주저리주저리 작성하는 글입니다.
+오브젝트는 쿠버네티스에 자원의 바라는 상태 (desired state) 를 정의하고 컨트롤러는 desired state = current state 가 되도록 오브젝트들을 생성 / 삭제
+ 오브젝트 : pod, service, namespace,pvc 컨트롤러 : replicaset, deployment, statefulset,demonset  생성  kubectl run nginx-app –image nginx –port=80 =&amp;gt; default로 deployment 생성 kubectl run nginx-app –generator =run-pod/v1 –image=&amp;ldquo;nginx” –port=80 =&amp;gt; pod생성 kubectl apply -f nginx.yaml  조회  kubectl get pods,deploy,rs,svc -o wide kubectl api-resources kubectl explain pods kubectl explain pods.</description>
+    </item>
+    
+    <item>
+      <title>Docker image</title>
+      <link>/cloud/docker_image/</link>
+      <pubDate>Wed, 06 Oct 2021 08:45:58 +0900</pubDate>
+      
+      <guid>/cloud/docker_image/</guid>
+      <description>요 며칠 간 docker-compose 로 redis 나 mysql container 생성하는 방법을 공유했습니다.
+https://kimdubi.github.io/categories/docker/
+이 과정에서 Docker Image 의 중요성에 대해 새삼 다시 느끼게 되어 정리하는 시간을 가지고자…
+이번 글에서는 docker의 image 에 대해 소개하겠습니다.
+Docker Image Docker 에서 가장 중요한 두 축은 Container 와 Image 라고 생각합니다.
+Docker Image는 container를 띄우는데 필요한 모든 파일이나 설정값들을 포함하고 있습니다.
+잘하시는 분들께 “Docker가 왜 좋아요?” 라고 물으면 종종 “dependency 꼬일 일 없이 서비스 띄울 수 있으니까”</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL Citus 간단히 살펴보기</title>
+      <link>/postgresql/citus/</link>
+      <pubDate>Wed, 06 Oct 2021 00:31:52 +0900</pubDate>
+      
+      <guid>/postgresql/citus/</guid>
+      <description>2년전에 citus가 어떤 것인지 궁금해서 구성 관련 간단히 테스트했던 내용입니다.
+깊이있는 내용은 전혀 아니고 지금 다시 읽어보니 거의 저만 이해할 수 있게 써놨네요…..
+현재는 citus나 postgresql 버전이 테스트 당시와 상이할 수 있어 틀린 내용이 많을 수 있습니다.
+목차  Citus 란? HA 방식에 따른 아키텍처 성능 테스트 Citus 설치 방법 Query processing Distributed deadlock Query plan 참고 내용  Citus -. PostgreSQL 의 scale-out 용도 extension ( mysql plugin )</description>
+    </item>
+    
+    <item>
+      <title>쿼리 실행 통계 확인을 위한 pg_stat_monitor</title>
+      <link>/postgresql/pg_stat_monitor/</link>
+      <pubDate>Wed, 06 Oct 2021 00:30:41 +0900</pubDate>
+      
+      <guid>/postgresql/pg_stat_monitor/</guid>
+      <description>PostgreSQL에는 pg_stat_statements 라는 DB서버에서 수행된 모든 SQL문의 실행 통계를 제공하는 유용한 extension이 있습니다.
+그러나 몇가지 단점이 있는데
+ 수행된 시간대가 표시안되어 pg_stat_statements 만으로는 피크시간대 수행된 쿼리를 확인하기 어려움 쿼리에서 접근한 테이블이 따로 저장안됨 쿼리를 수행한 client IP 표시가 안됨  이러한 단점들을 모두 해결한 것이 percona에서 나온 pt_stat_monitor라는 extension 입니다.
+installation sudo yum install -y https://repo.percona.com/yum/percona-release-latest.noarch.rpm sudo percona-release setup ppg-12 sudo yum install -y percona-postgresql12-devel ### postgresql stop 후 $ vi postgresql.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL wal_level=replica / logical 차이</title>
+      <link>/postgresql/pg_wal_level/</link>
+      <pubDate>Wed, 06 Oct 2021 00:27:21 +0900</pubDate>
+      
+      <guid>/postgresql/pg_wal_level/</guid>
+      <description>PostgreSQL 설정 중 wal_level 이라는 설정이 있습니다.
+WAL 에 저장되는 데이터의 양이나 수준을 지정하는 설정으로
+streaming replication 을 위해서는 최소 wal_level = replica
+logical replication을 위해서는 최소 wal_level = logical 설정이 필요한데
+정확히 이 두 설정값에 따라 데이터가 어떻게 저장되는지에 대한 설명이 부족해서 찾아본 내용을 공유합니다.
+logical replicaion 원리  WAL record가 생성되면 logical decoding 을 거쳐 변경된 데이터를 RecorderBufferChange (HeapTupleData)로 재구성합니다. pgoutput plugin이 이 tuple을 subscriber, 즉 슬레이브에게 보냅니다 HeapTupleData를 받은 slave는 변경 전 데이터 (tuple-old)를 찾아 tuple-new 로 바꿔주는 DML 구문을 재 수행합니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL AutoVacuum 최적화</title>
+      <link>/postgresql/pg_autovacuum/</link>
+      <pubDate>Wed, 06 Oct 2021 00:20:28 +0900</pubDate>
+      
+      <guid>/postgresql/pg_autovacuum/</guid>
+      <description>PostgreSQL 에는 다른 DBMS 에서는 볼 수 없는 Vacuum 이라는 개념이 존재합니다.
+이는 MVCC 구현 방법이 ORACLE이나 MySQL 같은 다른 DBMS와 다르다는 차이점에서 오는 문제점을 해결하기 위한 PostgreSQL 만의 특별한 동작인데요.
+PostgreSQL은 Vacuum 동작을 자동으로 수행하는 AutoVacuum을 통해 아래 두가지 작업을 수행합니다.
+ transaction id wraparound 방지 임계치 이상으로 발생한 dead tuple을 정리하여 FSM (Free Space Map) 으로 반환  위 두가지를 수행하지 않고 방치하면 어떤 문제점이 생기는지에 대해서는 PostgreSQL을 소개하며 간단히 다룬 적이 있으니 참고하시기 바랍니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL pgpool-II recovery node</title>
+      <link>/postgresql/pg_pgpool_recovery/</link>
+      <pubDate>Wed, 06 Oct 2021 00:15:33 +0900</pubDate>
+      
+      <guid>/postgresql/pg_pgpool_recovery/</guid>
+      <description>PostgreSQL의 auto-failover 솔루션인 pgpool 은 multi-master 를 지원하지 않기 때문에
+MySQL의 MMM 처럼 failover 된 OLD Master 를 자동으로 cluster의 slave 로 포함시키는 기능이 없습니다.
+그래서 old master 를 new master의 slave 로 재구성하는 작업을 수작업으로 해야만 하는데
+이 과정을 pgpool 의 recovery_node 기능을 통해 자동화 할 수 있습니다.
+pgpool 구성 방법은 아래 내용 참고
+ https://kimdubi.github.io/postgresql/postgresql_pgpool/  자동화 설정 수행 과정  db down pgpool failover 감지  failover command 수행 됨   failover 완료 후 pcp_recovery_node -n node-id ( new slave 노드 ) 커맨드 수행  pgpool.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL Monitoring</title>
+      <link>/postgresql/pg_monitoring/</link>
+      <pubDate>Wed, 06 Oct 2021 00:07:10 +0900</pubDate>
+      
+      <guid>/postgresql/pg_monitoring/</guid>
+      <description>PostgreSQL 모니터링은 Prometheus,alertmanager,grafana를 활용하여 구축할 수 있습니다.
+방법은 이전에 MySQL 모니터링 구축하는 방법에 대해 공유했던 글을 참고 부탁드리며
+ https://kimdubi.github.io/mysql/mysql_pmm/ https://kimdubi.github.io/mysql/alertmanager/  이번 글에서는 제가 사용하는 모니터링 항목과 그에 따른 alert rule을 공유드리겠습니다.
+exporter  exporter 기동 커맨드  ### postgres_exporter wget https://github.com/wrouesnel/postgres_exporter/releases/download/v0.8.0/postgres_exporter_v0.8.0_linux-amd64.tar.gz export DATA_SOURCE_NAME=&amp;quot;postgresql://login:password@hostname:port/dbname&amp;quot; ./postgres_exporter --exclude-databases=&amp;quot;template0,template1&amp;quot; --web.listen-address=:9187 --extend.query-path=&#39;./queries.yaml&#39; queries.yaml postgres_exporter 는 DB 내 pg_stat* view 의 데이터를 긁어오는데 이외에도 다른 데이터를 수집하고 싶다면
+exporter 기동 시 –extend.query-path=’./queries.yaml’ 옵션을 지정해주고 queries.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL HOT update</title>
+      <link>/postgresql/pg_hot/</link>
+      <pubDate>Wed, 06 Oct 2021 00:01:31 +0900</pubDate>
+      
+      <guid>/postgresql/pg_hot/</guid>
+      <description>PostgreSQL의 MVCC 는 ORACLE이나 MySQL의 동작 방식과 다릅니다.
+과거 데이터를 별도의 UNDO 영역에 저장하는 게 아니라 과거의 tuple을 invalid 처리 후
+update 후의 새로운 tuple 을 추가하는 방식으로 동작하는데요
+장점으로는
+ UNDO 영역을 따로 관리할 필요가 없다 ROLLBACK 처리기 매우 빠르다  단점으로는
+ invalid 된 오래된 dead tuple들을 정리할 vacuum 작업이 필요하다 과도한 업데이트로 인한 dead tuple 로 테이블이 비대해 질 수 있다 update 로 인한 인덱스 수정이 필요하다  같은 장단점이 있습니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL synchronus_commit</title>
+      <link>/postgresql/pg_sync_commit/</link>
+      <pubDate>Tue, 05 Oct 2021 23:57:38 +0900</pubDate>
+      
+      <guid>/postgresql/pg_sync_commit/</guid>
+      <description>replication 구성에서 중요하게 생각할 부분 중 하나로 sync 방식이 있습니다.
+MySQL의 경우 sync,async,semi sync 방식으로 설정할 수 있는데요.
+이번 글에서는 PostgreSQL의 sync replication 설정과 주의사항에 대해서 알아보겠습니다.
+WAL 전달에 따른 ACK  백엔드 프로세스는 XLogInsert () 및 XLogFlush () 함수를 실행하여 WAL 세그먼트 파일에 WAL 데이터를 쓰고 플러시 합니다. Primary의 walsender 프로세스는 WAL 세그먼트에 기록 된 WAL 데이터를 Standby의 walreceiver 프로세스로 보냅니다. WAL 데이터를 보낸 후 백엔드 프로세스는 Standby의 ACK 응답을 계속 대기합니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL service 등록하기</title>
+      <link>/postgresql/pg_service/</link>
+      <pubDate>Tue, 05 Oct 2021 23:54:37 +0900</pubDate>
+      
+      <guid>/postgresql/pg_service/</guid>
+      <description>yum 설치가 아닌 source 설치를 했을 때는 postgresql 기동 관련 service 설정을 따로해줘야합니다.
+이번 글에서는 centos6 / 7 에서 각각 service 등록하는 방법을 알아보겠습니다.
+설치한 path는 환경에 맞게 수정하시면 됩니다.
+postgres service 등록 - centos6 irteamsu) sudo vi /etc/init.d/postgres #!/bin/bash # chkconfig:2345 90 20 # Installation prefix prefix=/home1/irteam/psql/engn/postgresql-11.7 # Data directory PGDATA=&amp;quot;/home1/irteam/psql/engn/PGSQL&amp;quot; # Who to run the postmaster as, usually &amp;quot;postgres&amp;quot;. (NOT &amp;quot;root&amp;quot;) PGUSER=irteam # Where to keep a log file PGLOG=&amp;quot;/home1/irteam/psql/logs/testdb/error_log/alert_testdb.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL replication을 위한 WAL 전달과정</title>
+      <link>/postgresql/pg_replication_wal/</link>
+      <pubDate>Tue, 05 Oct 2021 23:42:16 +0900</pubDate>
+      
+      <guid>/postgresql/pg_replication_wal/</guid>
+      <description>PostgreSQL replication을 위한 WAL 전달과정 ORACLE의 RAC 처럼 공유디스크를 사용하지 않는 이상 DBMS는 Master - Slave 구성을 위해 어떤 방식으로든 Master에서 수행한 트랜잭션을 Slave로 전파해야 합니다.
+MySQL은 SQL 커맨드를 전파하는 방식으로 하는 반면, PostgreSQL은 트랜잭션 로그를 전달하는 방식으로 replication을 수행합니다.
+이 두개의 방식은 비슷한듯, 아래와 같이 다르게 조금은 동작합니다.
+ MySQL   PostgreSQL  왜 이런 차이가 발생하는 건지 이번 글에서는 PostgreSQL의 Streaming Replication 기준으로 복제 방식을 살펴보겠습니다.
+MySQL의 replication 방식은 아래 글을 참고해주세요</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL to MySQL Migration</title>
+      <link>/postgresql/pg_pg2mysql/</link>
+      <pubDate>Tue, 05 Oct 2021 23:38:34 +0900</pubDate>
+      
+      <guid>/postgresql/pg_pg2mysql/</guid>
+      <description>MySQL을 PostgreSQL 로 이관하는 방법은 PostgreSQL에서 제공하는 기능인 pgloader 를 사용하면 오브젝트부터 데이터까지 쉽게 이관할 수 있지만
+반대인 PostgreSQL -&amp;gt; MySQL 은 적당한 툴도 없고, 두 DB의 schema 개념도 달라 사전에 알아둬야 할 점이 많습니다.
+이번에 이관했던 서비스를 예시로 PostgreSQL =&amp;gt; MySQL 이관 방법을 정리해보았습니다.
+PostgreSQL 과 MySQL schema 차이  PostgreSQL에서는 테이블의 집합이 schema ( 위 그림에서 public, myschema ) schema 의 집합이 database ( 위 그림에서 postgres , mydb ) 테이블의 집합 = schema 가 곧 논리 database 인 MySQL과는 개념이 다름 단 아래와 같이 DB 내에 사용하는 schema 가 단 하나일 땐 PostgreSQL database -&amp;gt; MySQL database 1:1 매핑이 가능함  amon=# \dn List of schemas Name | Owner --------------------+-------------- information_schema | testuser pg_catalog | testuser pg_toast | testuser pg_toast_temp_1 | testuser public | testuser (5 rows) =&amp;gt; public 을 제외한 나머지 schema는 시스템 관련 스키마, pulic은 모든 schema가 접근 가능한 default schema test=# select count(*) from information_schema.</description>
+    </item>
+    
+    <item>
+      <title>pg_replication_slot 사용 시 wal logfile이 계속 쌓일때</title>
+      <link>/postgresql/pg_slot_issue/</link>
+      <pubDate>Tue, 05 Oct 2021 23:31:29 +0900</pubDate>
+      
+      <guid>/postgresql/pg_slot_issue/</guid>
+      <description>PostgreSQL 의 복제구성으로 가장 널리 쓰이는 방법은
+streaming replication + physical replication slot 입니다.
+특히 physical replication slot 을 사용하는 경우에는 DB에서 slave 가 필요로 하는 WAL logfile 정보를 관리하기 때문에
+운영자가 wal_keep_segments , max_wal_size 같은 WAL 보관 설정에 대해 고민할 필요가 없습니다.
+그러나 이 편리한 replication slot 기능에도 예외상황이 있는데요
+slave DB가 계속 replication 을 받지 못하는 상황이거나,
+사용하지 않는 replication slot이 방치 된 경우
+DB는 WAL logfile들이 나중엔 반영될 거라고 보기 때문에 계속~ 무한정 ~ file들을 저장하게 됩니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL schema 의미 및 권한관리</title>
+      <link>/postgresql/pg_schema/</link>
+      <pubDate>Tue, 05 Oct 2021 23:26:51 +0900</pubDate>
+      
+      <guid>/postgresql/pg_schema/</guid>
+      <description>MySQL이나 ORACLE 을 다루다가
+PostgreSQL을 처음 다룰 때 가장 헷갈리는 것 중 하나는 바로 schema의 개념입니다.
+ORACLE에서는 오브젝트를 가진 USER, MySQL은 논리DB를 schema 라고 하는 반면에
+PostgreSQL 에서는 database , schema , user 의 개념이 모두 있기 때문에 처음엔 헷갈릴 수 있는데요
+이번 글에서는 PostgreSQL의 schema 와 권한 관리에 대해 알아보겠습니다.
+PostgreSQL Schema MySQL에서는 논리 Database를 schema 와 같은 의미로 사용합니다.
+반면 PostgreSQL에서는 database와 schema 두가지 개념 모두 사용되며 database는 schema의 상위 개념이라 할 수 있습니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL background process 살펴보기</title>
+      <link>/postgresql/pg_bgprocess/</link>
+      <pubDate>Tue, 05 Oct 2021 23:22:35 +0900</pubDate>
+      
+      <guid>/postgresql/pg_bgprocess/</guid>
+      <description>시작하며 PostgreSQL의 background process는 기본 프로세스인 Postmaster에서 fork() 된 프로세스들입니다.
+각 fork() 된 background process들은 DBMS 운영을 위해 각자 맡은 역할을 수행하게 되는데요.
+지난 글에서 PostgreSQL의 architecture에 대해 살펴보며 간략하게 말씀드렸지만
+이번 글에서는 PostgreSQL의 background process들에 대해 좀 더 자세히 살펴보겠습니다.
+PostgreSQL background process Postmaster Postmaster 는 모든 background process들을 제어하고 client =&amp;gt; DBMS로의 connection을 생성하고 닫아주는 최초의 프로세스입니다.
+ DB 기동 시 Postmaster는 다른 background process를 fork() 하는 역할과 client가 PostgreSQL DBMS에 connection을 요청하면 Postmaster는 설정된 인증방법(pg_hba.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL을 소개합니다</title>
+      <link>/postgresql/pg_intro2/</link>
+      <pubDate>Tue, 05 Oct 2021 23:18:30 +0900</pubDate>
+      
+      <guid>/postgresql/pg_intro2/</guid>
+      <description>시작하며 세상엔 저마다의 특징과 장점을 뽐내는 다양한 DBMS들이 있습니다.
+이들 각각의 특장점이 무엇인지 파악하고 자신의 서비스에서 어떤 DBMS가 최고의 퍼포먼스를 낼 수 있는지 파악하는 것이 중요하기 때문에
+다양한 DBMS 에 대한 이해가 점점 중요해지고 있습니다.
+ORACLE은 강력한 엔터프라이즈 개발 기능과 안정성을, MySQL은 대표적인 오픈소스 DB로 뛰어난 OLTP 성능을 보여주고, CUBRID는 뛰어난 부하 분산 기능을 자랑하는 DBMS입니다.
+그리고 이 글에서 소개해드릴 PostgreSQL은 GIS 지리 정보 처리와 엔터프라이즈급 DBMS의 기능을 제공하는 오픈소스 DBMS입니다.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL migration tool pgloader 사용법</title>
+      <link>/postgresql/pg_pgloader/</link>
+      <pubDate>Tue, 05 Oct 2021 23:03:26 +0900</pubDate>
+      
+      <guid>/postgresql/pg_pgloader/</guid>
+      <description>pgloader란? csv 같은 File이나 실제 DB로부터 데이터를 읽어와 target postgresql 로 데이터 migration을 지원해주는 툴
+아래와 같은 단계로 source DB로 부터 데이터를 읽어와 target DB로 copy 수행
+ Fetch meta data and catalogs  ### table, column metadata select c.table_name, t.table_comment, c.column_name, c.column_comment, c.data_type, c.column_type, c.column_default, c.is_nullable, c.extra from information_schema.columns c join information_schema.tables t using(table_schema, table_name) where c.table_schema = &#39;source DB&#39; and t.table_type = &#39;BASE TABLE&#39; ### FK 제약조건 SELECT s.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL 백업 복구 테스트</title>
+      <link>/postgresql/pg_backup_restore/</link>
+      <pubDate>Tue, 05 Oct 2021 22:51:18 +0900</pubDate>
+      
+      <guid>/postgresql/pg_backup_restore/</guid>
+      <description>pg_dump PostgreSQL에서 기본 제공하는 logical backup 방식으로 mysqldump 와 같은 방법
+백업 수행 시점의 스냅샷만 가능하며 시점복구는 불가함
+pg_dump는 단일 DB backup, pg_dumpall은 전체 DB backup할 때 사용함
+backup script #!/bin/bash DEL_FILE=$(date -d &#39;2 day ago&#39; +&#39;%Y-%m-%d_&#39;)&amp;quot;*.dump&amp;quot; FILENAME=$(date +&amp;quot;%Y-%m-%d_%H%M&amp;quot;).dump BACKUP_DIR=/home1/irteam/psql/backup/testdb PG_USER=&amp;quot;irteam&amp;quot; PASSWORD=&amp;quot;&amp;quot; cd $BACKUP_DIR echo &amp;quot;DB backup start time : &amp;quot; $(date +&amp;quot;%Y-%m-%d %H:%M:%S&amp;quot;) pg_dumpall -h localhost -p 3000 -U $PG_USER -v -j 3 -f &amp;quot;${BACKUP_DIR}/${FILENAME}&amp;quot; &amp;gt;&amp;amp; &amp;quot;${BACKUP_DIR}/${FILENAME}&amp;quot;.log? echo &amp;quot;Successful db backup ( ${BACKUP_DIR}/DBNAME_${FILENAME} )&amp;quot; echo &amp;quot;Delete old file DBNAME_${DEL_FILE}&amp;quot; rm &amp;quot;${BACKUP_DIR}/DBNAME_${DEL_FILE}&amp;quot; echo &amp;quot;BACKUP - End time : &amp;quot; $(date +&amp;quot;%Y-%m-%d %H:%M:%S&amp;quot;)   -d, –dbname : Backup할 Database 명 -h, –host : Database 주소 -U, –username : Database 접속 시 User ID -f, –file : Backup File Name -t, –table : 특정 Table만 Backup하려할 때 대상이 되는 Table 명 -j, –jobs : Backup 시 병렬 처리 -v, –verbose : 진행 과정 표시  restore test psql -p 3000 -d postgres -f 2020-04-10_1431.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL pgpool을 활용한 auto-failover 구성</title>
+      <link>/postgresql/postgresql_pgpool/</link>
+      <pubDate>Tue, 05 Oct 2021 22:45:42 +0900</pubDate>
+      
+      <guid>/postgresql/postgresql_pgpool/</guid>
+      <description>Pgpool-II 이란?  Pgpool-II 는 PostgreSQL DB서버와 클라이언트 사이에 위치하는 proxy 개념의 미들웨어로 아래의 세가지 기능을 제공함 connection pooling : DB서버와의 연결을 유지하고 동일한 속성(user,db,protocol) 을 가진 새로운 연결 요청이 오면 이를 재사용함 load balancing : replication 을 사용하는 서비스에서 DB서버의 편중된 load를 줄이기 위해 SELECT 쿼리를 처리 가능한 서버 간 배포하는 기능 automated failover : DB 서버 중 하나가 down되면 이를 차단하고 나머지 DB에서 서비스를 지속함, master down 될 시엔 다른 standby 서버를 승격시킴  PGPool 구성방법 pgpool 설치   https://pgpool.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL Replication 설정-Streaming Replication</title>
+      <link>/postgresql/postgresql_replication/</link>
+      <pubDate>Tue, 05 Oct 2021 22:30:22 +0900</pubDate>
+      
+      <guid>/postgresql/postgresql_replication/</guid>
+      <description>REPLICATION 방식 log shipping  file-based 복제로 master의 WAL file이 생성되면 이 파일을 scp를 통해 standby서버로 전달하여 반영함 wal file이 생길 때 까지 replication gap 이 발생할 수 있음  logical replication  pub / sub 구조로 양방향 replication 가능 특정 테이블만 복제하는 partial replication 가능 DDL 복제는 안되기 때문에 각각 수행해줘야함  streaming replication  Master는 standyby 에게 transaction log entires 를 전달하고 standby 는 WAL file을 기다리지 않고 record 단위로 복제 수행 일반적으로 가장 많이 사용되는 복제 방식  streaming replication 설정 1.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL configure 설정</title>
+      <link>/postgresql/postgresql_conf/</link>
+      <pubDate>Tue, 05 Oct 2021 22:20:28 +0900</pubDate>
+      
+      <guid>/postgresql/postgresql_conf/</guid>
+      <description>yum 설치가 아닌 source make 설치라 디렉토리 구성 등이 다를 수 있습니다.
+bash_profile $ vi ~/.bash_profile export POSTGRES_HOME=/home1/kimdubi/psql/engn/postgresql-11.7 export PGLIB=$POSTGRES_HOME/lib export PGDATA=/home1/kimdubi/psql/engn/PGSQL export MANPATH=$MANPATH:$POSTGRES_HOME/man export PATH=$POSTGRES_HOME/bin:$PATH  postgresql.conf #------------------------------------------------------------------------------ # CONNECTIONS AND AUTHENTICATION #------------------------------------------------------------------------------ # - Connection Settings - listen_addresses = &#39;*&#39; port = 3000 max_connections = 1000 #------------------------------------------------------------------------------ # RESOURCE USAGE (except WAL) #------------------------------------------------------------------------------ # - Memory - shared_buffers = 1024MB work_mem = 4MB maintenance_work_mem = 512MB dynamic_shared_memory_type = posix effective_io_concurrency = 200 max_worker_processes=8 max_parallel_workers_per_gather = 2 max_parallel_workers = 8 #------------------------------------------------------------------------------ # WRITE AHEAD LOG #------------------------------------------------------------------------------ # - Settings - wal_level = logical wal_buffers = 2MB max_wal_size = 1GB # - Archiving - archive_mode = on archive_command = &#39;cp %p /home1/kimdubi/psql/arch/testdb/%f&#39; #------------------------------------------------------------------------------ # QUERY TUNING #------------------------------------------------------------------------------ random_page_cost = 1.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL source compile install</title>
+      <link>/postgresql/postgresql_install/</link>
+      <pubDate>Tue, 05 Oct 2021 22:17:44 +0900</pubDate>
+      
+      <guid>/postgresql/postgresql_install/</guid>
+      <description>간단하게 yum install 할 수도 있지만
+디렉토리 구성 등을 기본 default 설정과는 다르게 구성하여 관리하고 싶어 source 파일을 다운받아 컴파일 설치하는 식으로 구성해봤습니다.
+때문에 여기서의 디렉토리는 default 설정이 아닌 제 임의로 설정한 구성입니다.
+postgresql 버전 확인  https://www.postgresql.org/ftp/source/  설치  directory 생성 (kimdubi 계정)  mkdir -p /home1/kimdubi/psql/engn/ =&amp;gt; PostgreSQL engine 영역 mkdir -p /home1/kimdubi/psql/data/testdb =&amp;gt; tablespace 등data 저장공간 mkdir -p /home1/kimdubi/psql/logs/testdb/error_log =&amp;gt; error log mkdir -p /home1/kimdubi/psql/arch/testdb =&amp;gt; pg_wal 아카이빙하는 공간  11.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL Architecture (PostgreSQL 시작하기)</title>
+      <link>/postgresql/postgresql_intro/</link>
+      <pubDate>Tue, 05 Oct 2021 22:11:37 +0900</pubDate>
+      
+      <guid>/postgresql/postgresql_intro/</guid>
+      <description>postgresql은 프로세스 기반의 GIS 기능으로 유명한 오픈소스DB 입니다.
+세계적인 인기(?) 에 비해 유독 우리나라에선 postgresql 을 사용하는 곳이 드문데
+저도 아무것도 모르지만 설치부터 하나하나 공부해가는 마음으로 포스팅을 시작하겠습니다.
+제가 구성하고자 하는 PostgreSQL 아키텍처는 아래와 같습니다.
+셋업 환경 OS &amp;amp; DB  OS : CentOS release 6.9 DB : PostgreSQL 11.7 (20.02 기준 postgresql 12 버전 출시되었으나 안정화된 11버전 설치)  replication : streaming-replication (master-standby) auto-failover : pgpool-II backup : pg_start_backup    아래는 위 아키텍처 요소들에 대한 간단한 설명입니다.</description>
+    </item>
+    
+    <item>
+      <title>MongoDB Sharded Cluster - mongos</title>
+      <link>/mongodb/mongo_shard_cluster_mongos/</link>
+      <pubDate>Tue, 05 Oct 2021 09:06:44 +0900</pubDate>
+      
+      <guid>/mongodb/mongo_shard_cluster_mongos/</guid>
+      <description>mongos 란? mongos 는 mongodb shard cluster 내에서 router 역할을 하는 컴포넌트로 아래와 같은 역할 담당 및 특징이 있음
+ 쿼리 라우팅 쿼리 결과 merge 후 client에게 return order by 같은 경우에는 샤드 서버 중 프라이머리 샤드를 정한 후
+그 프라이머리 샤드가 다른 샤드로부터 쿼리 결과를 전달받고 order by 수행한 후에 최종 결과를 라우터로 반환함 2.x 버전에선 chunk 리밸런싱, 스플릿 등 chunk 관련 역할도 했으나 3.4 버전부터는
+해당 역할이 모두 config 서버에서 담당하게 되어 mongos 는 말그대로 router 역할만 하게됨 줄어든 역할로 서버의 리소스를 매우 적게 사용하기 때문에 아래와 같이 mongos 를 다른 컴포넌트들과 같이 구성하기도 함  어플리케이션 서버 n대 + mongos n대 config + mongos mongos + shard 서버 mongos 만 따로 구성 mongodb 에서는 mongos down 시 mongos 를 바라보는 어플리케이션도 어차피 역할을 못하기 때문에 한 세트의 의미로 1번의 구조를 추천하지만 이슈가 발생했을 때 원인 분석, VM의 성능 향상과 관리상의 이유 등으로 mongos 를 따로 구성하기도 함    쿼리 라우팅 MongoDB sharded cluster 에서 collection은 shard key 를 기준으로 쪼개져서 여러 샤드에 분산되어 저장됨</description>
+    </item>
+    
+    <item>
+      <title>MongoDB Sharded Cluster - Config server</title>
+      <link>/mongodb/mongo_shard_cluster_configsvr/</link>
+      <pubDate>Tue, 05 Oct 2021 09:03:46 +0900</pubDate>
+      
+      <guid>/mongodb/mongo_shard_cluster_configsvr/</guid>
+      <description>지난 글에서 mongodb shard cluster 개념과 구성하는 방법에 대해 소개드렸고 이번 글에서는 구성요소 중 하나인 config server에 대해 다루겠습니다.
+Config server 란? config server는 shard cluster에서 필요한 모든 메타 정보들을 저장함
+메타정보에는 어느 chunk , 즉 어떤 data 가 어떤 shard 에 있는지, chunk 의 밸런싱 작업은 어떻게 해야할지 등의 메타정보와 사용자 인증 정보가 저장됨
+이렇게 중요한 정보들을 담고 있어서 가용성을 위해 하나의 replSet 으로 구성되어야 함
+ config server 정보  repl_conf:PRIMARY&amp;gt; use config; switched to db config repl_conf:PRIMARY&amp;gt; show collections; actionlog changelog chunks collections databases lockpings locks migrations mongos shards system.</description>
+    </item>
+    
+    <item>
+      <title>MongoDB Sharded Cluster</title>
+      <link>/mongodb/mongo_shard_cluster/</link>
+      <pubDate>Tue, 05 Oct 2021 08:57:41 +0900</pubDate>
+      
+      <guid>/mongodb/mongo_shard_cluster/</guid>
+      <description>sharding 은 데이터를 여러 서버에 분산해서 저장 및 처리할 수 있도록 하는 기술입니다.
+replicaset이 MongoDB의 고가용성을 위한 솔루션이라면, sharding은 분산 처리를 위한 솔루션이라 할 수 있으며
+Vertical, Horizontal 모두 적용 가능하나 일반적으로 하나의 Collection(table) 을 여러 샤드로 분산하는 Horizontal sharding 이 적용됩니다.
+이번 글에서는 MongoDB sharding 구성 방법을 살펴보고 다음 글에서 각각의 구성요소에 대해 좀 더 자세하게 살펴보도록 하겠습니다.
+아키텍처 개념 (https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets)
+shard =&amp;gt; 실제 데이터의 집합으로 샤드 키에 따라 shard1 / shard2 / shard3 에 데이터가 저장됨.</description>
+    </item>
+    
+    <item>
+      <title>MongoDB ReplicaSet reconfig</title>
+      <link>/mongodb/replicaset_reconfig/</link>
+      <pubDate>Tue, 05 Oct 2021 08:44:33 +0900</pubDate>
+      
+      <guid>/mongodb/replicaset_reconfig/</guid>
+      <description>이번 글에서는 mongodb replica Set (이하 RS) 의 Primary 선출 방식과 RS 멤버가 이상할 때 해당 멤버를 제외하고 재설정 하는 방법에 대해서 알아보겠습니다.
+ RS member 간 hearbeat 실패 감지  I REPL_HB [replexec-11] Heartbeat to mongo_shard1:27018 failed after 2 retries, response status: InvalidReplicaSetConfig: Our replica set con figuration is invalid or does not include us I REPL [replexec-11] Member mongo_shard1:27018 is now in state RS_DOWN - Our replica set configuration is invalid or does not include us I REPL_HB [replexec-11] Heartbeat to 85604da3dcb0:27018 failed after 2 retries, response status: InvalidReplicaSetConfig: Our replica set con figuration is invalid or does not include us I REPL [replexec-11] Member 85604da3dcb0:27018 is now in state RS_DOWN - Our replica set configuration is invalid or does not include us I REPL [replexec-15] can&#39;t see a majority of the set, relinquishing primary I REPL [replexec-15] Stepping down from primary in response to heartbeat I REPL [replexec-18] can&#39;t see a majority of the set, relinquishing primary I REPL [RstlKillOpThread] Starting to kill user operations I REPL [RstlKillOpThread] Stopped killing user operations I REPL [replexec-15] Stepping down from primary, stats: { userOpsKilled: 0, userOpsRunning: 0 } I REPL [replexec-15] transition to SECONDARY from PRIMARY =&amp;gt; repliSet member 중 85604da3dcb0:27018, mongo_shard1 로 heart beat 통신이 실패함</description>
+    </item>
+    
+    <item>
+      <title>MongoDB Replicaset</title>
+      <link>/mongodb/replicaset/</link>
+      <pubDate>Tue, 05 Oct 2021 08:37:35 +0900</pubDate>
+      
+      <guid>/mongodb/replicaset/</guid>
+      <description>mongo db에서도 mysql 처럼 M-S 구조로 replication 을 설정할 수 있습니다.
+그 중에서도 자동 failover를 지원하고 master-slave cluster에서 새 node 를 추가하는 것이
+쉬운 replica set 으로 replication 설정하는 방법을 소개하겠습니다.
+(출처 : mongodb.com)
+replica set 설정할 DB 준비 dori:bin mac$ docker run -d -p 30000:27017 --name mongo-1 mongo mongod --replSet repltest 9cc3084a4779fce90b65ed7fde5b987ef882bda58230fd241168e05dc1f93127 dori:bin mac$ docker run -d -p 30001:27017 --name mongo-2 mongo mongod --replSet repltest e70f38ab592739ceb33426b4b85af755e59be3ba139683fe599584900c19f360 dori:bin mac$ docker run -d -p 30002:27017 --name mongo-3 mongo mongod --replSet repltest f3adc7ce039c63abb65166eb1874d5f2e1c19ca533ee63f0079c3caba44b6111 dori:bin mac$ docker run -d -p 30003:27017 --name mongo-4 mongo mongod --replSet repltest 948531ffb1d64a15bb1295329d49864b40352783e7266dab5e5635c695228d4c   –replSet replicaSet이름 옵션으로 repltest 라는 replicaSet db 4대 기동  replica set 설정 dori:bin mac$ mongo --port 30000 MongoDB shell version v4.</description>
+    </item>
+    
+    <item>
+      <title>MongoDB simple command</title>
+      <link>/mongodb/mongo_simple_command/</link>
+      <pubDate>Tue, 05 Oct 2021 08:27:18 +0900</pubDate>
+      
+      <guid>/mongodb/mongo_simple_command/</guid>
+      <description>Mongo DB 접속  dori:bin mac$ mongo MongoDB shell version v4.0.9 connecting to: mongodb://127.0.0.1:27017/?gssapiServiceName=mongodb Implicit session: session { &amp;quot;id&amp;quot; : UUID(&amp;quot;97c63b7c-e54a-447f-9507-c775b4986954&amp;quot;) } MongoDB server version: 4.0.9 Server has startup warnings: 2019-05-11T16:07:53.047+0900 I CONTROL [initandlisten] 2019-05-11T16:07:53.047+0900 I CONTROL [initandlisten] ** WARNING: Access control is not enabled for the database. 2019-05-11T16:07:53.048+0900 I CONTROL [initandlisten] ** Read and write access to data and configuration is unrestricted. 2019-05-11T16:07:53.049+0900 I CONTROL [initandlisten] --- Enable MongoDB&#39;s free cloud-based monitoring service, which will then receive and display metrics about your deployment (disk utilization, CPU, operation statistics, etc).</description>
+    </item>
+    
+    <item>
+      <title>MongoDB Installation</title>
+      <link>/mongodb/mongodb_installation/</link>
+      <pubDate>Mon, 04 Oct 2021 23:53:29 +0900</pubDate>
+      
+      <guid>/mongodb/mongodb_installation/</guid>
+      <description>MongoDB MongoDB는 document-oriented NoSQL 계열 오픈소스 데이터베이스로 아래와 같은 구조로 구성됨
+(출처: https://beginnersbook.com/2017/09/mapping-relational-databases-to-mongodb/)
+Document  Document는 기존 RDBMS 의 record 와 같은 개념으로 MongoDB에서 실제 데이터가 저장되는 방식 JSON 형태의 key-value 쌍으로 이루어져 있음 value에는 array, string, int 등 다양한 type 이 올 수 있음  { name : &amp;quot;kimdubi&amp;quot;, age : 29, interests : [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;] } Collection  RDBMS 의 테이블과 같은 개념  Database   mysql 의 스키마와 같은 개념으로 MongoDB 서버는 여러개의 database로 이루어 질 수 있으며</description>
+    </item>
+    
+    <item>
+      <title>Redis memory fragmentation 해소하기(activedefrag)</title>
+      <link>/redis/redis_activedefrag/</link>
+      <pubDate>Mon, 04 Oct 2021 23:38:09 +0900</pubDate>
+      
+      <guid>/redis/redis_activedefrag/</guid>
+      <description>이슈상황  Redis를 maxmemory 까지 쓰는 상황 지속적으로 set 커맨드가 유입되고 이로 인해 key eviction이 발생하면서 memory 단편화가 심해짐 이는 곧 서버 메모리 사용량 상승을 초래하고 심하면 OOME 까지도 유발할 수 있음 Replica도 Master와 같은 데이터를 처리하기 때문에 memory fragmentation 현상도 동일하게 겪게되어 Replica도 동일하게 OOME 발생위험이 있음 아래 모니터링 지표는 NHN cloud의 EasyCache에서 제공하는 기능임  redis memory(rss) 서버 메모리 memory fragmentation key eviction set / get call activedefrag?</description>
+    </item>
+    
+    <item>
+      <title>Redis bind에 대한 오해</title>
+      <link>/redis/redis_bind/</link>
+      <pubDate>Mon, 04 Oct 2021 23:32:29 +0900</pubDate>
+      
+      <guid>/redis/redis_bind/</guid>
+      <description>그동안 어째서인지 모르겠지만
+redis.conf의 bind 파라미터가 Redis 서버로 접속 가능한 client ip 를 제어하는 ACL 기능이라고 생각해왔는데
+그게 잘못된 것이라는 것을 이제야 알게 되어 내용을 정리합니다.
+bind 파라미터란? Redis는 TCP/IP 통신을 사용하기 때문에 요청을 받아줄 IP:Port를 설정하고 그 IP:Port로 들어오는 클라이언트의 요청을 받아들이게 되는데요
+bind 파라미터는 Redis가 클라이언트의 요청을 받아주기 위해 열어놓은 IP를 설정하는 파라미터입니다.
+즉! Redis 서버에서 ifconfig로 확인했을 때 나오는 IP들, 아래에서는 127.0.0.1 , 172.20.0.10, 0.0.0.0 이 값들만 가질 수 있게 됩니다.</description>
+    </item>
+    
+    <item>
+      <title>Sentinel Failover 이벤트 발생 시 메일 받기</title>
+      <link>/redis/sentinel_notify/</link>
+      <pubDate>Mon, 04 Oct 2021 23:31:00 +0900</pubDate>
+      
+      <guid>/redis/sentinel_notify/</guid>
+      <description>Redis 의 Auto Failover HA 솔루션으로는 Sentinel 이 있습니다.
+Master가 down 됐는지 Sentinel 간 sdown,odown 같은 투표과정을 통해 과반수 이상의 Sentinel이 Master가 Down됐다고 판단하면 다른 Slave 를 Master로 승격시키게 됩니다.
+Failover 가 발생했음을 알기 위해서 alertmanager 같은 오픈 소스를 사용하거나 별도로 스크립트를 설정해놔도 되겠지만
+기본적인 sentinel의 기능으로 Failover 가 발생했음을 noti 할 수 있는 ‘sentinel notification-script’ 라는 기능이 있습니다.
+사실 Failover만을 알람 받기 위한 기능은 아니고 Sentinel 의 여러 Warning 이벤트들을 noti 해주는 기능인데 주로 Failover를 위해 사용합니다.</description>
+    </item>
+    
+    <item>
+      <title>Redis memory 분석 툴 RMA</title>
+      <link>/redis/redis_rma/</link>
+      <pubDate>Mon, 04 Oct 2021 23:24:02 +0900</pubDate>
+      
+      <guid>/redis/redis_rma/</guid>
+      <description>Redis Memory 분석 툴은
+대상 Redis 서버에 각 data type 별 key 개수는 어떻게 되는지, 메모리 사용량은 어떻게 되는지 등을 파악하기 위해 사용되며
+분석 방법에 따라 크게 두가지로 나뉘고 대표적인 제품은 아래와 같습니다.
+ Live data Scan : RMA (Redis Memory Analyzer), Redis sampler rdb file : RDB tools  이 중에서 온라인 중에 scan 을 통해 안전하게 분석이 가능하고 detail한 정보를 보여주는 RMA 라는 tool 에 대해 알아보겠습니다.</description>
+    </item>
+    
+    <item>
+      <title>Redis data type 변경으로 Memory 아껴 써보자</title>
+      <link>/redis/redis_str_to_hash/</link>
+      <pubDate>Mon, 04 Oct 2021 23:20:16 +0900</pubDate>
+      
+      <guid>/redis/redis_str_to_hash/</guid>
+      <description>Redis 에 값을 저장할 때 key 하나 하나에 들어가는 overhead는 50 bytes 정도 (Redis 3.2 기준) 로 생각보다 큽니다.
+만약 관리의 편리성 때문에 String type 을 많이 쓰는 서비스가 있다면 다른 자료구조를 사용할 때 보다 많은 Key를 사용하게 될 것인데
+이때 String 을 Hash 로 바꾸면 데이터는 온전히 보전하면서 Key 자체 개수를 줄여 메모리를 좀 더 효율적으로 쓸 수 있지 않을까? 하는 생각에 테스트를 해보게 되었습니다.
+data Type 별 Key Memory usage 아래는 Redis 5.</description>
+    </item>
+    
+    <item>
+      <title>Redis client_output_buffer_limit</title>
+      <link>/redis/redis_client_output_buffer_limit/</link>
+      <pubDate>Mon, 04 Oct 2021 23:14:45 +0900</pubDate>
+      
+      <guid>/redis/redis_client_output_buffer_limit/</guid>
+      <description>Master - Slave 구성으로 운영중인 서비스가 있습니다.
+maxmemory, key ttl, hash key 하나에 너무 많은 value 넣지 않기 등
+운영 표준을 잘 지켜가며 안정적으로 운영중인 서비스인데 어느 순간부터인지 이런 로그들이 떨어지면서 Master - Slave 연결이 자꾸 끊어지는 현상이 발생했습니다.
+replconf scheduled to be closed ASAP for overcoming of output buffer limits. Connection with replica 10.111.111.111:6379 lost. psync scheduled to be closed ASAP for overcoming of output buffer limits.  output buffer limits 라는 부분이 눈에 띄는데 redis에는 client-output-buffer-limit 라는 설정이 있습니다.</description>
+    </item>
+    
+    <item>
+      <title>Redis unlink와 del 차이점</title>
+      <link>/redis/redis_unlink/</link>
+      <pubDate>Mon, 04 Oct 2021 22:58:52 +0900</pubDate>
+      
+      <guid>/redis/redis_unlink/</guid>
+      <description>Redis 4.0부터 unlink라는 Key 삭제 커맨드가 추가되었습니다.
+기존에도 del 이라는 Key 삭제 커맨드가 있는데 차이점은 무엇일까요?
+바로 unlink는 async 방식으로 background에서 별도의 Thread에 의해 처리된다는 점입니다.
+(del 은 sync 방식으로 main thread에서 처리됨)
+따라서 del 로 처리할 때 보다 훨씬 더 빨리 서비스에 영향 없이 처리할 수 있는데요
+이번 글에서는 unlink 커맨드에 대해 알아보겠습니다.
+redis의 unlink 관련 설정 * lazyfree-lazy-eviction yes =&amp;gt;maxmemory 까지 사용중일 때 maxmemory-policy 에 따라 key를 삭제하는 경우 del 대신 unlink 사용 * lazyfree-lazy-expire yes =&amp;gt; EXPIRE 커맨드로 TTL이 설정된 key를 삭제할 때 del 대신 unlink 사용 * lazyfree-lazy-server-del yes =&amp;gt; 기존에 있는 key를 set이나 rename 으로 엎어칠때 기존 값을 del 대신 unlink로 삭제함 * replica-lazy-flush yes =&amp;gt; replicaof 설정으로 master의 데이터를 처음 복제해올때 기존에 있던 값들을 del 대신 unlink로 삭제함  redis thread 확인 [root@e7900ebd4833 /]# ps -eLf | grep redis root 19 1 19 0 4 04:59 ?</description>
+    </item>
+    
+    <item>
+      <title>Redis 응답은 느리지만 Slowlog 안남을 때</title>
+      <link>/redis/redis_slowlog/</link>
+      <pubDate>Mon, 04 Oct 2021 22:53:25 +0900</pubDate>
+      
+      <guid>/redis/redis_slowlog/</guid>
+      <description>Redis 운영 중 Client 쪽에서 응답을 늦게 받았다고 확인 요청이 와서
+Redis의 slowlog 를 확인해봤더니 아무 slowlog가 없는 케이스가 발생했습니다.
+slowlog 확인 127.0.0.1:6001&amp;gt; config get slowlog-log-slower-than 1) &amp;quot;slowlog-log-slower-than&amp;quot; 2) &amp;quot;10000&amp;quot; ### 10000 microsecond 127.0.0.1:6001&amp;gt; slowlog get 10 (empty list or set)  slowlog는 언제 찍힐까? client가 느끼는 slowlog, 즉 latency 와 redis의 slowlog 기준은 조금 다릅니다.
+=&amp;gt; client latency : client가 redis 에 request 를 보내고 결과를 받을 때 까지의 시간</description>
+    </item>
+    
+    <item>
+      <title>Redis Data Structure</title>
+      <link>/redis/redis_datastructure/</link>
+      <pubDate>Mon, 04 Oct 2021 22:34:05 +0900</pubDate>
+      
+      <guid>/redis/redis_datastructure/</guid>
+      <description>지난 글에서 Redis와 Memcached 의 가장 큰 차이점으로 데이터를 저장할 수 있다는 점을 들며
+RDB, AOF에 대한 내용을 다뤘었는데요
+이번 글에서는 또 다른 차이점인 Redis의 다양한 자료구조에 대해 다뤄보겠습니다.
+Redis Data Structures 초기에는 String, Bitmap, Hash, List, Set, Sorted Set 정도의 데이터 타입만 제공하다가
+버전이 올라가면서 현재는 Geospatial Index, Hyperloglog, Stream 까지 지원하고 있습니다.
+이렇게 다양한 자료구조를 key-value 형태로 지원하는 점 뿐만 아니라
+각 자료구조를 효율적으로 사용할 수 있도록 도와주는 커맨드를 지원하는 덕분에 개발의 편의성과 효율성을 높일 수 있는 것이 큰 장점입니다.</description>
+    </item>
+    
+    <item>
+      <title>Redis AOF와 RDB에 대해</title>
+      <link>/redis/redis_persistence/</link>
+      <pubDate>Mon, 04 Oct 2021 22:27:34 +0900</pubDate>
+      
+      <guid>/redis/redis_persistence/</guid>
+      <description>Redis 와 Memcached 를 가장 크게 구분짓는 특징은 무엇일까요?
+간단하게는 아래와 같은 특징들이 있는데
+ Key-Value 만 지원하는 Memcached 에 비해 Key-value , list , hash , set , sorted set 다양한 자료구조를 지원 Redis의 데이터를 디스크로 저장하는 Persistent 기능  이번 글에서는 그 중에서도 data 영속성에 대해 다뤄보겠습니다.
+RDB Redis 인스턴스의 현재 메모리에 대한 dump (스냅샷) 를 생성하는 기능
+RDB 설정 save &amp;quot;&amp;quot; #save 900 1 #save 300 10 #save 60 10000 rdbchecksum yes stop-writes-on-bgsave-error no rdbcompression yes dbfilename redis_6001.</description>
+    </item>
+    
+    <item>
+      <title>ORACLE Architecture 간단히 살펴보기</title>
+      <link>/oracle/oracle_architecture/</link>
+      <pubDate>Mon, 04 Oct 2021 22:16:47 +0900</pubDate>
+      
+      <guid>/oracle/oracle_architecture/</guid>
+      <description>ORACLE Architecture 간단히 살펴보기 Oracle Architecture Oracle server는 크게 세부분으로 나뉩니다.
+( SGA + Background Process + Files)
+메모리 영역 (SGA) SGA는 shared global area 라는 이름에서부터 알 수 있듯이 사용자들이 오라클에서 데이터를 읽거나 변경하기 위해 사용하는 공용 메모리 영역을 의미합니다. SGA는 크게 Data buffer cache, Redo log buffer , Shared pool 로 이루어져 있습니다.   Data buffer cache  데이터의 조회와 변경 등의 실제 작업이 일어나는 공간으로 사용자가 찾거나 변경하는 데이터는 반드시 data buffer cache에 존재해야 합니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL Shell을 통한 Table dump&amp;load</title>
+      <link>/mysql/mysqlshell_dump/</link>
+      <pubDate>Mon, 04 Oct 2021 22:11:03 +0900</pubDate>
+      
+      <guid>/mysql/mysqlshell_dump/</guid>
+      <description>MySQL shell을 통한 Table dump&amp;amp;load 기존 mysqldump 같은 Logical backup의 단점은 사용은 간편하나, dump&amp;amp;load 시 single thread를 사용하여 굉장히 느리다는 단점이 있는데
+mysqlshell 의 dump , load 기능을 사용하면 logical 백업도 빠르게 수행할 수 있습니다.
+이번 글에서는 mysqlshell을 통해 특정 테이블만 dump&amp;amp;load test를 해보겠습니다. 물론 instance, schema 단위로도 백업 가능합니다.
+mysqlshell은 8.0 뿐만 아니라 5.6, 5.7에서도 사용이 가능합니다. ( backup lock 등 버전 별 기능차이로 인해 안되는 기능도 있음)
+mysqlshell 설치 $ sudo yum install mysql-shell Loaded plugins: fastestmirror, security Setting up Install Process Loading mirror speeds from cached hostfile Resolving Dependencies --&amp;gt; Running transaction check ---&amp;gt; Package mysql-shell.</description>
+    </item>
+    
+    <item>
+      <title>MySQL Shell parallel dump&amp;load</title>
+      <link>/mysql/mysqlshell_parallel_dump/</link>
+      <pubDate>Mon, 04 Oct 2021 22:02:29 +0900</pubDate>
+      
+      <guid>/mysql/mysqlshell_parallel_dump/</guid>
+      <description>mysqlshell 이란 ? MySQL 8.0 과 함께 출시 된 MySQL 용 클라이언트 툴로 아래와 같은 기능을 제공한다
+Document에는 MySQL 5.7 이상부터 지원한다고 하나, 일부 기능 제외하면 MySQL 5.6에서도 사용가능함
+ex). MySQL 5.6에서는 util.dumpInstance()의 backup lock, user backup 같은 기능을 사용 못함
+ SQL, Python, 자바 스크립트를 활용한 데이터 질의 기능 Admin API  InnoDB cluster, MySQL router, InnoDB ReplicaSet 관리 기능   JSON data load Instance, schema, table 단위로 parallel dump 기능 (logical backup)  이 중 data parallel dump 기능은 기존 mysqldump, mydumper, mysqlpump 의 한계를 보완하여 빠른 dump / load 기능을 제공할 수 있을 것으로 기대됨</description>
+    </item>
+    
+    <item>
+      <title>MySQL replication filter 사용 시 주의사항</title>
+      <link>/mysql/replication_filter_issue/</link>
+      <pubDate>Mon, 04 Oct 2021 21:49:23 +0900</pubDate>
+      
+      <guid>/mysql/replication_filter_issue/</guid>
+      <description>MySQL replication_do_db 사용시 주의사항 하나의 DB서버에 여러 논리DB들이 있고 그 중 특정 논리DB를 다른 DB서버로 분리하는 작업을 종종 합니다.
+이때 무중단으로 분리하기 위해서 replication filter 기능을 사용하는데요
+이 때의 주의사항을 알아보도록 하겠습니다.
+Replication filter 개요  리플리케이션 필터는 MySQL 복제 구성 시에 DB인스턴스 전체를 복제하는 것이 아닌 특정 논리DB만 복제해야할 때 사용할 수 있는 기능 옵션의 종류는 아래와 같이 존재  REPLICATE_DO_DB – 특정디비만 REPLICATE_IGNORE_DB – 특정디비제외 REPLICATE_DO_TABLE – 특정테이블만 REPLICATE_IGNORE_TABLE – 특정테이블 제외 REPLICATE_WILD_DO_TABLE – 특정패턴테이블만 REPLICATE_WILD_IGNORE_TABLE – 특정패턴테이블 제외 REPLICATE_REWRITE_DB – DB명 바꿔서   CHANGE REPLICATION FILTER 구문 사용시 동일종류 필터는 마지막 수행된 쿼리만 사용됨 ex)  change replication filter replicate_do_db=(kimdubi_db),replicate_do_db=(kimdubi_db2,kimdubi_db3); =&amp;gt; kimdubi_db2, kimdubi_db3 만 replication 하도록 반영됨</description>
+    </item>
+    
+    <item>
+      <title>MySQL의 Transacion isolation 간단히 살펴보기</title>
+      <link>/mysql/transacion_isolation/</link>
+      <pubDate>Mon, 04 Oct 2021 21:44:32 +0900</pubDate>
+      
+      <guid>/mysql/transacion_isolation/</guid>
+      <description>MySQL의 Transaction Isolation에 대해 MySQL에는 네가지 transaction isolation 레벨이 있습니다.
+transaction isolation 에 따라 쿼리의 결과가 달라지고 Lock의 범위가 달라지므로 간단히라도 꼭 알아둬야 하는 개념인데요
+이번 글에서는 MySQL의 transaction isolation에 대해 간단히 알아보겠습니다.
+repeatable-read 의 gap lock, next key lock 은 다음에………..
+READ-UNCOMMITTED 특징  lock 잡지 않음 dirty read , unrepeatable read, phantom read 발생  테스트  session 1   mysql&amp;gt; set session transaction_isolation=&#39;read-uncommitted&#39;; Query OK, 0 rows affected (0.</description>
+    </item>
+    
+    <item>
+      <title>index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size)</title>
+      <link>/mysql/range_optimizer_max_mem_size/</link>
+      <pubDate>Mon, 04 Oct 2021 21:28:19 +0900</pubDate>
+      
+      <guid>/mysql/range_optimizer_max_mem_size/</guid>
+      <description>index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size) Index 잘 타던 쿼리가 fullscan을 하면서 CPU가 100% 를 치는 이슈가 발생했습니다.
+range_optimizer_max_mem_size 라는 생소한 파라미터를 설정하여 이슈 해결한 사례를 공유합니다.
+이슈 상황 DB server에서 갑자기 CPU가 100%를 치는 상황이 발생
+원인은 아래 Slow query 가 수행되면서 발생한것으로 추측
+SELECT * FROM tb_test tb1 LEFT OUTER JOIN tb_test2 AS tb2 ON tb1.name = tb2.name WHERE tb1.status = &#39;active&#39; AND tb1.resource_id in (1,2 ......... N)  =&amp;gt; where IN절에 bind값이 많기는 하지만 필요한 인덱스는 모두 있어서 문제될 법한 쿼리는 아닌 듯 했으나 full scan을 하면서 CPU가 급증함</description>
+    </item>
+    
+    <item>
+      <title>MySQL 5.7.15 Master-Slave datetime 이슈</title>
+      <link>/mysql/mysql5715_datetime_issue/</link>
+      <pubDate>Mon, 04 Oct 2021 21:15:20 +0900</pubDate>
+      
+      <guid>/mysql/mysql5715_datetime_issue/</guid>
+      <description>MySQL 5.7.15 Master-Slave datetime 이슈 얼마전 운영하는 MySQL에서 재미있는 이슈가 하나 터졌습니다.
+datetime 컬럼에 대해 Master / Slave 간 1초 씩 차이나서 데이터가 안맞는 이슈였는데요
+간단히 정리하면 이런 버그였습니다.
+datetime 칼럼 insert문이 binary log에 millisecond 값이 생략되어 마스터-슬레이브 값 차이가 1초씩 발생 (server-side prepared statements 사용시, timestamp의 millisecond 부분이 master에서는 정상적으로 반올림 되는데 slave에서는 잘리는 버그) 버그 리포트 : https://bugs.mysql.com/bug.php?id=74550 5.7.18 버전에서 패치  이슈 위에서 보이듯이 Master / Slave 간 datetime 값이 1초씩 차이가 납니다.</description>
+    </item>
+    
+    <item>
+      <title>Xtrabackup long transacion issue</title>
+      <link>/mysql/xtrabackup_longtran_issue/</link>
+      <pubDate>Mon, 04 Oct 2021 21:00:38 +0900</pubDate>
+      
+      <guid>/mysql/xtrabackup_longtran_issue/</guid>
+      <description>Xtrabackup 사용 시 주의사항 Xtrabackup 은 mysqldump 대신 많이 사용되는 오픈소스 hotbackup utility 입니다.
+널리 사용되는 유틸리티라서 사용하는데에 큰 이슈는 없지만 다만 사용할 때 꼭 기억해둬야할 주의점이 있습니다.
+Xtrabackup은 백업 수행이후 FLUSH TABLES WITH READ LOCK을 수행하는데 이 때 실행되는 쿼리가 있는 경우 flush 구문은 테이블락을 획득하지 못하고 waiting하며
+lockwait timeout 이후 세션이 종료되어 백업이 완료되지 못하거나 backup이 비정상적으로 길어지는 현상이 발생할 수 있다는 점입니다.
+백업서버에서 롱 쿼리 수행 mysql&amp;gt; select a,b,c,count(*) from tb_test group by a,b,c order by a,b,c desc ;  동시에 xtrabackup 수행 [testuser ]$ innobackupex --defaults-file=/home1/testuser/db/mysql/my.</description>
+    </item>
+    
+    <item>
+      <title>MySQL5.7에서 window function 구현하기</title>
+      <link>/mysql/mysql_window_function/</link>
+      <pubDate>Mon, 04 Oct 2021 20:55:00 +0900</pubDate>
+      
+      <guid>/mysql/mysql_window_function/</guid>
+      <description>MySQL5.7 에서 Window function 구현하기 MySQL 8.0 부터는 rank() over , dense 등 window 함수를 지원하지만
+그 이전버전에서는 window 함수를 지원하지 않기 때문에 @rownum 같은 사용자변수를 활용해서 구현해야 합니다.
+이번 글에서는 Window함수 중에서도 자주 사용하는 rank over(), dense_rank over(), row_number over()를 MySQL 8.0 아래 버전에서 어떻게 우회해서 구현해야하는지 정리해보겠습니다.
+window 함수란 group by 같은 aggregation function (집계함수)는 현재 행과 관련 된 여러 행을 집계하여 그 결과를 단일 행으로 출력하지만
+window function은 개별 행에 계속 접근하여 여러행에 대한 집계 연산을 합니다.</description>
+    </item>
+    
+    <item>
+      <title>Subquery Tuning</title>
+      <link>/mysql/subquery_tuning/</link>
+      <pubDate>Mon, 04 Oct 2021 20:50:50 +0900</pubDate>
+      
+      <guid>/mysql/subquery_tuning/</guid>
+      <description>Subquery Tuning 서브쿼리 동작 방식 filter  서브쿼리의 결과 건수가 몇건이건 상관 없이 전체 쿼리의 결과는 최대 메인쿼리 결과만큼나옴 메인 쿼리 수행 결과 만큼 서브쿼리를 실행함, 쿼리 순서는 메인쿼리 -&amp;gt; 서브쿼리 고정 메인 쿼리 실행 결과 건 수 + 서브쿼리로 input 되는 값 에 따라 경우의 수 나뉠 수 있음  메인 쿼리 실행 결과 건 수 많음 + input 되는 값이 unique 한 경우 메인 쿼리 실행 결과 건 수 적음 + input 되는 값이 unique 한 경우 메인 쿼리 실행 결과 건 수 많음 + input 되는 값이 unique 하지 않고 중복되는 값이 많음 2&amp;gt;3&amp;gt;1 순으로 성능 나올 것 Filter 동작 방식은 메인쿼리의 실행 결과 건수가 많고 (조인 시도 횟수 증가),서브 쿼리에 제공하는 input 값의 종류가 많을 수록 성능이 좋지않음 (캐싱 효율 떨어짐)</description>
+    </item>
+    
+    <item>
+      <title>MySQL 8.0 to MySQL 5.7 replication 구성 시 collation issue</title>
+      <link>/mysql/mysql8to57_collation/</link>
+      <pubDate>Mon, 04 Oct 2021 20:45:34 +0900</pubDate>
+      
+      <guid>/mysql/mysql8to57_collation/</guid>
+      <description>MySQL 8.0 to MySQL 5.7 replication 구성 시 collation issue 이번에 MySQL 5.7을 사용하는 서비스를 MySQL 8.0으로 업그레이드 하는 작업을 진행했습니다.
+MySQL 8.0 은 MySQL 5.7에서 받은 mysqldump 로 신규 구성 후 MMM 을 사용하여 role change 과정을 통해 MySQL 8.0을 한대 씩 투입하여
+최종적으로는 MySQL 8.0 두대를 서비스에 투입하고, 기존에 사용하던 MySQL 5.7은 혹시모를 롤백용으로 MySQL 8.0 -&amp;gt; MySQL 5.7로의 복제 구성하도록 남겨두는 게 시나리오였습니다.
+MySQL 8.0 과 5.7 의 default collation이 달라서 실패했고 트러블 슈팅한 내용을 정리해봤습니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL INSERT INTO ON DUPLICATE KEY UPDATE로 인한 deadlock 이슈</title>
+      <link>/mysql/insert_on_duplicate_lock/</link>
+      <pubDate>Mon, 04 Oct 2021 20:01:46 +0900</pubDate>
+      
+      <guid>/mysql/insert_on_duplicate_lock/</guid>
+      <description>MySQL INSERT INTO ON DUPLICATE KEY UPDATE 로 인한 LOCK 이슈 MySQL의 편리한 기능 중 INSERT INTO ~ ON DUPLICATE KEY UPDATE 구문이 있습니다.
+unique key, primary key 로 unique 제약조건이 걸려 있는 상황에서 중복된 데이터가 들어오면 DUPLICATE KEY UPDATE 구문으로 update 를 수행하는 구문인데요.
+ORACLE 이나 기타 DB에서는 REPLCAE 에 해당하는 구문입니다.
+참 편리한 기능이지만 DML이 많이 발생하는 상황에서 동일한 ROW 에 UPDATE 를 시도하는 세션이 많이 쌓이는 경우</description>
+    </item>
+    
+    <item>
+      <title>MySQL outer join or조건 튜닝</title>
+      <link>/mysql/outer_join_or_tuning/</link>
+      <pubDate>Mon, 04 Oct 2021 19:08:57 +0900</pubDate>
+      
+      <guid>/mysql/outer_join_or_tuning/</guid>
+      <description>OUTER JOIN OR 조건 튜닝 쿼리 검수를 하는데 처음 접하는 쿼리를 보게 되어 당황스러웠던 경험이 있습니다.
+바로 LEFT OUTER JOIN 의 JOIN 절에 OR 조건이 달려있는 쿼리였는데요.
+항상 JOIN on a.id = b.id 같은 단일조건, 조건이 더 달려 봤자 AND 조건이었는데 OR 조건은 처음 접하는 경험이었는데요
+저는 LEFT OUTER JOIN 절에 OR 조건이 포함되면 인덱스를 타지못해 성능이 좋지 않아 아래와 같이 쿼리를 튜닝했습니다.
+쿼리 확인 select tb1.`ymdt` as col_0_0_, tb1.`amount` as col_1_0_, .</description>
+    </item>
+    
+    <item>
+      <title>MySQL 특정 테이블만 시점복구 하기</title>
+      <link>/mysql/restore_specific_table/</link>
+      <pubDate>Mon, 04 Oct 2021 19:03:39 +0900</pubDate>
+      
+      <guid>/mysql/restore_specific_table/</guid>
+      <description>MySQL 특정 테이블만 시점복구 하기 얼마 전 서비스 로직 이슈로 특정 데이터들이 CASCADE 삭제되어 데이터가 유실되는 일이 발생했습니다.
+영향 받은 테이블들은 전체 테이블들 중 두개였고 전체 서비스를 장애 시점 이전으로 롤백시킬 수는 없는 상황이었기 때문에 해당 테이블들만 복구를 진행했습니다.
+대상 테이블들은 특히 또 FOREIGN KEY constraint 가 걸려있어서 여러모로 생각해줘야 하는 부분들이 많았습니다.
+먼저 복구 시나리오는 아래와 같습니다.
+* 복구 시점 찾기 * 최신 백업본 로드 (10/30일 새벽 백업본) * 10/30일 새벽 백업본 + 장애 시점 전 까지의 binary log 적용 ( 대상 테이블 관련 DML만 추출해서 적용하기 ) * 장애유발쿼리 제거하고 그 이후부터 현재까지의 binary log 적용 (대상 테이블 관련 DML만 추출해서 적용하기 )   복구 대상 binlog 추출  $ mysqlbinlog mysql-bin.</description>
+    </item>
+    
+    <item>
+      <title>MySQL online으로 일반테이블 파티셔닝 전환하기</title>
+      <link>/mysql/ptosc_partitioning/</link>
+      <pubDate>Mon, 04 Oct 2021 18:57:20 +0900</pubDate>
+      
+      <guid>/mysql/ptosc_partitioning/</guid>
+      <description>MySQL online으로 일반테이블 파티셔닝 전환하기 기존 일반테이블을 파티셔닝 테이블로 변환할 때 pt-osc 를 활용하여 온라인 작업으로 할 수 없을까 검색하던 중
+카카오에서는 아래의 내용처럼 pt-osc를 수정하여 사용한다는 것을 알게 되었습니다
+http://small-dbtalk.blogspot.com/2014/04/pt-online-schema-change-modified-pt.html
+간단하게 요약하자면
+MySQL에서 하나의 ALTER 문으로 처리하지 못하는 DDL작업들을 pt-osc에서도 처리하지 못했는데요.
+대표적으로 일반테이블을 파티션테이블로 전환하는 경우
+PK 구성 변경과 파티셔닝 커맨드를 하나의 ALTER문으로 표현할 수 없기 때문에 pt-osc를 활용할 수 없습니다.
+이런 점을 개선하기 위해
+–prompt-before-copy 라는 커맨드를 추가하여</description>
+    </item>
+    
+    <item>
+      <title>MySQL mysqladmin utility로 간단하게 모니터링하기</title>
+      <link>/mysql/mysqladmin_utility/</link>
+      <pubDate>Mon, 04 Oct 2021 18:50:05 +0900</pubDate>
+      
+      <guid>/mysql/mysqladmin_utility/</guid>
+      <description>mysqladmin utility로 간단하게 모니터링하기 운영환경의 MySQL 서버들은 보통 prometheus 와 grafana 등을 통해 구축된 모니터링 시스템으로 모니터링 및 로깅을 하고 있습니다.
+그러나 외부 프로젝트 등으로 이러한 모니터링 시스템을 활용할 수 없는 경우에는 어떻게 해야할까요?
+OS 상태는 iostat, vmstat 등으로 로깅할 수 있겠고 MySQL은 show global status 와 show processlist 등을 로깅하는 프로그램을 짤 수 있겠죠?
+이 방법보다 더 간단한 방법이 있는데 바로 mysqladmin utility 입니다.
+mysqladmin processlist status extended-status -uroot -pxxx --sleep=10 --count=1000 --relative -c, --count=# Number of iterations to make.</description>
+    </item>
+    
+    <item>
+      <title>MySQL8 skip locked / nowait 활용하기</title>
+      <link>/mysql/mysql8_skip_locked_nowait/</link>
+      <pubDate>Mon, 04 Oct 2021 18:46:41 +0900</pubDate>
+      
+      <guid>/mysql/mysql8_skip_locked_nowait/</guid>
+      <description>MySQL8.0 SKIP LOCKED / NOWAIT 활용하기 MySQL 8.0 버전부터는 읽기 일관성을 위한 read lock 에 대해 두가지 옵션이 추가되었습니다.
+ NOWAIT : 쿼리를 실행 후 읽으려는 row에 lock이 걸려있으면 바로 트랜잭션 실패 처리 (innodb_lock_wait_timeout 만큼 기다리지 않고 바로) SKIP LOCKED : 쿼리를 실행 후 읽으려는 row에 lock 이 걸려있으면 해당 row skip 하고 resultset return  동시성 이슈를 해결하기 위해 select ~ for update , select ~ for shared mode 같은 쿼리를 수행할 때 위 옵션을 줄 수 있는데 언제 사용하면 좋을까요?</description>
+    </item>
+    
+    <item>
+      <title>MySQL Foreign Key 1215 error</title>
+      <link>/mysql/fk_error/</link>
+      <pubDate>Mon, 04 Oct 2021 18:37:54 +0900</pubDate>
+      
+      <guid>/mysql/fk_error/</guid>
+      <description>MySQL Foreign Key 1215 error 얼마전 담당하는 MySQL 서비스의 복제본 한벌을 더 추가 구성하게 되었습니다.
+single-transaction + dump-slave 혹은 single-transaction + master-data 옵션으로 mysqldump 를 받은 뒤
+새 서버에 반영해주고 dumpfile에 dump-slave / master-data 옵션으로 인해 딸려온 change master to 구문을 확인하여
+replication을 맺어주면 되는 아주 간단한 작업인데요
+그런데 실패했습니다…
+ replication error log  show slave status\G; . . Last_Errno: 1146 Last_Error: Error &#39;Table &#39;xxxxx.xxxx&#39; doesn&#39;t exist&#39; on query. Default database: &#39;xxxxxxxxxxxx&#39;.</description>
+    </item>
+    
+    <item>
+      <title>MySQL innodb_rollback_on_timeout 설정</title>
+      <link>/mysql/innodb_rollback_on_timeout/</link>
+      <pubDate>Mon, 04 Oct 2021 18:06:40 +0900</pubDate>
+      
+      <guid>/mysql/innodb_rollback_on_timeout/</guid>
+      <description>MySQL innodb_rollback_on_timeout 설정 흔히 transaction 이라 하면 자동적으로 떠오르는게 트랜잭션의 특성인 ACID 입니다.
+MySQL의 Innodb도 transaction을 지원하는 storage engine으로 당연히 ACID 또한 지켜질텐데요.
+그런데 Innodb에서 이 ACID에도 예외사항이 있다는 사실을 알고 계셨나요?
+공식 manual 의 문서대로 innodb는 timeout이 발생한 transaction에 대해
+옵션에 따라 전체 트랜잭션을 rollback 하거나, 마지막 커맨드만 rollback (default)을 합니다.
+그리고 이것을 결정 짓는 파라미터가 바로 innodb_rollback_on_timeout 인데요
+지금부터 innodb_rollback_on_timeout 설정에 따른 rollback 테스트를 살펴보겠습니다.
+innodb_rollback_on_timeout=off (default) test 는 아래와 같이 진행했습니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL fragmentaion 원인과 해결방법</title>
+      <link>/mysql/table_fragmentation/</link>
+      <pubDate>Mon, 04 Oct 2021 18:00:06 +0900</pubDate>
+      
+      <guid>/mysql/table_fragmentation/</guid>
+      <description>MySQL fragmentation 원인과 해결방법 MySQL에서 테이블 fragmentation 현상을 경험해보신 적 있으신가요?
+fragmentation이란 insert &amp;amp; delete 가 수차례 반복되면서 page 안에 회수가 안되는 사용되지 않는 부분이 많아지면서 발생하게 되는데
+그 영향으로 테이블이 실제로 가져야 하는 OS 공간 보다 더 많은 공간을 차지하게 됩니다.
+얼마전에 저도 운영하는 서비스에서 단편화가 심하게 된 테이블을 발견하게 되었는데요
+이번 글에서는 단편화현상을 해소하는 방법과 그 원인에 대해서 알아보도록 하겠습니다.
+fragmentation 확인  대상 테이블 OS 사이즈  $ du -sh tb_test* 12K tb_test.</description>
+    </item>
+    
+    <item>
+      <title>MySQL IN조건은 &#39;=&#39;과 같을까</title>
+      <link>/mysql/mysql_in_tuning/</link>
+      <pubDate>Mon, 04 Oct 2021 17:53:52 +0900</pubDate>
+      
+      <guid>/mysql/mysql_in_tuning/</guid>
+      <description>MySQL IN조건은 &amp;lsquo;=&amp;lsquo;과 같을까 저같은 쿼리 왕초보들은 where 절의 IN list 조건을 보면
+‘=’ 과 동일하게 생각하는 경우가 드문드문 있을 것 같습니다. 일단 전 그랬습니다….
+쿼리 검수를 하다가 IN 조건이 무조건 ‘=&amp;lsquo;과 동일한 것은 아니다 라는 것을 알게 되어 기록남겨봅니다.
+SELECT t2.column1 , t3.column1 FROM tb_test1 t1 INNER JOIN tb_test2 t2 ON t2.column1 = t1.column1 INNER JOIN tb_test3 ON t3.column1 = t1.column1 WHERE t1.coulmn1 = #{idNo} AND t1.column2 = &#39;N&#39; AND t1.</description>
+    </item>
+    
+    <item>
+      <title>MySQL PMM alertmanager로 알람받기</title>
+      <link>/mysql/alertmanager/</link>
+      <pubDate>Mon, 04 Oct 2021 17:34:10 +0900</pubDate>
+      
+      <guid>/mysql/alertmanager/</guid>
+      <description>PMM alertmanager 로 알람받기 지난 글에서 MySQL 에서 생기는 일들을 모니터링 하는 PMM 구축 방법에 대해 소개해드렸습니다.
+https://kimdubi.github.io/mysql/mysql_pmm/
+그러나 모니터링 서버가 있어도 바로 이슈를 전달 받지 못하면 아무 소용이 없겠죠?
+그래서 이번 글에서는 alertmanager 를 통해서 PMM에서 감지 된 이슈들을 sms으로 받는 방법에 대해 소개해드리겠습니다.
+alertmanager 란? prometheus 를 통해 수집된 metric에서 사전에 설정해둔 alert rule 에 해당하는
+이벤트가 발생하면 alertmanager 에게 알림이 가고
+alertmanager는 이 알람을 email,slack, web-hook 등 다양한 방법으로 전달하는 역할을 합니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL8 replication REQUIRE_TABLE_PRIMARY_KEY_CHECK</title>
+      <link>/mysql/mysql8_replication_force_pk/</link>
+      <pubDate>Mon, 04 Oct 2021 17:28:58 +0900</pubDate>
+      
+      <guid>/mysql/mysql8_replication_force_pk/</guid>
+      <description>MySQL8.0 Replication REQUIRE_TABLE_PRIMARY_KEY_CHECK MySQL 8.0 부터 replication 관련 재밌는 기능들이 많이 생겼는데
+그 중 하나가 오늘 소개해드릴 REQUIRE_TABLE_PRIMARY_KEY_CHECK 기능입니다.
+replication 구성 환경에서 Table 생성 시 Primary key를 항상 강제시킬 수 있는 기능인데요
+이전부터 CUBRID 라는 DB에서는 PK가 없는 테이블은 replication이 안되는데
+CUBRID가 떠오르는 기능이네요
+REQUIRE_TABLE_PRIMARY_KEY_CHECK 란?  performance_schema.replication_applier_configuration (8.0.20 이상 지원)  mysql&amp;gt; desc performance_schema.replication_applier_configuration; +---------------------------------+---------------------------+------+-----+---------+-------+ | Field | Type | Null | Key | Default | Extra | +---------------------------------+---------------------------+------+-----+---------+-------+ | CHANNEL_NAME | char(64) | NO | PRI | NULL | | | DESIRED_DELAY | int | NO | | NULL | | | PRIVILEGE_CHECKS_USER | text | YES | | NULL | | | REQUIRE_ROW_FORMAT | enum(&#39;YES&#39;,&#39;NO&#39;) | NO | | NULL | | | REQUIRE_TABLE_PRIMARY_KEY_CHECK | enum(&#39;STREAM&#39;,&#39;ON&#39;,&#39;OFF&#39;) | NO | | NULL | | +---------------------------------+---------------------------+------+-----+---------+-------+ =&amp;gt; replication 구성에서 Slave가 Master의 트랜잭션을 반영할 때</description>
+    </item>
+    
+    <item>
+      <title>MySQL MHA method 추가하기</title>
+      <link>/mysql/mha_method_add/</link>
+      <pubDate>Mon, 04 Oct 2021 17:12:49 +0900</pubDate>
+      
+      <guid>/mysql/mha_method_add/</guid>
+      <description>MySQL MHA method 추가하기 지난 event 관련 글에서 보았던 것 처럼 MHA 구성 환경에서 failover 발생 시
+slave-&amp;gt;master db로 승격은 되지만 그에 따라 event의 status는 변경이 되지 않았고 수동으로 상태를 설정해야 합니다.
+현재 운영하는 maria db들은 모두 master에서만 event를 수행하고 있기 때문에
+MHA failover 발생 시 event status도 enable 시키는 기능이 있으면 좋겠다는 생각에 MHA 스크립트를 수정해보았습니다.
+이번 글 내용은 event 자동 enable 설정 관련 내용이지만 아래와 같은 방식으로 원하는 기능을 추가하시면 됩니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL xtrabackup lsn 유실 이슈</title>
+      <link>/mysql/xtrabackup_lsn_error/</link>
+      <pubDate>Mon, 04 Oct 2021 16:57:19 +0900</pubDate>
+      
+      <guid>/mysql/xtrabackup_lsn_error/</guid>
+      <description>MySQL Xtrabackup LSN 유실 에러 xtrabackup 백업 본으로 복구 할 때 LSN이 유실되었던 이슈가 발생해서 원인과 해결방법을 공유드리겠습니다.
+Xtrabackup 복구 후 MySQL 기동 실패 InnoDB: Starting an apply batch of log records to the database... InnoDB: Progress in percent: InnoDB: Page [page id: space=695, page number=81921] log sequence number 11324236422964 is in the future! Current system log sequence number 11324230185692. InnoDB: Your database may be corrupt or you may have copied the InnoDB tablespace but not the InnoDB log files.</description>
+    </item>
+    
+    <item>
+      <title>MySQL Crash-safe replication</title>
+      <link>/mysql/crash_safe/</link>
+      <pubDate>Mon, 04 Oct 2021 16:53:48 +0900</pubDate>
+      
+      <guid>/mysql/crash_safe/</guid>
+      <description>MySQL crash-safe replication MySQL crash-safe replication 기능은 5.6 버전부터 생긴 오래된 개념입니다.
+slave DB가 crash 되어 재기동 되는 경우에도 data 중복이나 유실 같은
+replication이 깨지는 경우를 막기 위한 기능인데요
+이번 글에서는 MySQL crash-safe replication 에 대해서 살펴보겠습니다.
+crash-safe replication 개념 replication 수행 중 Slave의 status를 file에 update 하기 전에 Slave DB가 crash 후 재기동 되는 경우 마지막 트랜잭션을 재수행 하기 때문에 중복 에러등으로 replication이 깨질 수 있습니다.
+이를 보완하기 위해 나온 설정이 relay_log_info_repository=TABLE 이며</description>
+    </item>
+    
+    <item>
+      <title>MySQL self replication으로 빠른 복구하기</title>
+      <link>/mysql/mysql_self_replication/</link>
+      <pubDate>Mon, 04 Oct 2021 15:38:28 +0900</pubDate>
+      
+      <guid>/mysql/mysql_self_replication/</guid>
+      <description>MySQL 시점복구 빠르게 수행하는 팁 mysql에서 시점복구를 할 때 가장 흔히 사용하는 방법이 mysqlbinlog를 통해
+binary log을 parsing 하고 이를 순차적으로 적용하는 방법인데요
+이 방법은 single thread로 수행되기 때문에 그 속도가 굉장히 느릴 수 있습니다.
+MariaDB에서에서 이러한 문제점을 피하기 위해 mysql replication의 SQL-thread을
+사용한 방법을 공유한 적이 있습니다.
+https://sarc.io/index.php/mariadb/1438-mariadb-point-in-time-recovery
+mysql 과 mariadb는 gtid 사용방법이 조금 달라서 위의 방법도 조금 다른데요
+이번 글에서는 mysql에서 수행하는 방법을 공유드리겠습니다.
+필요 설정 gtid-mode = ON enforce-gtid-consistency replicate-same-server-id=1 =&amp;gt; 원래 replication은 node 간의 server-id 가 달라야하는데</description>
+    </item>
+    
+    <item>
+      <title>MySQL CPU많이 쓰는 session(thread) 찾기</title>
+      <link>/mysql/mysql_thread_pidstat/</link>
+      <pubDate>Mon, 04 Oct 2021 15:32:38 +0900</pubDate>
+      
+      <guid>/mysql/mysql_thread_pidstat/</guid>
+      <description>MySQL CPU 많이 사용하는 세션 찾기 MySQL은 PostgreSQL, Oracle 과 같은 프로세스 기반 DB가 아니라 쓰레드 기반 DBMS입니다.
+MySQL의 DB 내부 쓰레드와 OS 쓰레드를 일치시켜서 확인하는 도구가 없기 때문에
+DB의 어떤 세션이 리소스를 특별히 많이 잡고 있는지 확인할 때 OS의 utility 를 사용하는 데 있어서 제한점이 있었는데요
+이 문제는 5.7 버전으로 올라오면서 PERFORMANCE_SCHEMA.THREADS 테이블에 thread_os_id 컬럼이 추가되면서 확인이 쉬워졌습니다.
+확인 방법  OS - pidstat  [test@testserver 22:09:12 ~ ]$ pidstat -t -p `/sbin/pidof mysqld` 5 Linux 2.</description>
+    </item>
+    
+    <item>
+      <title>MySQL PMM 수동 설치</title>
+      <link>/mysql/mysql_pmm/</link>
+      <pubDate>Mon, 04 Oct 2021 15:27:46 +0900</pubDate>
+      
+      <guid>/mysql/mysql_pmm/</guid>
+      <description>MySQL PMM 수동 설치 이전에 docker 를 사용하여 PMM 구성하는 법을 다룬 적이 있는데 이번 글에서는 docker 가 아닌 수동으로 구성하는 방법에 대해 정리해보겠습니다.
+https://sarc.io/index.php/mariadb/1268-mariadb-monitoring-pmm
+https://sarc.io/index.php/mariadb/1269-mariadb-monitoring-pmm-2
+설치파일 wget https://github.com/prometheus/prometheus/releases/download/v1.2.3/prometheus-1.2.3.linux-amd64.tar.gz wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.9.0/mysqld_exporter-0.9.0.linux-amd64.tar.gz wget https://github.com/prometheus/node_exporter/releases/download/v0.13.0-rc.1/node_exporter-0.13.0-rc.1.linux-amd64.tar.gz wget https://dl.grafana.com/oss/release/grafana-6.4.2.linux-amd64.tar.gz  prometheus 설정 (모니터링 서버)  prometheus.yaml 설정  [root@b871f6768909 prometheus-1.2.3.linux-amd64]# cat prometheus.yml global: scrape_interval: 1m scrape_timeout : 1s scrape_configs: - job_name: linux static_configs: - targets: [&#39;localhost:9100&#39;] #내서버 ip:9100 node_exporter labels: instance : mysql_OS - job_name: mysql static_configs: - targets: [&#39;localhost:9104&#39;] #내서버 ip:9104 mysql_exporter labels: instance : mysql_DB  prometheus 기동  [root@b871f6768909 prometheus-1.</description>
+    </item>
+    
+    <item>
+      <title>MySQL8 Multi Source Replication 개선점</title>
+      <link>/mysql/mysql8_multi_source_replication/</link>
+      <pubDate>Mon, 04 Oct 2021 15:17:13 +0900</pubDate>
+      
+      <guid>/mysql/mysql8_multi_source_replication/</guid>
+      <description>MySQL8 Multi Source Replication 개선점 5.7과 8.0 multi-source replication 차이점 mysql 5.7 버전부터 multi-source replication 기능이 생기면서 유용하게 사용되고 있지만
+두대 이상의 Master 에서 같은 이름의 database를 구분 지어 다른 db명으로 변경해서
+replication 해오는 기능은 지원되지 않았습니다.
+replication filter 가 channel 별로 적용 되는 게 아닌 , global 로 적용되어
+replication_rewrite_db filter를 마음대로 사용할 수 없었기 때문인데
+mysql 8 버전대에서 이 부분이 아래와 같이 가능해졌습니다.
+MySQL 5.7 Master 1: kimdubi_db =&amp;gt; Slave : kimdubi_db Master 2: kimdubi_db =&amp;gt; Slave : kimdubi_db  =&amp;gt; replication_rewrite_db filter 가 global 로 적용되기 때문에 위와 같이 master host 가 달라도 data 충돌의 위험이 있음</description>
+    </item>
+    
+    <item>
+      <title>MySQL Multi Source Replication</title>
+      <link>/mysql/multi_source_replication/</link>
+      <pubDate>Mon, 04 Oct 2021 15:00:07 +0900</pubDate>
+      
+      <guid>/mysql/multi_source_replication/</guid>
+      <description>MySQL Multi Source Replication Multi Source Replication ? 하나의 slave db서버가 여러개의 master와 연결하여 replication 을 구성하는 기능으로 mysql 5.7.x 버전대 부터 사용가능함
+백업 용도, 로그 통합 DB, 배치작업 등을 위해 데이터를 한곳에 모을 필요가 있을 때 매우 유용한 기능
+ multi master 와 multi source 는 다른 개념   slave는 여러 개의 master 를 channel name 으로 구분함  구성방법  replication repository 설정  mysql&amp;gt; show variables like &#39;%repository%&#39;; +---------------------------+-------+ | Variable_name | Value | +---------------------------+-------+ | master_info_repository | TABLE | | relay_log_info_repository | TABLE | +---------------------------+-------+ 2 rows in set (0.</description>
+    </item>
+    
+    <item>
+      <title>MySQL 대량 데이터 delete</title>
+      <link>/mysql/mysql_delete/</link>
+      <pubDate>Mon, 04 Oct 2021 11:07:44 +0900</pubDate>
+      
+      <guid>/mysql/mysql_delete/</guid>
+      <description>MySQL 대량 데이터 삭제하는 방법 대용량 테이블의 과거 데이터를 지우는 작업을 종종 할 때가 있는데요
+파티션 테이블의 경우에는 exchange partition 를 통해서 손쉽게 작업을 할 수 있지만
+일반 테이블의 경우에는 repetable-read 일 때 next key lock 영향을 최소화 하기위해
+pk를 기준으로 row 단위로 끊어서 삭제하는 방법이 필요합니다.
+이번 글에서는 각각 상황에 맞는 데이터 삭제 방법을 공유하겠습니다.
+partition table partition table 의 경우 exchange partition 커맨드를 통해 손쉽게 과거 데이터를 삭제할 수 있습니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL VARCHAR online ddl 변경 시 주의사항</title>
+      <link>/mysql/varchar_online_ddl/</link>
+      <pubDate>Mon, 04 Oct 2021 11:03:00 +0900</pubDate>
+      
+      <guid>/mysql/varchar_online_ddl/</guid>
+      <description>MySQL online DDL varchar 변경 시 주의사항 MySQL의 버전이 올라갈수록 online DDL 지원 범위가 넓어지고 있습니다.
+그런데 의외로 자유자재로 변경가능할 것 같은 varchar column의 사이즈 변경이 특정 케이스에서는
+online DDL이 안되기 때문에 주의가 필요합니다.
+(MySQL 8.0 버전도 동일)
+ VARCHAR column 256 bytes 미만에서 그 이상으로 변경 VARCHAR size 줄이기  varchar size 256 bytes 이상으로 변경하는 경우  table charset=utf8mb4   Table: test Create Table: CREATE TABLE `test` ( `a` varchar(1) DEFAULT NULL, `b` varchar(64) DEFAULT NULL ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ### varchar(1) =&amp;gt; varchar(63) mysql&amp;gt; alter table test modify a varchar(63), algorithm=inplace, lock = none; Query OK, 0 rows affected (0.</description>
+    </item>
+    
+    <item>
+      <title>MySQL metadata lock 확인하는 procedure</title>
+      <link>/mysql/metadata_procedure/</link>
+      <pubDate>Mon, 04 Oct 2021 10:52:03 +0900</pubDate>
+      
+      <guid>/mysql/metadata_procedure/</guid>
+      <description>MySQL metadata lock 상황 한눈에 확인하기 트래픽이 많아 쿼리가 많이 수행되는 환경에서는 단순 쿼리로는 metadata lock 을 찾기 힘들 때도 있습니다.
+percona에서 공유한 metadata lock holder와 waiter를 쉽게 확인할 수 있는 프로시져 관련 글이 있어 공유드립니다.
+(https://www.percona.com/blog/2016/12/28/quickly-troubleshooting-metadata-locks-mysql-5-7/)
+procedure USE test; DROP PROCEDURE IF EXISTS procShowMetadataLockSummary; delimiter // CREATE PROCEDURE procShowMetadataLockSummary() BEGIN DECLARE table_schema VARCHAR(64); DECLARE table_name VARCHAR(64); DECLARE id bigint; DECLARE time bigint; DECLARE info longtext; DECLARE curMdlCount INT DEFAULT 0; DECLARE curMdlCtr INT DEFAULT 0; DECLARE curMdl CURSOR FOR SELECT * FROM tmp_blocked_metadata; DROP TEMPORARY TABLE IF EXISTS tmp_blocked_metadata; CREATE TEMPORARY TABLE IF NOT EXISTS tmp_blocked_metadata ( table_schema varchar(64) , table_name varchar(64) , id bigint , time bigint , info longtext , PRIMARY KEY(table_schema, table_name) ); REPLACE tmp_blocked_metadata(table_schema,table_name,id,time,info) SELECT mdl.</description>
+    </item>
+    
+    <item>
+      <title>MySQL 버전 별 Innodb Architecture</title>
+      <link>/mysql/innodb_architecture/</link>
+      <pubDate>Mon, 04 Oct 2021 10:47:11 +0900</pubDate>
+      
+      <guid>/mysql/innodb_architecture/</guid>
+      <description>MySQL 버전 별 Innodb Architecture 이번 글에서는 MySQL 의 Innodb 엔진 아키텍처가 버전에 따라 어떻게 달라졌는지 간단히 살펴보겠습니다.
+MySQL 5.6 MySQL 5.7 5.6 =&amp;gt; 5.7 변경사항  MySQL 5.5 =&amp;gt; 5.6 으로 올라오면서 undo log를 System tablespace (ibdata) 에서 별도로 둘 수 있게됨 커진 undo log truncate 기능 (set global innodb_undo_log_truncate = ON)  innodb_max_undo_log_size 보다 커지면 truncate 수행 innodb_undo_tablespaces &amp;gt; 1 이상 설정하여 system tablespace에 undo 없도록 설정 필요   MySQL 5.</description>
+    </item>
+    
+    <item>
+      <title>MySQL / ORACLE PARTITION DDL 비교</title>
+      <link>/mysql/partition_ddl/</link>
+      <pubDate>Mon, 04 Oct 2021 10:39:52 +0900</pubDate>
+      
+      <guid>/mysql/partition_ddl/</guid>
+      <description>이번 글에서는 ORACLE과 MySQL의 파티션 테이블 구문의 차이점에 대해서 알아보겠습니다.
+ORACLE / MySQL partition DDL 차이점    기능 ORACLE MySQL     ADD ALTER TABLE PARTITION_TEST ADD PARTITION P1 VALUES LESS THAN (&amp;lsquo;2020-03-01&amp;rsquo;) TABLESPACE TABS1 ALTER TABLE PARTITION_TEST ADD PARTITION (PARTITION P1 VALUES LESS THAN (&amp;lsquo;2020-03-01&amp;rsquo;) TABLESPACE TABS1)   DROP ALTER TABLE PARTITION_TEST DROP PARTITION P1 ALTER TABLE PARTITION_TEST DROP PARTITION P1   SPLIT ALTER TABLE SPLIT PARTITION P_MAX AT (&amp;lsquo;2020-04-01&amp;rsquo;) INTO (PARTITION P2 TABLESPACE TABS2, PARTITION P_MAX TABLESPACE TABS) ALTER TABLE PARTITION_TEST REORGANIZE PARTITION P1,P2 INTO (PARTITION P2 LESS THAN (&amp;lsquo;2020-04-01&amp;rsquo;))   MERGE ALTER TABLE PARTITION_TEST MERGE PARTITION P1,P2 INTO P2 ALTER TABLE PARTITION_TEST REORGANIZE PARTITION P1,P2 INTO (PARTITION P2 LESS THAN (&amp;lsquo;2020-04-01&amp;rsquo;))   TRUNCATE ALTER TABLE PARTITION_TEST TRUNCATE PARTITION P1 ALTER TABLE PARTITION_TEST TRUNCATE PARTITION P1   EXCHANGE ALTER TABLE PARTITION_TEST EXCHANGE PARTITION P1 WITH TABLE NONPARTITION_TEST ALTER TABLE PARTITION_TEST EXCHANGE PARTITION P1 WITH TABLE NONPARTITION_TEST   MOVE ALTER TABLE PARTITION_TEST MOVE PARTITION P1 TABLESPACE TABS1 -   RENAME ALTER TABLE PARTITION_TEST RENAME PARTITION P1 TO P1_RENAME -    이외에도 아래와 같은 차이점이 더 있습니다</description>
+    </item>
+    
+    <item>
+      <title>MySQL binlog2sql으로 flashback 복구하기</title>
+      <link>/mysql/binlog2sql_flashback/</link>
+      <pubDate>Mon, 04 Oct 2021 10:28:20 +0900</pubDate>
+      
+      <guid>/mysql/binlog2sql_flashback/</guid>
+      <description>MySQL Flashback recovery MySQL에서는 flashback recovery가 아직 지원되지 않습니다.
+그래서 MariaDB의 mysqlbinlog utility를 가져와서 사용하곤 했는데
+binlog2sql 이라는 utility를 사용하면 MySQL에서도 flashback recovery를 할 수 있습니다.
+binlog2sql  mysqlbinlog 처럼 binary log를 parsing 하는 유틸리티 MariaDB 에서는 제공되던 flashback 기능을 mysql 에서 binlog2sql을 통해 사용할 수 있음 schema-fileter 기능 (database,table) query-filter 기능 (dml-insert,update,delete) interval-filter 기능 (file,datetime) GTID 는 지원하지않음  install git clone https://github.com/danfengcao/binlog2sql.git cd binlog2sql pip install -r requirements.txt   mysql8 버전은 PyMySQL , mysql-replication 아래 버전 이상 사용해야함  PyMySQL==0.</description>
+    </item>
+    
+    <item>
+      <title>MySQL random data 준비하기</title>
+      <link>/mysql/mysql_random_data/</link>
+      <pubDate>Mon, 04 Oct 2021 10:10:54 +0900</pubDate>
+      
+      <guid>/mysql/mysql_random_data/</guid>
+      <description>MySQL test data 쉽게 준비하는 방법 성능 테스트 등 테스트를 위해 test data를 생성해야할 때가 있습니다
+프로시저를 생성하거나 sysbench 를 수정해서 사용해도 되지만 그보다 더 편한 tool을 찾게 되어 소개드리겠습니다. percona에서 만든 mysql_random_data_load 라는 툴입니다.
+install https://github.com/Percona-Lab/mysql_random_data_load/releases/download/v0.1.12/mysql_random_data_load_0.1.12_Linux_x86_64.tar.gz  TEST  table 생성   CREATE DATABASE IF NOT EXISTS test; CREATE TABLE `test`.`t3` ( `id` int(11) NOT NULL AUTO_INCREMENT, `tcol01` tinyint(4) DEFAULT NULL, `tcol02` smallint(6) DEFAULT NULL, `tcol03` mediumint(9) DEFAULT NULL, `tcol04` int(11) DEFAULT NULL, `tcol05` bigint(20) DEFAULT NULL, `tcol06` float DEFAULT NULL, `tcol07` double DEFAULT NULL, `tcol08` decimal(10,2) DEFAULT NULL, `tcol09` date DEFAULT NULL, `tcol10` datetime DEFAULT NULL, `tcol11` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, `tcol12` time DEFAULT NULL, `tcol13` year(4) DEFAULT NULL, `tcol14` varchar(100) DEFAULT NULL, `tcol15` char(2) DEFAULT NULL, `tcol16` blob, `tcol17` text, `tcol18` mediumtext, `tcol19` mediumblob, `tcol20` longblob, `tcol21` longtext, `tcol22` mediumtext, `tcol23` varchar(3) DEFAULT NULL, `tcol24` varbinary(10) DEFAULT NULL, `tcol25` enum(&#39;a&#39;,&#39;b&#39;,&#39;c&#39;) DEFAULT NULL, `tcol26` set(&#39;red&#39;,&#39;green&#39;,&#39;blue&#39;) DEFAULT NULL, `tcol27` float(5,3) DEFAULT NULL, `tcol28` double(4,2) DEFAULT NULL, PRIMARY KEY (`id`) ) ENGINE=InnoDB;  insert  [root@46249296ede3 mysql57]# .</description>
+    </item>
+    
+    <item>
+      <title>MySQL의 timeout 설정</title>
+      <link>/mysql/mysql_timeout/</link>
+      <pubDate>Mon, 04 Oct 2021 10:07:48 +0900</pubDate>
+      
+      <guid>/mysql/mysql_timeout/</guid>
+      <description>MySQL의 timeout 설정 sleep 세션 client-mysql 서버와 연결 후 다음 query 수행까지 대기중인 상태의 세션
+sleep 세션이 너무 많고 정리가 안되는 경우 connection full 로 인해 신규 세션 접속이 불가능해지고
+session 별 할당 되는 메모리로 인해 memory 부족 현상 발생할 수 있음
+timeout 관련 설정  connect_timeout : MySQL 서버 접속시에 접속실패를 메시지를 보내기까지 대기하는 시간 delayed_insert_timeout : insert시 delay될 경우 대기하는 시간 innodb_lock_wait_timeout : innodb에 transaction 처리중 lock이 걸렸을 시 롤백 될때까지 대기하는 시간으로 innodb는 자동으로 데드락을 검색해서 롤백시킴 innodb_rollback_on_timeout : innodb의 마지막 구문을 롤백시킬지 결정하는 파라미터</description>
+    </item>
+    
+    <item>
+      <title>MySQL mysqldump 테이블별로 쪼개는 법</title>
+      <link>/mysql/mysql_dump_split/</link>
+      <pubDate>Mon, 04 Oct 2021 10:02:52 +0900</pubDate>
+      
+      <guid>/mysql/mysql_dump_split/</guid>
+      <description>MySQL full backup dumpfile 테이블별로 쪼개는법 운영환경에서 DB 백업을 받을 때 보통 xtrabackup이나 mysqldump 으로 풀백업을 받으실텐데요
+사이즈가 엄청 큰 DB를 mysqldump 로 풀백업 받은 경우 복구 시 병렬처리가 안되고 싱글 쓰레드로 처리되기 때문에 굉장히 많은 시간이 소요됩니다.
+이 때 dumpfile을 테이블 별로 쪼개면 병렬로 수행할 수 있게 됩니다.
+이번 글에서는 mysqldump로 받은 풀백업본 dumpfile 을 table별로 쪼개는 방법에 대해 공유 드리겠습니다
+mysqldump 준비 mysqldump --opt --single-transaction -R -Q --all-databases -S /home1/irteam/db/mysql/tmp/mysql.</description>
+    </item>
+    
+    <item>
+      <title>MySQL online DDL을 위한 TOOL 비교 ( pt-osc &amp; gh-ost )</title>
+      <link>/mysql/online_schema_change/</link>
+      <pubDate>Mon, 04 Oct 2021 03:54:13 +0900</pubDate>
+      
+      <guid>/mysql/online_schema_change/</guid>
+      <description>MySQL online DDL을 위한 TOOL pt-osc &amp;amp; gh-ost ONLINE DDL MySQL은 DDL에 대해서 한정적으로 online 작업을 지원합니다.
+online ddl 방식으로는 INPLACE, INSTANT (mysql 8.0부터) 가 있고
+주로 쓰이는 algorithm=INPLACE 방식은 아래와 같은 절차로 ONLINE DDL을 지원합니다.
+1. INPLACE 스키마 변경이 지원되는 커맨드인지, 스토리지 엔진(InnoDB) 인지 확인 2. online 스키마 변경 작업동안 변경되는 데이터를 저장할 준비 (innodb_online_alter_log_max_size) 3. 테이블 스키마 변경 및 DML 로깅 4. 변경 완료된 테이블에 DML 로깅 적용 5.</description>
+    </item>
+    
+    <item>
+      <title>MySQL lossless semi-sync replication</title>
+      <link>/mysql/semisync/</link>
+      <pubDate>Mon, 04 Oct 2021 03:39:53 +0900</pubDate>
+      
+      <guid>/mysql/semisync/</guid>
+      <description>MySQL lossless semi-sync replication MySQL은 ORACLE 과는 HighAvailibility를 충족시키는 방법이 다릅니다.
+하나의 스토리지에 데이터를 이중화,삼중화해서 저장하고 이를 여러 인스턴스가 공유하는 ORACLE의 RAC와는 달리
+MySQL은 Master-Slave의 개념으로 Master의 데이터를 Slave 서버로 복제하고 MHA나 MMM 같은 솔루션을 통해 Master가 down 되었을 때 실시간으로 복제해둔 Slave를 Master로 승격시키는 방식입니다.
+이 방식에는 한가지 문제점이 있는데요.
+바로 Slave가 Master의 데이터를 모두 복제하지 못한채로 Master로 승격이 되는 경우입니다.
+이 문제점을 해결하기 위해서는 단순하게는 Sync 방식으로 복제를 해오면 되겠지만 Slave에도 반영이 되어야 Master의 트랜잭션도 처리가 된다는 점에서 성능 이슈가 발생할 수 있습니다.</description>
+    </item>
+    
+    <item>
+      <title>Xtrabackup8.0 잡다구리 정보 </title>
+      <link>/mysql/xtrabackup8_info/</link>
+      <pubDate>Mon, 04 Oct 2021 03:30:20 +0900</pubDate>
+      
+      <guid>/mysql/xtrabackup8_info/</guid>
+      <description>Xtrabackup 8.0 잡다구리 정보 mysql8.0 버전부터 xtrabackup 을 사용하려면 기존 2.x 버전이 아닌 xtrabackup 8.0 버전을 사용해야 합니다.
+mysql 8.0 버전이 되면서 아래와 같은 이유로 기존 2.x 버전에서 호환이 되지 않기 때문인데요
+ data dictionary 를 따로 사용하게 되고 시스템 테이블들을 MyISAM 엔진이 아닌 innodb 사용 redo / undo log 변경사항  특히 8.0 으로 올라오면서 시스템 테이블 등에 기본적으로 MyISAM 을 쓰지 않는 것이 default 설정이 되면서 xtrabackup 내부적으로도 MyISAM 테이블이 없으면 –no-lock 옵션이 없더라도 flush tables with read lock 을 수행하지 않습니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL GTID</title>
+      <link>/mysql/mysql_gtid/</link>
+      <pubDate>Mon, 04 Oct 2021 03:24:01 +0900</pubDate>
+      
+      <guid>/mysql/mysql_gtid/</guid>
+      <description>MySQL_GTID 란? gtid 란?  Global Transaction IDentifiers GTID = source_id:transaction_Id  source_id = server_uuid    [root@c2b2e13b86b9 data]# cat auto.cnf [auto] server-uuid=ba315763-e7e8-11e9-9c29-0242ac110002  해당 호스트에서 수행한 트랜잭션에 global 한 id 를 commit 순서에 따라 순차적으로 부여함  ba315763-e7e8-11e9-9c29-0242ac110002:4638 =&amp;gt; ba315763-e7e8-11e9-9c29-0242ac110002 server 에서 수행된 4638번 째 트랜잭션을 의미
+ GTID는 master &amp;lt;-&amp;gt; slave 간 복제 시작, 중지의 기준이 되었던 binlog file-offset pairs을 대신함
+=&amp;gt; CHANGE MASTER TO 구문의 MASTER_LOG_FILE, MASTER_LOG_POS 필요없음</description>
+    </item>
+    
+    <item>
+      <title>MySQL MMM 구성</title>
+      <link>/mysql/mysql_mmm/</link>
+      <pubDate>Mon, 04 Oct 2021 03:09:12 +0900</pubDate>
+      
+      <guid>/mysql/mysql_mmm/</guid>
+      <description>MySQL MMM ?  Multi-Master Replication Manager perl 기반의 Auto Failover 지원하는 open source MMM Monitor에서 DB서버 health check와 Failover를 수행함 Monitor &amp;lt;-&amp;gt; Agent (db node)  구성  db1 (master) db2 (master) db3 (slave) mmm monitor 1  setting user 생성 create user &#39;mmm_monitor&#39;@&#39;172.17.0.%&#39; identified by &#39;qhdks123&#39;; GRANT REPLICATION CLIENT ON *.* TO &#39;mmm_monitor&#39;@&#39;172.17.0.%&#39; ; create user &#39;mmm_agent&#39;@&#39;172.17.0.%&#39; identified by &#39;qhdks123&#39;; GRANT SUPER, REPLICATION CLIENT, PROCESS ON *.* TO &#39;mmm_agent&#39;@&#39;172.</description>
+    </item>
+    
+  </channel>
+</rss>

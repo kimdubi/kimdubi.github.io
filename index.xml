@@ -619,7 +619,7 @@ shard =&amp;gt; 실제 데이터의 집합으로 샤드 키에 따라 shard1 / s
       <pubDate>Tue, 05 Oct 2021 08:44:33 +0900</pubDate>
       
       <guid>/mongodb/replicaset_reconfig/</guid>
-      <description>이번 글에서는 mongodb replica Set (이하 RS) 의 Primary 선출 방식과 RS 멤버가 이상할 때 해당 멤버를 제외하고 재설정 하는 방법에 대해서 알아보겠습니다.
+      <description>이번 글에서는 MongoDB replica Set (이하 RS) 의 Primary 선출 방식과 RS 멤버가 이상할 때 해당 멤버를 제외하고 재설정 하는 방법에 대해서 알아보겠습니다.
  RS member 간 hearbeat 실패 감지  I REPL_HB [replexec-11] Heartbeat to mongo_shard1:27018 failed after 2 retries, response status: InvalidReplicaSetConfig: Our replica set con figuration is invalid or does not include us I REPL [replexec-11] Member mongo_shard1:27018 is now in state RS_DOWN - Our replica set configuration is invalid or does not include us I REPL_HB [replexec-11] Heartbeat to 85604da3dcb0:27018 failed after 2 retries, response status: InvalidReplicaSetConfig: Our replica set con figuration is invalid or does not include us I REPL [replexec-11] Member 85604da3dcb0:27018 is now in state RS_DOWN - Our replica set configuration is invalid or does not include us I REPL [replexec-15] can&#39;t see a majority of the set, relinquishing primary I REPL [replexec-15] Stepping down from primary in response to heartbeat I REPL [replexec-18] can&#39;t see a majority of the set, relinquishing primary I REPL [RstlKillOpThread] Starting to kill user operations I REPL [RstlKillOpThread] Stopped killing user operations I REPL [replexec-15] Stepping down from primary, stats: { userOpsKilled: 0, userOpsRunning: 0 } I REPL [replexec-15] transition to SECONDARY from PRIMARY =&amp;gt; repliSet member 중 85604da3dcb0:27018, mongo_shard1 로 heart beat 통신이 실패함</description>
     </item>
     

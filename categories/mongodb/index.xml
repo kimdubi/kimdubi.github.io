@@ -29,7 +29,7 @@
       
       <guid>/mongodb/mongo_shard_cluster_configsvr/</guid>
       <description>지난 글에서 MongoDB shard cluster 개념과 구성하는 방법에 대해 소개드렸고 이번 글에서는 구성요소 중 하나인 config server에 대해 다루겠습니다.
-Config server 란? config server는 shard cluster에서 필요한 모든 메타 정보들을 저장함
+Config server 란? config server는 sharded cluster에서 필요한 모든 메타 정보들을 저장함
 메타정보에는 어느 chunk , 즉 어떤 data 가 어떤 shard 에 있는지, chunk 의 밸런싱 작업은 어떻게 해야할지 등의 메타정보와 사용자 인증 정보가 저장됨
 이렇게 중요한 정보들을 담고 있어서 가용성을 위해 하나의 replSet 으로 구성되어야 함
  config server 정보  repl_conf:PRIMARY&amp;gt; use config; switched to db config repl_conf:PRIMARY&amp;gt; show collections; actionlog changelog chunks collections databases lockpings locks migrations mongos shards system.</description>

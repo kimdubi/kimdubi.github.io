@@ -89,7 +89,7 @@ replica set 설정할 DB 준비 dori:bin mac$ docker run -d -p 30000:27017 --nam
       <guid>/mongodb/mongodb_installation/</guid>
       <description>MongoDB MongoDB는 document-oriented NoSQL 계열 오픈소스 데이터베이스로 아래와 같은 구조로 구성됨
 (출처: https://beginnersbook.com/2017/09/mapping-relational-databases-to-mongodb/)
-Document  Document는 기존 RDBMS 의 record 와 같은 개념으로 MongoDB에서 실제 데이터가 저장되는 방식 JSON 형태의 key-value 쌍으로 이루어져 있음 value에는 array, string, int 등 다양한 type 이 올 수 있음  { name : &amp;quot;kimdubi&amp;quot;, age : 29, interests : [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;] } Collection  RDBMS 의 테이블과 같은 개념  Database   mysql 의 스키마와 같은 개념으로 MongoDB 서버는 여러개의 database로 이루어 질 수 있으며</description>
+Document  Document는 기존 RDBMS 의 record 와 같은 개념으로 MongoDB에서 실제 데이터가 저장되는 방식 JSON 형태의 key-value 쌍으로 이루어져 있음 value에는 array, string, int 등 다양한 type 이 올 수 있음  { name : &amp;quot;kimdubi&amp;quot;, age : 29, interests : [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;] } Collection  RDBMS 의 테이블과 같은 개념  Database   MySQL 의 스키마와 같은 개념으로 MongoDB 서버는 여러개의 database로 이루어 질 수 있으며</description>
     </item>
     
   </channel>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>MMM on kimDuBiA</title>
+    <link>/tags/mmm/</link>
+    <description>Recent content in MMM on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Mon, 04 Oct 2021 03:09:12 +0900</lastBuildDate><atom:link href="/tags/mmm/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL MMM 구성</title>
+      <link>/mysql/mysql_mmm/</link>
+      <pubDate>Mon, 04 Oct 2021 03:09:12 +0900</pubDate>
+      
+      <guid>/mysql/mysql_mmm/</guid>
+      <description>MySQL MMM ?  Multi-Master Replication Manager perl 기반의 Auto Failover 지원하는 open source MMM Monitor에서 DB서버 health check와 Failover를 수행함 Monitor &amp;lt;-&amp;gt; Agent (db node)  구성  db1 (master) db2 (master) db3 (slave) mmm monitor 1  setting user 생성 create user &#39;mmm_monitor&#39;@&#39;172.17.0.%&#39; identified by &#39;qhdks123&#39;; GRANT REPLICATION CLIENT ON *.* TO &#39;mmm_monitor&#39;@&#39;172.17.0.%&#39; ; create user &#39;mmm_agent&#39;@&#39;172.17.0.%&#39; identified by &#39;qhdks123&#39;; GRANT SUPER, REPLICATION CLIENT, PROCESS ON *.* TO &#39;mmm_agent&#39;@&#39;172.</description>
+    </item>
+    
+  </channel>
+</rss>

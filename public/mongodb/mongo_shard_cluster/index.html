@@ -1,0 +1,159 @@
+<!doctype html><html lang=en dir=auto><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>MongoDB Sharded Cluster | kimDuBiA</title><meta name=keywords content="mongodb"><meta name=description content="sharding 은 데이터를 여러 서버에 분산해서 저장 및 처리할 수 있도록 하는 기술입니다.
+replicaset이 MongoDB의 고가용성을 위한 솔루션이라면, sharding은 분산 처리를 위한 솔루션이라 할 수 있으며
+Vertical, Horizontal 모두 적용 가능하나 일반적으로 하나의 Collection(table) 을 여러 샤드로 분산하는 Horizontal sharding 이 적용됩니다.
+이번 글에서는 MongoDB sharding 구성 방법을 살펴보고 다음 글에서 각각의 구성요소에 대해 좀 더 자세하게 살펴보도록 하겠습니다.
+아키텍처 개념 (https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets)
+shard => 실제 데이터의 집합으로 샤드 키에 따라 shard1 / shard2 / shard3 에 데이터가 저장됨."><meta name=author content="kimdubi"><link rel=canonical href=/mongodb/mongo_shard_cluster/><meta name=google-site-verification content="XYZabc"><meta name=yandex-verification content="XYZabc"><meta name=msvalidate.01 content="XYZabc"><link crossorigin=anonymous href=/assets/css/stylesheet.min.2dbef8664bbfb3e83a0a44fd4a8fc5010240dbcd1dbc1400753b928b497b8f5e.css integrity="sha256-Lb74Zku/s+g6CkT9So/FAQJA280dvBQAdTuSi0l7j14=" rel="preload stylesheet" as=style><link rel=preload href=/apple-touch-icon.png as=image><script defer crossorigin=anonymous src=/assets/js/highlight.min.27cd435cc9ed6abb4b496581b151804f79f366c412620272bb94e2f5f598ebcc.js integrity="sha256-J81DXMntartLSWWBsVGAT3nzZsQSYgJyu5Ti9fWY68w=" onload=hljs.initHighlightingOnLoad();></script><link rel=icon href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=16x16 href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=32x32 href=%3Clink%20/%20abs%20url%3E><link rel=apple-touch-icon href=%3Clink%20/%20abs%20url%3E><link rel=mask-icon href=%3Clink%20/%20abs%20url%3E><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><meta name=generator content="Hugo 0.80.0"><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme: rgb(29, 30, 32);--entry: rgb(46, 46, 51);--primary: rgb(218, 218, 219);--secondary: rgb(155, 156, 157);--tertiary: rgb(65, 66, 68);--content: rgb(196, 196, 197);--hljs-bg: rgb(46, 46, 51);--code-bg: rgb(55, 56, 62);--border: rgb(51, 51, 51)}.list{background:var(--theme)}.list:not(.dark)::-webkit-scrollbar-track{background:0 0}.list:not(.dark)::-webkit-scrollbar-thumb{border-color:var(--theme)}}</style></noscript><script type=application/javascript>var doNotTrack=false;if(!doNotTrack){(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');ga('create','UA-123-45','auto');ga('send','pageview');}</script><meta property="og:title" content="MongoDB Sharded Cluster"><meta property="og:description" content="sharding 은 데이터를 여러 서버에 분산해서 저장 및 처리할 수 있도록 하는 기술입니다.
+replicaset이 MongoDB의 고가용성을 위한 솔루션이라면, sharding은 분산 처리를 위한 솔루션이라 할 수 있으며
+Vertical, Horizontal 모두 적용 가능하나 일반적으로 하나의 Collection(table) 을 여러 샤드로 분산하는 Horizontal sharding 이 적용됩니다.
+이번 글에서는 MongoDB sharding 구성 방법을 살펴보고 다음 글에서 각각의 구성요소에 대해 좀 더 자세하게 살펴보도록 하겠습니다.
+아키텍처 개념 (https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets)
+shard => 실제 데이터의 집합으로 샤드 키에 따라 shard1 / shard2 / shard3 에 데이터가 저장됨."><meta property="og:type" content="article"><meta property="og:url" content="/mongodb/mongo_shard_cluster/"><meta property="og:image" content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta property="article:section" content="mongodb"><meta property="article:published_time" content="2021-10-05T08:57:41+09:00"><meta property="article:modified_time" content="2021-10-05T08:57:41+09:00"><meta property="og:site_name" content="kimDuBiA"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta name=twitter:title content="MongoDB Sharded Cluster"><meta name=twitter:description content="sharding 은 데이터를 여러 서버에 분산해서 저장 및 처리할 수 있도록 하는 기술입니다.
+replicaset이 MongoDB의 고가용성을 위한 솔루션이라면, sharding은 분산 처리를 위한 솔루션이라 할 수 있으며
+Vertical, Horizontal 모두 적용 가능하나 일반적으로 하나의 Collection(table) 을 여러 샤드로 분산하는 Horizontal sharding 이 적용됩니다.
+이번 글에서는 MongoDB sharding 구성 방법을 살펴보고 다음 글에서 각각의 구성요소에 대해 좀 더 자세하게 살펴보도록 하겠습니다.
+아키텍처 개념 (https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets)
+shard => 실제 데이터의 집합으로 샤드 키에 따라 shard1 / shard2 / shard3 에 데이터가 저장됨."><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":2,"name":"Mongodbs","item":"/mongodb/"},{"@type":"ListItem","position":3,"name":"MongoDB Sharded Cluster","item":"/mongodb/mongo_shard_cluster/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"MongoDB Sharded Cluster","name":"MongoDB Sharded Cluster","description":"sharding 은 데이터를 여러 서버에 분산해서 저장 및 처리할 수 있도록 하는 기술입니다.\nreplicaset이 MongoDB의 고가용성을 위한 솔루션이라면, sharding은 분산 처리를 위한 솔루션이라 할 수 있으며\nVertical, Horizontal 모두 적용 가능하나 일반적으로 하나의 Collection(table) 을 여러 샤드로 분산하는 Horizontal sharding 이 적용됩니다.\n이번 글에서는 MongoDB sharding 구성 방법을 살펴보고 다음 글에서 각각의 구성요소에 대해 좀 더 자세하게 살펴보도록 하겠습니다.\n아키텍처 개념 (https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets)\nshard =\u0026gt; 실제 데이터의 집합으로 샤드 키에 따라 shard1 / shard2 / shard3 에 데이터가 저장됨.","keywords":["mongodb"],"articleBody":" sharding 은 데이터를 여러 서버에 분산해서 저장 및 처리할 수 있도록 하는 기술입니다.\nreplicaset이 MongoDB의 고가용성을 위한 솔루션이라면, sharding은 분산 처리를 위한 솔루션이라 할 수 있으며\nVertical, Horizontal 모두 적용 가능하나 일반적으로 하나의 Collection(table) 을 여러 샤드로 분산하는 Horizontal sharding 이 적용됩니다.\n이번 글에서는 MongoDB sharding 구성 방법을 살펴보고 다음 글에서 각각의 구성요소에 대해 좀 더 자세하게 살펴보도록 하겠습니다.\n아키텍처 개념 (https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets)\nshard = 실제 데이터의 집합으로 샤드 키에 따라 shard1 / shard2 / shard3 에 데이터가 저장됨. 각각의 샤드 노드는 PSS (primary,secondary,secondary) / PSA (primary,secondary,arbiter) 형태의 replicaSet 으로 구성됨 config = 샤드 서버에 저장된 데이터가 어떻게 나뉘어 분산돼 있는지에 대한 메타정보 및 사용자 정보 저장, 샤드 클러스터 내 컨피그 서버는 무조건 하나의 레플리카셋으로 구성되어야 함 mongos = 컨피그 서버의 메타정보를 읽어와 캐싱한 후 샤용자의 쿼리 요청을 어떤 샤드로 전달할지 정하고, 각 샤드로 부터 받은 쿼리 결과를 병합하여 리턴하는 역할  구성 예제  구성 아키텍처  ### shard node repl_shard1 = PSS repl_shard2 = PSS ### Config server repl_conf = PSS ### Mongos mongos 3대  config server 구성  docker run -d --name mongo_conf1 --network mongo-cluster mongo:4.1 mongod --replSet repl_conf --configsvr docker run -d --name mongo_conf2 --network mongo-cluster mongo:4.1 mongod --replSet repl_conf --configsvr docker run -d --name mongo_conf3 --network mongo-cluster mongo:4.1 mongod --replSet repl_conf --configsvr = shard cluster 내 config server 는 replSet 으로 이루어져야 하며 configsvr 옵션과 함께 기동되어야함\n rs.initiate({ ... _id:\"repl_conf\", ... configsvr:true, ... members:[{_id:0,host:\"mongo_conf1:27019\"},{_id:1,host:\"mongo_conf2:27019\"},{_id:2,host:\"mongo_conf3:27019\"}] }); { \"ok\" : 1, \"$gleStats\" : { \"lastOpTime\" : Timestamp(1566725886, 1), \"electionId\" : ObjectId(\"000000000000000000000000\") }, \"lastCommittedOpTime\" : Timestamp(0, 0), \"$clusterTime\" : { \"clusterTime\" : Timestamp(1566725886, 1), \"signature\" : { \"hash\" : BinData(0,\"AAAAAAAAAAAAAAAAAAAAAAAAAAA=\"), \"keyId\" : NumberLong(0) } }, \"operationTime\" : Timestamp(1566725886, 1) }  = config 서버 replSet 설정\n shard node #1 구성  $ docker run -d --net mongo-cluster --name mongo_shard1 mongo:4.1 mongod --replSet repl_shard1 --shardsvr $ docker run -d --net mongo-cluster --name mongo_shard2 mongo:4.1 mongod --replSet repl_shard1 --shardsvr $ docker run -d --net mongo-cluster --name mongo_shard3 mongo:4.1 mongod --replSet repl_shard1 --shardsvr = repl_shard1 라는 replSet으로 묶인 shard node 구성  rs.initiate({ _id:\"repl_shard1\", members:[ {_id:0,host:\"mongo_shard1:27018\"}, {_id:1,host:\"mongo_shard2:27018\"}, {_id:2,host:\"mongo_shard3:27018\"} ]} ); { \"ok\" : 1, \"$clusterTime\" : { \"clusterTime\" : Timestamp(1566718019, 1), \"signature\" : { \"hash\" : BinData(0,\"AAAAAAAAAAAAAAAAAAAAAAAAAAA=\"), \"keyId\" : NumberLong(0) } }, \"operationTime\" : Timestamp(1566718019, 1) }   shard node #2 구성  $ docker run -d --net mongo-cluster --name mongo_shard4 mongo:4.1 mongod --replSet repl_shard2 --shardsvr $ docker run -d --net mongo-cluster --name mongo_shard5 mongo:4.1 mongod --replSet repl_shard2 --shardsvr $ docker run -d --net mongo-cluster --name mongo_shard6 mongo:4.1 mongod --replSet repl_shard2 --shardsvr = repl_shard2 라는 replSet으로 묶인 shard node 구성  rs.initiate( {_id:\"repl_shard2\", members:[ {_id:0,host:\"mongo_shard4:27018\"}, {_id:1,host:\"mongo_shard5:27018\"}, {_id:2,host:\"mongo_shard6:27018\"}]} ) ; { \"ok\" : 1, \"$clusterTime\" : { \"clusterTime\" : Timestamp(1566719750, 1), \"signature\" : { \"hash\" : BinData(0,\"AAAAAAAAAAAAAAAAAAAAAAAAAAA=\"), \"keyId\" : NumberLong(0) } }, \"operationTime\" : Timestamp(1566719750, 1) }   mongos 구성  docker run -d --network mongo-cluster --name mongos1 -p 27017:27017 mongo:4.1 mongos --configdb repl_conf/mongo_conf1:27019,mongo_conf2:27019,mongo_conf3:27019 --bind_ip_all docker run -d --network mongo-cluster --name mongos2 -p 27027:27017 mongo:4.1 mongos --configdb repl_conf/mongo_conf1:27019,mongo_conf2:27019,mongo_conf3:27019 --bind_ip_all docker run -d --network mongo-cluster --name mongos3 -p 27037:27017 mongo:4.1 mongos --configdb repl_conf/mongo_conf1:27019,mongo_conf2:27019,mongo_conf3:27019 --bind_ip_all = mongos 는 config server 의 메타 정보를 읽어와 client 의 request 를 처리할 shard 를 정하기 때문에 mongos 가 읽을 config server 를 정의해야함\nsh.addShard(\"repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018\") sh.addShard(\"repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018\")  = shard node #1 과 #2 를 추가함 mongos sh.addShard(\"repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018\") { \"shardAdded\" : \"repl_shard1\", \"ok\" : 1, \"operationTime\" : Timestamp(1566738338, 4), \"$clusterTime\" : { \"clusterTime\" : Timestamp(1566738338, 4), \"signature\" : { \"hash\" : BinData(0,\"AAAAAAAAAAAAAAAAAAAAAAAAAAA=\"), \"keyId\" : NumberLong(0) } } } mongos sh.addShard(\"repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018\") { \"shardAdded\" : \"repl_shard2\", \"ok\" : 1, \"operationTime\" : Timestamp(1566738339, 8), \"$clusterTime\" : { \"clusterTime\" : Timestamp(1566738339, 8), \"signature\" : { \"hash\" : BinData(0,\"AAAAAAAAAAAAAAAAAAAAAAAAAAA=\"), \"keyId\" : NumberLong(0) } } }  shard 구성 확인 mongos sh.status() --- Sharding Status --- sharding version: { \"_id\" : 1, \"minCompatibleVersion\" : 5, \"currentVersion\" : 6, \"clusterId\" : ObjectId(\"5d62570b3ed72a6b6728f2f3\") } shards: { \"_id\" : \"repl_shard1\", \"host\" : \"repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018\", \"state\" : 1 } { \"_id\" : \"repl_shard2\", \"host\" : \"repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018\", \"state\" : 1 } active mongoses: \"4.1.13\" : 3 autosplit: Currently enabled: yes balancer: Currently enabled: yes Currently running: no Failed balancer rounds in last 5 attempts: 0 Migration Results for the last 24 hours: No recent migrations databases: { \"_id\" : \"config\", \"primary\" : \"config\", \"partitioned\" : true }  = shard node : repl_shard1 , repl_shard2 mongos : 3대 기동중\n autosplit : mongodb에서는 sharding 의 기준인 collection 을 여러 조각으로 파티션하고 각 조각을 여러 샤드 서버에 분산해서 저장하는데 이 조각을 chunk 라고 함. chunk 는 default 64MB 까지 커질 수 있는데 이 때 이 chunk를 자동으로 split 하겠다는 의미 balancer : chunk 의 split 이 빈번하면 하나의 shard node에만 chunk 수가 많아지고 밸런스가 깨질 수 있는데 밸런스를 맞추기 위해 chunk를 다른 샤드 노드로 migration 하는 역할  ","wordCount":"761","inLanguage":"en","datePublished":"2021-10-05T08:57:41+09:00","dateModified":"2021-10-05T08:57:41+09:00","author":{"@type":"Person","name":"kimdubi"},"mainEntityOfPage":{"@type":"WebPage","@id":"/mongodb/mongo_shard_cluster/"},"publisher":{"@type":"Organization","name":"kimDuBiA","logo":{"@type":"ImageObject","url":"%3Clink%20/%20abs%20url%3E"}}}</script></head><body id=top><script>if(localStorage.getItem("pref-theme")==="dark"){document.body.classList.add('dark');}else if(localStorage.getItem("pref-theme")==="light"){document.body.classList.remove('dark')}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script><header class=header><nav class=nav><div class=logo><a href accesskey=h title="Home (Alt + H)"><img src=/apple-touch-icon.png alt=logo aria-label=logo height=35>Home</a>
+<span class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)"><svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg><svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></span></div><ul id=menu><li><a href=/categories/ title=categories><span>categories</span></a></li><li><a href=/tags/ title=tags><span>tags</span></a></li></ul></nav></header><main class=main><article class=post-single><header class=post-header><div class=breadcrumbs><a href>Home</a>&nbsp;»&nbsp;<a href=/mongodb/>Mongodbs</a></div><h1 class=post-title>MongoDB Sharded Cluster</h1><div class=post-meta>October 5, 2021&nbsp;·&nbsp;4 min&nbsp;·&nbsp;kimdubi</div></header><div class=toc><details><summary accesskey=c title="(Alt + C)"><span class=details>Table of Contents</span></summary><div class=inner><ul><li><a href=#%ec%95%84%ed%82%a4%ed%85%8d%ec%b2%98-%ea%b0%9c%eb%85%90 aria-label="아키텍처 개념">아키텍처 개념</a></li><li><a href=#%ea%b5%ac%ec%84%b1-%ec%98%88%ec%a0%9c aria-label="구성 예제">구성 예제</a></li><li><a href=#shard-%ea%b5%ac%ec%84%b1-%ed%99%95%ec%9d%b8 aria-label="shard 구성 확인">shard 구성 확인</a></li></ul></div></details></div><div class=post-content><hr><p>sharding 은 데이터를 여러 서버에 분산해서 저장 및 처리할 수 있도록 하는 기술입니다.<br>replicaset이 MongoDB의 고가용성을 위한 솔루션이라면, sharding은 분산 처리를 위한 솔루션이라 할 수 있으며<br>Vertical, Horizontal 모두 적용 가능하나 일반적으로 하나의 Collection(table) 을 여러 샤드로 분산하는 Horizontal sharding 이 적용됩니다.</p><p>이번 글에서는 MongoDB sharding 구성 방법을 살펴보고 다음 글에서 각각의 구성요소에 대해 좀 더 자세하게 살펴보도록 하겠습니다.</p><h3 id=아키텍처-개념>아키텍처 개념<a hidden class=anchor aria-hidden=true href=#아키텍처-개념>#</a></h3><p><img loading=lazy src=https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mongo_shard.png alt></p><p>(<a href=https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets>https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets</a>)</p><pre><code>shard =&gt; 실제 데이터의 집합으로 샤드 키에 따라 shard1 / shard2 / shard3 에 데이터가 저장됨. 
+각각의 샤드 노드는 PSS (primary,secondary,secondary) / PSA (primary,secondary,arbiter) 
+형태의 replicaSet 으로 구성됨
+
+config  =&gt; 샤드 서버에 저장된 데이터가 어떻게 나뉘어 분산돼 있는지에 대한 메타정보 및 사용자 정보 저장, 
+샤드 클러스터 내 컨피그 서버는 무조건 하나의 레플리카셋으로 구성되어야 함
+
+mongos =&gt; 컨피그 서버의 메타정보를 읽어와 캐싱한 후 샤용자의 쿼리 요청을 어떤 샤드로 전달할지 정하고, 
+각 샤드로 부터 받은 쿼리 결과를 병합하여 리턴하는 역할
+</code></pre><h3 id=구성-예제>구성 예제<a hidden class=anchor aria-hidden=true href=#구성-예제>#</a></h3><ul><li>구성 아키텍처</li></ul><pre><code>### shard node
+repl_shard1 =&gt; PSS 
+repl_shard2 =&gt; PSS
+
+###  Config server
+repl_conf =&gt; PSS
+
+###  Mongos
+mongos 3대 
+</code></pre><ul><li>config server 구성</li></ul><pre><code>docker run -d --name mongo_conf1 --network mongo-cluster mongo:4.1 mongod --replSet repl_conf --configsvr
+
+docker run -d --name mongo_conf2 --network mongo-cluster mongo:4.1 mongod --replSet repl_conf --configsvr
+
+docker run -d --name mongo_conf3 --network mongo-cluster mongo:4.1 mongod --replSet repl_conf --configsvr
+</code></pre><p>=> shard cluster 내 config server 는 replSet 으로 이루어져야 하며 configsvr 옵션과 함께 기동되어야함</p><pre><code>&gt; rs.initiate({
+... _id:&quot;repl_conf&quot;,
+... configsvr:true,
+... members:[{_id:0,host:&quot;mongo_conf1:27019&quot;},{_id:1,host:&quot;mongo_conf2:27019&quot;},{_id:2,host:&quot;mongo_conf3:27019&quot;}] });
+{
+&quot;ok&quot; : 1,
+&quot;$gleStats&quot; : {
+&quot;lastOpTime&quot; : Timestamp(1566725886, 1),
+&quot;electionId&quot; : ObjectId(&quot;000000000000000000000000&quot;)
+},
+&quot;lastCommittedOpTime&quot; : Timestamp(0, 0),
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1566725886, 1),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+},
+&quot;operationTime&quot; : Timestamp(1566725886, 1)
+}
+</code></pre><p>=> config 서버 replSet 설정</p><ul><li>shard node #1 구성</li></ul><pre><code>$ docker run -d  --net mongo-cluster --name mongo_shard1 mongo:4.1 mongod --replSet repl_shard1 --shardsvr
+$ docker run -d  --net mongo-cluster --name mongo_shard2 mongo:4.1 mongod --replSet repl_shard1 --shardsvr
+$ docker run -d  --net mongo-cluster --name mongo_shard3 mongo:4.1 mongod --replSet repl_shard1 --shardsvr
+</code></pre><p>=> repl_shard1 라는 replSet으로 묶인 shard node 구성 </p><pre><code>&gt; rs.initiate({ _id:&quot;repl_shard1&quot;, members:[ {_id:0,host:&quot;mongo_shard1:27018&quot;}, {_id:1,host:&quot;mongo_shard2:27018&quot;}, {_id:2,host:&quot;mongo_shard3:27018&quot;} ]} );
+{
+&quot;ok&quot; : 1,
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1566718019, 1),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+},
+&quot;operationTime&quot; : Timestamp(1566718019, 1)
+}
+</code></pre><ul><li>shard node #2 구성</li></ul><pre><code>$ docker run -d  --net mongo-cluster --name mongo_shard4 mongo:4.1 mongod --replSet repl_shard2 --shardsvr
+
+$ docker run -d  --net mongo-cluster --name mongo_shard5 mongo:4.1 mongod --replSet repl_shard2 --shardsvr
+
+$ docker run -d  --net mongo-cluster --name mongo_shard6 mongo:4.1 mongod --replSet repl_shard2 --shardsvr
+</code></pre><p>=> repl_shard2 라는 replSet으로 묶인 shard node 구성 </p><pre><code>&gt; rs.initiate( {_id:&quot;repl_shard2&quot;, members:[ {_id:0,host:&quot;mongo_shard4:27018&quot;}, {_id:1,host:&quot;mongo_shard5:27018&quot;}, {_id:2,host:&quot;mongo_shard6:27018&quot;}]} ) ;
+{
+&quot;ok&quot; : 1,
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1566719750, 1),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+},
+&quot;operationTime&quot; : Timestamp(1566719750, 1)
+}
+</code></pre><ul><li>mongos 구성</li></ul><pre><code>docker run -d --network mongo-cluster --name mongos1 -p 27017:27017 mongo:4.1 mongos --configdb repl_conf/mongo_conf1:27019,mongo_conf2:27019,mongo_conf3:27019 --bind_ip_all    
+
+docker run -d --network mongo-cluster --name mongos2 -p 27027:27017 mongo:4.1 mongos --configdb repl_conf/mongo_conf1:27019,mongo_conf2:27019,mongo_conf3:27019 --bind_ip_all
+
+docker run -d --network mongo-cluster --name mongos3 -p 27037:27017 mongo:4.1 mongos --configdb repl_conf/mongo_conf1:27019,mongo_conf2:27019,mongo_conf3:27019 --bind_ip_all
+</code></pre><p>=> mongos 는 config server 의 메타 정보를 읽어와 client 의 request 를 처리할 shard 를 정하기 때문에 mongos 가 읽을 config server 를 정의해야함</p><pre><code>sh.addShard(&quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&quot;)
+sh.addShard(&quot;repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018&quot;)
+</code></pre><p>=> shard node #1 과 #2 를 추가함  </p><pre><code>mongos&gt; sh.addShard(&quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&quot;)
+{
+&quot;shardAdded&quot; : &quot;repl_shard1&quot;,
+&quot;ok&quot; : 1,
+&quot;operationTime&quot; : Timestamp(1566738338, 4),
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1566738338, 4),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+}
+}
+
+mongos&gt; sh.addShard(&quot;repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018&quot;)
+{
+&quot;shardAdded&quot; : &quot;repl_shard2&quot;,
+&quot;ok&quot; : 1,
+&quot;operationTime&quot; : Timestamp(1566738339, 8),
+&quot;$clusterTime&quot; : {
+&quot;clusterTime&quot; : Timestamp(1566738339, 8),
+&quot;signature&quot; : {
+&quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+&quot;keyId&quot; : NumberLong(0)
+}
+}
+}
+</code></pre><h3 id=shard-구성-확인>shard 구성 확인<a hidden class=anchor aria-hidden=true href=#shard-구성-확인>#</a></h3><pre><code>mongos&gt; sh.status()
+--- Sharding Status ---
+  sharding version: {
+   &quot;_id&quot; : 1,
+   &quot;minCompatibleVersion&quot; : 5,
+   &quot;currentVersion&quot; : 6,
+   &quot;clusterId&quot; : ObjectId(&quot;5d62570b3ed72a6b6728f2f3&quot;)
+  }
+  shards:
+{  &quot;_id&quot; : &quot;repl_shard1&quot;,  &quot;host&quot; : &quot;repl_shard1/mongo_shard1:27018,mongo_shard2:27018,mongo_shard3:27018&quot;,  &quot;state&quot; : 1 }
+{  &quot;_id&quot; : &quot;repl_shard2&quot;,  &quot;host&quot; : &quot;repl_shard2/mongo_shard4:27018,mongo_shard5:27018,mongo_shard6:27018&quot;,  &quot;state&quot; : 1 }
+  active mongoses:
+&quot;4.1.13&quot; : 3
+  autosplit:
+Currently enabled: yes
+  balancer:
+Currently enabled:  yes
+Currently running:  no
+Failed balancer rounds in last 5 attempts:  0
+Migration Results for the last 24 hours:
+No recent migrations
+  databases:
+{  &quot;_id&quot; : &quot;config&quot;,  &quot;primary&quot; : &quot;config&quot;,  &quot;partitioned&quot; : true }
+</code></pre><p>=> shard node : repl_shard1 , repl_shard2  mongos : 3대 기동중</p><ul><li>autosplit : mongodb에서는 sharding 의 기준인 collection 을 여러 조각으로 파티션하고 각 조각을 여러 샤드 서버에 분산해서 저장하는데 이 조각을 chunk 라고 함.
+chunk 는 default 64MB 까지 커질 수 있는데 이 때 이 chunk를 자동으로 split 하겠다는 의미</li><li>balancer : chunk 의 split 이 빈번하면 하나의 shard node에만 chunk 수가 많아지고 밸런스가 깨질 수 있는데 밸런스를 맞추기 위해
+chunk를 다른 샤드 노드로 migration 하는 역할</li></ul></div><footer class=post-footer><ul class=post-tags><li><a href=/tags/mongodb/>mongodb</a></li></ul></footer></article></main><footer class=footer><span>&copy; 2021 <a href>kimDuBiA</a></span>
+<span>Powered by
+<a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
+        <a href=https://git.io/hugopapermod rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentcolor"><path d="M12 6H0l6-6z"/></svg></a><script>let menu=document.getElementById('menu')
+menu.scrollLeft=localStorage.getItem("menu-scroll-position");menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft);}
+document.querySelectorAll('a[href^="#"]').forEach(anchor=>{anchor.addEventListener("click",function(e){e.preventDefault();var id=this.getAttribute("href").substr(1);if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({behavior:"smooth"});}else{document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();}
+if(id==="top"){history.replaceState(null,null," ");}else{history.pushState(null,null,`#${id}`);}});});</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){if(document.body.scrollTop>800||document.documentElement.scrollTop>800){mybutton.style.visibility="visible";mybutton.style.opacity="1";}else{mybutton.style.visibility="hidden";mybutton.style.opacity="0";}};</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{if(document.body.className.includes("dark")){document.body.classList.remove('dark');localStorage.setItem("pref-theme",'light');}else{document.body.classList.add('dark');localStorage.setItem("pref-theme",'dark');}})</script><script>document.querySelectorAll('pre > code').forEach((codeblock)=>{const container=codeblock.parentNode.parentNode;const copybutton=document.createElement('button');copybutton.classList.add('copy-code');copybutton.innerText='copy';function copyingDone(){copybutton.innerText='copied!';setTimeout(()=>{copybutton.innerText='copy';},2000);}
+copybutton.addEventListener('click',(cb)=>{if('clipboard'in navigator){navigator.clipboard.writeText(codeblock.textContent);copyingDone();return;}
+const range=document.createRange();range.selectNodeContents(codeblock);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);try{document.execCommand('copy');copyingDone();}catch(e){};selection.removeRange(range);});if(container.classList.contains("highlight")){container.appendChild(copybutton);}else if(container.parentNode.firstChild==container){}else if(codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"){codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);}else{codeblock.parentNode.appendChild(copybutton);}});</script></body></html>

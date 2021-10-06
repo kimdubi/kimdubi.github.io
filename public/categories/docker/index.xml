@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Docker on kimDuBiA</title>
+    <link>/categories/docker/</link>
+    <description>Recent content in Docker on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 06 Oct 2021 21:25:52 +0900</lastBuildDate><atom:link href="/categories/docker/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Docker-compose로 Redis Cluster 자동 구성하기</title>
+      <link>/cloud/docker_redis_cluster/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:52 +0900</pubDate>
+      
+      <guid>/cloud/docker_redis_cluster/</guid>
+      <description>Docker-compose로 Redis Cluster 자동 구성하기 이번 글에서는 docker-compose 로 redis-cluster를 구성해보겠습니다. 여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에
+이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
+구성 * docker-compose.yml * redis_cluster_1a * Dockerfile * docker-entrypoint.sh * redis_cluster_2a * redis_cluster_3a * redis_cluster_1b * redis_cluster_2b * redis_cluster_3b  =&amp;gt; Master 3ea , Slave 3ea 생성
+docker-compose.yml version: &#39;3&#39; services: redis_cluster_1a: image: redis_image:cluster build: context: .</description>
+    </item>
+    
+    <item>
+      <title>Docker-compose로 Redis Sentinel 자동 구성하기</title>
+      <link>/cloud/docker_redis_sentinel/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:45 +0900</pubDate>
+      
+      <guid>/cloud/docker_redis_sentinel/</guid>
+      <description>Docker-compose로 Redis Sentinel 자동 구성하기 이번 글에서는 redis sentinel을 docker-compose 를 통해 구성하는 방법을 공유하겠습니다.
+여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에
+이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
+구성 * docker-compose.yml * redis_master * Dockerfile * docker-entrypoint.sh * redis_slave1 * Dockerfile * docker-entrypoint.sh * redis_slave2 * Dockerfile * docker-entrypoint.sh  docker-compose.yml version: &#39;3&#39; services: redis1: image: redis_image:master build: context: .</description>
+    </item>
+    
+    <item>
+      <title>Docker-compose로 Redis Replication 자동 구성하기</title>
+      <link>/cloud/docker_redis_repl/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:39 +0900</pubDate>
+      
+      <guid>/cloud/docker_redis_repl/</guid>
+      <description>Docker-compose로 Redis Replication 자동 구성하기 지난 글에서 docker-compose 를 통해 mysql replication 구성하는 방법을 공유했습니다.
+이번 글에서는 redis replication 구성하는 docker-compose.yml을 공유하겠습니다.
+여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에 이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
+본문에서 사용된 docker-compose.yml 이나 dockerfile의 옵션 등은 이전 글 참고 부탁드립니다. (https://kimdubi.github.io/cloud/docker_mysql_repl/ )
+구성 * docker-compose.yml * redis1 * Dockerfile * docker-entrypoint.</description>
+    </item>
+    
+    <item>
+      <title>Docker-compose로 Mysql Replication 자동 구성하기</title>
+      <link>/cloud/docker_mysql_repl/</link>
+      <pubDate>Wed, 06 Oct 2021 21:23:09 +0900</pubDate>
+      
+      <guid>/cloud/docker_mysql_repl/</guid>
+      <description>docker-compose 는 docker container를 생성하기 위한 명령어들을 미리 적어놓은 문서라고 할 수 있습니다.
+이번 글에서는 docker-compose 를 활용하여 mysql master - slave replication 구성된 container들을 올리는 방법을 공유하겠습니다.
+본문에서 사용하는 mysql image 는 개인적으로 생성하여 사용하는 이미지이기 때문에 다른 이미지를 사용하는 경우엔 그에 맞게 설정 확인이 필요합니다.
+구성  docker-compose  mysql_master  Dockerfile  docker-entrypoint.sh     mysql_slave  Dockerfile  docker-entrypoint.sh        docker-compose.</description>
+    </item>
+    
+    <item>
+      <title>Docker image</title>
+      <link>/cloud/docker_image/</link>
+      <pubDate>Wed, 06 Oct 2021 08:45:58 +0900</pubDate>
+      
+      <guid>/cloud/docker_image/</guid>
+      <description>요 며칠 간 docker-compose 로 redis 나 mysql container 생성하는 방법을 공유했습니다.
+https://kimdubi.github.io/categories/docker/
+이 과정에서 Docker Image 의 중요성에 대해 새삼 다시 느끼게 되어 정리하는 시간을 가지고자…
+이번 글에서는 docker의 image 에 대해 소개하겠습니다.
+Docker Image Docker 에서 가장 중요한 두 축은 Container 와 Image 라고 생각합니다.
+Docker Image는 container를 띄우는데 필요한 모든 파일이나 설정값들을 포함하고 있습니다.
+잘하시는 분들께 “Docker가 왜 좋아요?” 라고 물으면 종종 “dependency 꼬일 일 없이 서비스 띄울 수 있으니까”</description>
+    </item>
+    
+  </channel>
+</rss>

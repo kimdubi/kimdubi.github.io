@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Mongodbs on kimDuBiA</title>
+    <link>/mongodb/</link>
+    <description>Recent content in Mongodbs on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Tue, 05 Oct 2021 09:06:44 +0900</lastBuildDate><atom:link href="/mongodb/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MongoDB Sharded Cluster - mongos</title>
+      <link>/mongodb/mongo_shard_cluster_mongos/</link>
+      <pubDate>Tue, 05 Oct 2021 09:06:44 +0900</pubDate>
+      
+      <guid>/mongodb/mongo_shard_cluster_mongos/</guid>
+      <description>mongos 란? mongos 는 mongodb shard cluster 내에서 router 역할을 하는 컴포넌트로 아래와 같은 역할 담당 및 특징이 있음
+ 쿼리 라우팅 쿼리 결과 merge 후 client에게 return order by 같은 경우에는 샤드 서버 중 프라이머리 샤드를 정한 후
+그 프라이머리 샤드가 다른 샤드로부터 쿼리 결과를 전달받고 order by 수행한 후에 최종 결과를 라우터로 반환함 2.x 버전에선 chunk 리밸런싱, 스플릿 등 chunk 관련 역할도 했으나 3.4 버전부터는
+해당 역할이 모두 config 서버에서 담당하게 되어 mongos 는 말그대로 router 역할만 하게됨 줄어든 역할로 서버의 리소스를 매우 적게 사용하기 때문에 아래와 같이 mongos 를 다른 컴포넌트들과 같이 구성하기도 함  어플리케이션 서버 n대 + mongos n대 config + mongos mongos + shard 서버 mongos 만 따로 구성 mongodb 에서는 mongos down 시 mongos 를 바라보는 어플리케이션도 어차피 역할을 못하기 때문에 한 세트의 의미로 1번의 구조를 추천하지만 이슈가 발생했을 때 원인 분석, VM의 성능 향상과 관리상의 이유 등으로 mongos 를 따로 구성하기도 함    쿼리 라우팅 MongoDB sharded cluster 에서 collection은 shard key 를 기준으로 쪼개져서 여러 샤드에 분산되어 저장됨</description>
+    </item>
+    
+    <item>
+      <title>MongoDB Sharded Cluster - Config server</title>
+      <link>/mongodb/mongo_shard_cluster_configsvr/</link>
+      <pubDate>Tue, 05 Oct 2021 09:03:46 +0900</pubDate>
+      
+      <guid>/mongodb/mongo_shard_cluster_configsvr/</guid>
+      <description>지난 글에서 mongodb shard cluster 개념과 구성하는 방법에 대해 소개드렸고 이번 글에서는 구성요소 중 하나인 config server에 대해 다루겠습니다.
+Config server 란? config server는 shard cluster에서 필요한 모든 메타 정보들을 저장함
+메타정보에는 어느 chunk , 즉 어떤 data 가 어떤 shard 에 있는지, chunk 의 밸런싱 작업은 어떻게 해야할지 등의 메타정보와 사용자 인증 정보가 저장됨
+이렇게 중요한 정보들을 담고 있어서 가용성을 위해 하나의 replSet 으로 구성되어야 함
+ config server 정보  repl_conf:PRIMARY&amp;gt; use config; switched to db config repl_conf:PRIMARY&amp;gt; show collections; actionlog changelog chunks collections databases lockpings locks migrations mongos shards system.</description>
+    </item>
+    
+    <item>
+      <title>MongoDB Sharded Cluster</title>
+      <link>/mongodb/mongo_shard_cluster/</link>
+      <pubDate>Tue, 05 Oct 2021 08:57:41 +0900</pubDate>
+      
+      <guid>/mongodb/mongo_shard_cluster/</guid>
+      <description>sharding 은 데이터를 여러 서버에 분산해서 저장 및 처리할 수 있도록 하는 기술입니다.
+replicaset이 MongoDB의 고가용성을 위한 솔루션이라면, sharding은 분산 처리를 위한 솔루션이라 할 수 있으며
+Vertical, Horizontal 모두 적용 가능하나 일반적으로 하나의 Collection(table) 을 여러 샤드로 분산하는 Horizontal sharding 이 적용됩니다.
+이번 글에서는 MongoDB sharding 구성 방법을 살펴보고 다음 글에서 각각의 구성요소에 대해 좀 더 자세하게 살펴보도록 하겠습니다.
+아키텍처 개념 (https://dba.stackexchange.com/questions/82551/data-distribution-in-mongos-with-shards-or-replica-sets)
+shard =&amp;gt; 실제 데이터의 집합으로 샤드 키에 따라 shard1 / shard2 / shard3 에 데이터가 저장됨.</description>
+    </item>
+    
+    <item>
+      <title>MongoDB ReplicaSet reconfig</title>
+      <link>/mongodb/replicaset_reconfig/</link>
+      <pubDate>Tue, 05 Oct 2021 08:44:33 +0900</pubDate>
+      
+      <guid>/mongodb/replicaset_reconfig/</guid>
+      <description>이번 글에서는 mongodb replica Set (이하 RS) 의 Primary 선출 방식과 RS 멤버가 이상할 때 해당 멤버를 제외하고 재설정 하는 방법에 대해서 알아보겠습니다.
+ RS member 간 hearbeat 실패 감지  I REPL_HB [replexec-11] Heartbeat to mongo_shard1:27018 failed after 2 retries, response status: InvalidReplicaSetConfig: Our replica set con figuration is invalid or does not include us I REPL [replexec-11] Member mongo_shard1:27018 is now in state RS_DOWN - Our replica set configuration is invalid or does not include us I REPL_HB [replexec-11] Heartbeat to 85604da3dcb0:27018 failed after 2 retries, response status: InvalidReplicaSetConfig: Our replica set con figuration is invalid or does not include us I REPL [replexec-11] Member 85604da3dcb0:27018 is now in state RS_DOWN - Our replica set configuration is invalid or does not include us I REPL [replexec-15] can&#39;t see a majority of the set, relinquishing primary I REPL [replexec-15] Stepping down from primary in response to heartbeat I REPL [replexec-18] can&#39;t see a majority of the set, relinquishing primary I REPL [RstlKillOpThread] Starting to kill user operations I REPL [RstlKillOpThread] Stopped killing user operations I REPL [replexec-15] Stepping down from primary, stats: { userOpsKilled: 0, userOpsRunning: 0 } I REPL [replexec-15] transition to SECONDARY from PRIMARY =&amp;gt; repliSet member 중 85604da3dcb0:27018, mongo_shard1 로 heart beat 통신이 실패함</description>
+    </item>
+    
+    <item>
+      <title>MongoDB Replicaset</title>
+      <link>/mongodb/replicaset/</link>
+      <pubDate>Tue, 05 Oct 2021 08:37:35 +0900</pubDate>
+      
+      <guid>/mongodb/replicaset/</guid>
+      <description>mongo db에서도 mysql 처럼 M-S 구조로 replication 을 설정할 수 있습니다.
+그 중에서도 자동 failover를 지원하고 master-slave cluster에서 새 node 를 추가하는 것이
+쉬운 replica set 으로 replication 설정하는 방법을 소개하겠습니다.
+(출처 : mongodb.com)
+replica set 설정할 DB 준비 dori:bin mac$ docker run -d -p 30000:27017 --name mongo-1 mongo mongod --replSet repltest 9cc3084a4779fce90b65ed7fde5b987ef882bda58230fd241168e05dc1f93127 dori:bin mac$ docker run -d -p 30001:27017 --name mongo-2 mongo mongod --replSet repltest e70f38ab592739ceb33426b4b85af755e59be3ba139683fe599584900c19f360 dori:bin mac$ docker run -d -p 30002:27017 --name mongo-3 mongo mongod --replSet repltest f3adc7ce039c63abb65166eb1874d5f2e1c19ca533ee63f0079c3caba44b6111 dori:bin mac$ docker run -d -p 30003:27017 --name mongo-4 mongo mongod --replSet repltest 948531ffb1d64a15bb1295329d49864b40352783e7266dab5e5635c695228d4c   –replSet replicaSet이름 옵션으로 repltest 라는 replicaSet db 4대 기동  replica set 설정 dori:bin mac$ mongo --port 30000 MongoDB shell version v4.</description>
+    </item>
+    
+    <item>
+      <title>MongoDB simple command</title>
+      <link>/mongodb/mongo_simple_command/</link>
+      <pubDate>Tue, 05 Oct 2021 08:27:18 +0900</pubDate>
+      
+      <guid>/mongodb/mongo_simple_command/</guid>
+      <description>Mongo DB 접속  dori:bin mac$ mongo MongoDB shell version v4.0.9 connecting to: mongodb://127.0.0.1:27017/?gssapiServiceName=mongodb Implicit session: session { &amp;quot;id&amp;quot; : UUID(&amp;quot;97c63b7c-e54a-447f-9507-c775b4986954&amp;quot;) } MongoDB server version: 4.0.9 Server has startup warnings: 2019-05-11T16:07:53.047+0900 I CONTROL [initandlisten] 2019-05-11T16:07:53.047+0900 I CONTROL [initandlisten] ** WARNING: Access control is not enabled for the database. 2019-05-11T16:07:53.048+0900 I CONTROL [initandlisten] ** Read and write access to data and configuration is unrestricted. 2019-05-11T16:07:53.049+0900 I CONTROL [initandlisten] --- Enable MongoDB&#39;s free cloud-based monitoring service, which will then receive and display metrics about your deployment (disk utilization, CPU, operation statistics, etc).</description>
+    </item>
+    
+    <item>
+      <title>MongoDB Installation</title>
+      <link>/mongodb/mongodb_installation/</link>
+      <pubDate>Mon, 04 Oct 2021 23:53:29 +0900</pubDate>
+      
+      <guid>/mongodb/mongodb_installation/</guid>
+      <description>MongoDB MongoDB는 document-oriented NoSQL 계열 오픈소스 데이터베이스로 아래와 같은 구조로 구성됨
+(출처: https://beginnersbook.com/2017/09/mapping-relational-databases-to-mongodb/)
+Document  Document는 기존 RDBMS 의 record 와 같은 개념으로 MongoDB에서 실제 데이터가 저장되는 방식 JSON 형태의 key-value 쌍으로 이루어져 있음 value에는 array, string, int 등 다양한 type 이 올 수 있음  { name : &amp;quot;kimdubi&amp;quot;, age : 29, interests : [&amp;quot;Infra&amp;quot;,&amp;quot;DB&amp;quot;,&amp;quot;NoSQL&amp;quot;] } Collection  RDBMS 의 테이블과 같은 개념  Database   mysql 의 스키마와 같은 개념으로 MongoDB 서버는 여러개의 database로 이루어 질 수 있으며</description>
+    </item>
+    
+  </channel>
+</rss>

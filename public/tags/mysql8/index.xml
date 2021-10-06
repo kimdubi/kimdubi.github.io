@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>mysql8 on kimDuBiA</title>
+    <link>/tags/mysql8/</link>
+    <description>Recent content in mysql8 on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Mon, 04 Oct 2021 20:45:34 +0900</lastBuildDate><atom:link href="/tags/mysql8/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL 8.0 to MySQL 5.7 replication 구성 시 collation issue</title>
+      <link>/mysql/mysql8to57_collation/</link>
+      <pubDate>Mon, 04 Oct 2021 20:45:34 +0900</pubDate>
+      
+      <guid>/mysql/mysql8to57_collation/</guid>
+      <description>MySQL 8.0 to MySQL 5.7 replication 구성 시 collation issue 이번에 MySQL 5.7을 사용하는 서비스를 MySQL 8.0으로 업그레이드 하는 작업을 진행했습니다.
+MySQL 8.0 은 MySQL 5.7에서 받은 mysqldump 로 신규 구성 후 MMM 을 사용하여 role change 과정을 통해 MySQL 8.0을 한대 씩 투입하여
+최종적으로는 MySQL 8.0 두대를 서비스에 투입하고, 기존에 사용하던 MySQL 5.7은 혹시모를 롤백용으로 MySQL 8.0 -&amp;gt; MySQL 5.7로의 복제 구성하도록 남겨두는 게 시나리오였습니다.
+MySQL 8.0 과 5.7 의 default collation이 달라서 실패했고 트러블 슈팅한 내용을 정리해봤습니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL8 skip locked / nowait 활용하기</title>
+      <link>/mysql/mysql8_skip_locked_nowait/</link>
+      <pubDate>Mon, 04 Oct 2021 18:46:41 +0900</pubDate>
+      
+      <guid>/mysql/mysql8_skip_locked_nowait/</guid>
+      <description>MySQL8.0 SKIP LOCKED / NOWAIT 활용하기 MySQL 8.0 버전부터는 읽기 일관성을 위한 read lock 에 대해 두가지 옵션이 추가되었습니다.
+ NOWAIT : 쿼리를 실행 후 읽으려는 row에 lock이 걸려있으면 바로 트랜잭션 실패 처리 (innodb_lock_wait_timeout 만큼 기다리지 않고 바로) SKIP LOCKED : 쿼리를 실행 후 읽으려는 row에 lock 이 걸려있으면 해당 row skip 하고 resultset return  동시성 이슈를 해결하기 위해 select ~ for update , select ~ for shared mode 같은 쿼리를 수행할 때 위 옵션을 줄 수 있는데 언제 사용하면 좋을까요?</description>
+    </item>
+    
+    <item>
+      <title>MySQL8 replication REQUIRE_TABLE_PRIMARY_KEY_CHECK</title>
+      <link>/mysql/mysql8_replication_force_pk/</link>
+      <pubDate>Mon, 04 Oct 2021 17:28:58 +0900</pubDate>
+      
+      <guid>/mysql/mysql8_replication_force_pk/</guid>
+      <description>MySQL8.0 Replication REQUIRE_TABLE_PRIMARY_KEY_CHECK MySQL 8.0 부터 replication 관련 재밌는 기능들이 많이 생겼는데
+그 중 하나가 오늘 소개해드릴 REQUIRE_TABLE_PRIMARY_KEY_CHECK 기능입니다.
+replication 구성 환경에서 Table 생성 시 Primary key를 항상 강제시킬 수 있는 기능인데요
+이전부터 CUBRID 라는 DB에서는 PK가 없는 테이블은 replication이 안되는데
+CUBRID가 떠오르는 기능이네요
+REQUIRE_TABLE_PRIMARY_KEY_CHECK 란?  performance_schema.replication_applier_configuration (8.0.20 이상 지원)  mysql&amp;gt; desc performance_schema.replication_applier_configuration; +---------------------------------+---------------------------+------+-----+---------+-------+ | Field | Type | Null | Key | Default | Extra | +---------------------------------+---------------------------+------+-----+---------+-------+ | CHANNEL_NAME | char(64) | NO | PRI | NULL | | | DESIRED_DELAY | int | NO | | NULL | | | PRIVILEGE_CHECKS_USER | text | YES | | NULL | | | REQUIRE_ROW_FORMAT | enum(&#39;YES&#39;,&#39;NO&#39;) | NO | | NULL | | | REQUIRE_TABLE_PRIMARY_KEY_CHECK | enum(&#39;STREAM&#39;,&#39;ON&#39;,&#39;OFF&#39;) | NO | | NULL | | +---------------------------------+---------------------------+------+-----+---------+-------+ =&amp;gt; replication 구성에서 Slave가 Master의 트랜잭션을 반영할 때</description>
+    </item>
+    
+    <item>
+      <title>MySQL8 Multi Source Replication 개선점</title>
+      <link>/mysql/mysql8_multi_source_replication/</link>
+      <pubDate>Mon, 04 Oct 2021 15:17:13 +0900</pubDate>
+      
+      <guid>/mysql/mysql8_multi_source_replication/</guid>
+      <description>MySQL8 Multi Source Replication 개선점 5.7과 8.0 multi-source replication 차이점 mysql 5.7 버전부터 multi-source replication 기능이 생기면서 유용하게 사용되고 있지만
+두대 이상의 Master 에서 같은 이름의 database를 구분 지어 다른 db명으로 변경해서
+replication 해오는 기능은 지원되지 않았습니다.
+replication filter 가 channel 별로 적용 되는 게 아닌 , global 로 적용되어
+replication_rewrite_db filter를 마음대로 사용할 수 없었기 때문인데
+mysql 8 버전대에서 이 부분이 아래와 같이 가능해졌습니다.
+MySQL 5.7 Master 1: kimdubi_db =&amp;gt; Slave : kimdubi_db Master 2: kimdubi_db =&amp;gt; Slave : kimdubi_db  =&amp;gt; replication_rewrite_db filter 가 global 로 적용되기 때문에 위와 같이 master host 가 달라도 data 충돌의 위험이 있음</description>
+    </item>
+    
+  </channel>
+</rss>

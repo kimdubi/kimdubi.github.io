@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>gtid on kimDuBiA</title>
+    <link>/tags/gtid/</link>
+    <description>Recent content in gtid on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Mon, 04 Oct 2021 03:24:01 +0900</lastBuildDate><atom:link href="/tags/gtid/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL GTID</title>
+      <link>/mysql/mysql_gtid/</link>
+      <pubDate>Mon, 04 Oct 2021 03:24:01 +0900</pubDate>
+      
+      <guid>/mysql/mysql_gtid/</guid>
+      <description>MySQL_GTID 란? gtid 란?  Global Transaction IDentifiers GTID = source_id:transaction_Id  source_id = server_uuid    [root@c2b2e13b86b9 data]# cat auto.cnf [auto] server-uuid=ba315763-e7e8-11e9-9c29-0242ac110002  해당 호스트에서 수행한 트랜잭션에 global 한 id 를 commit 순서에 따라 순차적으로 부여함  ba315763-e7e8-11e9-9c29-0242ac110002:4638 =&amp;gt; ba315763-e7e8-11e9-9c29-0242ac110002 server 에서 수행된 4638번 째 트랜잭션을 의미
+ GTID는 master &amp;lt;-&amp;gt; slave 간 복제 시작, 중지의 기준이 되었던 binlog file-offset pairs을 대신함
+=&amp;gt; CHANGE MASTER TO 구문의 MASTER_LOG_FILE, MASTER_LOG_POS 필요없음</description>
+    </item>
+    
+  </channel>
+</rss>

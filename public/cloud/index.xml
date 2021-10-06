@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Clouds on kimDuBiA</title>
+    <link>/cloud/</link>
+    <description>Recent content in Clouds on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 06 Oct 2021 21:25:52 +0900</lastBuildDate><atom:link href="/cloud/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Docker-compose로 Redis Cluster 자동 구성하기</title>
+      <link>/cloud/docker_redis_cluster/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:52 +0900</pubDate>
+      
+      <guid>/cloud/docker_redis_cluster/</guid>
+      <description>Docker-compose로 Redis Cluster 자동 구성하기 이번 글에서는 docker-compose 로 redis-cluster를 구성해보겠습니다. 여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에
+이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
+구성 * docker-compose.yml * redis_cluster_1a * Dockerfile * docker-entrypoint.sh * redis_cluster_2a * redis_cluster_3a * redis_cluster_1b * redis_cluster_2b * redis_cluster_3b  =&amp;gt; Master 3ea , Slave 3ea 생성
+docker-compose.yml version: &#39;3&#39; services: redis_cluster_1a: image: redis_image:cluster build: context: .</description>
+    </item>
+    
+    <item>
+      <title>Docker-compose로 Redis Sentinel 자동 구성하기</title>
+      <link>/cloud/docker_redis_sentinel/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:45 +0900</pubDate>
+      
+      <guid>/cloud/docker_redis_sentinel/</guid>
+      <description>Docker-compose로 Redis Sentinel 자동 구성하기 이번 글에서는 redis sentinel을 docker-compose 를 통해 구성하는 방법을 공유하겠습니다.
+여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에
+이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
+구성 * docker-compose.yml * redis_master * Dockerfile * docker-entrypoint.sh * redis_slave1 * Dockerfile * docker-entrypoint.sh * redis_slave2 * Dockerfile * docker-entrypoint.sh  docker-compose.yml version: &#39;3&#39; services: redis1: image: redis_image:master build: context: .</description>
+    </item>
+    
+    <item>
+      <title>Docker-compose로 Redis Replication 자동 구성하기</title>
+      <link>/cloud/docker_redis_repl/</link>
+      <pubDate>Wed, 06 Oct 2021 21:25:39 +0900</pubDate>
+      
+      <guid>/cloud/docker_redis_repl/</guid>
+      <description>Docker-compose로 Redis Replication 자동 구성하기 지난 글에서 docker-compose 를 통해 mysql replication 구성하는 방법을 공유했습니다.
+이번 글에서는 redis replication 구성하는 docker-compose.yml을 공유하겠습니다.
+여기서 사용한 redis 이미지 및 redis / sentinel conf 파일 등 기본 환경은 제가 개인적으로 만든 것이기 때문에 이 글을 참고하시는 경우엔 본인의 환경에 맞게 설정이 필요합니다.
+본문에서 사용된 docker-compose.yml 이나 dockerfile의 옵션 등은 이전 글 참고 부탁드립니다. (https://kimdubi.github.io/cloud/docker_mysql_repl/ )
+구성 * docker-compose.yml * redis1 * Dockerfile * docker-entrypoint.</description>
+    </item>
+    
+    <item>
+      <title>Docker-compose로 Mysql Replication 자동 구성하기</title>
+      <link>/cloud/docker_mysql_repl/</link>
+      <pubDate>Wed, 06 Oct 2021 21:23:09 +0900</pubDate>
+      
+      <guid>/cloud/docker_mysql_repl/</guid>
+      <description>docker-compose 는 docker container를 생성하기 위한 명령어들을 미리 적어놓은 문서라고 할 수 있습니다.
+이번 글에서는 docker-compose 를 활용하여 mysql master - slave replication 구성된 container들을 올리는 방법을 공유하겠습니다.
+본문에서 사용하는 mysql image 는 개인적으로 생성하여 사용하는 이미지이기 때문에 다른 이미지를 사용하는 경우엔 그에 맞게 설정 확인이 필요합니다.
+구성  docker-compose  mysql_master  Dockerfile  docker-entrypoint.sh     mysql_slave  Dockerfile  docker-entrypoint.sh        docker-compose.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes에서 redis cluster를 돌려보자 - alertmanager</title>
+      <link>/cloud/k8s_redis_cluster_alertmanager/</link>
+      <pubDate>Wed, 06 Oct 2021 21:18:45 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_alertmanager/</guid>
+      <description>구성  helm 으로 설치한 prometheus-operator 의 prometheus와 alertmanager를 사용함 신규로 redis용 PrometheusRule object를 생성하고 이를 prometheus와 연동함  PrometheusRule는 새로 생성되거나 delete 되는 Pod도 자동으로 인식할 수 있게 helm chart 와 Pod에 연동되어야함   slack api를 webhook으로 사용  prometheusrules 생성  vi redis-rule.yaml  apiVersion: monitoring.coreos.com/v1 kind: PrometheusRule metadata: annotations: meta.helm.sh/release-name: kimdubi-test meta.helm.sh/release-namespace: default labels: app: prometheus-operator app.kubernetes.io/instance: kimdubi-test app.kubernetes.io/managed-by: Helm app.kubernetes.io/name: redis-cluster helm.sh/chart: redis-cluster-4.3.1 release: monitoring name: kimdubi-test-redis-cluster namespace: default spec: groups: - name: redis-cluster rules: - alert: RedisDown annotations: description: Redis(TM) instance {{$labels.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes에서 redis cluster를 돌려보자 - monitoring(grafana,prometheus)</title>
+      <link>/cloud/k8s_redis_cluster_monitoring/</link>
+      <pubDate>Wed, 06 Oct 2021 21:15:29 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_monitoring/</guid>
+      <description>Prometheus Operator? 개념  Operator : Service : Kubernetes에서 돌고있는 application, 본문에서는 Redis cluster 를 의미함 ServiceMonitor : 위의 service, 즉 redis cluster를 scraping 하는 동작을 의미함  kubernetes 위에서 Pod는 유동적으로 변하지만 ServiceMonitor는 Pod를 label로 구분하여 scraping 하고,
+Operator는 이 ServiceMonitor만 바라보면 되기 때문에 운영자 입장에서는 application 배포, 운영관리가 자동화되는 효과가 있음
+모니터링을 구축해보자 기존 redis-cluster helm chart 수정  helm values.yaml 수정  ## Prometheus Exporter / Metrics metrics: enabled: true # Enable this if you&#39;re using https://github.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자- node추가(수동)</title>
+      <link>/cloud/k8s_redis_cluster_scaleout/</link>
+      <pubDate>Wed, 06 Oct 2021 21:11:40 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_scaleout/</guid>
+      <description>Redis Node 추가하는 경우  Redis node의 memory 사용률이 높아 분산이 필요할 때 node를 추가하여 hashslot을 분산한다. kubernetes 1.20v 부터는 Memory 사용률을 metric으로 추가할 수 있어 Memory 사용률에 따른 autoscale이 가능하나 그 아래 버전에서는 아래와 같이 수동으로 추가해야함 NHN cloud 제공 kubernetes는 1.17v 를 제공함  Node 추가 과정 처음 상태 $ kubectl get all NAME READY STATUS RESTARTS AGE pod/kimdubi-test-redis-cluster-0 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-1 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-2 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-3 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-4 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-5 1/1 Running 0 31m pod/kimdubi-test-redis-cluster-cluster-create-6wp5g 0/1 Completed 0 31m NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE service/kimdubi-test-redis-cluster ClusterIP 10.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Job/batch</title>
+      <link>/cloud/k8s_redis_cluster_job/</link>
+      <pubDate>Wed, 06 Oct 2021 20:55:32 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_job/</guid>
+      <description>Job? Job개념  일회성으로 실행되고 나서 종료되어야 하는 성격의 작업을 실행할 때 사용되는 controller helm chart 에서는 주로 hook 의 개념으로 helm의 life cycle 중 (helm install, helm upgrade 등) 특정 단계에서 사전에 정의해둔 Job이 수행되도록 trigger 처럼 동작하게 많이 사용함 linux의 crontab 처럼 정해진 스케쥴 마다 Job이 수행되게 하는 cronjob 도 있음  Job 사용현황 $ kubectl get job NAME COMPLETIONS DURATION AGE job.batch/kimdubi-test-redis-cluster-cluster-create 1/1 37s 4m27s job.batch/kimdubi-test-redis-cluster-cluster-update 1/1 24s 3m50s   kimdubi-test-redis-cluster-cluster-create Job은 helm install로 redis cluster를 구성할 때 위 Job이 install 후에 수행되어 redis cluster를 구성하는 용도로 사용되고 있음 kimdubi-test-redis-cluster-cluster-update Job은 helm upgrade 커맨드로 redis cluster의 node를 추가할 때 동작하는 Job  Job template을 살펴보자 job.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Configmap</title>
+      <link>/cloud/k8s_redis_cluster_configmap/</link>
+      <pubDate>Wed, 06 Oct 2021 18:05:57 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_configmap/</guid>
+      <description>configmap? configmap 개념  Pod 내 Container로 띄운 application ( Redis, apache …) 에서 사용하는 설정 값을 configmap 이라는 독립적인 오브젝트로 분리함 DEV용, TEST용, PROD용으로 configmap을 따로 관리하여 하나의 동일한 Container로 여러 환경에서 사용할 수 있음 수정 배포가 필요한 경우에도 Container 일일이 접속해서 수정하는 게 아니라 사용하는 Configmap을 수정하여 사용할 수 있음  configmap 사용현황 $ kubectl get configmap NAME DATA AGE kimdubi-test-redis-cluster-default 1 6d19h kimdubi-test-redis-cluster-scripts 2 6d19h   kimdubi-test-redis-cluster-default configmap은 redis.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Service</title>
+      <link>/cloud/k8s_redis_cluster_service/</link>
+      <pubDate>Wed, 06 Oct 2021 17:58:13 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_service/</guid>
+      <description>Service? Service 개념  Pod는 deployment, replicaset, statefulset 같은 controller에 의해 관리되기 때문에 새로 생겨나거나 없어지기도 하고 한 Node에만 떠있는 게 아니라 여러 Node를 옮겨다닐 수 있음 Pod는 이렇듯 동적으로 변하여 고정된 endpoint로의 호출이 어려운데 (Pod의 IP,hostname이 변하니까 ) 이러한 이슈를 해결하기 위한 오브젝트가 Service임 Client는 클러스터 안에서 Pod IP가 바뀌던 없어지건 새로 생기건 신경쓸 필요 없이 Service만 바라보면 고정된 endpoint로 접근이 가능함 Service는 크게 아래와 같이 네가지 Type으로 나뉨  ClusterIp : kubernets cluster 내부에서 사용하는 service.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Statefulset</title>
+      <link>/cloud/k8s_redis_cluster_statefulset/</link>
+      <pubDate>Wed, 06 Oct 2021 17:55:37 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_statefulset/</guid>
+      <description>StatefulSet ? StatefulSet 개념  StatefulSet은 Pod을 scale up&amp;amp;down 하여 새로 배포 할 때 각 Pod의 기존 Spec(hostname,Ip등) 을 유지하여 생성함 (stateful) stateless 한 deployment, replicaset 과는 다른점임 Pod 별로 각각의 PVC를 사용하거나 Pod 생성 순서가 중요할 때 (Master / Slave 구성이 필요할떄) statefulset 을 사용하여 Ordering을 보장하고 구분지을 수 있음 위 구성을 replicaSet , delpoyment를 사용했다면 pod-0 , pod-1 이 같은 PVC,PV를 사용하여 Pod 고유의 state가 사라지고 , 재기동 될 때마다 IP,hostname이 달라져 headless Service를 사용할 수 없음  StatefulSet 사용 현황 $ kubectl get statefulset NAME READY AGE kimdubi-test-redis-cluster 6/6 2d4h   statefulset 하나로 Pod 6대를 관리함, Pod이 down되어도 statefulset에 의해 자동으로 restart 됨 Pod,pvc 생성 구문은 statefulset 에서 정의됨  StatefulSet template을 살펴보자 $ kubectl get statefulset kimdubi-test-redis-cluster -o yaml apiVersion: apps/v1 kind: StatefulSet metadata: annotations: meta.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Volume</title>
+      <link>/cloud/k8s_redis_cluster_volume/</link>
+      <pubDate>Wed, 06 Oct 2021 17:53:38 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_volume/</guid>
+      <description>Volume ? volume 개념  컨테이너 내 파일은 stateless 하기 때문에 데이터 보존이 필요한 경우 Volume을 사용해야함 kubernetes에서 Volume은 Pod 에 종속되어 같은 Pod에 있는 container들은 volume을 공유함 Volume type에는 아래와 같은 여러 방식이 있음  emptyDir : Pod 와 함께 생성되고 Pod가 종료될 때 같이 삭제되는 임시볼륨 hostPath : Pod가 속한 node의 로컬 디스크의 디렉토리를 Pod에 마운트 해서 사용함, 동일 node에서 Pod이 재생성 되는 경우엔 데이터 보존이 가능하나 node가 달라지면 데이터 보존이 불가능함 nfs : 기존 NFS (네트워크파일시스템) 처럼 여러 Pod에서 동시에 마운트 할 수 있는 볼륨    PV / PV 개념  PV (Persistent Volume) : Pod에 종속적인 volume과는 달리 PV는 그 자체로 kubernetes cluster의 resource로 관리됨.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Pod</title>
+      <link>/cloud/k8s_redis_cluster_pod/</link>
+      <pubDate>Wed, 06 Oct 2021 13:13:46 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_pod/</guid>
+      <description>Pod ? Pod 개념  Pod은 kubernetes 클러스터 내 최소 배포단위 하나의 Pod는 하나의 node에 속하고 node 단위로 옮겨다닐 수 있음 Pod 에는 여러개의 container가 포함될 수 있고 Pod 내 container들은 storage와 network를 공유하며 내부통신이 가능함  Pod 사용 현황 $ kubectl get pod NAME READY STATUS RESTARTS AGE kimdubi-test-redis-cluster-0 1/1 Running 0 23h kimdubi-test-redis-cluster-1 1/1 Running 0 2d1h kimdubi-test-redis-cluster-2 1/1 Running 1 23h kimdubi-test-redis-cluster-3 1/1 Running 1 2d1h kimdubi-test-redis-cluster-4 1/1 Running 0 23h kimdubi-test-redis-cluster-5 1/1 Running 0 23h   본문에서 사용하는 helm chart 에서는 Redis Pod을 6대 생성함 3대는 Master , 3대는 Slave 로 동작 중 Pod은 statefulset 에 의해 생성되고 관리되며 Pod의 container image나 개수, 설정등을 변경하고 싶다면 helm chart 내 statefulset과 values.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - Node</title>
+      <link>/cloud/k8s_redis_cluster_node/</link>
+      <pubDate>Wed, 06 Oct 2021 13:03:06 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_node/</guid>
+      <description>node? node 개념  Kubernetes 컴포넌트는 아래 세가지로 구분됨  master node worker node addon component (필수는아님)    Master node Master node는 kubernetes cluster 를 관리하는 node로 크게 아래의 컴포넌트로 이루어짐
+ kube-apiserver : kubernetes 로 오는 모든 요청을 apiserver가 받아서 이 요청이 유효한지 검증함. kubernetes 내 모든 컴포넌트는 kube-apiserver를 통해 필요한 정보를 주고받음 kube-scheduler : Pod 생성 요청이 왔을 때 affinity, anti-affinity, resource requests 등의 Pod 생성조건을 확인하여 조건에 부합하는 node를 찾아 Pod를 생성하는 역할을 수행함 kube-controller-manager : node , network routing, loadbalancer, volume 을 관리하는 역할 etcd : kubernetes 의 status를 key value 로 저장하는 kubernetes의 database 역할  Worker node Pod 실행 및 관리 등 kubernetes내 오브젝트들의 실행 환경을 제공하고 관리함</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - 구성요소</title>
+      <link>/cloud/k8s_redis_cluster_components/</link>
+      <pubDate>Wed, 06 Oct 2021 12:54:44 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_components/</guid>
+      <description>구성요소 node $ kubectl get node NAME STATUS ROLES AGE VERSION kimdubi-test-default-w-46niimovcith-node-0 Ready &amp;lt;none&amp;gt; 4h56m v1.17.6 kimdubi-test-default-w-46niimovcith-node-1 Ready &amp;lt;none&amp;gt; 4h56m v1.17.6 kimdubi-test-default-w-46niimovcith-node-2 Ready &amp;lt;none&amp;gt; 4h56m v1.17.6   worker node 3개  Pod $ kubectl get pod NAME READY STATUS RESTARTS AGE kimdubi-test-redis-cluster-0 1/1 Running 0 3h10m kimdubi-test-redis-cluster-1 1/1 Running 0 3h10m kimdubi-test-redis-cluster-2 1/1 Running 2 3h10m kimdubi-test-redis-cluster-3 1/1 Running 1 3h10m kimdubi-test-redis-cluster-4 1/1 Running 1 3h10m kimdubi-test-redis-cluster-5 1/1 Running 1 3h10m kimdubi-test-redis-cluster-cluster-create-gjwsk 0/1 Completed 0 3h10m   redis cluster 용도의 Pod 6개 Job / batch 용으로 1회성으로 생성된 Pod 1개  Service $ kubectl get service NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE kimdubi-test-redis-cluster ClusterIP 10.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes에서 redis cluster를 돌려보자 - install</title>
+      <link>/cloud/k8s_redis_cluster_install/</link>
+      <pubDate>Wed, 06 Oct 2021 12:00:20 +0900</pubDate>
+      
+      <guid>/cloud/k8s_redis_cluster_install/</guid>
+      <description>목적  kubernentes 에서 redis cluster를 쉽게 배포해보자 Horizontal Pod Autoscaler (HPA) 기능을 이용하여 redis cluster를 autoscaling 해보자  왜 쿠버네티스 ?  resource limit &amp;amp; request 설정으로 Redis Container를 kubernetes Node에 효율적인 분산 배치 가능 장애 시엔 자동화된 프로세스에 의해 복구됨 (auto healing) Memory 부족 등, 필요한 경우 Scale up 뿐만 아니라 Scale out 까지 가능 모든 작업을 ‘선언적&amp;rsquo;으로 자동화할 수 있음  Prerequisites  kubernetes 1.20 이상  1.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes Volume</title>
+      <link>/cloud/k8s_volume/</link>
+      <pubDate>Wed, 06 Oct 2021 09:22:43 +0900</pubDate>
+      
+      <guid>/cloud/k8s_volume/</guid>
+      <description>혼자 쿠버네티스 정리하기 위한 글, 오늘은 volume 편
+여태 생성했던 Pod들은 stateless container를 사용하고 있었다. 그래서 Pod나 Node가 재기동되면 그 데이터가 사라지는 단점이 있었다.
+만약 제공해야하는 서비스에서 이런 경우에도 데이터를 계속 보존해야한다면 kubernetes에서는 Volume을 사용해야한다.
+volume emptyDir Pod가 실행되는 host의 disk를 Contatiner의 volume으로 할당하는 기능,
+Container가 재기동 되어도 데이터는 보존되지만 Pod가 종료되면 emptyDir에 할당했던 volume 내 데이터도 사라진다.
+이 점이 앞서 살펴봤던 kubectl drain node 수행 시 emptyDir 사용하는 Pod이 있는 경우 에러가 발생하는 이유인듯</description>
+    </item>
+    
+    <item>
+      <title>kubernetes Pod Scheduling - cordon &amp; drain</title>
+      <link>/cloud/k8s_cordon_drain/</link>
+      <pubDate>Wed, 06 Oct 2021 09:17:51 +0900</pubDate>
+      
+      <guid>/cloud/k8s_cordon_drain/</guid>
+      <description>혼자 쿠버네티스 정리를 위한 글 오늘은 cordon, drain 편
+특정 node의 점검, 정책 변경 등으로 특정 노드에 있는 pod들을 다른 노드로 옮기거나
+작업시간 동안 특정 node에는 Pod scheduling 을 막아놓을 필요가 있을 때 사용하는 기능이 cordon과 drain이다.
+cordon cordon 은 지정한 node에 pod scheduling 되는 것을 막는 기능임
+ cordon 설정  $ kubectl get deploy,pod NAME READY UP-TO-DATE AVAILABLE AGE deployment.apps/redis-deployment2 2/2 2 2 22h NAME READY STATUS RESTARTS AGE pod/redis-deployment2-6bcb64f4d4-lq5pc 1/1 Running 0 22h pod/redis-deployment2-6bcb64f4d4-sq6vb 1/1 Running 0 22h $ kubectl cordon minikube node/minikube cordoned $ kubectl get node NAME STATUS ROLES AGE VERSION minikube Ready,SchedulingDisabled master 6d18h v1.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes Pod Scheduling - taint&amp;tolerations</title>
+      <link>/cloud/k8s_taint/</link>
+      <pubDate>Wed, 06 Oct 2021 09:14:08 +0900</pubDate>
+      
+      <guid>/cloud/k8s_taint/</guid>
+      <description>혼자 정리하기위한 쿠버네티스 pod scheduling - taint &amp;amp; toleration 편
+taint란, taint를 설정한 node에는 pod이 scheduling 되지 않도록 하는 기능으로 key=value:effect 로 구성된다.
+effect는 NoSchedule, PreferNoSchedule or NoExecute 세가지가 있으며 모두 세부적인 건 다르지만 어쨋든 pod를 scheduling 하지 않는다는 설정으로
+만약 taint가 설정된 Node에 pod을 scheduling 하려면 추가로 toleration을 설정해야 한다.
+즉, taint와 toleration을 설정함으로써 특정 pod들만 실행하고, 다른 pod들은 실행하지 못하게 하여 node를 특정 역할만 하도록 만들 수 있다.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes Pod Scheduling - affinity</title>
+      <link>/cloud/k8s_affinity/</link>
+      <pubDate>Wed, 06 Oct 2021 09:10:57 +0900</pubDate>
+      
+      <guid>/cloud/k8s_affinity/</guid>
+      <description>혼자 정리하기 위한 쿠버네티스 pod scheduling - affinity 편
+쿠버네티스엔 pod을 어떤 노드에 실행시킬 것인지 scheduling 하는 여러 옵션들이 있다.
+특정 node를 선택해서 pod를 scheduling 할 수도 있고 ( node selector)
+특정 pod들을 같은 node에 모아놓거나 (podAffinity) 반대로 흩어지게 하거나 (podAntiAffinity)
+특정 node에 있는 pod들을 다른 node로 옮길 수도 있다(drain)
+nodeSelctor POD가 어떤 node에서 실행될지를 nodeSelector 기능을 통해 key-value 값으로 설정
+ node label 확인  $ kubectl get nodes --show-labels NAME STATUS ROLES AGE VERSION LABELS minikube Ready master 2d23h v1.</description>
+    </item>
+    
+    <item>
+      <title>kubernetes label 정리</title>
+      <link>/cloud/k8s_label/</link>
+      <pubDate>Wed, 06 Oct 2021 08:59:28 +0900</pubDate>
+      
+      <guid>/cloud/k8s_label/</guid>
+      <description>kubernetes label 정리 혼자 보기위해 정리하는 쿠버네티스2 오늘은 label 편
+label은 key:value 로 구성되며 오브젝트나 컨트롤러를 만들 때 메타데이터 필드에서 설정함
+label key는 컨트롤러들이 pod를 관리할 때 자신이 관리해야할 pod를 구분하는 역할을 하며 label을 변경하면 pod를 인식하지 못함
+특정 label의 리소스만 선택해서 관리하게 하는 기능이 selector 인데 selector는 두가지 종류가 있다.
+ 등호 기반  environment=develop release=stable   집합 기반  environment in (develop, stage) release notin (latest,canary) gpu !</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes command 정리-1</title>
+      <link>/cloud/k8s_command/</link>
+      <pubDate>Wed, 06 Oct 2021 08:53:13 +0900</pubDate>
+      
+      <guid>/cloud/k8s_command/</guid>
+      <description>혼자 쿠버네티스 커맨드 익숙해지고자 주저리주저리 작성하는 글입니다.
+오브젝트는 쿠버네티스에 자원의 바라는 상태 (desired state) 를 정의하고 컨트롤러는 desired state = current state 가 되도록 오브젝트들을 생성 / 삭제
+ 오브젝트 : pod, service, namespace,pvc 컨트롤러 : replicaset, deployment, statefulset,demonset  생성  kubectl run nginx-app –image nginx –port=80 =&amp;gt; default로 deployment 생성 kubectl run nginx-app –generator =run-pod/v1 –image=&amp;ldquo;nginx” –port=80 =&amp;gt; pod생성 kubectl apply -f nginx.yaml  조회  kubectl get pods,deploy,rs,svc -o wide kubectl api-resources kubectl explain pods kubectl explain pods.</description>
+    </item>
+    
+    <item>
+      <title>Docker image</title>
+      <link>/cloud/docker_image/</link>
+      <pubDate>Wed, 06 Oct 2021 08:45:58 +0900</pubDate>
+      
+      <guid>/cloud/docker_image/</guid>
+      <description>요 며칠 간 docker-compose 로 redis 나 mysql container 생성하는 방법을 공유했습니다.
+https://kimdubi.github.io/categories/docker/
+이 과정에서 Docker Image 의 중요성에 대해 새삼 다시 느끼게 되어 정리하는 시간을 가지고자…
+이번 글에서는 docker의 image 에 대해 소개하겠습니다.
+Docker Image Docker 에서 가장 중요한 두 축은 Container 와 Image 라고 생각합니다.
+Docker Image는 container를 띄우는데 필요한 모든 파일이나 설정값들을 포함하고 있습니다.
+잘하시는 분들께 “Docker가 왜 좋아요?” 라고 물으면 종종 “dependency 꼬일 일 없이 서비스 띄울 수 있으니까”</description>
+    </item>
+    
+  </channel>
+</rss>

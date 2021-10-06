@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>install on kimDuBiA</title>
+    <link>/tags/install/</link>
+    <description>Recent content in install on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Tue, 05 Oct 2021 22:17:44 +0900</lastBuildDate><atom:link href="/tags/install/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>PostgreSQL source compile install</title>
+      <link>/postgresql/postgresql_install/</link>
+      <pubDate>Tue, 05 Oct 2021 22:17:44 +0900</pubDate>
+      
+      <guid>/postgresql/postgresql_install/</guid>
+      <description>간단하게 yum install 할 수도 있지만
+디렉토리 구성 등을 기본 default 설정과는 다르게 구성하여 관리하고 싶어 source 파일을 다운받아 컴파일 설치하는 식으로 구성해봤습니다.
+때문에 여기서의 디렉토리는 default 설정이 아닌 제 임의로 설정한 구성입니다.
+postgresql 버전 확인  https://www.postgresql.org/ftp/source/  설치  directory 생성 (kimdubi 계정)  mkdir -p /home1/kimdubi/psql/engn/ =&amp;gt; PostgreSQL engine 영역 mkdir -p /home1/kimdubi/psql/data/testdb =&amp;gt; tablespace 등data 저장공간 mkdir -p /home1/kimdubi/psql/logs/testdb/error_log =&amp;gt; error log mkdir -p /home1/kimdubi/psql/arch/testdb =&amp;gt; pg_wal 아카이빙하는 공간  11.</description>
+    </item>
+    
+  </channel>
+</rss>

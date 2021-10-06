@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>monitoring on kimDuBiA</title>
+    <link>/tags/monitoring/</link>
+    <description>Recent content in monitoring on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 06 Oct 2021 00:07:10 +0900</lastBuildDate><atom:link href="/tags/monitoring/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>PostgreSQL Monitoring</title>
+      <link>/postgresql/pg_monitoring/</link>
+      <pubDate>Wed, 06 Oct 2021 00:07:10 +0900</pubDate>
+      
+      <guid>/postgresql/pg_monitoring/</guid>
+      <description>PostgreSQL 모니터링은 Prometheus,alertmanager,grafana를 활용하여 구축할 수 있습니다.
+방법은 이전에 MySQL 모니터링 구축하는 방법에 대해 공유했던 글을 참고 부탁드리며
+ https://kimdubi.github.io/mysql/mysql_pmm/ https://kimdubi.github.io/mysql/alertmanager/  이번 글에서는 제가 사용하는 모니터링 항목과 그에 따른 alert rule을 공유드리겠습니다.
+exporter  exporter 기동 커맨드  ### postgres_exporter wget https://github.com/wrouesnel/postgres_exporter/releases/download/v0.8.0/postgres_exporter_v0.8.0_linux-amd64.tar.gz export DATA_SOURCE_NAME=&amp;quot;postgresql://login:password@hostname:port/dbname&amp;quot; ./postgres_exporter --exclude-databases=&amp;quot;template0,template1&amp;quot; --web.listen-address=:9187 --extend.query-path=&#39;./queries.yaml&#39; queries.yaml postgres_exporter 는 DB 내 pg_stat* view 의 데이터를 긁어오는데 이외에도 다른 데이터를 수집하고 싶다면
+exporter 기동 시 –extend.query-path=’./queries.yaml’ 옵션을 지정해주고 queries.</description>
+    </item>
+    
+    <item>
+      <title>MySQL mysqladmin utility로 간단하게 모니터링하기</title>
+      <link>/mysql/mysqladmin_utility/</link>
+      <pubDate>Mon, 04 Oct 2021 18:50:05 +0900</pubDate>
+      
+      <guid>/mysql/mysqladmin_utility/</guid>
+      <description>mysqladmin utility로 간단하게 모니터링하기 운영환경의 MySQL 서버들은 보통 prometheus 와 grafana 등을 통해 구축된 모니터링 시스템으로 모니터링 및 로깅을 하고 있습니다.
+그러나 외부 프로젝트 등으로 이러한 모니터링 시스템을 활용할 수 없는 경우에는 어떻게 해야할까요?
+OS 상태는 iostat, vmstat 등으로 로깅할 수 있겠고 MySQL은 show global status 와 show processlist 등을 로깅하는 프로그램을 짤 수 있겠죠?
+이 방법보다 더 간단한 방법이 있는데 바로 mysqladmin utility 입니다.
+mysqladmin processlist status extended-status -uroot -pxxx --sleep=10 --count=1000 --relative -c, --count=# Number of iterations to make.</description>
+    </item>
+    
+    <item>
+      <title>MySQL PMM alertmanager로 알람받기</title>
+      <link>/mysql/alertmanager/</link>
+      <pubDate>Mon, 04 Oct 2021 17:34:10 +0900</pubDate>
+      
+      <guid>/mysql/alertmanager/</guid>
+      <description>PMM alertmanager 로 알람받기 지난 글에서 MySQL 에서 생기는 일들을 모니터링 하는 PMM 구축 방법에 대해 소개해드렸습니다.
+https://kimdubi.github.io/mysql/mysql_pmm/
+그러나 모니터링 서버가 있어도 바로 이슈를 전달 받지 못하면 아무 소용이 없겠죠?
+그래서 이번 글에서는 alertmanager 를 통해서 PMM에서 감지 된 이슈들을 sms으로 받는 방법에 대해 소개해드리겠습니다.
+alertmanager 란? prometheus 를 통해 수집된 metric에서 사전에 설정해둔 alert rule 에 해당하는
+이벤트가 발생하면 alertmanager 에게 알림이 가고
+alertmanager는 이 알람을 email,slack, web-hook 등 다양한 방법으로 전달하는 역할을 합니다.</description>
+    </item>
+    
+    <item>
+      <title>MySQL PMM 수동 설치</title>
+      <link>/mysql/mysql_pmm/</link>
+      <pubDate>Mon, 04 Oct 2021 15:27:46 +0900</pubDate>
+      
+      <guid>/mysql/mysql_pmm/</guid>
+      <description>MySQL PMM 수동 설치 이전에 docker 를 사용하여 PMM 구성하는 법을 다룬 적이 있는데 이번 글에서는 docker 가 아닌 수동으로 구성하는 방법에 대해 정리해보겠습니다.
+https://sarc.io/index.php/mariadb/1268-mariadb-monitoring-pmm
+https://sarc.io/index.php/mariadb/1269-mariadb-monitoring-pmm-2
+설치파일 wget https://github.com/prometheus/prometheus/releases/download/v1.2.3/prometheus-1.2.3.linux-amd64.tar.gz wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.9.0/mysqld_exporter-0.9.0.linux-amd64.tar.gz wget https://github.com/prometheus/node_exporter/releases/download/v0.13.0-rc.1/node_exporter-0.13.0-rc.1.linux-amd64.tar.gz wget https://dl.grafana.com/oss/release/grafana-6.4.2.linux-amd64.tar.gz  prometheus 설정 (모니터링 서버)  prometheus.yaml 설정  [root@b871f6768909 prometheus-1.2.3.linux-amd64]# cat prometheus.yml global: scrape_interval: 1m scrape_timeout : 1s scrape_configs: - job_name: linux static_configs: - targets: [&#39;localhost:9100&#39;] #내서버 ip:9100 node_exporter labels: instance : mysql_OS - job_name: mysql static_configs: - targets: [&#39;localhost:9104&#39;] #내서버 ip:9104 mysql_exporter labels: instance : mysql_DB  prometheus 기동  [root@b871f6768909 prometheus-1.</description>
+    </item>
+    
+  </channel>
+</rss>

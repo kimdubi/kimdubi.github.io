@@ -629,7 +629,7 @@ shard =&amp;gt; 실제 데이터의 집합으로 샤드 키에 따라 shard1 / s
       <pubDate>Tue, 05 Oct 2021 08:37:35 +0900</pubDate>
       
       <guid>/mongodb/replicaset/</guid>
-      <description>mongo db에서도 mysql 처럼 M-S 구조로 replication 을 설정할 수 있습니다.
+      <description>MongoDB에서도 mysql 처럼 M-S 구조로 replication 을 설정할 수 있습니다.
 그 중에서도 자동 failover를 지원하고 master-slave cluster에서 새 node 를 추가하는 것이
 쉬운 replica set 으로 replication 설정하는 방법을 소개하겠습니다.
 (출처 : mongodb.com)

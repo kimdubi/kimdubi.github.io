@@ -1268,10 +1268,10 @@ install https://github.com/Percona-Lab/mysql_random_data_load/releases/download/
     
     <item>
       <title>MySQL의 timeout 설정</title>
-      <link>/mysql/mysql_timeout/</link>
+      <link>/mysql/timeout/</link>
       <pubDate>Mon, 04 Oct 2021 10:07:48 +0900</pubDate>
       
-      <guid>/mysql/mysql_timeout/</guid>
+      <guid>/mysql/timeout/</guid>
       <description>MySQL의 timeout 설정 sleep 세션 client-mysql 서버와 연결 후 다음 query 수행까지 대기중인 상태의 세션
 sleep 세션이 너무 많고 정리가 안되는 경우 connection full 로 인해 신규 세션 접속이 불가능해지고
 session 별 할당 되는 메모리로 인해 memory 부족 현상 발생할 수 있음

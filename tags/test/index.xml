@@ -12,10 +12,10 @@
     <lastBuildDate>Mon, 04 Oct 2021 10:10:54 +0900</lastBuildDate><atom:link href="/tags/test/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>MySQL random data 준비하기</title>
-      <link>/mysql/mysql_random_data/</link>
+      <link>/mysql/rand_insert/</link>
       <pubDate>Mon, 04 Oct 2021 10:10:54 +0900</pubDate>
       
-      <guid>/mysql/mysql_random_data/</guid>
+      <guid>/mysql/rand_insert/</guid>
       <description>MySQL test data 쉽게 준비하는 방법 성능 테스트 등 테스트를 위해 test data를 생성해야할 때가 있습니다
 프로시저를 생성하거나 sysbench 를 수정해서 사용해도 되지만 그보다 더 편한 tool을 찾게 되어 소개드리겠습니다. percona에서 만든 mysql_random_data_load 라는 툴입니다.
 install https://github.com/Percona-Lab/mysql_random_data_load/releases/download/v0.1.12/mysql_random_data_load_0.1.12_Linux_x86_64.tar.gz  TEST  table 생성   CREATE DATABASE IF NOT EXISTS test; CREATE TABLE `test`.`t3` ( `id` int(11) NOT NULL AUTO_INCREMENT, `tcol01` tinyint(4) DEFAULT NULL, `tcol02` smallint(6) DEFAULT NULL, `tcol03` mediumint(9) DEFAULT NULL, `tcol04` int(11) DEFAULT NULL, `tcol05` bigint(20) DEFAULT NULL, `tcol06` float DEFAULT NULL, `tcol07` double DEFAULT NULL, `tcol08` decimal(10,2) DEFAULT NULL, `tcol09` date DEFAULT NULL, `tcol10` datetime DEFAULT NULL, `tcol11` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, `tcol12` time DEFAULT NULL, `tcol13` year(4) DEFAULT NULL, `tcol14` varchar(100) DEFAULT NULL, `tcol15` char(2) DEFAULT NULL, `tcol16` blob, `tcol17` text, `tcol18` mediumtext, `tcol19` mediumblob, `tcol20` longblob, `tcol21` longtext, `tcol22` mediumtext, `tcol23` varchar(3) DEFAULT NULL, `tcol24` varbinary(10) DEFAULT NULL, `tcol25` enum(&#39;a&#39;,&#39;b&#39;,&#39;c&#39;) DEFAULT NULL, `tcol26` set(&#39;red&#39;,&#39;green&#39;,&#39;blue&#39;) DEFAULT NULL, `tcol27` float(5,3) DEFAULT NULL, `tcol28` double(4,2) DEFAULT NULL, PRIMARY KEY (`id`) ) ENGINE=InnoDB;  insert  [root@46249296ede3 mysql57]# .</description>

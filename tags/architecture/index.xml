@@ -100,10 +100,10 @@ ORACLE은 강력한 엔터프라이즈 개발 기능과 안정성을, MySQL은 �
     
     <item>
       <title>MySQL Crash-safe replication</title>
-      <link>/mysql/crash_safe/</link>
+      <link>/mysql/crash-safe/</link>
       <pubDate>Mon, 04 Oct 2021 16:53:48 +0900</pubDate>
       
-      <guid>/mysql/crash_safe/</guid>
+      <guid>/mysql/crash-safe/</guid>
       <description>MySQL crash-safe replication MySQL crash-safe replication 기능은 5.6 버전부터 생긴 오래된 개념입니다.
 slave DB가 crash 되어 재기동 되는 경우에도 data 중복이나 유실 같은
 replication이 깨지는 경우를 막기 위한 기능인데요

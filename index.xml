@@ -872,10 +872,10 @@ ex). MySQL 5.6에서는 util.dumpInstance()의 backup lock, user backup 같은 �
     
     <item>
       <title>MySQL replication filter 사용 시 주의사항</title>
-      <link>/mysql/replication_filter_issue/</link>
+      <link>/mysql/replication_filter/</link>
       <pubDate>Mon, 04 Oct 2021 21:49:23 +0900</pubDate>
       
-      <guid>/mysql/replication_filter_issue/</guid>
+      <guid>/mysql/replication_filter/</guid>
       <description>MySQL replication_do_db 사용시 주의사항 하나의 DB서버에 여러 논리DB들이 있고 그 중 특정 논리DB를 다른 DB서버로 분리하는 작업을 종종 합니다.
 이때 무중단으로 분리하기 위해서 replication filter 기능을 사용하는데요
 이 때의 주의사항을 알아보도록 하겠습니다.
@@ -921,11 +921,11 @@ datetime 칼럼 insert문이 binary log에 millisecond 값이 생략되어 마�
     </item>
     
     <item>
-      <title>Xtrabackup long transacion issue</title>
-      <link>/mysql/xtrabackup_longtran_issue/</link>
+      <title>Xtrabackup long transaction issue</title>
+      <link>/mysql/xtrabackup_issue/</link>
       <pubDate>Mon, 04 Oct 2021 21:00:38 +0900</pubDate>
       
-      <guid>/mysql/xtrabackup_longtran_issue/</guid>
+      <guid>/mysql/xtrabackup_issue/</guid>
       <description>Xtrabackup 사용 시 주의사항 Xtrabackup 은 mysqldump 대신 많이 사용되는 오픈소스 hotbackup utility 입니다.
 널리 사용되는 유틸리티라서 사용하는데에 큰 이슈는 없지만 다만 사용할 때 꼭 기억해둬야할 주의점이 있습니다.
 Xtrabackup은 백업 수행이후 FLUSH TABLES WITH READ LOCK을 수행하는데 이 때 실행되는 쿼리가 있는 경우 flush 구문은 테이블락을 획득하지 못하고 waiting하며
@@ -981,10 +981,10 @@ ORACLE 이나 기타 DB에서는 REPLCAE 에 해당하는 구문입니다.
     
     <item>
       <title>MySQL outer join or조건 튜닝</title>
-      <link>/mysql/outer_join_or_tuning/</link>
+      <link>/mysql/outer_join_or/</link>
       <pubDate>Mon, 04 Oct 2021 19:08:57 +0900</pubDate>
       
-      <guid>/mysql/outer_join_or_tuning/</guid>
+      <guid>/mysql/outer_join_or/</guid>
       <description>OUTER JOIN OR 조건 튜닝 쿼리 검수를 하는데 처음 접하는 쿼리를 보게 되어 당황스러웠던 경험이 있습니다.
 바로 LEFT OUTER JOIN 의 JOIN 절에 OR 조건이 달려있는 쿼리였는데요.
 항상 JOIN on a.id = b.id 같은 단일조건, 조건이 더 달려 봤자 AND 조건이었는데 OR 조건은 처음 접하는 경험이었는데요
@@ -1077,10 +1077,10 @@ innodb_rollback_on_timeout=off (default) test 는 아래와 같이 진행했습�
     
     <item>
       <title>MySQL fragmentaion 원인과 해결방법</title>
-      <link>/mysql/table_fragmentation/</link>
+      <link>/mysql/optimize/</link>
       <pubDate>Mon, 04 Oct 2021 18:00:06 +0900</pubDate>
       
-      <guid>/mysql/table_fragmentation/</guid>
+      <guid>/mysql/optimize/</guid>
       <description>MySQL fragmentation 원인과 해결방법 MySQL에서 테이블 fragmentation 현상을 경험해보신 적 있으신가요?
 fragmentation이란 insert &amp;amp; delete 가 수차례 반복되면서 page 안에 회수가 안되는 사용되지 않는 부분이 많아지면서 발생하게 되는데
 그 영향으로 테이블이 실제로 가져야 하는 OS 공간 보다 더 많은 공간을 차지하게 됩니다.
@@ -1144,21 +1144,11 @@ MHA failover 발생 시 event status도 enable 시키는 기능이 있으면 좋
     </item>
     
     <item>
-      <title>MySQL xtrabackup lsn 유실 이슈</title>
-      <link>/mysql/xtrabackup_error/</link>
-      <pubDate>Mon, 04 Oct 2021 16:57:19 +0900</pubDate>
-      
-      <guid>/mysql/xtrabackup_error/</guid>
-      <description>MySQL Xtrabackup LSN 유실 에러 xtrabackup 백업 본으로 복구 할 때 LSN이 유실되었던 이슈가 발생해서 원인과 해결방법을 공유드리겠습니다.
-Xtrabackup 복구 후 MySQL 기동 실패 InnoDB: Starting an apply batch of log records to the database... InnoDB: Progress in percent: InnoDB: Page [page id: space=695, page number=81921] log sequence number 11324236422964 is in the future! Current system log sequence number 11324230185692. InnoDB: Your database may be corrupt or you may have copied the InnoDB tablespace but not the InnoDB log files.</description>
-    </item>
-    
-    <item>
       <title>MySQL Crash-safe replication</title>
-      <link>/mysql/crash_safe/</link>
+      <link>/mysql/crash-safe/</link>
       <pubDate>Mon, 04 Oct 2021 16:53:48 +0900</pubDate>
       
-      <guid>/mysql/crash_safe/</guid>
+      <guid>/mysql/crash-safe/</guid>
       <description>MySQL crash-safe replication MySQL crash-safe replication 기능은 5.6 버전부터 생긴 오래된 개념입니다.
 slave DB가 crash 되어 재기동 되는 경우에도 data 중복이나 유실 같은
 replication이 깨지는 경우를 막기 위한 기능인데요
@@ -1211,10 +1201,10 @@ https://sarc.io/index.php/mariadb/1269-mariadb-monitoring-pmm-2
     
     <item>
       <title>MySQL8 Multi Source Replication 개선점</title>
-      <link>/mysql/mysql8_multi_source_replication/</link>
+      <link>/mysql/mysql8_msr/</link>
       <pubDate>Mon, 04 Oct 2021 15:17:13 +0900</pubDate>
       
-      <guid>/mysql/mysql8_multi_source_replication/</guid>
+      <guid>/mysql/mysql8_msr/</guid>
       <description>MySQL8 Multi Source Replication 개선점 5.7과 8.0 multi-source replication 차이점 mysql 5.7 버전부터 multi-source replication 기능이 생기면서 유용하게 사용되고 있지만
 두대 이상의 Master 에서 같은 이름의 database를 구분 지어 다른 db명으로 변경해서
 replication 해오는 기능은 지원되지 않았습니다.
@@ -1226,10 +1216,10 @@ MySQL 5.7 Master 1: kimdubi_db =&amp;gt; Slave : kimdubi_db Master 2: kimdubi_db
     
     <item>
       <title>MySQL Multi Source Replication</title>
-      <link>/mysql/multi_source_replication/</link>
+      <link>/mysql/multi-source-replication/</link>
       <pubDate>Mon, 04 Oct 2021 15:00:07 +0900</pubDate>
       
-      <guid>/mysql/multi_source_replication/</guid>
+      <guid>/mysql/multi-source-replication/</guid>
       <description>MySQL Multi Source Replication Multi Source Replication ? 하나의 slave db서버가 여러개의 master와 연결하여 replication 을 구성하는 기능으로 mysql 5.7.x 버전대 부터 사용가능함
 백업 용도, 로그 통합 DB, 배치작업 등을 위해 데이터를 한곳에 모을 필요가 있을 때 매우 유용한 기능
  multi master 와 multi source 는 다른 개념   slave는 여러 개의 master 를 channel name 으로 구분함  구성방법  replication repository 설정  mysql&amp;gt; show variables like &#39;%repository%&#39;; +---------------------------+-------+ | Variable_name | Value | +---------------------------+-------+ | master_info_repository | TABLE | | relay_log_info_repository | TABLE | +---------------------------+-------+ 2 rows in set (0.</description>
@@ -1237,10 +1227,10 @@ MySQL 5.7 Master 1: kimdubi_db =&amp;gt; Slave : kimdubi_db Master 2: kimdubi_db
     
     <item>
       <title>MySQL 대량 데이터 delete</title>
-      <link>/mysql/mysql_delete/</link>
+      <link>/mysql/table_delete/</link>
       <pubDate>Mon, 04 Oct 2021 11:07:44 +0900</pubDate>
       
-      <guid>/mysql/mysql_delete/</guid>
+      <guid>/mysql/table_delete/</guid>
       <description>MySQL 대량 데이터 삭제하는 방법 대용량 테이블의 과거 데이터를 지우는 작업을 종종 할 때가 있는데요
 파티션 테이블의 경우에는 exchange partition 를 통해서 손쉽게 작업을 할 수 있지만
 일반 테이블의 경우에는 repetable-read 일 때 next key lock 영향을 최소화 하기위해
@@ -1264,10 +1254,10 @@ online DDL이 안되기 때문에 주의가 필요합니다.
     
     <item>
       <title>MySQL metadata lock 확인하는 procedure</title>
-      <link>/mysql/metadata_procedure/</link>
+      <link>/mysql/metadata/</link>
       <pubDate>Mon, 04 Oct 2021 10:52:03 +0900</pubDate>
       
-      <guid>/mysql/metadata_procedure/</guid>
+      <guid>/mysql/metadata/</guid>
       <description>MySQL metadata lock 상황 한눈에 확인하기 트래픽이 많아 쿼리가 많이 수행되는 환경에서는 단순 쿼리로는 metadata lock 을 찾기 힘들 때도 있습니다.
 percona에서 공유한 metadata lock holder와 waiter를 쉽게 확인할 수 있는 프로시져 관련 글이 있어 공유드립니다.
 (https://www.percona.com/blog/2016/12/28/quickly-troubleshooting-metadata-locks-mysql-5-7/)
@@ -1286,20 +1276,20 @@ MySQL 5.6 MySQL 5.7 5.6 =&amp;gt; 5.7 변경사항  MySQL 5.5 =&amp;gt; 5.6 으�
     
     <item>
       <title>MySQL / ORACLE PARTITION DDL 비교</title>
-      <link>/mysql/partition_ddl/</link>
+      <link>/mysql/partition/</link>
       <pubDate>Mon, 04 Oct 2021 10:39:52 +0900</pubDate>
       
-      <guid>/mysql/partition_ddl/</guid>
+      <guid>/mysql/partition/</guid>
       <description>이번 글에서는 ORACLE과 MySQL의 파티션 테이블 구문의 차이점에 대해서 알아보겠습니다.
 ORACLE / MySQL partition DDL 차이점    기능 ORACLE MySQL     ADD ALTER TABLE PARTITION_TEST ADD PARTITION P1 VALUES LESS THAN (&amp;lsquo;2020-03-01&amp;rsquo;) TABLESPACE TABS1 ALTER TABLE PARTITION_TEST ADD PARTITION (PARTITION P1 VALUES LESS THAN (&amp;lsquo;2020-03-01&amp;rsquo;) TABLESPACE TABS1)   DROP ALTER TABLE PARTITION_TEST DROP PARTITION P1 ALTER TABLE PARTITION_TEST DROP PARTITION P1   SPLIT ALTER TABLE SPLIT PARTITION P_MAX AT (&amp;lsquo;2020-04-01&amp;rsquo;) INTO (PARTITION P2 TABLESPACE TABS2, PARTITION P_MAX TABLESPACE TABS) ALTER TABLE PARTITION_TEST REORGANIZE PARTITION P1,P2 INTO (PARTITION P2 LESS THAN (&amp;lsquo;2020-04-01&amp;rsquo;))   MERGE ALTER TABLE PARTITION_TEST MERGE PARTITION P1,P2 INTO P2 ALTER TABLE PARTITION_TEST REORGANIZE PARTITION P1,P2 INTO (PARTITION P2 LESS THAN (&amp;lsquo;2020-04-01&amp;rsquo;))   TRUNCATE ALTER TABLE PARTITION_TEST TRUNCATE PARTITION P1 ALTER TABLE PARTITION_TEST TRUNCATE PARTITION P1   EXCHANGE ALTER TABLE PARTITION_TEST EXCHANGE PARTITION P1 WITH TABLE NONPARTITION_TEST ALTER TABLE PARTITION_TEST EXCHANGE PARTITION P1 WITH TABLE NONPARTITION_TEST   MOVE ALTER TABLE PARTITION_TEST MOVE PARTITION P1 TABLESPACE TABS1 -   RENAME ALTER TABLE PARTITION_TEST RENAME PARTITION P1 TO P1_RENAME -    이외에도 아래와 같은 차이점이 더 있습니다</description>
     </item>
     
     <item>
       <title>MySQL binlog2sql으로 flashback 복구하기</title>
-      <link>/mysql/binlog2sql_flashback/</link>
+      <link>/mysql/flashback/</link>
       <pubDate>Mon, 04 Oct 2021 10:28:20 +0900</pubDate>
       
-      <guid>/mysql/binlog2sql_flashback/</guid>
+      <guid>/mysql/flashback/</guid>
       <description>MySQL Flashback recovery MySQL에서는 flashback recovery가 아직 지원되지 않습니다.
 그래서 MariaDB의 mysqlbinlog utility를 가져와서 사용하곤 했는데
 binlog2sql 이라는 utility를 사용하면 MySQL에서도 flashback recovery를 할 수 있습니다.
@@ -1308,10 +1298,10 @@ binlog2sql  mysqlbinlog 처럼 binary log를 parsing 하는 유틸리티 MariaDB
     
     <item>
       <title>MySQL random data 준비하기</title>
-      <link>/mysql/mysql_random_data/</link>
+      <link>/mysql/rand_insert/</link>
       <pubDate>Mon, 04 Oct 2021 10:10:54 +0900</pubDate>
       
-      <guid>/mysql/mysql_random_data/</guid>
+      <guid>/mysql/rand_insert/</guid>
       <description>MySQL test data 쉽게 준비하는 방법 성능 테스트 등 테스트를 위해 test data를 생성해야할 때가 있습니다
 프로시저를 생성하거나 sysbench 를 수정해서 사용해도 되지만 그보다 더 편한 tool을 찾게 되어 소개드리겠습니다. percona에서 만든 mysql_random_data_load 라는 툴입니다.
 install https://github.com/Percona-Lab/mysql_random_data_load/releases/download/v0.1.12/mysql_random_data_load_0.1.12_Linux_x86_64.tar.gz  TEST  table 생성   CREATE DATABASE IF NOT EXISTS test; CREATE TABLE `test`.`t3` ( `id` int(11) NOT NULL AUTO_INCREMENT, `tcol01` tinyint(4) DEFAULT NULL, `tcol02` smallint(6) DEFAULT NULL, `tcol03` mediumint(9) DEFAULT NULL, `tcol04` int(11) DEFAULT NULL, `tcol05` bigint(20) DEFAULT NULL, `tcol06` float DEFAULT NULL, `tcol07` double DEFAULT NULL, `tcol08` decimal(10,2) DEFAULT NULL, `tcol09` date DEFAULT NULL, `tcol10` datetime DEFAULT NULL, `tcol11` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, `tcol12` time DEFAULT NULL, `tcol13` year(4) DEFAULT NULL, `tcol14` varchar(100) DEFAULT NULL, `tcol15` char(2) DEFAULT NULL, `tcol16` blob, `tcol17` text, `tcol18` mediumtext, `tcol19` mediumblob, `tcol20` longblob, `tcol21` longtext, `tcol22` mediumtext, `tcol23` varchar(3) DEFAULT NULL, `tcol24` varbinary(10) DEFAULT NULL, `tcol25` enum(&#39;a&#39;,&#39;b&#39;,&#39;c&#39;) DEFAULT NULL, `tcol26` set(&#39;red&#39;,&#39;green&#39;,&#39;blue&#39;) DEFAULT NULL, `tcol27` float(5,3) DEFAULT NULL, `tcol28` double(4,2) DEFAULT NULL, PRIMARY KEY (`id`) ) ENGINE=InnoDB;  insert  [root@46249296ede3 mysql57]# .</description>
@@ -1331,15 +1321,25 @@ timeout 관련 설정  connect_timeout : MySQL 서버 접속시에 접속실패�
     
     <item>
       <title>MySQL mysqldump 테이블별로 쪼개는 법</title>
-      <link>/mysql/mysql_dump_split/</link>
+      <link>/mysql/dumpfile/</link>
       <pubDate>Mon, 04 Oct 2021 10:02:52 +0900</pubDate>
       
-      <guid>/mysql/mysql_dump_split/</guid>
+      <guid>/mysql/dumpfile/</guid>
       <description>MySQL full backup dumpfile 테이블별로 쪼개는법 운영환경에서 DB 백업을 받을 때 보통 xtrabackup이나 mysqldump 으로 풀백업을 받으실텐데요
 사이즈가 엄청 큰 DB를 mysqldump 로 풀백업 받은 경우 복구 시 병렬처리가 안되고 싱글 쓰레드로 처리되기 때문에 굉장히 많은 시간이 소요됩니다.
 이 때 dumpfile을 테이블 별로 쪼개면 병렬로 수행할 수 있게 됩니다.
 이번 글에서는 mysqldump로 받은 풀백업본 dumpfile 을 table별로 쪼개는 방법에 대해 공유 드리겠습니다
 mysqldump 준비 mysqldump --opt --single-transaction -R -Q --all-databases -S /home1/irteam/db/mysql/tmp/mysql.</description>
+    </item>
+    
+    <item>
+      <title>MySQL Xtrabackup LSN 유실 에러</title>
+      <link>/mysql/xtrabackup_error/</link>
+      <pubDate>Mon, 04 Oct 2021 08:41:16 +0900</pubDate>
+      
+      <guid>/mysql/xtrabackup_error/</guid>
+      <description>xtrabackup 백업 본으로 복구 할 때 LSN이 유실되었던 이슈가 발생해서 원인과 해결방법 공유드리겠습니다.
+Xtrabackup 복구 후 MySQL 기동 실패 InnoDB: Starting an apply batch of log records to the database... InnoDB: Progress in percent: InnoDB: Page [page id: space=695, page number=81921] log sequence number 11324236422964 is in the future! Current system log sequence number 11324230185692. InnoDB: Your database may be corrupt or you may have copied the InnoDB tablespace but not the InnoDB log files.</description>
     </item>
     
     <item>
@@ -1370,10 +1370,10 @@ MySQL은 Master-Slave의 개념으로 Master의 데이터를 Slave 서버로 복
     
     <item>
       <title>Xtrabackup8.0 잡다구리 정보 </title>
-      <link>/mysql/xtrabackup8_info/</link>
+      <link>/mysql/xtrabackup8/</link>
       <pubDate>Mon, 04 Oct 2021 03:30:20 +0900</pubDate>
       
-      <guid>/mysql/xtrabackup8_info/</guid>
+      <guid>/mysql/xtrabackup8/</guid>
       <description>Xtrabackup 8.0 잡다구리 정보 mysql8.0 버전부터 xtrabackup 을 사용하려면 기존 2.x 버전이 아닌 xtrabackup 8.0 버전을 사용해야 합니다.
 mysql 8.0 버전이 되면서 아래와 같은 이유로 기존 2.x 버전에서 호환이 되지 않기 때문인데요
  data dictionary 를 따로 사용하게 되고 시스템 테이블들을 MyISAM 엔진이 아닌 innodb 사용 redo / undo log 변경사항  특히 8.0 으로 올라오면서 시스템 테이블 등에 기본적으로 MyISAM 을 쓰지 않는 것이 default 설정이 되면서 xtrabackup 내부적으로도 MyISAM 테이블이 없으면 –no-lock 옵션이 없더라도 flush tables with read lock 을 수행하지 않습니다.</description>

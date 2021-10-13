@@ -29,10 +29,10 @@ PK 구성 변경과 파티셔닝 커맨드를 하나의 ALTER문으로 표현할
     
     <item>
       <title>MySQL fragmentaion 원인과 해결방법</title>
-      <link>/mysql/table_fragmentation/</link>
+      <link>/mysql/optimize/</link>
       <pubDate>Mon, 04 Oct 2021 18:00:06 +0900</pubDate>
       
-      <guid>/mysql/table_fragmentation/</guid>
+      <guid>/mysql/optimize/</guid>
       <description>MySQL fragmentation 원인과 해결방법 MySQL에서 테이블 fragmentation 현상을 경험해보신 적 있으신가요?
 fragmentation이란 insert &amp;amp; delete 가 수차례 반복되면서 page 안에 회수가 안되는 사용되지 않는 부분이 많아지면서 발생하게 되는데
 그 영향으로 테이블이 실제로 가져야 하는 OS 공간 보다 더 많은 공간을 차지하게 됩니다.
@@ -56,10 +56,10 @@ online DDL이 안되기 때문에 주의가 필요합니다.
     
     <item>
       <title>MySQL / ORACLE PARTITION DDL 비교</title>
-      <link>/mysql/partition_ddl/</link>
+      <link>/mysql/partition/</link>
       <pubDate>Mon, 04 Oct 2021 10:39:52 +0900</pubDate>
       
-      <guid>/mysql/partition_ddl/</guid>
+      <guid>/mysql/partition/</guid>
       <description>이번 글에서는 ORACLE과 MySQL의 파티션 테이블 구문의 차이점에 대해서 알아보겠습니다.
 ORACLE / MySQL partition DDL 차이점    기능 ORACLE MySQL     ADD ALTER TABLE PARTITION_TEST ADD PARTITION P1 VALUES LESS THAN (&amp;lsquo;2020-03-01&amp;rsquo;) TABLESPACE TABS1 ALTER TABLE PARTITION_TEST ADD PARTITION (PARTITION P1 VALUES LESS THAN (&amp;lsquo;2020-03-01&amp;rsquo;) TABLESPACE TABS1)   DROP ALTER TABLE PARTITION_TEST DROP PARTITION P1 ALTER TABLE PARTITION_TEST DROP PARTITION P1   SPLIT ALTER TABLE SPLIT PARTITION P_MAX AT (&amp;lsquo;2020-04-01&amp;rsquo;) INTO (PARTITION P2 TABLESPACE TABS2, PARTITION P_MAX TABLESPACE TABS) ALTER TABLE PARTITION_TEST REORGANIZE PARTITION P1,P2 INTO (PARTITION P2 LESS THAN (&amp;lsquo;2020-04-01&amp;rsquo;))   MERGE ALTER TABLE PARTITION_TEST MERGE PARTITION P1,P2 INTO P2 ALTER TABLE PARTITION_TEST REORGANIZE PARTITION P1,P2 INTO (PARTITION P2 LESS THAN (&amp;lsquo;2020-04-01&amp;rsquo;))   TRUNCATE ALTER TABLE PARTITION_TEST TRUNCATE PARTITION P1 ALTER TABLE PARTITION_TEST TRUNCATE PARTITION P1   EXCHANGE ALTER TABLE PARTITION_TEST EXCHANGE PARTITION P1 WITH TABLE NONPARTITION_TEST ALTER TABLE PARTITION_TEST EXCHANGE PARTITION P1 WITH TABLE NONPARTITION_TEST   MOVE ALTER TABLE PARTITION_TEST MOVE PARTITION P1 TABLESPACE TABS1 -   RENAME ALTER TABLE PARTITION_TEST RENAME PARTITION P1 TO P1_RENAME -    이외에도 아래와 같은 차이점이 더 있습니다</description>
     </item>

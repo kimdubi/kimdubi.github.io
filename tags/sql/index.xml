@@ -59,10 +59,10 @@ ORACLE 이나 기타 DB에서는 REPLCAE 에 해당하는 구문입니다.
     
     <item>
       <title>MySQL outer join or조건 튜닝</title>
-      <link>/mysql/outer_join_or_tuning/</link>
+      <link>/mysql/outer_join_or/</link>
       <pubDate>Mon, 04 Oct 2021 19:08:57 +0900</pubDate>
       
-      <guid>/mysql/outer_join_or_tuning/</guid>
+      <guid>/mysql/outer_join_or/</guid>
       <description>OUTER JOIN OR 조건 튜닝 쿼리 검수를 하는데 처음 접하는 쿼리를 보게 되어 당황스러웠던 경험이 있습니다.
 바로 LEFT OUTER JOIN 의 JOIN 절에 OR 조건이 달려있는 쿼리였는데요.
 항상 JOIN on a.id = b.id 같은 단일조건, 조건이 더 달려 봤자 AND 조건이었는데 OR 조건은 처음 접하는 경험이었는데요

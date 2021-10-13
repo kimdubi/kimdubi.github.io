@@ -149,10 +149,10 @@ ex). MySQL 5.6에서는 util.dumpInstance()의 backup lock, user backup 같은 �
     
     <item>
       <title>MySQL replication filter 사용 시 주의사항</title>
-      <link>/mysql/replication_filter_issue/</link>
+      <link>/mysql/replication_filter/</link>
       <pubDate>Mon, 04 Oct 2021 21:49:23 +0900</pubDate>
       
-      <guid>/mysql/replication_filter_issue/</guid>
+      <guid>/mysql/replication_filter/</guid>
       <description>MySQL replication_do_db 사용시 주의사항 하나의 DB서버에 여러 논리DB들이 있고 그 중 특정 논리DB를 다른 DB서버로 분리하는 작업을 종종 합니다.
 이때 무중단으로 분리하기 위해서 replication filter 기능을 사용하는데요
 이 때의 주의사항을 알아보도록 하겠습니다.
@@ -173,11 +173,11 @@ SELECT * FROM tb_test tb1 LEFT OUTER JOIN tb_test2 AS tb2 ON tb1.name = tb2.name
     </item>
     
     <item>
-      <title>Xtrabackup long transacion issue</title>
-      <link>/mysql/xtrabackup_longtran_issue/</link>
+      <title>Xtrabackup long transaction issue</title>
+      <link>/mysql/xtrabackup_issue/</link>
       <pubDate>Mon, 04 Oct 2021 21:00:38 +0900</pubDate>
       
-      <guid>/mysql/xtrabackup_longtran_issue/</guid>
+      <guid>/mysql/xtrabackup_issue/</guid>
       <description>Xtrabackup 사용 시 주의사항 Xtrabackup 은 mysqldump 대신 많이 사용되는 오픈소스 hotbackup utility 입니다.
 널리 사용되는 유틸리티라서 사용하는데에 큰 이슈는 없지만 다만 사용할 때 꼭 기억해둬야할 주의점이 있습니다.
 Xtrabackup은 백업 수행이후 FLUSH TABLES WITH READ LOCK을 수행하는데 이 때 실행되는 쿼리가 있는 경우 flush 구문은 테이블락을 획득하지 못하고 waiting하며
@@ -269,10 +269,10 @@ innodb_rollback_on_timeout=off (default) test 는 아래와 같이 진행했습�
     
     <item>
       <title>MySQL fragmentaion 원인과 해결방법</title>
-      <link>/mysql/table_fragmentation/</link>
+      <link>/mysql/optimize/</link>
       <pubDate>Mon, 04 Oct 2021 18:00:06 +0900</pubDate>
       
-      <guid>/mysql/table_fragmentation/</guid>
+      <guid>/mysql/optimize/</guid>
       <description>MySQL fragmentation 원인과 해결방법 MySQL에서 테이블 fragmentation 현상을 경험해보신 적 있으신가요?
 fragmentation이란 insert &amp;amp; delete 가 수차례 반복되면서 page 안에 회수가 안되는 사용되지 않는 부분이 많아지면서 발생하게 되는데
 그 영향으로 테이블이 실제로 가져야 하는 OS 공간 보다 더 많은 공간을 차지하게 됩니다.
@@ -313,10 +313,10 @@ DB의 어떤 세션이 리소스를 특별히 많이 잡고 있는지 확인할 
     
     <item>
       <title>MySQL 대량 데이터 delete</title>
-      <link>/mysql/mysql_delete/</link>
+      <link>/mysql/table_delete/</link>
       <pubDate>Mon, 04 Oct 2021 11:07:44 +0900</pubDate>
       
-      <guid>/mysql/mysql_delete/</guid>
+      <guid>/mysql/table_delete/</guid>
       <description>MySQL 대량 데이터 삭제하는 방법 대용량 테이블의 과거 데이터를 지우는 작업을 종종 할 때가 있는데요
 파티션 테이블의 경우에는 exchange partition 를 통해서 손쉽게 작업을 할 수 있지만
 일반 테이블의 경우에는 repetable-read 일 때 next key lock 영향을 최소화 하기위해
@@ -340,10 +340,10 @@ online DDL이 안되기 때문에 주의가 필요합니다.
     
     <item>
       <title>MySQL metadata lock 확인하는 procedure</title>
-      <link>/mysql/metadata_procedure/</link>
+      <link>/mysql/metadata/</link>
       <pubDate>Mon, 04 Oct 2021 10:52:03 +0900</pubDate>
       
-      <guid>/mysql/metadata_procedure/</guid>
+      <guid>/mysql/metadata/</guid>
       <description>MySQL metadata lock 상황 한눈에 확인하기 트래픽이 많아 쿼리가 많이 수행되는 환경에서는 단순 쿼리로는 metadata lock 을 찾기 힘들 때도 있습니다.
 percona에서 공유한 metadata lock holder와 waiter를 쉽게 확인할 수 있는 프로시져 관련 글이 있어 공유드립니다.
 (https://www.percona.com/blog/2016/12/28/quickly-troubleshooting-metadata-locks-mysql-5-7/)
@@ -352,20 +352,20 @@ procedure USE test; DROP PROCEDURE IF EXISTS procShowMetadataLockSummary; delimi
     
     <item>
       <title>MySQL / ORACLE PARTITION DDL 비교</title>
-      <link>/mysql/partition_ddl/</link>
+      <link>/mysql/partition/</link>
       <pubDate>Mon, 04 Oct 2021 10:39:52 +0900</pubDate>
       
-      <guid>/mysql/partition_ddl/</guid>
+      <guid>/mysql/partition/</guid>
       <description>이번 글에서는 ORACLE과 MySQL의 파티션 테이블 구문의 차이점에 대해서 알아보겠습니다.
 ORACLE / MySQL partition DDL 차이점    기능 ORACLE MySQL     ADD ALTER TABLE PARTITION_TEST ADD PARTITION P1 VALUES LESS THAN (&amp;lsquo;2020-03-01&amp;rsquo;) TABLESPACE TABS1 ALTER TABLE PARTITION_TEST ADD PARTITION (PARTITION P1 VALUES LESS THAN (&amp;lsquo;2020-03-01&amp;rsquo;) TABLESPACE TABS1)   DROP ALTER TABLE PARTITION_TEST DROP PARTITION P1 ALTER TABLE PARTITION_TEST DROP PARTITION P1   SPLIT ALTER TABLE SPLIT PARTITION P_MAX AT (&amp;lsquo;2020-04-01&amp;rsquo;) INTO (PARTITION P2 TABLESPACE TABS2, PARTITION P_MAX TABLESPACE TABS) ALTER TABLE PARTITION_TEST REORGANIZE PARTITION P1,P2 INTO (PARTITION P2 LESS THAN (&amp;lsquo;2020-04-01&amp;rsquo;))   MERGE ALTER TABLE PARTITION_TEST MERGE PARTITION P1,P2 INTO P2 ALTER TABLE PARTITION_TEST REORGANIZE PARTITION P1,P2 INTO (PARTITION P2 LESS THAN (&amp;lsquo;2020-04-01&amp;rsquo;))   TRUNCATE ALTER TABLE PARTITION_TEST TRUNCATE PARTITION P1 ALTER TABLE PARTITION_TEST TRUNCATE PARTITION P1   EXCHANGE ALTER TABLE PARTITION_TEST EXCHANGE PARTITION P1 WITH TABLE NONPARTITION_TEST ALTER TABLE PARTITION_TEST EXCHANGE PARTITION P1 WITH TABLE NONPARTITION_TEST   MOVE ALTER TABLE PARTITION_TEST MOVE PARTITION P1 TABLESPACE TABS1 -   RENAME ALTER TABLE PARTITION_TEST RENAME PARTITION P1 TO P1_RENAME -    이외에도 아래와 같은 차이점이 더 있습니다</description>
     </item>
     
     <item>
       <title>MySQL binlog2sql으로 flashback 복구하기</title>
-      <link>/mysql/binlog2sql_flashback/</link>
+      <link>/mysql/flashback/</link>
       <pubDate>Mon, 04 Oct 2021 10:28:20 +0900</pubDate>
       
-      <guid>/mysql/binlog2sql_flashback/</guid>
+      <guid>/mysql/flashback/</guid>
       <description>MySQL Flashback recovery MySQL에서는 flashback recovery가 아직 지원되지 않습니다.
 그래서 MariaDB의 mysqlbinlog utility를 가져와서 사용하곤 했는데
 binlog2sql 이라는 utility를 사용하면 MySQL에서도 flashback recovery를 할 수 있습니다.
@@ -386,10 +386,10 @@ timeout 관련 설정  connect_timeout : MySQL 서버 접속시에 접속실패�
     
     <item>
       <title>MySQL mysqldump 테이블별로 쪼개는 법</title>
-      <link>/mysql/mysql_dump_split/</link>
+      <link>/mysql/dumpfile/</link>
       <pubDate>Mon, 04 Oct 2021 10:02:52 +0900</pubDate>
       
-      <guid>/mysql/mysql_dump_split/</guid>
+      <guid>/mysql/dumpfile/</guid>
       <description>MySQL full backup dumpfile 테이블별로 쪼개는법 운영환경에서 DB 백업을 받을 때 보통 xtrabackup이나 mysqldump 으로 풀백업을 받으실텐데요
 사이즈가 엄청 큰 DB를 mysqldump 로 풀백업 받은 경우 복구 시 병렬처리가 안되고 싱글 쓰레드로 처리되기 때문에 굉장히 많은 시간이 소요됩니다.
 이 때 dumpfile을 테이블 별로 쪼개면 병렬로 수행할 수 있게 됩니다.

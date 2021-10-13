@@ -29,10 +29,10 @@ PK 구성 변경과 파티셔닝 커맨드를 하나의 ALTER문으로 표현할
     
     <item>
       <title>MySQL fragmentaion 원인과 해결방법</title>
-      <link>/mysql/table_fragmentation/</link>
+      <link>/mysql/optimize/</link>
       <pubDate>Mon, 04 Oct 2021 18:00:06 +0900</pubDate>
       
-      <guid>/mysql/table_fragmentation/</guid>
+      <guid>/mysql/optimize/</guid>
       <description>MySQL fragmentation 원인과 해결방법 MySQL에서 테이블 fragmentation 현상을 경험해보신 적 있으신가요?
 fragmentation이란 insert &amp;amp; delete 가 수차례 반복되면서 page 안에 회수가 안되는 사용되지 않는 부분이 많아지면서 발생하게 되는데
 그 영향으로 테이블이 실제로 가져야 하는 OS 공간 보다 더 많은 공간을 차지하게 됩니다.

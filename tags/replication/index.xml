@@ -88,10 +88,10 @@ DB는 WAL logfile들이 나중엔 반영될 거라고 보기 때문에 계속~ �
     
     <item>
       <title>MySQL replication filter 사용 시 주의사항</title>
-      <link>/mysql/replication_filter_issue/</link>
+      <link>/mysql/replication_filter/</link>
       <pubDate>Mon, 04 Oct 2021 21:49:23 +0900</pubDate>
       
-      <guid>/mysql/replication_filter_issue/</guid>
+      <guid>/mysql/replication_filter/</guid>
       <description>MySQL replication_do_db 사용시 주의사항 하나의 DB서버에 여러 논리DB들이 있고 그 중 특정 논리DB를 다른 DB서버로 분리하는 작업을 종종 합니다.
 이때 무중단으로 분리하기 위해서 replication filter 기능을 사용하는데요
 이 때의 주의사항을 알아보도록 하겠습니다.
@@ -126,10 +126,10 @@ REQUIRE_TABLE_PRIMARY_KEY_CHECK 란?  performance_schema.replication_applier_con
     
     <item>
       <title>MySQL Crash-safe replication</title>
-      <link>/mysql/crash_safe/</link>
+      <link>/mysql/crash-safe/</link>
       <pubDate>Mon, 04 Oct 2021 16:53:48 +0900</pubDate>
       
-      <guid>/mysql/crash_safe/</guid>
+      <guid>/mysql/crash-safe/</guid>
       <description>MySQL crash-safe replication MySQL crash-safe replication 기능은 5.6 버전부터 생긴 오래된 개념입니다.
 slave DB가 crash 되어 재기동 되는 경우에도 data 중복이나 유실 같은
 replication이 깨지는 경우를 막기 위한 기능인데요
@@ -140,10 +140,10 @@ crash-safe replication 개념 replication 수행 중 Slave의 status를 file에 
     
     <item>
       <title>MySQL8 Multi Source Replication 개선점</title>
-      <link>/mysql/mysql8_multi_source_replication/</link>
+      <link>/mysql/mysql8_msr/</link>
       <pubDate>Mon, 04 Oct 2021 15:17:13 +0900</pubDate>
       
-      <guid>/mysql/mysql8_multi_source_replication/</guid>
+      <guid>/mysql/mysql8_msr/</guid>
       <description>MySQL8 Multi Source Replication 개선점 5.7과 8.0 multi-source replication 차이점 mysql 5.7 버전부터 multi-source replication 기능이 생기면서 유용하게 사용되고 있지만
 두대 이상의 Master 에서 같은 이름의 database를 구분 지어 다른 db명으로 변경해서
 replication 해오는 기능은 지원되지 않았습니다.
@@ -155,10 +155,10 @@ MySQL 5.7 Master 1: kimdubi_db =&amp;gt; Slave : kimdubi_db Master 2: kimdubi_db
     
     <item>
       <title>MySQL Multi Source Replication</title>
-      <link>/mysql/multi_source_replication/</link>
+      <link>/mysql/multi-source-replication/</link>
       <pubDate>Mon, 04 Oct 2021 15:00:07 +0900</pubDate>
       
-      <guid>/mysql/multi_source_replication/</guid>
+      <guid>/mysql/multi-source-replication/</guid>
       <description>MySQL Multi Source Replication Multi Source Replication ? 하나의 slave db서버가 여러개의 master와 연결하여 replication 을 구성하는 기능으로 mysql 5.7.x 버전대 부터 사용가능함
 백업 용도, 로그 통합 DB, 배치작업 등을 위해 데이터를 한곳에 모을 필요가 있을 때 매우 유용한 기능
  multi master 와 multi source 는 다른 개념   slave는 여러 개의 master 를 channel name 으로 구분함  구성방법  replication repository 설정  mysql&amp;gt; show variables like &#39;%repository%&#39;; +---------------------------+-------+ | Variable_name | Value | +---------------------------+-------+ | master_info_repository | TABLE | | relay_log_info_repository | TABLE | +---------------------------+-------+ 2 rows in set (0.</description>

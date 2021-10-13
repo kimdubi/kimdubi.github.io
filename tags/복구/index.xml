@@ -90,16 +90,6 @@ replication을 맺어주면 되는 아주 간단한 작업인데요
     </item>
     
     <item>
-      <title>MySQL xtrabackup lsn 유실 이슈</title>
-      <link>/mysql/xtrabackup_error/</link>
-      <pubDate>Mon, 04 Oct 2021 16:57:19 +0900</pubDate>
-      
-      <guid>/mysql/xtrabackup_error/</guid>
-      <description>MySQL Xtrabackup LSN 유실 에러 xtrabackup 백업 본으로 복구 할 때 LSN이 유실되었던 이슈가 발생해서 원인과 해결방법을 공유드리겠습니다.
-Xtrabackup 복구 후 MySQL 기동 실패 InnoDB: Starting an apply batch of log records to the database... InnoDB: Progress in percent: InnoDB: Page [page id: space=695, page number=81921] log sequence number 11324236422964 is in the future! Current system log sequence number 11324230185692. InnoDB: Your database may be corrupt or you may have copied the InnoDB tablespace but not the InnoDB log files.</description>
-    </item>
-    
-    <item>
       <title>MySQL self replication으로 빠른 복구하기</title>
       <link>/mysql/mysql_self_replication/</link>
       <pubDate>Mon, 04 Oct 2021 15:38:28 +0900</pubDate>
@@ -118,10 +108,10 @@ mysql 과 mariadb는 gtid 사용방법이 조금 달라서 위의 방법도 조�
     
     <item>
       <title>MySQL binlog2sql으로 flashback 복구하기</title>
-      <link>/mysql/binlog2sql_flashback/</link>
+      <link>/mysql/flashback/</link>
       <pubDate>Mon, 04 Oct 2021 10:28:20 +0900</pubDate>
       
-      <guid>/mysql/binlog2sql_flashback/</guid>
+      <guid>/mysql/flashback/</guid>
       <description>MySQL Flashback recovery MySQL에서는 flashback recovery가 아직 지원되지 않습니다.
 그래서 MariaDB의 mysqlbinlog utility를 가져와서 사용하곤 했는데
 binlog2sql 이라는 utility를 사용하면 MySQL에서도 flashback recovery를 할 수 있습니다.
@@ -130,10 +120,10 @@ binlog2sql  mysqlbinlog 처럼 binary log를 parsing 하는 유틸리티 MariaDB
     
     <item>
       <title>MySQL mysqldump 테이블별로 쪼개는 법</title>
-      <link>/mysql/mysql_dump_split/</link>
+      <link>/mysql/dumpfile/</link>
       <pubDate>Mon, 04 Oct 2021 10:02:52 +0900</pubDate>
       
-      <guid>/mysql/mysql_dump_split/</guid>
+      <guid>/mysql/dumpfile/</guid>
       <description>MySQL full backup dumpfile 테이블별로 쪼개는법 운영환경에서 DB 백업을 받을 때 보통 xtrabackup이나 mysqldump 으로 풀백업을 받으실텐데요
 사이즈가 엄청 큰 DB를 mysqldump 로 풀백업 받은 경우 복구 시 병렬처리가 안되고 싱글 쓰레드로 처리되기 때문에 굉장히 많은 시간이 소요됩니다.
 이 때 dumpfile을 테이블 별로 쪼개면 병렬로 수행할 수 있게 됩니다.

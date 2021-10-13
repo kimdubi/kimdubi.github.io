@@ -52,11 +52,11 @@ datetime 칼럼 insert문이 binary log에 millisecond 값이 생략되어 마�
     </item>
     
     <item>
-      <title>Xtrabackup long transacion issue</title>
-      <link>/mysql/xtrabackup_longtran_issue/</link>
+      <title>Xtrabackup long transaction issue</title>
+      <link>/mysql/xtrabackup_issue/</link>
       <pubDate>Mon, 04 Oct 2021 21:00:38 +0900</pubDate>
       
-      <guid>/mysql/xtrabackup_longtran_issue/</guid>
+      <guid>/mysql/xtrabackup_issue/</guid>
       <description>Xtrabackup 사용 시 주의사항 Xtrabackup 은 mysqldump 대신 많이 사용되는 오픈소스 hotbackup utility 입니다.
 널리 사용되는 유틸리티라서 사용하는데에 큰 이슈는 없지만 다만 사용할 때 꼭 기억해둬야할 주의점이 있습니다.
 Xtrabackup은 백업 수행이후 FLUSH TABLES WITH READ LOCK을 수행하는데 이 때 실행되는 쿼리가 있는 경우 flush 구문은 테이블락을 획득하지 못하고 waiting하며
@@ -113,6 +113,16 @@ single-transaction + dump-slave 혹은 single-transaction + master-data 옵션�
 replication을 맺어주면 되는 아주 간단한 작업인데요
 그런데 실패했습니다…
  replication error log  show slave status\G; . . Last_Errno: 1146 Last_Error: Error &#39;Table &#39;xxxxx.xxxx&#39; doesn&#39;t exist&#39; on query. Default database: &#39;xxxxxxxxxxxx&#39;.</description>
+    </item>
+    
+    <item>
+      <title>MySQL Xtrabackup LSN 유실 에러</title>
+      <link>/mysql/xtrabackup_error/</link>
+      <pubDate>Mon, 04 Oct 2021 08:41:16 +0900</pubDate>
+      
+      <guid>/mysql/xtrabackup_error/</guid>
+      <description>xtrabackup 백업 본으로 복구 할 때 LSN이 유실되었던 이슈가 발생해서 원인과 해결방법 공유드리겠습니다.
+Xtrabackup 복구 후 MySQL 기동 실패 InnoDB: Starting an apply batch of log records to the database... InnoDB: Progress in percent: InnoDB: Page [page id: space=695, page number=81921] log sequence number 11324236422964 is in the future! Current system log sequence number 11324230185692. InnoDB: Your database may be corrupt or you may have copied the InnoDB tablespace but not the InnoDB log files.</description>
     </item>
     
   </channel>

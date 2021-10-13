@@ -11,11 +11,11 @@
     <generator>Hugo -- gohugo.io</generator>
     <lastBuildDate>Mon, 04 Oct 2021 21:00:38 +0900</lastBuildDate><atom:link href="/tags/xtrabackup/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>Xtrabackup long transacion issue</title>
-      <link>/mysql/xtrabackup_longtran_issue/</link>
+      <title>Xtrabackup long transaction issue</title>
+      <link>/mysql/xtrabackup_issue/</link>
       <pubDate>Mon, 04 Oct 2021 21:00:38 +0900</pubDate>
       
-      <guid>/mysql/xtrabackup_longtran_issue/</guid>
+      <guid>/mysql/xtrabackup_issue/</guid>
       <description>Xtrabackup 사용 시 주의사항 Xtrabackup 은 mysqldump 대신 많이 사용되는 오픈소스 hotbackup utility 입니다.
 널리 사용되는 유틸리티라서 사용하는데에 큰 이슈는 없지만 다만 사용할 때 꼭 기억해둬야할 주의점이 있습니다.
 Xtrabackup은 백업 수행이후 FLUSH TABLES WITH READ LOCK을 수행하는데 이 때 실행되는 쿼리가 있는 경우 flush 구문은 테이블락을 획득하지 못하고 waiting하며
@@ -24,21 +24,21 @@ lockwait timeout 이후 세션이 종료되어 백업이 완료되지 못하거�
     </item>
     
     <item>
-      <title>MySQL xtrabackup lsn 유실 이슈</title>
+      <title>MySQL Xtrabackup LSN 유실 에러</title>
       <link>/mysql/xtrabackup_error/</link>
-      <pubDate>Mon, 04 Oct 2021 16:57:19 +0900</pubDate>
+      <pubDate>Mon, 04 Oct 2021 08:41:16 +0900</pubDate>
       
       <guid>/mysql/xtrabackup_error/</guid>
-      <description>MySQL Xtrabackup LSN 유실 에러 xtrabackup 백업 본으로 복구 할 때 LSN이 유실되었던 이슈가 발생해서 원인과 해결방법을 공유드리겠습니다.
+      <description>xtrabackup 백업 본으로 복구 할 때 LSN이 유실되었던 이슈가 발생해서 원인과 해결방법 공유드리겠습니다.
 Xtrabackup 복구 후 MySQL 기동 실패 InnoDB: Starting an apply batch of log records to the database... InnoDB: Progress in percent: InnoDB: Page [page id: space=695, page number=81921] log sequence number 11324236422964 is in the future! Current system log sequence number 11324230185692. InnoDB: Your database may be corrupt or you may have copied the InnoDB tablespace but not the InnoDB log files.</description>
     </item>
     
     <item>
       <title>Xtrabackup8.0 잡다구리 정보 </title>
-      <link>/mysql/xtrabackup8_info/</link>
+      <link>/mysql/xtrabackup8/</link>
       <pubDate>Mon, 04 Oct 2021 03:30:20 +0900</pubDate>
       
-      <guid>/mysql/xtrabackup8_info/</guid>
+      <guid>/mysql/xtrabackup8/</guid>
       <description>Xtrabackup 8.0 잡다구리 정보 mysql8.0 버전부터 xtrabackup 을 사용하려면 기존 2.x 버전이 아닌 xtrabackup 8.0 버전을 사용해야 합니다.
 mysql 8.0 버전이 되면서 아래와 같은 이유로 기존 2.x 버전에서 호환이 되지 않기 때문인데요
  data dictionary 를 따로 사용하게 되고 시스템 테이블들을 MyISAM 엔진이 아닌 innodb 사용 redo / undo log 변경사항  특히 8.0 으로 올라오면서 시스템 테이블 등에 기본적으로 MyISAM 을 쓰지 않는 것이 default 설정이 되면서 xtrabackup 내부적으로도 MyISAM 테이블이 없으면 –no-lock 옵션이 없더라도 flush tables with read lock 을 수행하지 않습니다.</description>

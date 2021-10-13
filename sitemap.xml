@@ -573,7 +573,7 @@
   </url>
   
   <url>
-    <loc>/mysql/replication_filter_issue/</loc>
+    <loc>/mysql/replication_filter/</loc>
     <lastmod>2021-10-04T21:49:23+09:00</lastmod>
   </url>
   
@@ -603,7 +603,7 @@
   </url>
   
   <url>
-    <loc>/mysql/xtrabackup_longtran_issue/</loc>
+    <loc>/mysql/xtrabackup_issue/</loc>
     <lastmod>2021-10-04T21:00:38+09:00</lastmod>
   </url>
   
@@ -633,7 +633,7 @@
   </url>
   
   <url>
-    <loc>/mysql/outer_join_or_tuning/</loc>
+    <loc>/mysql/outer_join_or/</loc>
     <lastmod>2021-10-04T19:08:57+09:00</lastmod>
   </url>
   
@@ -683,7 +683,7 @@
   </url>
   
   <url>
-    <loc>/mysql/table_fragmentation/</loc>
+    <loc>/mysql/optimize/</loc>
     <lastmod>2021-10-04T18:00:06+09:00</lastmod>
   </url>
   
@@ -718,12 +718,7 @@
   </url>
   
   <url>
-    <loc>/mysql/xtrabackup_error/</loc>
-    <lastmod>2021-10-04T16:57:19+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/mysql/crash_safe/</loc>
+    <loc>/mysql/crash-safe/</loc>
     <lastmod>2021-10-04T16:53:48+09:00</lastmod>
   </url>
   
@@ -743,17 +738,17 @@
   </url>
   
   <url>
-    <loc>/mysql/mysql8_multi_source_replication/</loc>
+    <loc>/mysql/mysql8_msr/</loc>
     <lastmod>2021-10-04T15:17:13+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/mysql/multi_source_replication/</loc>
+    <loc>/mysql/multi-source-replication/</loc>
     <lastmod>2021-10-04T15:00:07+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/mysql/mysql_delete/</loc>
+    <loc>/mysql/table_delete/</loc>
     <lastmod>2021-10-04T11:07:44+09:00</lastmod>
   </url>
   
@@ -768,7 +763,7 @@
   </url>
   
   <url>
-    <loc>/mysql/metadata_procedure/</loc>
+    <loc>/mysql/metadata/</loc>
     <lastmod>2021-10-04T10:52:03+09:00</lastmod>
   </url>
   
@@ -783,17 +778,17 @@
   </url>
   
   <url>
-    <loc>/mysql/partition_ddl/</loc>
+    <loc>/mysql/partition/</loc>
     <lastmod>2021-10-04T10:39:52+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/mysql/binlog2sql_flashback/</loc>
+    <loc>/mysql/flashback/</loc>
     <lastmod>2021-10-04T10:28:20+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/mysql/mysql_random_data/</loc>
+    <loc>/mysql/rand_insert/</loc>
     <lastmod>2021-10-04T10:10:54+09:00</lastmod>
   </url>
   
@@ -808,13 +803,18 @@
   </url>
   
   <url>
-    <loc>/mysql/mysql_dump_split/</loc>
+    <loc>/mysql/dumpfile/</loc>
     <lastmod>2021-10-04T10:02:52+09:00</lastmod>
   </url>
   
   <url>
     <loc>/tags/mysqldump/</loc>
     <lastmod>2021-10-04T10:02:52+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/mysql/xtrabackup_error/</loc>
+    <lastmod>2021-10-04T08:41:16+09:00</lastmod>
   </url>
   
   <url>
@@ -828,7 +828,7 @@
   </url>
   
   <url>
-    <loc>/mysql/xtrabackup8_info/</loc>
+    <loc>/mysql/xtrabackup8/</loc>
     <lastmod>2021-10-04T03:30:20+09:00</lastmod>
   </url>
   

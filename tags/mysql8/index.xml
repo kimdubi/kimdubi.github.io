@@ -48,10 +48,10 @@ REQUIRE_TABLE_PRIMARY_KEY_CHECK 란?  performance_schema.replication_applier_con
     
     <item>
       <title>MySQL8 Multi Source Replication 개선점</title>
-      <link>/mysql/mysql8_multi_source_replication/</link>
+      <link>/mysql/mysql8_msr/</link>
       <pubDate>Mon, 04 Oct 2021 15:17:13 +0900</pubDate>
       
-      <guid>/mysql/mysql8_multi_source_replication/</guid>
+      <guid>/mysql/mysql8_msr/</guid>
       <description>MySQL8 Multi Source Replication 개선점 5.7과 8.0 multi-source replication 차이점 mysql 5.7 버전부터 multi-source replication 기능이 생기면서 유용하게 사용되고 있지만
 두대 이상의 Master 에서 같은 이름의 database를 구분 지어 다른 db명으로 변경해서
 replication 해오는 기능은 지원되지 않았습니다.

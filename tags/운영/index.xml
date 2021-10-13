@@ -124,10 +124,10 @@ bash_profile $ vi ~/.bash_profile export POSTGRES_HOME=/home1/kimdubi/psql/engn/
     
     <item>
       <title>MySQL Shell을 통한 Table dump&amp;load</title>
-      <link>/mysql/mysqlshell_dump/</link>
+      <link>/mysql/mysqlsh_dump/</link>
       <pubDate>Mon, 04 Oct 2021 22:11:03 +0900</pubDate>
       
-      <guid>/mysql/mysqlshell_dump/</guid>
+      <guid>/mysql/mysqlsh_dump/</guid>
       <description>MySQL shell을 통한 Table dump&amp;amp;load 기존 mysqldump 같은 Logical backup의 단점은 사용은 간편하나, dump&amp;amp;load 시 single thread를 사용하여 굉장히 느리다는 단점이 있는데
 mysqlshell 의 dump , load 기능을 사용하면 logical 백업도 빠르게 수행할 수 있습니다.
 이번 글에서는 mysqlshell을 통해 특정 테이블만 dump&amp;amp;load test를 해보겠습니다. 물론 instance, schema 단위로도 백업 가능합니다.
@@ -137,10 +137,10 @@ mysqlshell 설치 $ sudo yum install mysql-shell Loaded plugins: fastestmirror, 
     
     <item>
       <title>MySQL Shell parallel dump&amp;load</title>
-      <link>/mysql/mysqlshell_parallel_dump/</link>
+      <link>/mysql/mysqlsh_util/</link>
       <pubDate>Mon, 04 Oct 2021 22:02:29 +0900</pubDate>
       
-      <guid>/mysql/mysqlshell_parallel_dump/</guid>
+      <guid>/mysql/mysqlsh_util/</guid>
       <description>mysqlshell 이란 ? MySQL 8.0 과 함께 출시 된 MySQL 용 클라이언트 툴로 아래와 같은 기능을 제공한다
 Document에는 MySQL 5.7 이상부터 지원한다고 하나, 일부 기능 제외하면 MySQL 5.6에서도 사용가능함
 ex). MySQL 5.6에서는 util.dumpInstance()의 backup lock, user backup 같은 기능을 사용 못함
@@ -161,10 +161,10 @@ Replication filter 개요  리플리케이션 필터는 MySQL 복제 구성 시
     
     <item>
       <title>index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size)</title>
-      <link>/mysql/range_optimizer_max_mem_size/</link>
+      <link>/mysql/range_optimizer/</link>
       <pubDate>Mon, 04 Oct 2021 21:28:19 +0900</pubDate>
       
-      <guid>/mysql/range_optimizer_max_mem_size/</guid>
+      <guid>/mysql/range_optimizer/</guid>
       <description>index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size) Index 잘 타던 쿼리가 fullscan을 하면서 CPU가 100% 를 치는 이슈가 발생했습니다.
 range_optimizer_max_mem_size 라는 생소한 파라미터를 설정하여 이슈 해결한 사례를 공유합니다.
 이슈 상황 DB server에서 갑자기 CPU가 100%를 치는 상황이 발생
@@ -216,10 +216,10 @@ PK 구성 변경과 파티셔닝 커맨드를 하나의 ALTER문으로 표현할
     
     <item>
       <title>MySQL mysqladmin utility로 간단하게 모니터링하기</title>
-      <link>/mysql/mysqladmin_utility/</link>
+      <link>/mysql/mysqladmin/</link>
       <pubDate>Mon, 04 Oct 2021 18:50:05 +0900</pubDate>
       
-      <guid>/mysql/mysqladmin_utility/</guid>
+      <guid>/mysql/mysqladmin/</guid>
       <description>mysqladmin utility로 간단하게 모니터링하기 운영환경의 MySQL 서버들은 보통 prometheus 와 grafana 등을 통해 구축된 모니터링 시스템으로 모니터링 및 로깅을 하고 있습니다.
 그러나 외부 프로젝트 등으로 이러한 모니터링 시스템을 활용할 수 없는 경우에는 어떻게 해야할까요?
 OS 상태는 iostat, vmstat 등으로 로깅할 수 있겠고 MySQL은 show global status 와 show processlist 등을 로깅하는 프로그램을 짤 수 있겠죠?
@@ -229,20 +229,20 @@ mysqladmin processlist status extended-status -uroot -pxxx --sleep=10 --count=10
     
     <item>
       <title>MySQL8 skip locked / nowait 활용하기</title>
-      <link>/mysql/mysql8_skip_locked_nowait/</link>
+      <link>/mysql/skip_locked/</link>
       <pubDate>Mon, 04 Oct 2021 18:46:41 +0900</pubDate>
       
-      <guid>/mysql/mysql8_skip_locked_nowait/</guid>
+      <guid>/mysql/skip_locked/</guid>
       <description>MySQL8.0 SKIP LOCKED / NOWAIT 활용하기 MySQL 8.0 버전부터는 읽기 일관성을 위한 read lock 에 대해 두가지 옵션이 추가되었습니다.
  NOWAIT : 쿼리를 실행 후 읽으려는 row에 lock이 걸려있으면 바로 트랜잭션 실패 처리 (innodb_lock_wait_timeout 만큼 기다리지 않고 바로) SKIP LOCKED : 쿼리를 실행 후 읽으려는 row에 lock 이 걸려있으면 해당 row skip 하고 resultset return  동시성 이슈를 해결하기 위해 select ~ for update , select ~ for shared mode 같은 쿼리를 수행할 때 위 옵션을 줄 수 있는데 언제 사용하면 좋을까요?</description>
     </item>
     
     <item>
       <title>MySQL Foreign Key 1215 error</title>
-      <link>/mysql/fk_error/</link>
+      <link>/mysql/fk/</link>
       <pubDate>Mon, 04 Oct 2021 18:37:54 +0900</pubDate>
       
-      <guid>/mysql/fk_error/</guid>
+      <guid>/mysql/fk/</guid>
       <description>MySQL Foreign Key 1215 error 얼마전 담당하는 MySQL 서비스의 복제본 한벌을 더 추가 구성하게 되었습니다.
 single-transaction + dump-slave 혹은 single-transaction + master-data 옵션으로 mysqldump 를 받은 뒤
 새 서버에 반영해주고 dumpfile에 dump-slave / master-data 옵션으로 인해 딸려온 change master to 구문을 확인하여
@@ -253,10 +253,10 @@ replication을 맺어주면 되는 아주 간단한 작업인데요
     
     <item>
       <title>MySQL innodb_rollback_on_timeout 설정</title>
-      <link>/mysql/innodb_rollback_on_timeout/</link>
+      <link>/mysql/rollback/</link>
       <pubDate>Mon, 04 Oct 2021 18:06:40 +0900</pubDate>
       
-      <guid>/mysql/innodb_rollback_on_timeout/</guid>
+      <guid>/mysql/rollback/</guid>
       <description>MySQL innodb_rollback_on_timeout 설정 흔히 transaction 이라 하면 자동적으로 떠오르는게 트랜잭션의 특성인 ACID 입니다.
 MySQL의 Innodb도 transaction을 지원하는 storage engine으로 당연히 ACID 또한 지켜질텐데요.
 그런데 Innodb에서 이 ACID에도 예외사항이 있다는 사실을 알고 계셨나요?
@@ -300,10 +300,10 @@ mysql 과 mariadb는 gtid 사용방법이 조금 달라서 위의 방법도 조�
     
     <item>
       <title>MySQL CPU많이 쓰는 session(thread) 찾기</title>
-      <link>/mysql/mysql_thread_pidstat/</link>
+      <link>/mysql/pidstat/</link>
       <pubDate>Mon, 04 Oct 2021 15:32:38 +0900</pubDate>
       
-      <guid>/mysql/mysql_thread_pidstat/</guid>
+      <guid>/mysql/pidstat/</guid>
       <description>MySQL CPU 많이 사용하는 세션 찾기 MySQL은 PostgreSQL, Oracle 과 같은 프로세스 기반 DB가 아니라 쓰레드 기반 DBMS입니다.
 MySQL의 DB 내부 쓰레드와 OS 쓰레드를 일치시켜서 확인하는 도구가 없기 때문에
 DB의 어떤 세션이 리소스를 특별히 많이 잡고 있는지 확인할 때 OS의 utility 를 사용하는 데 있어서 제한점이 있었는데요
@@ -327,10 +327,10 @@ partition table partition table 의 경우 exchange partition 커맨드를 통�
     
     <item>
       <title>MySQL VARCHAR online ddl 변경 시 주의사항</title>
-      <link>/mysql/varchar_online_ddl/</link>
+      <link>/mysql/varchar/</link>
       <pubDate>Mon, 04 Oct 2021 11:03:00 +0900</pubDate>
       
-      <guid>/mysql/varchar_online_ddl/</guid>
+      <guid>/mysql/varchar/</guid>
       <description>MySQL online DDL varchar 변경 시 주의사항 MySQL의 버전이 올라갈수록 online DDL 지원 범위가 넓어지고 있습니다.
 그런데 의외로 자유자재로 변경가능할 것 같은 varchar column의 사이즈 변경이 특정 케이스에서는
 online DDL이 안되기 때문에 주의가 필요합니다.

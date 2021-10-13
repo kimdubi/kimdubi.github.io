@@ -25,10 +25,10 @@ lockwait timeout 이후 세션이 종료되어 백업이 완료되지 못하거�
     
     <item>
       <title>MySQL xtrabackup lsn 유실 이슈</title>
-      <link>/mysql/xtrabackup_lsn_error/</link>
+      <link>/mysql/xtrabackup_error/</link>
       <pubDate>Mon, 04 Oct 2021 16:57:19 +0900</pubDate>
       
-      <guid>/mysql/xtrabackup_lsn_error/</guid>
+      <guid>/mysql/xtrabackup_error/</guid>
       <description>MySQL Xtrabackup LSN 유실 에러 xtrabackup 백업 본으로 복구 할 때 LSN이 유실되었던 이슈가 발생해서 원인과 해결방법을 공유드리겠습니다.
 Xtrabackup 복구 후 MySQL 기동 실패 InnoDB: Starting an apply batch of log records to the database... InnoDB: Progress in percent: InnoDB: Page [page id: space=695, page number=81921] log sequence number 11324236422964 is in the future! Current system log sequence number 11324230185692. InnoDB: Your database may be corrupt or you may have copied the InnoDB tablespace but not the InnoDB log files.</description>
     </item>

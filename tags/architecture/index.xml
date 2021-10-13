@@ -124,10 +124,10 @@ MySQL 5.6 MySQL 5.7 5.6 =&amp;gt; 5.7 변경사항  MySQL 5.5 =&amp;gt; 5.6 으�
     
     <item>
       <title>MySQL lossless semi-sync replication</title>
-      <link>/mysql/semisync/</link>
+      <link>/mysql/semi_sync/</link>
       <pubDate>Mon, 04 Oct 2021 03:39:53 +0900</pubDate>
       
-      <guid>/mysql/semisync/</guid>
+      <guid>/mysql/semi_sync/</guid>
       <description>MySQL lossless semi-sync replication MySQL은 ORACLE 과는 HighAvailibility를 충족시키는 방법이 다릅니다.
 하나의 스토리지에 데이터를 이중화,삼중화해서 저장하고 이를 여러 인스턴스가 공유하는 ORACLE의 RAC와는 달리
 MySQL은 Master-Slave의 개념으로 Master의 데이터를 Slave 서버로 복제하고 MHA나 MMM 같은 솔루션을 통해 Master가 down 되었을 때 실시간으로 복제해둔 Slave를 Master로 승격시키는 방식입니다.

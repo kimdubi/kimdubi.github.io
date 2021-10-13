@@ -28,10 +28,10 @@ DB는 WAL logfile들이 나중엔 반영될 거라고 보기 때문에 계속~ �
     
     <item>
       <title>index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size)</title>
-      <link>/mysql/range_optimizer_max_mem_size/</link>
+      <link>/mysql/range_optimizer/</link>
       <pubDate>Mon, 04 Oct 2021 21:28:19 +0900</pubDate>
       
-      <guid>/mysql/range_optimizer_max_mem_size/</guid>
+      <guid>/mysql/range_optimizer/</guid>
       <description>index타던 쿼리가 full scan할 때(range_optimizer_max_mem_size) Index 잘 타던 쿼리가 fullscan을 하면서 CPU가 100% 를 치는 이슈가 발생했습니다.
 range_optimizer_max_mem_size 라는 생소한 파라미터를 설정하여 이슈 해결한 사례를 공유합니다.
 이슈 상황 DB server에서 갑자기 CPU가 100%를 치는 상황이 발생
@@ -41,10 +41,10 @@ SELECT * FROM tb_test tb1 LEFT OUTER JOIN tb_test2 AS tb2 ON tb1.name = tb2.name
     
     <item>
       <title>MySQL 5.7.15 Master-Slave datetime 이슈</title>
-      <link>/mysql/mysql5715_datetime_issue/</link>
+      <link>/mysql/mysql_5715_datetime_issue/</link>
       <pubDate>Mon, 04 Oct 2021 21:15:20 +0900</pubDate>
       
-      <guid>/mysql/mysql5715_datetime_issue/</guid>
+      <guid>/mysql/mysql_5715_datetime_issue/</guid>
       <description>MySQL 5.7.15 Master-Slave datetime 이슈 얼마전 운영하는 MySQL에서 재미있는 이슈가 하나 터졌습니다.
 datetime 컬럼에 대해 Master / Slave 간 1초 씩 차이나서 데이터가 안맞는 이슈였는데요
 간단히 정리하면 이런 버그였습니다.
@@ -103,10 +103,10 @@ ORACLE 이나 기타 DB에서는 REPLCAE 에 해당하는 구문입니다.
     
     <item>
       <title>MySQL Foreign Key 1215 error</title>
-      <link>/mysql/fk_error/</link>
+      <link>/mysql/fk/</link>
       <pubDate>Mon, 04 Oct 2021 18:37:54 +0900</pubDate>
       
-      <guid>/mysql/fk_error/</guid>
+      <guid>/mysql/fk/</guid>
       <description>MySQL Foreign Key 1215 error 얼마전 담당하는 MySQL 서비스의 복제본 한벌을 더 추가 구성하게 되었습니다.
 single-transaction + dump-slave 혹은 single-transaction + master-data 옵션으로 mysqldump 를 받은 뒤
 새 서버에 반영해주고 dumpfile에 dump-slave / master-data 옵션으로 인해 딸려온 change master to 구문을 확인하여

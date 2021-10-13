@@ -43,10 +43,10 @@ fragmentation 확인  대상 테이블 OS 사이즈  $ du -sh tb_test* 12K tb_te
     
     <item>
       <title>MySQL VARCHAR online ddl 변경 시 주의사항</title>
-      <link>/mysql/varchar_online_ddl/</link>
+      <link>/mysql/varchar/</link>
       <pubDate>Mon, 04 Oct 2021 11:03:00 +0900</pubDate>
       
-      <guid>/mysql/varchar_online_ddl/</guid>
+      <guid>/mysql/varchar/</guid>
       <description>MySQL online DDL varchar 변경 시 주의사항 MySQL의 버전이 올라갈수록 online DDL 지원 범위가 넓어지고 있습니다.
 그런데 의외로 자유자재로 변경가능할 것 같은 varchar column의 사이즈 변경이 특정 케이스에서는
 online DDL이 안되기 때문에 주의가 필요합니다.

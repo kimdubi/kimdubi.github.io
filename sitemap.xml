@@ -558,7 +558,7 @@
   </url>
   
   <url>
-    <loc>/mysql/mysqlshell_dump/</loc>
+    <loc>/mysql/mysqlsh_dump/</loc>
     <lastmod>2021-10-04T22:11:03+09:00</lastmod>
   </url>
   
@@ -568,7 +568,7 @@
   </url>
   
   <url>
-    <loc>/mysql/mysqlshell_parallel_dump/</loc>
+    <loc>/mysql/mysqlsh_util/</loc>
     <lastmod>2021-10-04T22:02:29+09:00</lastmod>
   </url>
   
@@ -588,12 +588,12 @@
   </url>
   
   <url>
-    <loc>/mysql/range_optimizer_max_mem_size/</loc>
+    <loc>/mysql/range_optimizer/</loc>
     <lastmod>2021-10-04T21:28:19+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/mysql/mysql5715_datetime_issue/</loc>
+    <loc>/mysql/mysql_5715_datetime_issue/</loc>
     <lastmod>2021-10-04T21:15:20+09:00</lastmod>
   </url>
   
@@ -663,22 +663,22 @@
   </url>
   
   <url>
-    <loc>/mysql/mysqladmin_utility/</loc>
+    <loc>/mysql/mysqladmin/</loc>
     <lastmod>2021-10-04T18:50:05+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/mysql/mysql8_skip_locked_nowait/</loc>
+    <loc>/mysql/skip_locked/</loc>
     <lastmod>2021-10-04T18:46:41+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/mysql/fk_error/</loc>
+    <loc>/mysql/fk/</loc>
     <lastmod>2021-10-04T18:37:54+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/mysql/innodb_rollback_on_timeout/</loc>
+    <loc>/mysql/rollback/</loc>
     <lastmod>2021-10-04T18:06:40+09:00</lastmod>
   </url>
   
@@ -688,7 +688,7 @@
   </url>
   
   <url>
-    <loc>/mysql/mysql_in_tuning/</loc>
+    <loc>/mysql/in-list/</loc>
     <lastmod>2021-10-04T17:53:52+09:00</lastmod>
   </url>
   
@@ -703,7 +703,7 @@
   </url>
   
   <url>
-    <loc>/mysql/mysql8_replication_force_pk/</loc>
+    <loc>/mysql/replication_force_pk/</loc>
     <lastmod>2021-10-04T17:28:58+09:00</lastmod>
   </url>
   
@@ -713,12 +713,12 @@
   </url>
   
   <url>
-    <loc>/mysql/mha_method_add/</loc>
+    <loc>/mysql/mha_add_method/</loc>
     <lastmod>2021-10-04T17:12:49+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/mysql/xtrabackup_lsn_error/</loc>
+    <loc>/mysql/xtrabackup_error/</loc>
     <lastmod>2021-10-04T16:57:19+09:00</lastmod>
   </url>
   
@@ -733,12 +733,12 @@
   </url>
   
   <url>
-    <loc>/mysql/mysql_thread_pidstat/</loc>
+    <loc>/mysql/pidstat/</loc>
     <lastmod>2021-10-04T15:32:38+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/mysql/mysql_pmm/</loc>
+    <loc>/mysql/pmm/</loc>
     <lastmod>2021-10-04T15:27:46+09:00</lastmod>
   </url>
   
@@ -758,7 +758,7 @@
   </url>
   
   <url>
-    <loc>/mysql/varchar_online_ddl/</loc>
+    <loc>/mysql/varchar/</loc>
     <lastmod>2021-10-04T11:03:00+09:00</lastmod>
   </url>
   
@@ -823,7 +823,7 @@
   </url>
   
   <url>
-    <loc>/mysql/semisync/</loc>
+    <loc>/mysql/semi_sync/</loc>
     <lastmod>2021-10-04T03:39:53+09:00</lastmod>
   </url>
   
@@ -848,7 +848,7 @@
   </url>
   
   <url>
-    <loc>/mysql/mysql_mmm/</loc>
+    <loc>/mysql/mysql-mmm/</loc>
     <lastmod>2021-10-04T03:09:12+09:00</lastmod>
   </url>
   

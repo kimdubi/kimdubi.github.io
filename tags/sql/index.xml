@@ -72,20 +72,20 @@ ORACLE 이나 기타 DB에서는 REPLCAE 에 해당하는 구문입니다.
     
     <item>
       <title>MySQL8 skip locked / nowait 활용하기</title>
-      <link>/mysql/mysql8_skip_locked_nowait/</link>
+      <link>/mysql/skip_locked/</link>
       <pubDate>Mon, 04 Oct 2021 18:46:41 +0900</pubDate>
       
-      <guid>/mysql/mysql8_skip_locked_nowait/</guid>
+      <guid>/mysql/skip_locked/</guid>
       <description>MySQL8.0 SKIP LOCKED / NOWAIT 활용하기 MySQL 8.0 버전부터는 읽기 일관성을 위한 read lock 에 대해 두가지 옵션이 추가되었습니다.
  NOWAIT : 쿼리를 실행 후 읽으려는 row에 lock이 걸려있으면 바로 트랜잭션 실패 처리 (innodb_lock_wait_timeout 만큼 기다리지 않고 바로) SKIP LOCKED : 쿼리를 실행 후 읽으려는 row에 lock 이 걸려있으면 해당 row skip 하고 resultset return  동시성 이슈를 해결하기 위해 select ~ for update , select ~ for shared mode 같은 쿼리를 수행할 때 위 옵션을 줄 수 있는데 언제 사용하면 좋을까요?</description>
     </item>
     
     <item>
       <title>MySQL IN조건은 &#39;=&#39;과 같을까</title>
-      <link>/mysql/mysql_in_tuning/</link>
+      <link>/mysql/in-list/</link>
       <pubDate>Mon, 04 Oct 2021 17:53:52 +0900</pubDate>
       
-      <guid>/mysql/mysql_in_tuning/</guid>
+      <guid>/mysql/in-list/</guid>
       <description>MySQL IN조건은 &amp;lsquo;=&amp;lsquo;과 같을까 저같은 쿼리 왕초보들은 where 절의 IN list 조건을 보면
 ‘=’ 과 동일하게 생각하는 경우가 드문드문 있을 것 같습니다. 일단 전 그랬습니다….
 쿼리 검수를 하다가 IN 조건이 무조건 ‘=&amp;lsquo;과 동일한 것은 아니다 라는 것을 알게 되어 기록남겨봅니다.

@@ -100,10 +100,10 @@ Replication filter 개요  리플리케이션 필터는 MySQL 복제 구성 시
     
     <item>
       <title>MySQL 5.7.15 Master-Slave datetime 이슈</title>
-      <link>/mysql/mysql5715_datetime_issue/</link>
+      <link>/mysql/mysql_5715_datetime_issue/</link>
       <pubDate>Mon, 04 Oct 2021 21:15:20 +0900</pubDate>
       
-      <guid>/mysql/mysql5715_datetime_issue/</guid>
+      <guid>/mysql/mysql_5715_datetime_issue/</guid>
       <description>MySQL 5.7.15 Master-Slave datetime 이슈 얼마전 운영하는 MySQL에서 재미있는 이슈가 하나 터졌습니다.
 datetime 컬럼에 대해 Master / Slave 간 1초 씩 차이나서 데이터가 안맞는 이슈였는데요
 간단히 정리하면 이런 버그였습니다.
@@ -112,10 +112,10 @@ datetime 칼럼 insert문이 binary log에 millisecond 값이 생략되어 마�
     
     <item>
       <title>MySQL8 replication REQUIRE_TABLE_PRIMARY_KEY_CHECK</title>
-      <link>/mysql/mysql8_replication_force_pk/</link>
+      <link>/mysql/replication_force_pk/</link>
       <pubDate>Mon, 04 Oct 2021 17:28:58 +0900</pubDate>
       
-      <guid>/mysql/mysql8_replication_force_pk/</guid>
+      <guid>/mysql/replication_force_pk/</guid>
       <description>MySQL8.0 Replication REQUIRE_TABLE_PRIMARY_KEY_CHECK MySQL 8.0 부터 replication 관련 재밌는 기능들이 많이 생겼는데
 그 중 하나가 오늘 소개해드릴 REQUIRE_TABLE_PRIMARY_KEY_CHECK 기능입니다.
 replication 구성 환경에서 Table 생성 시 Primary key를 항상 강제시킬 수 있는 기능인데요
@@ -166,10 +166,10 @@ MySQL 5.7 Master 1: kimdubi_db =&amp;gt; Slave : kimdubi_db Master 2: kimdubi_db
     
     <item>
       <title>MySQL lossless semi-sync replication</title>
-      <link>/mysql/semisync/</link>
+      <link>/mysql/semi_sync/</link>
       <pubDate>Mon, 04 Oct 2021 03:39:53 +0900</pubDate>
       
-      <guid>/mysql/semisync/</guid>
+      <guid>/mysql/semi_sync/</guid>
       <description>MySQL lossless semi-sync replication MySQL은 ORACLE 과는 HighAvailibility를 충족시키는 방법이 다릅니다.
 하나의 스토리지에 데이터를 이중화,삼중화해서 저장하고 이를 여러 인스턴스가 공유하는 ORACLE의 RAC와는 달리
 MySQL은 Master-Slave의 개념으로 Master의 데이터를 Slave 서버로 복제하고 MHA나 MMM 같은 솔루션을 통해 Master가 down 되었을 때 실시간으로 복제해둔 Slave를 Master로 승격시키는 방식입니다.

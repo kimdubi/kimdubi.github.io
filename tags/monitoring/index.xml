@@ -25,10 +25,10 @@ exporter 기동 시 –extend.query-path=’./queries.yaml’ 옵션을 지정�
     
     <item>
       <title>MySQL mysqladmin utility로 간단하게 모니터링하기</title>
-      <link>/mysql/mysqladmin_utility/</link>
+      <link>/mysql/mysqladmin/</link>
       <pubDate>Mon, 04 Oct 2021 18:50:05 +0900</pubDate>
       
-      <guid>/mysql/mysqladmin_utility/</guid>
+      <guid>/mysql/mysqladmin/</guid>
       <description>mysqladmin utility로 간단하게 모니터링하기 운영환경의 MySQL 서버들은 보통 prometheus 와 grafana 등을 통해 구축된 모니터링 시스템으로 모니터링 및 로깅을 하고 있습니다.
 그러나 외부 프로젝트 등으로 이러한 모니터링 시스템을 활용할 수 없는 경우에는 어떻게 해야할까요?
 OS 상태는 iostat, vmstat 등으로 로깅할 수 있겠고 MySQL은 show global status 와 show processlist 등을 로깅하는 프로그램을 짤 수 있겠죠?
@@ -53,10 +53,10 @@ alertmanager는 이 알람을 email,slack, web-hook 등 다양한 방법으로 �
     
     <item>
       <title>MySQL PMM 수동 설치</title>
-      <link>/mysql/mysql_pmm/</link>
+      <link>/mysql/pmm/</link>
       <pubDate>Mon, 04 Oct 2021 15:27:46 +0900</pubDate>
       
-      <guid>/mysql/mysql_pmm/</guid>
+      <guid>/mysql/pmm/</guid>
       <description>MySQL PMM 수동 설치 이전에 docker 를 사용하여 PMM 구성하는 법을 다룬 적이 있는데 이번 글에서는 docker 가 아닌 수동으로 구성하는 방법에 대해 정리해보겠습니다.
 https://sarc.io/index.php/mariadb/1268-mariadb-monitoring-pmm
 https://sarc.io/index.php/mariadb/1269-mariadb-monitoring-pmm-2

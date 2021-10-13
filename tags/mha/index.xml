@@ -12,10 +12,10 @@
     <lastBuildDate>Mon, 04 Oct 2021 17:12:49 +0900</lastBuildDate><atom:link href="/tags/mha/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>MySQL MHA method 추가하기</title>
-      <link>/mysql/mha_method_add/</link>
+      <link>/mysql/mha_add_method/</link>
       <pubDate>Mon, 04 Oct 2021 17:12:49 +0900</pubDate>
       
-      <guid>/mysql/mha_method_add/</guid>
+      <guid>/mysql/mha_add_method/</guid>
       <description>MySQL MHA method 추가하기 지난 event 관련 글에서 보았던 것 처럼 MHA 구성 환경에서 failover 발생 시
 slave-&amp;gt;master db로 승격은 되지만 그에 따라 event의 status는 변경이 되지 않았고 수동으로 상태를 설정해야 합니다.
 현재 운영하는 maria db들은 모두 master에서만 event를 수행하고 있기 때문에

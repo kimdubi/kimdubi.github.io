@@ -24,20 +24,20 @@ MySQL 8.0 과 5.7 의 default collation이 달라서 실패했고 트러블 슈�
     
     <item>
       <title>MySQL8 skip locked / nowait 활용하기</title>
-      <link>/mysql/mysql8_skip_locked_nowait/</link>
+      <link>/mysql/skip_locked/</link>
       <pubDate>Mon, 04 Oct 2021 18:46:41 +0900</pubDate>
       
-      <guid>/mysql/mysql8_skip_locked_nowait/</guid>
+      <guid>/mysql/skip_locked/</guid>
       <description>MySQL8.0 SKIP LOCKED / NOWAIT 활용하기 MySQL 8.0 버전부터는 읽기 일관성을 위한 read lock 에 대해 두가지 옵션이 추가되었습니다.
  NOWAIT : 쿼리를 실행 후 읽으려는 row에 lock이 걸려있으면 바로 트랜잭션 실패 처리 (innodb_lock_wait_timeout 만큼 기다리지 않고 바로) SKIP LOCKED : 쿼리를 실행 후 읽으려는 row에 lock 이 걸려있으면 해당 row skip 하고 resultset return  동시성 이슈를 해결하기 위해 select ~ for update , select ~ for shared mode 같은 쿼리를 수행할 때 위 옵션을 줄 수 있는데 언제 사용하면 좋을까요?</description>
     </item>
     
     <item>
       <title>MySQL8 replication REQUIRE_TABLE_PRIMARY_KEY_CHECK</title>
-      <link>/mysql/mysql8_replication_force_pk/</link>
+      <link>/mysql/replication_force_pk/</link>
       <pubDate>Mon, 04 Oct 2021 17:28:58 +0900</pubDate>
       
-      <guid>/mysql/mysql8_replication_force_pk/</guid>
+      <guid>/mysql/replication_force_pk/</guid>
       <description>MySQL8.0 Replication REQUIRE_TABLE_PRIMARY_KEY_CHECK MySQL 8.0 부터 replication 관련 재밌는 기능들이 많이 생겼는데
 그 중 하나가 오늘 소개해드릴 REQUIRE_TABLE_PRIMARY_KEY_CHECK 기능입니다.
 replication 구성 환경에서 Table 생성 시 Primary key를 항상 강제시킬 수 있는 기능인데요

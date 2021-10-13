@@ -1,0 +1,322 @@
+<!doctype html><html lang=en dir=auto><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>MySQL Shell parallel dump&load | kimDuBiA</title><meta name=keywords content="mysql,mysqlshell,운영,복구"><meta name=description content="mysqlshell 이란 ? MySQL 8.0 과 함께 출시 된 MySQL 용 클라이언트 툴로 아래와 같은 기능을 제공한다
+Document에는 MySQL 5.7 이상부터 지원한다고 하나, 일부 기능 제외하면 MySQL 5.6에서도 사용가능함
+ex). MySQL 5.6에서는 util.dumpInstance()의 backup lock, user backup 같은 기능을 사용 못함
+ SQL, Python, 자바 스크립트를 활용한 데이터 질의 기능 Admin API  InnoDB cluster, MySQL router, InnoDB ReplicaSet 관리 기능   JSON data load Instance, schema, table 단위로 parallel dump 기능 (logical backup)  이 중 data parallel dump 기능은 기존 mysqldump, mydumper, mysqlpump 의 한계를 보완하여 빠른 dump / load 기능을 제공할 수 있을 것으로 기대됨"><meta name=author content="kimdubi"><link rel=canonical href=/mysql/mysqlsh_util/><meta name=google-site-verification content="XYZabc"><meta name=yandex-verification content="XYZabc"><meta name=msvalidate.01 content="XYZabc"><link crossorigin=anonymous href=/assets/css/stylesheet.min.2dbef8664bbfb3e83a0a44fd4a8fc5010240dbcd1dbc1400753b928b497b8f5e.css integrity="sha256-Lb74Zku/s+g6CkT9So/FAQJA280dvBQAdTuSi0l7j14=" rel="preload stylesheet" as=style><script defer crossorigin=anonymous src=/assets/js/highlight.min.27cd435cc9ed6abb4b496581b151804f79f366c412620272bb94e2f5f598ebcc.js integrity="sha256-J81DXMntartLSWWBsVGAT3nzZsQSYgJyu5Ti9fWY68w=" onload=hljs.initHighlightingOnLoad();></script><link rel=icon href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=16x16 href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=32x32 href=%3Clink%20/%20abs%20url%3E><link rel=apple-touch-icon href=%3Clink%20/%20abs%20url%3E><link rel=mask-icon href=%3Clink%20/%20abs%20url%3E><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><meta name=generator content="Hugo 0.80.0"><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme: rgb(29, 30, 32);--entry: rgb(46, 46, 51);--primary: rgb(218, 218, 219);--secondary: rgb(155, 156, 157);--tertiary: rgb(65, 66, 68);--content: rgb(196, 196, 197);--hljs-bg: rgb(46, 46, 51);--code-bg: rgb(55, 56, 62);--border: rgb(51, 51, 51)}.list{background:var(--theme)}.list:not(.dark)::-webkit-scrollbar-track{background:0 0}.list:not(.dark)::-webkit-scrollbar-thumb{border-color:var(--theme)}}</style></noscript><script type=application/javascript>var doNotTrack=false;if(!doNotTrack){(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');ga('create','UA-123-45','auto');ga('send','pageview');}</script><meta property="og:title" content="MySQL Shell parallel dump&load"><meta property="og:description" content="mysqlshell 이란 ? MySQL 8.0 과 함께 출시 된 MySQL 용 클라이언트 툴로 아래와 같은 기능을 제공한다
+Document에는 MySQL 5.7 이상부터 지원한다고 하나, 일부 기능 제외하면 MySQL 5.6에서도 사용가능함
+ex). MySQL 5.6에서는 util.dumpInstance()의 backup lock, user backup 같은 기능을 사용 못함
+ SQL, Python, 자바 스크립트를 활용한 데이터 질의 기능 Admin API  InnoDB cluster, MySQL router, InnoDB ReplicaSet 관리 기능   JSON data load Instance, schema, table 단위로 parallel dump 기능 (logical backup)  이 중 data parallel dump 기능은 기존 mysqldump, mydumper, mysqlpump 의 한계를 보완하여 빠른 dump / load 기능을 제공할 수 있을 것으로 기대됨"><meta property="og:type" content="article"><meta property="og:url" content="/mysql/mysqlsh_util/"><meta property="og:image" content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta property="article:section" content="mysql"><meta property="article:published_time" content="2021-10-04T22:02:29+09:00"><meta property="article:modified_time" content="2021-10-04T22:02:29+09:00"><meta property="og:site_name" content="kimDuBiA"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta name=twitter:title content="MySQL Shell parallel dump&load"><meta name=twitter:description content="mysqlshell 이란 ? MySQL 8.0 과 함께 출시 된 MySQL 용 클라이언트 툴로 아래와 같은 기능을 제공한다
+Document에는 MySQL 5.7 이상부터 지원한다고 하나, 일부 기능 제외하면 MySQL 5.6에서도 사용가능함
+ex). MySQL 5.6에서는 util.dumpInstance()의 backup lock, user backup 같은 기능을 사용 못함
+ SQL, Python, 자바 스크립트를 활용한 데이터 질의 기능 Admin API  InnoDB cluster, MySQL router, InnoDB ReplicaSet 관리 기능   JSON data load Instance, schema, table 단위로 parallel dump 기능 (logical backup)  이 중 data parallel dump 기능은 기존 mysqldump, mydumper, mysqlpump 의 한계를 보완하여 빠른 dump / load 기능을 제공할 수 있을 것으로 기대됨"><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":2,"name":"Mysqls","item":"/mysql/"},{"@type":"ListItem","position":3,"name":"MySQL Shell parallel dump\u0026load","item":"/mysql/mysqlsh_util/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"MySQL Shell parallel dump\u0026load","name":"MySQL Shell parallel dump\u0026load","description":"mysqlshell 이란 ? MySQL 8.0 과 함께 출시 된 MySQL 용 클라이언트 툴로 아래와 같은 기능을 제공한다\nDocument에는 MySQL 5.7 이상부터 지원한다고 하나, 일부 기능 제외하면 MySQL 5.6에서도 사용가능함\nex). MySQL 5.6에서는 util.dumpInstance()의 backup lock, user backup 같은 기능을 사용 못함\n SQL, Python, 자바 스크립트를 활용한 데이터 질의 기능 Admin API  InnoDB cluster, MySQL router, InnoDB ReplicaSet 관리 기능   JSON data load Instance, schema, table 단위로 parallel dump 기능 (logical backup)  이 중 data parallel dump 기능은 기존 mysqldump, mydumper, mysqlpump 의 한계를 보완하여 빠른 dump / load 기능을 제공할 수 있을 것으로 기대됨","keywords":["mysql","mysqlshell","운영","복구"],"articleBody":" mysqlshell 이란 ? MySQL 8.0 과 함께 출시 된 MySQL 용 클라이언트 툴로 아래와 같은 기능을 제공한다\nDocument에는 MySQL 5.7 이상부터 지원한다고 하나, 일부 기능 제외하면 MySQL 5.6에서도 사용가능함\nex). MySQL 5.6에서는 util.dumpInstance()의 backup lock, user backup 같은 기능을 사용 못함\n SQL, Python, 자바 스크립트를 활용한 데이터 질의 기능 Admin API  InnoDB cluster, MySQL router, InnoDB ReplicaSet 관리 기능   JSON data load Instance, schema, table 단위로 parallel dump 기능 (logical backup)  이 중 data parallel dump 기능은 기존 mysqldump, mydumper, mysqlpump 의 한계를 보완하여 빠른 dump / load 기능을 제공할 수 있을 것으로 기대됨\n위에서부터\n mysqldump - single thread mysqlpump - parallel 가능하나 chunk 로 나눠 받는 기능이 없어 하나의 thread에서 하나의 테이블만 받게 됨 mydumper - parallel 가능하고 chunk 단위도 가능하나, 여러 chunk로 분할된 테이블은 모든 thread에서 동시에 작업해야함 mysqlshell - parallel, chunk 단위 dump 기능 + 스케쥴러에 의해 효율적으로 작업 분배됨  mysqlshell 설치  yum install  [testusersu@testserver13:52:02 ~ ]$ sudo yum install mysql-shell Loaded plugins: fastestmirror, security Setting up Install Process Loading mirror speeds from cached hostfile Resolving Dependencies -- Running transaction check --- Package mysql-shell.x86_64 0:8.0.24-1.el6 will be installed -- Finished Dependency Resolution Dependencies Resolved =========================================================================================================================================================================================================== Package Arch Version Repository Size =========================================================================================================================================================================================================== Installing: mysql-shell x86_64 8.0.24-1.el6 mysql-tools-community-el6 31 M Transaction Summary =========================================================================================================================================================================================================== Install 1 Package(s) Total download size: 31 M Installed size: 139 M Is this ok [y/N]: y Downloading Packages: mysql-shell-8.0.24-1.el6.x86_64rpm | 31MB 00:00 Running rpm_check_debug Running Transaction Test Transaction Test Succeeded Running Transaction Installing : mysql-shell-8.0.24-1.el6.x86_64 1/1 Verifying : mysql-shell-8.0.24-1.el6.x86_64 1/1 Installed: mysql-shell.x86_64 0:8.0.24-1.el6 Complete! = mysql-shell 8.0.24 현재 최신 버전을 설치해줌\n8.0.23는 백업용으로 쓰기엔 이슈가 있음 (binlog position 기록 미제공, 정합성 이슈 등..)\nmysqlshell util MySQL localhost:13306 ssl JS  util. checkForServerUpgrade() dumpInstance() dumpTables() help() importTable() configureOci() dumpSchemas() exportTable() importJson() loadDump()   dumpInstance, dumpSchemas,dumpTables  loadDump() 호환가능, mysqldump로 받은 것은 호환안됨  util.dumpInstance(outputUrl[, options]) MySQL instance를 dump 받는 기능\n기본적으로 mysql, information_schema, performance_schema,sys 는 받지 않음\nMySQL localhost:13306 ssl JS  util.dumpInstance('/home1/testuser/db/work') #### GLOBAL TABLE READ LOCK Acquiring global read lock Global read lock acquired Gathering information - done All transactions have been started Locking instance for backup Global read lock has been released Writing global DDL files Writing users DDL ### DDL 추출 Writing DDL for schema `testicket` Writing DDL for table `testicket`.`BATCH_JOB_INSTANCE` Writing DDL for table `testicket`.`BATCH_JOB_EXECUTION_SEQ` Writing DDL for table `testicket`.`BATCH_JOB_EXECUTION_PARAMS` Writing DDL for table `testicket`.`BATCH_JOB_EXECUTION` Writing DDL for table `testicket`.`BATCH_JOB_EXECUTION_CONTEXT` Writing DDL for schema `db_helper` Writing DDL for view `db_helper`.`x$waits_global_by_latency` Writing DDL for view `db_helper`.`x$waits_by_user_by_latency` Writing DDL for view `db_helper`.`x$wait_classes_global_by_avg_latency` Writing DDL for schema `testdb1` Writing DDL for table `testdb1`.`point_benefit` Writing DDL for table `testdb1`.`phone` Writing DDL for table `testdb1`.`card` Writing DDL for table `testdb1`.`service` Writing DDL for table `testdb1`.`account` Writing DDL for table `testdb1`.`member` Writing DDL for table `testdb1`.`point` Writing DDL for table `testdb1`.`tb_test` Writing DDL for table `testdb1`.`coupon` Writing DDL for table `testdb1`.`tb_test_product` ### DATA 병렬 덤프 수행 Data dump for table `testdb2`.`kcp_service_types` will be written to 1 file Data dump for table `testdb2`.`store_operation_time` will be written to 1 file Data dump for table `testdb1`.`phone` will be written to 1 file Data dump for table `testdb1`.`account` will be written to 4 files Data dump for table `testdb1`.`member` will be written to 1 file Data dump for table `testdb1`.`point_benefit` will be written to 10 files Data dump for table `testdb1`.`point` will be written to 10 files Data dump for table `testdb1`.`coupon` will be written to 52 files Data dump for table `testdb1`.`card` will be written to 155 files Data dump for table `testdb1`.`tb_test` will be written to 179 files Data dump for table `testdb1`.`tb_test_product` will be written to 148 files Data dump for table `testdb1`.`service` will be written to 192 files 4 thds dumping - 53% (151.91M rows / ~283.75M rows), 726.27K rows/s, 107.61 MB/s uncompressed, 22.67 MB/s compressed 1 thds dumping - 106% (301.68M rows / ~283.75M rows), 750.74K rows/s, 112.20 MB/s uncompressed, 20.87 MB/s compressed ### 결과 요약 Duration: 00:07:15s Schemas dumped: 5 Tables dumped: 49 Uncompressed data size: 35.27 GB Compressed data size: 7.02 GB Compression ratio: 5.0 Rows written: 237268309 Bytes written: 7.02 GB Average uncompressed throughput: 81.00 MB/s Average compressed throughput: 16.13 MB/s  = 35GB 백업 \u0026 압축하는데 7분 15초 소요\n FTWLR 을 걸고 binlog position 획득 후  . . 2021-05-08T06:20:32.427761Z 1693731 Query FLUSHNO_WRITE_TO_BINLOG TABLES 2021-05-08T06:20:32.430969Z 1693731 Query FLUSH TABLES WITHREAD LOCK 2021-05-08T06:20:32.431082Z 1693731 Query SET SESSIONTRANSACTION ISOLATION LEVEL REPEATABLE READ 2021-05-08T06:20:32.431241Z 1693731 Query START TRANSACTIONWITH CONSISTENT SNAPSHOT . . 2021-05-08T06:20:32.449741Z 1693731 Query SELECT @@GLOBALGTID_EXECUTED . . 2021-05-08T06:20:32.470503Z 1693731 Query SHOW MASTER STATUS . . . 2021-05-08T06:20:32.490164Z 1693731 Query LOCK INSTANCE FORBACKUP 2021-05-08T06:20:32.490280Z 1693731 Query UNLOCK TABLES  database , user , table , view 등 오브젝트에 대한 생성 구문 백업 Data dump for table ~ xxx files 의미는 해당 테이블은 chunk 하나로 (default 64mb) 담을 수 없어 여러개의 chunk로 담는 다는 의미, testdb1.service 테이블은 192개의 chunk로 나뉠 것임 (PK 기준)  [testuser@testserver15:25:25 ~/db/work ]$ ls -ltr testdb1@service* -rw-r----- 1 testuser testuser 3686 May 8 15:07 testdb1@servicesql -rw-r----- 1 testuser testuser 927 May 8 15:07 testdb1@servicejson -rw-r----- 1 testuser testuser 440 May 8 15:09testdb1@service@0.tsv.zst.idx -rw-r----- 1 testuser testuser 10195869 May 8 15:09testdb1@service@0.tsv.zst . . -rw-r----- 1 testuser testuser 96 May 8 15:16testdb1@service@@191.tsv.zst.idx -rw-r----- 1 testuser testuser 2237750 May 8 15:16testdb1@service@@191.tsv.zst  테이블에 PK가 없으면 chunk 단위로 병렬 dump \u0026 load 불가능, 하나의 파일로 dump 받게 됨  NOTE: Could not select a column to be used as an index for table `testicket`.`BATCH_JOB_EXECUTION_PARAMS`. Chunking has been disabled for this table, data will be dumped to a single file.  default 4개 thread에서 dump 수행  백업 파일 확인  백업 정보 파일  [testuser@testserver16:03:48 ~/db/work ]$ ls -ltr *json ### backup 정보 backup 대상 schema, 백업 때 사용한 옵션, binlog position 등이 기록됨 -rw-r----- 1 testuser testuser 960 May 8 15:07 @.json ### schema 정보 해당 schema에 속한 오브젝트(table, view, procedure..)에 대한 정보 기록용 -rw-r----- 1 testuser testuser 942 May 8 15:07 testdb1.json -rw-r----- 1 testuser testuser 3879 May 8 15:07 testdb2.json -rw-r----- 1 testuser testuser 230 May 8 15:07 mysqlsh_test.json -rw-r----- 1 testuser testuser 770 May 8 15:07 testicket.json ### table 정보 테이블의 컬럼, PK 등 테이블 관련 정보 기록용 -rw-r----- 1 testuser testuser 724 May 8 15:07testdb2@store_service_types.json -rw-r----- 1 testuser testuser 725 May 8 15:07testdb2@store_payment_method.json -rw-r----- 1 testuser testuser 902 May 8 15:07 testdb2@store.json -rw-r----- 1 testuser testuser 837 May 8 15:07testdb2@service_type_master.json -rw-r----- 1 testuser testuser 636 May 8 15:07testdb2@store_categories.json -rw-r----- 1 testuser testuser 936 May 8 15:07testdb2@service_type_hist.json -rw-r----- 1 testuser testuser 756 May 8 15:07testdb2@service_type_categories.json ### DDL 스크립트 db, table, user, procedure, view 등등 [testuser@testserver16:11:41 ~/db/work ]$ ls -ltr *.sql -rw-r----- 1 testuser testuser 597 May 8 15:07 mysqlsh_test.sql -rw-r----- 1 testuser testuser 305 May 8 15:07 @.users.sql -rw-r----- 1 testuser testuser 240 May 8 15:07 @.sql -rw-r----- 1 testuser testuser 240 May 8 15:07 @.post.sql ### backup 완료 정보 백업 받은 스키마 크기, 테이블 row count, chunk 개수 및 크기 등 정보를 갖고있음 -rw-r----- 1 testuser testuser 43451 May 8 15:16 @.done.json 주로 사용하는 옵션  excludeSchemas /excludeTables : 특정 schema / table 제외, deafault empty includeSchemas / includeTables : 특정 schema / table 만 백업, default empty compatibility : 호환성을 위해 dump 수행 시 DB설정을 변경해서 받는 옵션 ( default empty )create_invisible_pks, force_innodb, ignore_missing_pks, skip_invalid_accounts, strip_definers, strip_restricted_grants, strip_tablespaces events, routines, users, trigger : default true dataOnly / ddlOnly : default false bytesPerChunk | chunk 크기, default 64MB maxRate : bytes per second per thread I/O 조절하는 기능, default 0 = nolimit threads : data dump 받는 thread 개수 default 4개 compression : 압축 여부 , default zstd, 이외에도 none, gzip 가능 consistent : consistent 백업 여부, default true ( FTWLR 사용 ), mysqlshell 8.0.24 부터 binlog position 기록함. 8.0.23에서는 binlog position 기록 없이 dump수행함  이외에도 Oracle Cloud Iaas 를 활용하는 옵션들이 추가로 있음\nex) 백업을 바로 Oracle cloud 내 bucket 에 보내는 기능 등…\nutil.dumpTables(schema, tables, outputUrl[, options]) 특정 스키마에서 특정 테이블만 백업받는 기능\ndumpInstance와 마찬가지 로직으로 수행되며 병렬 백업이 가능함\n MySQL localhost:13306 ssl testdb JS  util.dumpTables(\"testdb\",[\"tb_test\"],\"/home1/testuser/db/work/\") Acquiring global read lock Global read lock acquired Gathering information - done All transactions have been started Locking instance for backup Global read lock has been released Writing global DDL files Preparing data dump for table `testdb`.`tb_test` Writing DDL for schema `testdb` Writing DDL for table `testdb`.`tb_test` Data dump for table `testdb`.`tb_test` will be chunked using column `tb_test_no` Running data dump using 4 threads. NOTE: Progress information uses estimated values and may not be accurate. Data dump for table `testdb`.`tb_test` will be written to 247 files 1 thds dumping - 106% (79.56M rows / ~74.49M rows), 672.89K rows/s, 118.70 MB/s uncompressed, 19.94 MB/s compressed Duration: 00:02:21s Schemas dumped: 1 Tables dumped: 1 Uncompressed data size: 14.03 GB Compressed data size: 2.36 GB Compression ratio: 5.9 Rows written: 79564325 Bytes written: 2.36 GB Average uncompressed throughput: 98.80 MB/s Average compressed throughput: 16.62 MB/s   14GB 테이블 백업 \u0026 압축 하는데 140초 소요됨  util.loadDump(url[, options]) util.dump 커맨드를 통해 dump 받은 데이터를 load 하는 기능\n오직 util.dump 커맨드를 통해 받은 파일만 호환되며 mysqldump로 받은 파일은 호환되지않음\n MySQL localhost:13306 ssl JS  util.loadDump('/home1/testuser/db/work',{threads:4,updateGtidSet:\"off\",skipBinlog:false ,waitDumpTimeout:1800}) Loading DDL and Data from '/home1/testuser/db/work' using 4 threads. Opening dump... Target is MySQL 8.0.16. Dump was produced from MySQL 8.0.16 Checking for pre-existing objects... Executing common preamble SQL ### DDL 반영 Executing DDL script for schema `testdb1` [Worker003] Executing DDL script for `testdb1`.`tb_test_product` [Worker002] Executing DDL script for `testdb1`.`coupon` [Worker000] Executing DDL script for `testdb1`.`point` [Worker001] Executing DDL script for `testdb1`.`tb_test` [Worker003] Executing DDL script for `testdb1`.`phone` [Worker000] Executing DDL script for `testdb1`.`point_benefit` [Worker002] Executing DDL script for `testdb1`.`card` [Worker001] Executing DDL script for `testdb1`.`service` [Worker000] Executing DDL script for `testdb1`.`account` [Worker003] Executing DDL script for `testdb1`.`member` . . [Worker000] Executing DDL script for `testdb2`.`display_group_categories` [Worker001] Executing DDL script for `testdb2`.`brand_target_user` [Worker003] Executing DDL script for `testdb2`.`brand_service_types` . . ### DATA LOAD [Worker002] testdb1@card@0.tsv.zst: Records: 376470 Deleted: 0 Skipped: 0 Warnings: 0 [Worker003] testdb1@tb_test_product@0.tsv.zst: Records: 512000 Deleted: 0 Skipped: 0 Warnings: 0 [Worker002] testdb1@card@1.tsv.zst: Records: 376470 Deleted: 0 Skipped: 0 Warnings: 0 [Worker003] testdb1@tb_test_product@1.tsv.zst: Records: 512000 Deleted: 0 Skipped: 0 Warnings: 0 [Worker000] testdb1@service@0.tsv.zst: Records: 357541 Deleted: 0 Skipped: 0 Warnings: 0 [Worker001] testdb1@tb_test@0.tsv.zst: Records: 383233 Deleted: 0 Skipped: 0 Warnings: 0 [Worker002] testdb1@card@2.tsv.zst: Records: 376470 Deleted: 0 Skipped: 0 Warnings: 0 [Worker003] testdb1@tb_test_product@2.tsv.zst: Records: 512000 Deleted: 0 Skipped: 0 Warnings: 0 [Worker000] testdb1@service@1.tsv.zst: Records: 357541 Deleted: 0 Skipped: 0 Warnings: 0 [Worker002] testdb1@card@3.tsv.zst: Records: 376470 Deleted: 0 Skipped: 0 Warnings: 0 [Worker003] testdb1@tb_test_product@3.tsv.zst: Records: 512000 Deleted: 0 Skipped: 0 Warnings: 0 4 thds loading - 5% (1.79 GB / 35.27 GB), 19.90 MB/s, 4 / 49 tables done . . . Executing common postamble SQL 588 chunks (237.27M rows, 35.27 GB) for 49 tables in 5 schemas were loaded in 30 min 39 sec (avg throughput 19.18 MB/s) 0 warnings were reported during the load.  = 35GB load 하는데 30분 40초 소요\n load 수행 시 필요한 설정 확인  2021-05-08T07:42:04.505395Z 1690447 Query select schema() 2021-05-08T07:42:04.505617Z 1690447 Query SELECT @@version 2021-05-08T07:42:04.505881Z 1690447 Query SHOW GLOBALVARIABLES LIKE 'local_infile' . . 2021-05-08T07:42:04.581237Z 1696836 Query show variables like'sql_require_primary_key'  DDL 반영  2021-05-08T07:42:04.590842Z 1696836 Query CREATE DATABASE *!32312 IF NOT EXISTS*/ `testdb1` /*!40100 DEFAULT CHARACTER SETutf8mb4 COLLATE utf8mb4_general_ci */ /*!80016 DEFAULTENCRYPTION='N' */ 2021-05-08T07:42:04.592124Z 1696836 Query USE testdb1 2021-05-08T07:42:04.592293Z 1696836 Query -- 2021-05-08T07:42:04.592369Z 1696836 Query -- Dumping eventsfor database 'testdb1' 2021-05-08T07:42:04.592440Z 1696836 Query -- 2021-05-08T07:42:04.592509Z 1696836 Query -- 2021-05-08T07:42:04.592579Z 1696836 Query -- Dumping routinesfor database 'testdb1' 2021-05-08T07:42:04.592648Z 1696836 Query -- 2021-05-08T07:42:04.592718Z 1696836 Query -- begin proceduretestdb1.mng_partition_month   data dump 받은 chunk 단위로 병렬로 load\n  테이블 하나씩 끝냈던 mydumper 와 달리 동시에 여러 테이블의 chunk를 insert 하게됨\n  [Worker003] testdb1@tb_test_product@64.tsv.zst: Records: 512000 Deleted: 0 Skipped: 0 Warnings: 0 [Worker001] testdb1@tb_test@30.tsv.zst: Records: 383233 Deleted: 0 Skipped: 0 Warnings: 0 [Worker002] testdb1@card@63.tsv.zst: Records: 376470 Deleted: 0 Skipped: 0 Warnings: 0 [Worker000] testdb1@service@34.tsv.zst: Records: 357541 Deleted: 0 Skipped: 0 Warnings: 0 4 thds loading | 34% (11.94 GB / 35.27 GB), 17.83 MB/s, 4 / 49 tables done 주로 사용하는 옵션   excludeSchemas /excludeTables : 특정 schema / table 제외, deafault empty\n  includeSchemas / includeTables : 특정 schema / table 만 load , default empty\n  loadData / loadDdl / loadIndexes : data, ddl , secondary index 를 load 할 것 인지, default true\n  deferTableIndexes : secondary index 생성 시기, all : data load 완료 후 생성, off : 테이블 생성 시 secondary index도 같이 생성, fulltext : fulltext index만 data load 끝나고 생성, 나머지는 테이블 생성 시 같이 생성, default fulltext\n  ignoreExistingObjects : load 수행시 중복된 오브젝트 있어도 무시하고 진행\n  ignoreVersion : dump file 받은 DB와 load 받는 DB서버 간 major version 차이 있어도 무시하고 진행함\n  schema : data load 할 schema, dump받은 schema와 일치하지 않아도 됨 testdb - testdb_new\n  skipBinlog : load 수행 시 set session sql_bin_log=0; 키고 동작\n  thread : load 수행할 병렬 thread 개수\n  updateGtidSet : gtid를 사용하는 경우 loadDump 완료 후 SET @@GLOBAL.gtid_purged= gtid position 을 수행함 , default off (gtid setting 안함)\n  waitDumpTimeout : dump 받는 동시에 load 수행할 때 사용하는 옵션, timeout 만큼 기다렸는데도 새로운 dump파일 없으면 load 완료로 간주함\n  util.loadDump() 옵션 외에도 MySQL 8.0.21 부터는 redo log 를 DISABLE하여 load 속도를 높일 수 있음\n  mysql ALTER INSTANCE DISABLE INNODB REDO_LOG; mysql SHOW GLOBAL STATUS LIKE 'Innodb_redo_log_enabled'; +-------------------------+-------+ | Variable_name | Value | +-------------------------+-------+ | Innodb_redo_log_enabled | OFF | +-------------------------+-------+ mysql ALTER INSTANCE ENABLE INNODB REDO_LOG; mysql SHOW GLOBAL STATUS LIKE 'Innodb_redo_log_enabled'; +-------------------------+-------+ | Variable_name | Value | +-------------------------+-------+ | Innodb_redo_log_enabled | ON | +-------------------------+-------+ 더 고민해볼만한 점?  gtid를 안쓰는데 MySQL에서 뭔가 추가로 개발되는 기능은 점점 더 gtid 를 기본으로 설정하는 듯한 느낌,,, gtid에 대해 고민해봐야할지,,,, mysqldump의 dump-slave 같은 옵션이 없음. 백업스크립트에서 사용한다면 stop sql_thread; show slave status; 구문 포함해서 사용,,, dump \u0026 load 작업 끝날때까지 병렬 thread + 압축 진행해서 CPU를 많이 씀,, 적절한 thread 개수에 대한 고민 필요 util.dump 옵션 중 compatibility.strip_definers 이런 것처럼 백업 수행 시 설정 관련해서 건드릴 수 있는 기능이 많음  https://dev.mysql.com/doc/mysql-shell/8.0/en/mysql-shell-utilities-dump-instance-schema.html    ","wordCount":"2255","inLanguage":"en","datePublished":"2021-10-04T22:02:29+09:00","dateModified":"2021-10-04T22:02:29+09:00","author":{"@type":"Person","name":"kimdubi"},"mainEntityOfPage":{"@type":"WebPage","@id":"/mysql/mysqlsh_util/"},"publisher":{"@type":"Organization","name":"kimDuBiA","logo":{"@type":"ImageObject","url":"%3Clink%20/%20abs%20url%3E"}}}</script></head><body id=top><script>if(localStorage.getItem("pref-theme")==="dark"){document.body.classList.add('dark');}else if(localStorage.getItem("pref-theme")==="light"){document.body.classList.remove('dark')}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script><header class=header><nav class=nav><div class=logo><a href accesskey=h title="Hi (Alt + H)">Hi</a>
+<span class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)"><svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg><svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></span></div><ul id=menu><li><a href=/ title=Home><span>Home</span></a></li><li><a href=/categories/ title=categories><span>categories</span></a></li><li><a href=/tags/ title=tags><span>tags</span></a></li></ul></nav></header><main class=main><article class=post-single><header class=post-header><div class=breadcrumbs><a href>Home</a>&nbsp;»&nbsp;<a href=/mysql/>Mysqls</a></div><h1 class=post-title>MySQL Shell parallel dump&load</h1><div class=post-meta>October 4, 2021&nbsp;·&nbsp;11 min&nbsp;·&nbsp;kimdubi</div></header><div class=toc><details><summary accesskey=c title="(Alt + C)"><span class=details>Table of Contents</span></summary><div class=inner><ul><li><a href=#mysqlshell-%ec%9d%b4%eb%9e%80- aria-label="mysqlshell 이란 ?">mysqlshell 이란 ?</a></li><li><a href=#mysqlshell-%ec%84%a4%ec%b9%98 aria-label="mysqlshell 설치">mysqlshell 설치</a></li><li><a href=#mysqlshell-util aria-label="mysqlshell util">mysqlshell util</a><ul><li><a href=#utildumpinstanceoutputurl-options aria-label="util.dumpInstance(outputUrl[, options])">util.dumpInstance(outputUrl[, options])</a><ul><li><a href=#%eb%b0%b1%ec%97%85-%ed%8c%8c%ec%9d%bc-%ed%99%95%ec%9d%b8 aria-label="백업 파일 확인">백업 파일 확인</a></li><li><a href=#%ec%a3%bc%eb%a1%9c-%ec%82%ac%ec%9a%a9%ed%95%98%eb%8a%94-%ec%98%b5%ec%85%98 aria-label="주로 사용하는 옵션">주로 사용하는 옵션</a></li></ul></li><li><a href=#utildumptablesschema-tables-outputurl-options aria-label="util.dumpTables(schema, tables, outputUrl[, options])">util.dumpTables(schema, tables, outputUrl[, options])</a></li><li><a href=#utilloaddumpurl-options aria-label="util.loadDump(url[, options])">util.loadDump(url[, options])</a><ul><li><a href=#%ec%a3%bc%eb%a1%9c-%ec%82%ac%ec%9a%a9%ed%95%98%eb%8a%94-%ec%98%b5%ec%85%98-1 aria-label="주로 사용하는 옵션">주로 사용하는 옵션</a></li></ul></li></ul></li><li><a href=#%eb%8d%94-%ea%b3%a0%eb%af%bc%ed%95%b4%eb%b3%bc%eb%a7%8c%ed%95%9c-%ec%a0%90 aria-label="더 고민해볼만한 점?">더 고민해볼만한 점?</a></li></ul></div></details></div><div class=post-content><hr><h1 id=mysqlshell-이란->mysqlshell 이란 ?<a hidden class=anchor aria-hidden=true href=#mysqlshell-이란->#</a></h1><p>MySQL 8.0 과 함께 출시 된 MySQL 용 클라이언트 툴로 아래와 같은 기능을 제공한다<br>Document에는 MySQL 5.7 이상부터 지원한다고 하나, 일부 기능 제외하면 MySQL 5.6에서도 사용가능함<br>ex). MySQL 5.6에서는 util.dumpInstance()의 backup lock, user backup 같은 기능을 사용 못함</p><ul><li>SQL, Python, 자바 스크립트를 활용한 데이터 질의 기능</li><li>Admin API<ul><li>InnoDB cluster, MySQL router, InnoDB ReplicaSet 관리 기능</li></ul></li><li>JSON data load</li><li>Instance, schema, table 단위로 parallel dump 기능 (logical backup)</li></ul><p>이 중 data parallel dump 기능은 기존 mysqldump, mydumper, mysqlpump 의 한계를 보완하여 빠른 dump / load 기능을 제공할 수 있을 것으로 기대됨</p><p><img loading=lazy src=https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/mysql_dump_load.png alt></p><p>위에서부터</p><ul><li>mysqldump - single thread</li><li>mysqlpump - parallel 가능하나 chunk 로 나눠 받는 기능이 없어 하나의 thread에서 하나의 테이블만 받게 됨</li><li>mydumper - parallel 가능하고 chunk 단위도 가능하나, 여러 chunk로 분할된 테이블은 모든 thread에서 동시에 작업해야함</li><li>mysqlshell - parallel, chunk 단위 dump 기능 + 스케쥴러에 의해 효율적으로 작업 분배됨</li></ul><h1 id=mysqlshell-설치>mysqlshell 설치<a hidden class=anchor aria-hidden=true href=#mysqlshell-설치>#</a></h1><ul><li>yum install</li></ul><pre><code>[testusersu@testserver13:52:02 ~ ]$ sudo yum install mysql-shell
+Loaded plugins: fastestmirror, security
+Setting up Install Process
+Loading mirror speeds from cached hostfile
+Resolving Dependencies
+--&gt; Running transaction check
+---&gt; Package mysql-shell.x86_64 0:8.0.24-1.el6 will be installed
+--&gt; Finished Dependency Resolution
+
+Dependencies Resolved
+
+===========================================================================================================================================================================================================
+Package                                       Arch                                     Version                                           Repository                                                   Size
+===========================================================================================================================================================================================================
+Installing:
+mysql-shell                                   x86_64                                   8.0.24-1.el6                                      mysql-tools-community-el6                                    31 M    
+Transaction Summary
+===========================================================================================================================================================================================================
+Install       1 Package(s)
+
+Total download size: 31 M
+Installed size: 139 M
+Is this ok [y/N]: y
+Downloading Packages:
+mysql-shell-8.0.24-1.el6.x86_64rpm                                                                                                                                                  |  31MB     00:00
+Running rpm_check_debug
+Running Transaction Test
+Transaction Test Succeeded
+Running Transaction
+Installing : mysql-shell-8.0.24-1.el6.x86_64                                                                                                                                                          1/1
+Verifying  : mysql-shell-8.0.24-1.el6.x86_64                                                                                                                                                          1/1
+    
+Installed:
+  mysql-shell.x86_64 0:8.0.24-1.el6
+
+Complete!
+</code></pre><p>=> mysql-shell 8.0.24 현재 최신 버전을 설치해줌<br>8.0.23는 백업용으로 쓰기엔 이슈가 있음 (binlog position 기록 미제공, 정합성 이슈 등..)</p><h1 id=mysqlshell-util>mysqlshell util<a hidden class=anchor aria-hidden=true href=#mysqlshell-util>#</a></h1><pre><code>MySQL  localhost:13306 ssl  JS &gt; util.
+checkForServerUpgrade()  dumpInstance()           dumpTables()             help()                   importTable()
+configureOci()           dumpSchemas()            exportTable()            importJson()             loadDump()
+</code></pre><ul><li>dumpInstance, dumpSchemas,dumpTables &lt;-> loadDump() 호환가능, mysqldump로 받은 것은 호환안됨</li></ul><h2 id=utildumpinstanceoutputurl-options>util.dumpInstance(outputUrl[, options])<a hidden class=anchor aria-hidden=true href=#utildumpinstanceoutputurl-options>#</a></h2><p>MySQL instance를 dump 받는 기능<br>기본적으로 mysql, information_schema, performance_schema,sys 는 받지 않음</p><pre><code>MySQL  localhost:13306 ssl  JS &gt; util.dumpInstance('/home1/testuser/db/work')
+ 
+#### GLOBAL TABLE READ LOCK 
+
+Acquiring global read lock
+Global read lock acquired
+Gathering information - done
+All transactions have been started
+Locking instance for backup
+Global read lock has been released
+Writing global DDL files
+Writing users DDL
+
+### DDL 추출 
+
+Writing DDL for schema `testicket`
+Writing DDL for table `testicket`.`BATCH_JOB_INSTANCE`
+Writing DDL for table `testicket`.`BATCH_JOB_EXECUTION_SEQ`
+Writing DDL for table `testicket`.`BATCH_JOB_EXECUTION_PARAMS`
+Writing DDL for table `testicket`.`BATCH_JOB_EXECUTION`
+Writing DDL for table `testicket`.`BATCH_JOB_EXECUTION_CONTEXT`
+Writing DDL for schema `db_helper`
+Writing DDL for view `db_helper`.`x$waits_global_by_latency`
+Writing DDL for view `db_helper`.`x$waits_by_user_by_latency`
+Writing DDL for view `db_helper`.`x$wait_classes_global_by_avg_latency`
+
+
+
+Writing DDL for schema `testdb1`
+Writing DDL for table `testdb1`.`point_benefit`
+Writing DDL for table `testdb1`.`phone`
+Writing DDL for table `testdb1`.`card`
+Writing DDL for table `testdb1`.`service`
+Writing DDL for table `testdb1`.`account`
+Writing DDL for table `testdb1`.`member`
+Writing DDL for table `testdb1`.`point`
+Writing DDL for table `testdb1`.`tb_test`
+Writing DDL for table `testdb1`.`coupon`
+Writing DDL for table `testdb1`.`tb_test_product`
+
+### DATA 병렬 덤프 수행 
+
+Data dump for table `testdb2`.`kcp_service_types` will be written to 1 file
+Data dump for table `testdb2`.`store_operation_time` will be written to 1 file
+Data dump for table `testdb1`.`phone` will be written to 1 file
+Data dump for table `testdb1`.`account` will be written to 4 files
+Data dump for table `testdb1`.`member` will be written to 1 file
+Data dump for table `testdb1`.`point_benefit` will be written to 10 files
+Data dump for table `testdb1`.`point` will be written to 10 files
+Data dump for table `testdb1`.`coupon` will be written to 52 files
+Data dump for table `testdb1`.`card` will be written to 155 files
+Data dump for table `testdb1`.`tb_test` will be written to 179 files
+Data dump for table `testdb1`.`tb_test_product` will be written to 148 files
+Data dump for table `testdb1`.`service` will be written to 192 files
+
+4 thds dumping - 53% (151.91M rows / ~283.75M rows), 726.27K rows/s, 107.61 MB/s uncompressed, 22.67 MB/s compressed
+
+1 thds dumping - 106% (301.68M rows / ~283.75M rows), 750.74K rows/s, 112.20 MB/s uncompressed, 20.87 MB/s compressed
+
+### 결과 요약
+
+Duration: 00:07:15s
+Schemas dumped: 5
+Tables dumped: 49
+Uncompressed data size: 35.27 GB
+Compressed data size: 7.02 GB
+Compression ratio: 5.0
+Rows written: 237268309
+Bytes written: 7.02 GB
+Average uncompressed throughput: 81.00 MB/s
+Average compressed throughput: 16.13 MB/s
+</code></pre><p>=> 35GB 백업 & 압축하는데 7분 15초 소요</p><ul><li>FTWLR 을 걸고 binlog position 획득 후</li></ul><pre><code>.
+.
+2021-05-08T06:20:32.427761Z     1693731 Query   FLUSHNO_WRITE_TO_BINLOG TABLES
+2021-05-08T06:20:32.430969Z     1693731 Query   FLUSH TABLES WITHREAD LOCK
+2021-05-08T06:20:32.431082Z     1693731 Query   SET SESSIONTRANSACTION ISOLATION LEVEL REPEATABLE READ
+2021-05-08T06:20:32.431241Z     1693731 Query   START TRANSACTIONWITH CONSISTENT SNAPSHOT
+.
+.
+2021-05-08T06:20:32.449741Z     1693731 Query   SELECT @@GLOBALGTID_EXECUTED
+.
+.
+2021-05-08T06:20:32.470503Z     1693731 Query   SHOW MASTER STATUS
+.
+.
+.
+2021-05-08T06:20:32.490164Z     1693731 Query   LOCK INSTANCE FORBACKUP
+2021-05-08T06:20:32.490280Z     1693731 Query   UNLOCK TABLES
+</code></pre><ul><li>database , user , table , view 등 오브젝트에 대한 생성 구문 백업</li><li>Data dump for table ~ xxx files 의미는 해당 테이블은 chunk 하나로 (default 64mb) 담을 수 없어 여러개의 chunk로 담는 다는 의미, testdb1.service 테이블은 192개의 chunk로 나뉠 것임 (PK 기준)</li></ul><pre><code>[testuser@testserver15:25:25 ~/db/work ]$ ls -ltr testdb1@service*
+
+-rw-r----- 1 testuser testuser     3686 May  8 15:07 testdb1@servicesql
+-rw-r----- 1 testuser testuser      927 May  8 15:07 testdb1@servicejson
+
+-rw-r----- 1 testuser testuser      440 May  8 15:09testdb1@service@0.tsv.zst.idx
+-rw-r----- 1 testuser testuser 10195869 May  8 15:09testdb1@service@0.tsv.zst
+.
+.
+-rw-r----- 1 testuser testuser       96 May  8 15:16testdb1@service@@191.tsv.zst.idx
+-rw-r----- 1 testuser testuser  2237750 May  8 15:16testdb1@service@@191.tsv.zst
+</code></pre><ul><li>테이블에 PK가 없으면 chunk 단위로 병렬 dump & load 불가능, 하나의 파일로 dump 받게 됨</li></ul><pre><code>NOTE: Could not select a column to be used as an index for table `testicket`.`BATCH_JOB_EXECUTION_PARAMS`. Chunking has been disabled for this table, data will be dumped to a single file.
+</code></pre><ul><li>default 4개 thread에서 dump 수행</li></ul><h3 id=백업-파일-확인>백업 파일 확인<a hidden class=anchor aria-hidden=true href=#백업-파일-확인>#</a></h3><ul><li>백업 정보 파일</li></ul><pre><code>[testuser@testserver16:03:48 ~/db/work ]$ ls -ltr *json
+
+### backup 정보 
+backup 대상 schema, 백업 때 사용한 옵션, binlog position 등이 기록됨
+
+-rw-r----- 1 testuser testuser   960 May  8 15:07 @.json
+
+### schema 정보 
+해당 schema에 속한 오브젝트(table, view, procedure..)에 대한 정보 기록용 
+
+-rw-r----- 1 testuser testuser   942 May  8 15:07 testdb1.json
+-rw-r----- 1 testuser testuser  3879 May  8 15:07 testdb2.json
+-rw-r----- 1 testuser testuser   230 May  8 15:07 mysqlsh_test.json
+-rw-r----- 1 testuser testuser   770 May  8 15:07 testicket.json
+
+### table 정보
+테이블의 컬럼, PK 등 테이블 관련 정보 기록용 
+
+-rw-r----- 1 testuser testuser   724 May  8 15:07testdb2@store_service_types.json
+-rw-r----- 1 testuser testuser   725 May  8 15:07testdb2@store_payment_method.json
+-rw-r----- 1 testuser testuser   902 May  8 15:07 testdb2@store.json
+-rw-r----- 1 testuser testuser   837 May  8 15:07testdb2@service_type_master.json
+-rw-r----- 1 testuser testuser   636 May  8 15:07testdb2@store_categories.json
+-rw-r----- 1 testuser testuser   936 May  8 15:07testdb2@service_type_hist.json
+-rw-r----- 1 testuser testuser   756 May  8 15:07testdb2@service_type_categories.json
+
+### DDL 스크립트 
+db, table, user, procedure, view 등등
+[testuser@testserver16:11:41 ~/db/work ]$ ls -ltr *.sql
+
+-rw-r----- 1 testuser testuser    597 May  8 15:07 mysqlsh_test.sql
+-rw-r----- 1 testuser testuser    305 May  8 15:07 @.users.sql
+-rw-r----- 1 testuser testuser    240 May  8 15:07 @.sql
+-rw-r----- 1 testuser testuser    240 May  8 15:07 @.post.sql
+
+### backup 완료 정보
+백업 받은 스키마 크기, 테이블 row count, chunk 개수 및 크기 등 정보를 갖고있음
+
+-rw-r----- 1 testuser testuser 43451 May  8 15:16 @.done.json
+</code></pre><h3 id=주로-사용하는-옵션>주로 사용하는 옵션<a hidden class=anchor aria-hidden=true href=#주로-사용하는-옵션>#</a></h3><ul><li>excludeSchemas /excludeTables : 특정 schema / table 제외, deafault empty</li><li>includeSchemas / includeTables : 특정 schema / table 만 백업, default empty</li><li>compatibility : 호환성을 위해 dump 수행 시 DB설정을 변경해서 받는 옵션 ( default empty )create_invisible_pks, force_innodb, ignore_missing_pks, skip_invalid_accounts, strip_definers, strip_restricted_grants, strip_tablespaces</li><li>events, routines, users, trigger : default true</li><li>dataOnly / ddlOnly : default false</li><li>bytesPerChunk | chunk 크기, default 64MB</li><li>maxRate : bytes per second per thread I/O 조절하는 기능, default 0 => nolimit</li><li>threads : data dump 받는 thread 개수 default 4개</li><li>compression : 압축 여부 , default zstd, 이외에도 none, gzip 가능</li><li>consistent : consistent 백업 여부, default true ( FTWLR 사용 ), mysqlshell 8.0.24 부터 binlog position 기록함. 8.0.23에서는 binlog position 기록 없이 dump수행함</li></ul><p>이외에도 Oracle Cloud Iaas 를 활용하는 옵션들이 추가로 있음<br>ex) 백업을 바로 Oracle cloud 내 bucket 에 보내는 기능 등…</p><h2 id=utildumptablesschema-tables-outputurl-options>util.dumpTables(schema, tables, outputUrl[, options])<a hidden class=anchor aria-hidden=true href=#utildumptablesschema-tables-outputurl-options>#</a></h2><p>특정 스키마에서 특정 테이블만 백업받는 기능<br>dumpInstance와 마찬가지 로직으로 수행되며 병렬 백업이 가능함</p><pre><code> MySQL  localhost:13306 ssl  testdb  JS &gt; util.dumpTables(&quot;testdb&quot;,[&quot;tb_test&quot;],&quot;/home1/testuser/db/work/&quot;)
+ 
+Acquiring global read lock
+Global read lock acquired
+Gathering information - done
+All transactions have been started
+Locking instance for backup
+Global read lock has been released
+Writing global DDL files
+
+
+Preparing data dump for table `testdb`.`tb_test`
+Writing DDL for schema `testdb`
+Writing DDL for table `testdb`.`tb_test`
+Data dump for table `testdb`.`tb_test` will be chunked using column `tb_test_no`
+Running data dump using 4 threads.
+
+NOTE: Progress information uses estimated values and may not be accurate.
+Data dump for table `testdb`.`tb_test` will be written to 247 files
+
+1 thds dumping - 106% (79.56M rows / ~74.49M rows), 672.89K rows/s, 118.70 MB/s uncompressed, 19.94 MB/s compressed
+
+Duration: 00:02:21s
+Schemas dumped: 1
+Tables dumped: 1
+Uncompressed data size: 14.03 GB
+Compressed data size: 2.36 GB
+Compression ratio: 5.9
+Rows written: 79564325
+Bytes written: 2.36 GB
+Average uncompressed throughput: 98.80 MB/s
+Average compressed throughput: 16.62 MB/s
+</code></pre><ul><li>14GB 테이블 백업 & 압축 하는데 140초 소요됨</li></ul><h2 id=utilloaddumpurl-options>util.loadDump(url[, options])<a hidden class=anchor aria-hidden=true href=#utilloaddumpurl-options>#</a></h2><p>util.dump 커맨드를 통해 dump 받은 데이터를 load 하는 기능<br>오직 util.dump 커맨드를 통해 받은 파일만 호환되며 mysqldump로 받은 파일은 호환되지않음</p><pre><code> MySQL  localhost:13306 ssl  JS &gt; util.loadDump('/home1/testuser/db/work',{threads:4,updateGtidSet:&quot;off&quot;,skipBinlog:false ,waitDumpTimeout:1800})
+ 
+Loading DDL and Data from '/home1/testuser/db/work' using 4 threads.
+Opening dump...
+Target is MySQL 8.0.16. Dump was produced from MySQL 8.0.16
+Checking for pre-existing objects...
+
+Executing common preamble SQL
+
+### DDL 반영
+
+Executing DDL script for schema `testdb1`
+[Worker003] Executing DDL script for `testdb1`.`tb_test_product`
+[Worker002] Executing DDL script for `testdb1`.`coupon`
+[Worker000] Executing DDL script for `testdb1`.`point`
+[Worker001] Executing DDL script for `testdb1`.`tb_test`
+[Worker003] Executing DDL script for `testdb1`.`phone`
+[Worker000] Executing DDL script for `testdb1`.`point_benefit`
+[Worker002] Executing DDL script for `testdb1`.`card`
+[Worker001] Executing DDL script for `testdb1`.`service`
+[Worker000] Executing DDL script for `testdb1`.`account`
+[Worker003] Executing DDL script for `testdb1`.`member`
+.
+.
+[Worker000] Executing DDL script for `testdb2`.`display_group_categories`
+[Worker001] Executing DDL script for `testdb2`.`brand_target_user`
+[Worker003] Executing DDL script for `testdb2`.`brand_service_types`
+.
+.
+
+### DATA LOAD
+
+[Worker002] testdb1@card@0.tsv.zst: Records: 376470  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker003] testdb1@tb_test_product@0.tsv.zst: Records: 512000  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker002] testdb1@card@1.tsv.zst: Records: 376470  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker003] testdb1@tb_test_product@1.tsv.zst: Records: 512000  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker000] testdb1@service@0.tsv.zst: Records: 357541  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker001] testdb1@tb_test@0.tsv.zst: Records: 383233  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker002] testdb1@card@2.tsv.zst: Records: 376470  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker003] testdb1@tb_test_product@2.tsv.zst: Records: 512000  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker000] testdb1@service@1.tsv.zst: Records: 357541  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker002] testdb1@card@3.tsv.zst: Records: 376470  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker003] testdb1@tb_test_product@3.tsv.zst: Records: 512000  Deleted: 0  Skipped: 0  Warnings: 0
+
+4 thds loading - 5% (1.79 GB / 35.27 GB), 19.90 MB/s, 4 / 49 tables done
+.
+.
+.
+
+Executing common postamble SQL
+
+588 chunks (237.27M rows, 35.27 GB) for 49 tables in 5 schemas were loaded in 30 min 39 sec (avg throughput 19.18 MB/s)
+0 warnings were reported during the load.
+</code></pre><p>=> 35GB load 하는데 30분 40초 소요</p><ul><li>load 수행 시 필요한 설정 확인</li></ul><pre><code>2021-05-08T07:42:04.505395Z     1690447 Query   select schema()
+2021-05-08T07:42:04.505617Z     1690447 Query   SELECT @@version
+2021-05-08T07:42:04.505881Z     1690447 Query   SHOW GLOBALVARIABLES LIKE 'local_infile'
+.
+.
+2021-05-08T07:42:04.581237Z     1696836 Query   show variables like'sql_require_primary_key'
+</code></pre><ul><li>DDL 반영</li></ul><pre><code>2021-05-08T07:42:04.590842Z     1696836 Query   CREATE DATABASE *!32312 IF NOT EXISTS*/ `testdb1` /*!40100 DEFAULT CHARACTER SETutf8mb4 COLLATE utf8mb4_general_ci */ /*!80016 DEFAULTENCRYPTION='N' */
+2021-05-08T07:42:04.592124Z     1696836 Query   USE testdb1
+2021-05-08T07:42:04.592293Z     1696836 Query   --
+2021-05-08T07:42:04.592369Z     1696836 Query   -- Dumping eventsfor database 'testdb1'
+2021-05-08T07:42:04.592440Z     1696836 Query   --
+2021-05-08T07:42:04.592509Z     1696836 Query   --
+2021-05-08T07:42:04.592579Z     1696836 Query   -- Dumping routinesfor database 'testdb1'
+2021-05-08T07:42:04.592648Z     1696836 Query   --
+2021-05-08T07:42:04.592718Z     1696836 Query   -- begin proceduretestdb1.mng_partition_month
+</code></pre><ul><li><p>data dump 받은 chunk 단위로 병렬로 load</p></li><li><p>테이블 하나씩 끝냈던 mydumper 와 달리 동시에 여러 테이블의 chunk를 insert 하게됨</p></li></ul><pre><code>[Worker003] testdb1@tb_test_product@64.tsv.zst: Records: 512000  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker001] testdb1@tb_test@30.tsv.zst: Records: 383233  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker002] testdb1@card@63.tsv.zst: Records: 376470  Deleted: 0  Skipped: 0  Warnings: 0
+[Worker000] testdb1@service@34.tsv.zst: Records: 357541  Deleted: 0  Skipped: 0  Warnings: 0
+
+4 thds loading | 34% (11.94 GB / 35.27 GB), 17.83 MB/s, 4 / 49 tables done
+</code></pre><h3 id=주로-사용하는-옵션-1>주로 사용하는 옵션<a hidden class=anchor aria-hidden=true href=#주로-사용하는-옵션-1>#</a></h3><ul><li><p>excludeSchemas /excludeTables : 특정 schema / table 제외, deafault empty</p></li><li><p>includeSchemas / includeTables : 특정 schema / table 만 load , default empty</p></li><li><p>loadData / loadDdl / loadIndexes : data, ddl , secondary index 를 load 할 것 인지, default true</p></li><li><p>deferTableIndexes : secondary index 생성 시기, all : data load 완료 후 생성, off : 테이블 생성 시 secondary index도 같이 생성, fulltext : fulltext index만 data load 끝나고 생성, 나머지는 테이블 생성 시 같이 생성, default fulltext</p></li><li><p>ignoreExistingObjects : load 수행시 중복된 오브젝트 있어도 무시하고 진행</p></li><li><p>ignoreVersion : dump file 받은 DB와 load 받는 DB서버 간 major version 차이 있어도 무시하고 진행함</p></li><li><p>schema : data load 할 schema, dump받은 schema와 일치하지 않아도 됨 testdb -> testdb_new</p></li><li><p>skipBinlog : load 수행 시 set session sql_bin_log=0; 키고 동작</p></li><li><p>thread : load 수행할 병렬 thread 개수</p></li><li><p>updateGtidSet : gtid를 사용하는 경우 loadDump 완료 후 SET @@GLOBAL.gtid_purged= gtid position 을 수행함 , default off (gtid setting 안함)</p></li><li><p>waitDumpTimeout : dump 받는 동시에 load 수행할 때 사용하는 옵션, timeout 만큼 기다렸는데도 새로운 dump파일 없으면 load 완료로 간주함</p></li><li><p>util.loadDump() 옵션 외에도 MySQL 8.0.21 부터는 redo log 를 DISABLE하여 load 속도를 높일 수 있음</p></li></ul><pre><code>mysql&gt; ALTER INSTANCE DISABLE INNODB REDO_LOG;
+
+mysql&gt; SHOW GLOBAL STATUS LIKE 'Innodb_redo_log_enabled';
++-------------------------+-------+
+| Variable_name           | Value |
++-------------------------+-------+
+| Innodb_redo_log_enabled | OFF   |
++-------------------------+-------+
+
+mysql&gt; ALTER INSTANCE ENABLE INNODB REDO_LOG;
+
+mysql&gt; SHOW GLOBAL STATUS LIKE 'Innodb_redo_log_enabled';
++-------------------------+-------+
+| Variable_name           | Value |
++-------------------------+-------+
+| Innodb_redo_log_enabled | ON    |
++-------------------------+-------+
+</code></pre><h1 id=더-고민해볼만한-점>더 고민해볼만한 점?<a hidden class=anchor aria-hidden=true href=#더-고민해볼만한-점>#</a></h1><ul><li>gtid를 안쓰는데 MySQL에서 뭔가 추가로 개발되는 기능은 점점 더 gtid 를 기본으로 설정하는 듯한 느낌,,, gtid에 대해 고민해봐야할지,,,,</li><li>mysqldump의 dump-slave 같은 옵션이 없음. 백업스크립트에서 사용한다면 stop sql_thread; show slave status; 구문 포함해서 사용,,,</li><li>dump & load 작업 끝날때까지 병렬 thread + 압축 진행해서 CPU를 많이 씀,, 적절한 thread 개수에 대한 고민 필요</li><li>util.dump 옵션 중 compatibility.strip_definers 이런 것처럼 백업 수행 시 설정 관련해서 건드릴 수 있는 기능이 많음<ul><li><a href=https://dev.mysql.com/doc/mysql-shell/8.0/en/mysql-shell-utilities-dump-instance-schema.html>https://dev.mysql.com/doc/mysql-shell/8.0/en/mysql-shell-utilities-dump-instance-schema.html</a></li></ul></li></ul></div><footer class=post-footer><ul class=post-tags><li><a href=/tags/mysql/>mysql</a></li><li><a href=/tags/mysqlshell/>mysqlshell</a></li><li><a href=/tags/%EC%9A%B4%EC%98%81/>운영</a></li><li><a href=/tags/%EB%B3%B5%EA%B5%AC/>복구</a></li></ul><nav class=paginav><a class=prev href=/mysql/mysqlsh_dump/><span class=title>« Prev Page</span><br><span>MySQL Shell을 통한 Table dump&load</span></a>
+<a class=next href=/mysql/replication_filter_issue/><span class=title>Next Page »</span><br><span>MySQL replication filter 사용 시 주의사항</span></a></nav></footer><div id=disqus_thread></div><script type=text/javascript>(function(){if(window.location.hostname=="localhost")
+return;var dsq=document.createElement('script');dsq.type='text/javascript';dsq.async=true;var disqus_shortname='kimdubia';dsq.src='//'+disqus_shortname+'.disqus.com/embed.js';(document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(dsq);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com/ class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></main><footer class=footer><span>&copy; 2021 <a href>kimDuBiA</a></span>
+<span>Powered by
+<a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
+        <a href=https://git.io/hugopapermod rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentcolor"><path d="M12 6H0l6-6z"/></svg></a><script>let menu=document.getElementById('menu')
+menu.scrollLeft=localStorage.getItem("menu-scroll-position");menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft);}
+document.querySelectorAll('a[href^="#"]').forEach(anchor=>{anchor.addEventListener("click",function(e){e.preventDefault();var id=this.getAttribute("href").substr(1);if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({behavior:"smooth"});}else{document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();}
+if(id==="top"){history.replaceState(null,null," ");}else{history.pushState(null,null,`#${id}`);}});});</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){if(document.body.scrollTop>800||document.documentElement.scrollTop>800){mybutton.style.visibility="visible";mybutton.style.opacity="1";}else{mybutton.style.visibility="hidden";mybutton.style.opacity="0";}};</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{if(document.body.className.includes("dark")){document.body.classList.remove('dark');localStorage.setItem("pref-theme",'light');}else{document.body.classList.add('dark');localStorage.setItem("pref-theme",'dark');}})</script><script>document.querySelectorAll('pre > code').forEach((codeblock)=>{const container=codeblock.parentNode.parentNode;const copybutton=document.createElement('button');copybutton.classList.add('copy-code');copybutton.innerText='copy';function copyingDone(){copybutton.innerText='copied!';setTimeout(()=>{copybutton.innerText='copy';},2000);}
+copybutton.addEventListener('click',(cb)=>{if('clipboard'in navigator){navigator.clipboard.writeText(codeblock.textContent);copyingDone();return;}
+const range=document.createRange();range.selectNodeContents(codeblock);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);try{document.execCommand('copy');copyingDone();}catch(e){};selection.removeRange(range);});if(container.classList.contains("highlight")){container.appendChild(copybutton);}else if(container.parentNode.firstChild==container){}else if(codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"){codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);}else{codeblock.parentNode.appendChild(copybutton);}});</script></body></html>

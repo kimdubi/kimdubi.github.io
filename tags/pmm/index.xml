@@ -27,10 +27,10 @@ alertmanager는 이 알람을 email,slack, web-hook 등 다양한 방법으로 �
     
     <item>
       <title>MySQL PMM 수동 설치</title>
-      <link>/mysql/mysql_pmm/</link>
+      <link>/mysql/pmm/</link>
       <pubDate>Mon, 04 Oct 2021 15:27:46 +0900</pubDate>
       
-      <guid>/mysql/mysql_pmm/</guid>
+      <guid>/mysql/pmm/</guid>
       <description>MySQL PMM 수동 설치 이전에 docker 를 사용하여 PMM 구성하는 법을 다룬 적이 있는데 이번 글에서는 docker 가 아닌 수동으로 구성하는 방법에 대해 정리해보겠습니다.
 https://sarc.io/index.php/mariadb/1268-mariadb-monitoring-pmm
 https://sarc.io/index.php/mariadb/1269-mariadb-monitoring-pmm-2

@@ -9,7 +9,61 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Wed, 06 Oct 2021 21:41:20 +0900</lastBuildDate><atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 14 Oct 2021 07:58:48 +0900</lastBuildDate><atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>architecture</title>
+      <link>/tags/architecture/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:48 +0900</pubDate>
+      
+      <guid>/tags/architecture/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>mysql</title>
+      <link>/tags/mysql/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:48 +0900</pubDate>
+      
+      <guid>/tags/mysql/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>redis</title>
+      <link>/tags/redis/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:36 +0900</pubDate>
+      
+      <guid>/tags/redis/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>운영</title>
+      <link>/tags/%EC%9A%B4%EC%98%81/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:36 +0900</pubDate>
+      
+      <guid>/tags/%EC%9A%B4%EC%98%81/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>postgresql</title>
+      <link>/tags/postgresql/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:24 +0900</pubDate>
+      
+      <guid>/tags/postgresql/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>복구</title>
+      <link>/tags/%EB%B3%B5%EA%B5%AC/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:10 +0900</pubDate>
+      
+      <guid>/tags/%EB%B3%B5%EA%B5%AC/</guid>
+      <description></description>
+    </item>
+    
     <item>
       <title>ansible</title>
       <link>/tags/ansible/</link>
@@ -20,29 +74,11 @@
     </item>
     
     <item>
-      <title>mysql</title>
-      <link>/tags/mysql/</link>
-      <pubDate>Wed, 06 Oct 2021 21:41:20 +0900</pubDate>
-      
-      <guid>/tags/mysql/</guid>
-      <description></description>
-    </item>
-    
-    <item>
       <title>docker</title>
       <link>/tags/docker/</link>
       <pubDate>Wed, 06 Oct 2021 21:25:52 +0900</pubDate>
       
       <guid>/tags/docker/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>redis</title>
-      <link>/tags/redis/</link>
-      <pubDate>Wed, 06 Oct 2021 21:25:52 +0900</pubDate>
-      
-      <guid>/tags/redis/</guid>
       <description></description>
     </item>
     
@@ -65,15 +101,6 @@
     </item>
     
     <item>
-      <title>architecture</title>
-      <link>/tags/architecture/</link>
-      <pubDate>Wed, 06 Oct 2021 00:31:52 +0900</pubDate>
-      
-      <guid>/tags/architecture/</guid>
-      <description></description>
-    </item>
-    
-    <item>
       <title>citus</title>
       <link>/tags/citus/</link>
       <pubDate>Wed, 06 Oct 2021 00:31:52 +0900</pubDate>
@@ -83,29 +110,11 @@
     </item>
     
     <item>
-      <title>postgresql</title>
-      <link>/tags/postgresql/</link>
-      <pubDate>Wed, 06 Oct 2021 00:31:52 +0900</pubDate>
-      
-      <guid>/tags/postgresql/</guid>
-      <description></description>
-    </item>
-    
-    <item>
       <title>sharding</title>
       <link>/tags/sharding/</link>
       <pubDate>Wed, 06 Oct 2021 00:31:52 +0900</pubDate>
       
       <guid>/tags/sharding/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>운영</title>
-      <link>/tags/%EC%9A%B4%EC%98%81/</link>
-      <pubDate>Wed, 06 Oct 2021 00:30:41 +0900</pubDate>
-      
-      <guid>/tags/%EC%9A%B4%EC%98%81/</guid>
       <description></description>
     </item>
     
@@ -169,15 +178,6 @@
       <pubDate>Tue, 05 Oct 2021 22:51:18 +0900</pubDate>
       
       <guid>/tags/pg_dump/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>복구</title>
-      <link>/tags/%EB%B3%B5%EA%B5%AC/</link>
-      <pubDate>Tue, 05 Oct 2021 22:51:18 +0900</pubDate>
-      
-      <guid>/tags/%EB%B3%B5%EA%B5%AC/</guid>
       <description></description>
     </item>
     

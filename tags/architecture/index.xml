@@ -9,7 +9,18 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Wed, 06 Oct 2021 00:31:52 +0900</lastBuildDate><atom:link href="/tags/architecture/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 14 Oct 2021 07:58:48 +0900</lastBuildDate><atom:link href="/tags/architecture/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL innodb_sort_buffer_size</title>
+      <link>/mysql/innodb_sort_buffer_size/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:48 +0900</pubDate>
+      
+      <guid>/mysql/innodb_sort_buffer_size/</guid>
+      <description>테스트 목적 innodb_sort_buffer_size 를 크게 잡으면 index 생성 속도에 얼마나 도움이 될까?
+online DDL 중 DML 성능 향상에도 도움이 될까?
+테스트 환경  5.7.mysql_aurora.2.04.9 r5.2xlarge writer 1대 테스트 대상 테이블 정보   CREATE TABLE `stock1` ( `s_i_id` int(11) NOT NULL, `s_w_id` smallint(6) NOT NULL, `s_quantity` smallint(6) DEFAULT NULL, `s_dist_01` char(24) DEFAULT NULL, `s_dist_02` char(24) DEFAULT NULL, `s_dist_03` char(24) DEFAULT NULL, `s_dist_04` char(24) DEFAULT NULL, `s_dist_05` char(24) DEFAULT NULL, `s_dist_06` char(24) DEFAULT NULL, `s_dist_07` char(24) DEFAULT NULL, `s_dist_08` char(24) DEFAULT NULL, `s_dist_09` char(24) DEFAULT NULL, `s_dist_10` char(24) DEFAULT NULL, `s_ytd` decimal(8,0) DEFAULT NULL, `s_order_cnt` smallint(6) DEFAULT NULL, `s_remote_cnt` smallint(6) DEFAULT NULL, `s_data` varchar(50) DEFAULT NULL, PRIMARY KEY (`s_w_id`,`s_i_id`), KEY `fkey_stock_21` (`s_i_id`), CONSTRAINT `fkey_stock_1_1` FOREIGN KEY (`s_w_id`) REFERENCES `warehouse1` (`w_id`), CONSTRAINT `fkey_stock_2_1` FOREIGN KEY (`s_i_id`) REFERENCES `item1` (`i_id`) ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 +-------------+------------+---------------+----------------+ | table_name | table_rows | DATA_SIZE(MB) | INDEX_SIZE(MB) | +-------------+------------+---------------+----------------+ | stock1 | 192659975 | 70237.</description>
+    </item>
+    
     <item>
       <title>PostgreSQL Citus 간단히 살펴보기</title>
       <link>/postgresql/citus/</link>

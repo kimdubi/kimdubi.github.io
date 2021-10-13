@@ -9,7 +9,58 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Wed, 06 Oct 2021 21:44:00 +0900</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 14 Oct 2021 07:58:48 +0900</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL innodb_sort_buffer_size</title>
+      <link>/mysql/innodb_sort_buffer_size/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:48 +0900</pubDate>
+      
+      <guid>/mysql/innodb_sort_buffer_size/</guid>
+      <description>테스트 목적 innodb_sort_buffer_size 를 크게 잡으면 index 생성 속도에 얼마나 도움이 될까?
+online DDL 중 DML 성능 향상에도 도움이 될까?
+테스트 환경  5.7.mysql_aurora.2.04.9 r5.2xlarge writer 1대 테스트 대상 테이블 정보   CREATE TABLE `stock1` ( `s_i_id` int(11) NOT NULL, `s_w_id` smallint(6) NOT NULL, `s_quantity` smallint(6) DEFAULT NULL, `s_dist_01` char(24) DEFAULT NULL, `s_dist_02` char(24) DEFAULT NULL, `s_dist_03` char(24) DEFAULT NULL, `s_dist_04` char(24) DEFAULT NULL, `s_dist_05` char(24) DEFAULT NULL, `s_dist_06` char(24) DEFAULT NULL, `s_dist_07` char(24) DEFAULT NULL, `s_dist_08` char(24) DEFAULT NULL, `s_dist_09` char(24) DEFAULT NULL, `s_dist_10` char(24) DEFAULT NULL, `s_ytd` decimal(8,0) DEFAULT NULL, `s_order_cnt` smallint(6) DEFAULT NULL, `s_remote_cnt` smallint(6) DEFAULT NULL, `s_data` varchar(50) DEFAULT NULL, PRIMARY KEY (`s_w_id`,`s_i_id`), KEY `fkey_stock_21` (`s_i_id`), CONSTRAINT `fkey_stock_1_1` FOREIGN KEY (`s_w_id`) REFERENCES `warehouse1` (`w_id`), CONSTRAINT `fkey_stock_2_1` FOREIGN KEY (`s_i_id`) REFERENCES `item1` (`i_id`) ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 +-------------+------------+---------------+----------------+ | table_name | table_rows | DATA_SIZE(MB) | INDEX_SIZE(MB) | +-------------+------------+---------------+----------------+ | stock1 | 192659975 | 70237.</description>
+    </item>
+    
+    <item>
+      <title>Redis keys 대신 scan!</title>
+      <link>/nosql/redis_scan/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:36 +0900</pubDate>
+      
+      <guid>/nosql/redis_scan/</guid>
+      <description>Redis에서 항상 신경써야 하는 부분은 Single Thread로 커맨드가 처리된다는 점입니다.
+그렇기 때문에 O(n) 으로 처리되는 커맨드는 항상 주의를 해야하는데요.
+대표적으로 keys * , flushall, flushdb, 같은 커맨드가 있습니다.
+그 중에서 keys * 은 운영에 큰 영향을 끼치고 장애로 이어질 수 있기 때문에 대부분의 운영 Redis 환경에서는 rename-command 기능으로 막아놓기도 하는데요
+얼마전에 한 개발자분으로부터 특정 Key를 조회하고 그 Key를 삭제하고 싶다는 요청을 받았습니다.
+저희도 key 커맨드는 막아놨는지라 개발자분이 수행할 수 없는 이슈가 있는데</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL lock걸린 세션 찾기</title>
+      <link>/postgresql/psql_lock_monitoring/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:24 +0900</pubDate>
+      
+      <guid>/postgresql/psql_lock_monitoring/</guid>
+      <description>이번 글에서는 PostgreSQL에서 Lock holder와 blocked session을 확인하는 방법에 대해 알아보겠습니다.
+더불어 MySQL의 innodb_lock_wait_timeout, lock_wait_timeout 설정과 같은 설정도 함께 알아보겠습니다.
+lock monitoring query with recursive activity as ( select pg_blocking_pids(pid) blocked_by, *, age(clock_timestamp(), xact_start)::interval(0) as tx_age, age(clock_timestamp(), state_change)::interval(0) as state_age from pg_stat_activity where state is distinct from &#39;idle&#39; ), blockers as ( select array_agg(distinct c order by c) as pids from ( select unnest(blocked_by) from activity ) as dt(c) ), tree as ( select activity.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL archive log와 시점복구</title>
+      <link>/postgresql/psql_archive/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:10 +0900</pubDate>
+      
+      <guid>/postgresql/psql_archive/</guid>
+      <description>DB의 시점복구를 위해서 가장 중요한 것은 무엇일까요?
+fullbackup과 fullbackup본 이후 ~ 복구하려는 시점까지의 archive log입니다.
+MySQL에서는 binary log가 되겠고, Oracle, PostgreSQL에서는 archive log가 되겠네요.
+이번 글에서는 PostgreSQL 13버전에서의 archive logging 설정 방법과 시점복구 방법에 대해서 알아보겠습니다.
+특히 PostgreSQL 12버전부터 DB 복구를 위한 커맨드가 그 전 버전과 약간 달라진 점 참고 부탁드립니다.
+WAL 이란 PostgreSQL에서는 DML,vaccum 등 데이터를 변경하거나 작업이력이 남는 커맨드에 대해 WAL(Write Ahead Logging) 파일을 남깁니다.
+이 WAL 파일을 replay 함으로써 유실된 데이터를 복구할 수 있게 되는데요</description>
+    </item>
+    
     <item>
       <title>Private Repository 서버 구축하기</title>
       <link>/etc/private_repository/</link>

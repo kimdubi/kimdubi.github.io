@@ -9,7 +9,33 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Wed, 06 Oct 2021 00:31:52 +0900</lastBuildDate><atom:link href="/categories/postgresql/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 14 Oct 2021 07:58:24 +0900</lastBuildDate><atom:link href="/categories/postgresql/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>PostgreSQL lock걸린 세션 찾기</title>
+      <link>/postgresql/psql_lock_monitoring/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:24 +0900</pubDate>
+      
+      <guid>/postgresql/psql_lock_monitoring/</guid>
+      <description>이번 글에서는 PostgreSQL에서 Lock holder와 blocked session을 확인하는 방법에 대해 알아보겠습니다.
+더불어 MySQL의 innodb_lock_wait_timeout, lock_wait_timeout 설정과 같은 설정도 함께 알아보겠습니다.
+lock monitoring query with recursive activity as ( select pg_blocking_pids(pid) blocked_by, *, age(clock_timestamp(), xact_start)::interval(0) as tx_age, age(clock_timestamp(), state_change)::interval(0) as state_age from pg_stat_activity where state is distinct from &#39;idle&#39; ), blockers as ( select array_agg(distinct c order by c) as pids from ( select unnest(blocked_by) from activity ) as dt(c) ), tree as ( select activity.</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL archive log와 시점복구</title>
+      <link>/postgresql/psql_archive/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:10 +0900</pubDate>
+      
+      <guid>/postgresql/psql_archive/</guid>
+      <description>DB의 시점복구를 위해서 가장 중요한 것은 무엇일까요?
+fullbackup과 fullbackup본 이후 ~ 복구하려는 시점까지의 archive log입니다.
+MySQL에서는 binary log가 되겠고, Oracle, PostgreSQL에서는 archive log가 되겠네요.
+이번 글에서는 PostgreSQL 13버전에서의 archive logging 설정 방법과 시점복구 방법에 대해서 알아보겠습니다.
+특히 PostgreSQL 12버전부터 DB 복구를 위한 커맨드가 그 전 버전과 약간 달라진 점 참고 부탁드립니다.
+WAL 이란 PostgreSQL에서는 DML,vaccum 등 데이터를 변경하거나 작업이력이 남는 커맨드에 대해 WAL(Write Ahead Logging) 파일을 남깁니다.
+이 WAL 파일을 replay 함으로써 유실된 데이터를 복구할 수 있게 되는데요</description>
+    </item>
+    
     <item>
       <title>PostgreSQL Citus 간단히 살펴보기</title>
       <link>/postgresql/citus/</link>

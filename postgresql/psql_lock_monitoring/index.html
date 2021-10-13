@@ -1,0 +1,155 @@
+<!doctype html><html lang=en dir=auto><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>PostgreSQL lock걸린 세션 찾기 | kimDuBiA</title><meta name=keywords content="postgresql,운영"><meta name=description content="이번 글에서는 PostgreSQL에서 Lock holder와 blocked session을 확인하는 방법에 대해 알아보겠습니다.
+더불어 MySQL의 innodb_lock_wait_timeout, lock_wait_timeout 설정과 같은 설정도 함께 알아보겠습니다.
+lock monitoring query with recursive activity as ( select pg_blocking_pids(pid) blocked_by, *, age(clock_timestamp(), xact_start)::interval(0) as tx_age, age(clock_timestamp(), state_change)::interval(0) as state_age from pg_stat_activity where state is distinct from 'idle' ), blockers as ( select array_agg(distinct c order by c) as pids from ( select unnest(blocked_by) from activity ) as dt(c) ), tree as ( select activity."><meta name=author content="kimdubi"><link rel=canonical href=/postgresql/psql_lock_monitoring/><meta name=google-site-verification content="XYZabc"><meta name=yandex-verification content="XYZabc"><meta name=msvalidate.01 content="XYZabc"><link crossorigin=anonymous href=/assets/css/stylesheet.min.2dbef8664bbfb3e83a0a44fd4a8fc5010240dbcd1dbc1400753b928b497b8f5e.css integrity="sha256-Lb74Zku/s+g6CkT9So/FAQJA280dvBQAdTuSi0l7j14=" rel="preload stylesheet" as=style><script defer crossorigin=anonymous src=/assets/js/highlight.min.27cd435cc9ed6abb4b496581b151804f79f366c412620272bb94e2f5f598ebcc.js integrity="sha256-J81DXMntartLSWWBsVGAT3nzZsQSYgJyu5Ti9fWY68w=" onload=hljs.initHighlightingOnLoad();></script><link rel=icon href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=16x16 href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=32x32 href=%3Clink%20/%20abs%20url%3E><link rel=apple-touch-icon href=%3Clink%20/%20abs%20url%3E><link rel=mask-icon href=%3Clink%20/%20abs%20url%3E><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><meta name=generator content="Hugo 0.80.0"><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme: rgb(29, 30, 32);--entry: rgb(46, 46, 51);--primary: rgb(218, 218, 219);--secondary: rgb(155, 156, 157);--tertiary: rgb(65, 66, 68);--content: rgb(196, 196, 197);--hljs-bg: rgb(46, 46, 51);--code-bg: rgb(55, 56, 62);--border: rgb(51, 51, 51)}.list{background:var(--theme)}.list:not(.dark)::-webkit-scrollbar-track{background:0 0}.list:not(.dark)::-webkit-scrollbar-thumb{border-color:var(--theme)}}</style></noscript><script type=application/javascript>var doNotTrack=false;if(!doNotTrack){(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');ga('create','UA-123-45','auto');ga('send','pageview');}</script><meta property="og:title" content="PostgreSQL lock걸린 세션 찾기"><meta property="og:description" content="이번 글에서는 PostgreSQL에서 Lock holder와 blocked session을 확인하는 방법에 대해 알아보겠습니다.
+더불어 MySQL의 innodb_lock_wait_timeout, lock_wait_timeout 설정과 같은 설정도 함께 알아보겠습니다.
+lock monitoring query with recursive activity as ( select pg_blocking_pids(pid) blocked_by, *, age(clock_timestamp(), xact_start)::interval(0) as tx_age, age(clock_timestamp(), state_change)::interval(0) as state_age from pg_stat_activity where state is distinct from 'idle' ), blockers as ( select array_agg(distinct c order by c) as pids from ( select unnest(blocked_by) from activity ) as dt(c) ), tree as ( select activity."><meta property="og:type" content="article"><meta property="og:url" content="/postgresql/psql_lock_monitoring/"><meta property="og:image" content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta property="article:section" content="postgresql"><meta property="article:published_time" content="2021-10-14T07:58:24+09:00"><meta property="article:modified_time" content="2021-10-14T07:58:24+09:00"><meta property="og:site_name" content="kimDuBiA"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta name=twitter:title content="PostgreSQL lock걸린 세션 찾기"><meta name=twitter:description content="이번 글에서는 PostgreSQL에서 Lock holder와 blocked session을 확인하는 방법에 대해 알아보겠습니다.
+더불어 MySQL의 innodb_lock_wait_timeout, lock_wait_timeout 설정과 같은 설정도 함께 알아보겠습니다.
+lock monitoring query with recursive activity as ( select pg_blocking_pids(pid) blocked_by, *, age(clock_timestamp(), xact_start)::interval(0) as tx_age, age(clock_timestamp(), state_change)::interval(0) as state_age from pg_stat_activity where state is distinct from 'idle' ), blockers as ( select array_agg(distinct c order by c) as pids from ( select unnest(blocked_by) from activity ) as dt(c) ), tree as ( select activity."><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":2,"name":"Postgresqls","item":"/postgresql/"},{"@type":"ListItem","position":3,"name":"PostgreSQL lock걸린 세션 찾기","item":"/postgresql/psql_lock_monitoring/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"PostgreSQL lock걸린 세션 찾기","name":"PostgreSQL lock걸린 세션 찾기","description":"이번 글에서는 PostgreSQL에서 Lock holder와 blocked session을 확인하는 방법에 대해 알아보겠습니다.\n더불어 MySQL의 innodb_lock_wait_timeout, lock_wait_timeout 설정과 같은 설정도 함께 알아보겠습니다.\nlock monitoring query with recursive activity as ( select pg_blocking_pids(pid) blocked_by, *, age(clock_timestamp(), xact_start)::interval(0) as tx_age, age(clock_timestamp(), state_change)::interval(0) as state_age from pg_stat_activity where state is distinct from 'idle' ), blockers as ( select array_agg(distinct c order by c) as pids from ( select unnest(blocked_by) from activity ) as dt(c) ), tree as ( select activity.","keywords":["postgresql","운영"],"articleBody":"이번 글에서는 PostgreSQL에서 Lock holder와 blocked session을 확인하는 방법에 대해 알아보겠습니다.\n더불어 MySQL의 innodb_lock_wait_timeout, lock_wait_timeout 설정과 같은 설정도 함께 알아보겠습니다.\nlock monitoring query with recursive activity as ( select pg_blocking_pids(pid) blocked_by, *, age(clock_timestamp(), xact_start)::interval(0) as tx_age, age(clock_timestamp(), state_change)::interval(0) as state_age from pg_stat_activity where state is distinct from 'idle' ), blockers as ( select array_agg(distinct c order by c) as pids from ( select unnest(blocked_by) from activity ) as dt(c) ), tree as ( select activity.*, 1 as level, activity.pid as top_blocker_pid, array[activity.pid] as path, array_agg(activity.pid) over () as all_blockers_above from activity, blockers where array[pid] '{}'::int[] and activity.blocked_by tree.pid) as blkd, format( '%s %s%s', lpad('[' || pid::text || ']', 7, ' '), repeat('.', level - 1) || case when level  1 then ' ' end, query ) from tree order by top_blocker_pid, level, pid; lock test  session 1  testdb=# begin; BEGIN testdb=*# select count(*) from tb_test; count -------- 110000 (1 row)  session 2  testdb=# alter table tb_test add column f varchar(10);  session 3  testdb=# select * from tb_test limit 1;  lock 조회   pid | blocked_by | tx_age | state_age | state | datname | usename | wait | blkd | format ------+------------+----------+-----------+--------+---------+----------+-------------------+------+--------------------------------------------------------- 2099 | {} | 00:00:36 | 00:00:32 | idletx | testdb | postgres | Client:ClientRead | 2 | [2099] select count(*) from tb_test; 2061 | {2099} | 00:00:25 | 00:00:25 | active | testdb | postgres | Lock:relation | 1 | [2061] . alter table tb_test add column f varchar(10); 2100 | {2061} | 00:00:14 | 00:00:14 | active | testdb | postgres | Lock:relation | 0 | [2100] .. select * from tb_test limit 1; = transaction이 끝나지 않은 2099 select 세션이 lock hold 하고 있음\n2061 alter 문은 2099 세션을 기다리고, 2100 select 세션은 2061 alter에 의해 대기하게되는 것을 확인할 수 있음\nDDL 대기로 인해 뒤 이어지는 세션들이 계속 대기하게 되는 현상\n lock type 조회  testdb=# select locktype, relation, virtualxid, transactionid, virtualtransaction, pid, mode, granted from pg_locks where pid = 2099; locktype | relation | virtualxid | transactionid | virtualtransaction | pid | mode | granted ------------+----------+------------+---------------+--------------------+-------+-----------------+--------- virtualxid | | 3/11 | | 3/11 | 2099 | ExclusiveLock | t relation | 24869 | | | 3/11 | 2099 | AccessShareLock | t (2 rows) = table 24869 (tb_test) 에 대해 AccessShareLock을 잡고 있는 상황으로,\nDDL은 이 lock에 의해 대기하게 됨\n해결 방법 transaction에 의해 Lock 대기 하는 DDL세션은 그 하나만 놓고보면 별 이슈가 되지 않습니다.\n선행 트랜잭션이 종료된 후에 DDL구문을 다시 해본다던가 하면 되니까요\n그러나 Lock 대기하는 DDL세션에 의해 또 뒤이어 들어오는 세션들이 Lock 대기하게 되면 이것은 큰 문제가 되기때문에\nDDL 구문을 바로 취소시켜버려야 합니다.\ntestdb=# select * from pg_settings where name in ('statement_timeout','lock_timeout'); -[ RECORD 1 ]---+---------------------------------------------------------- name | lock_timeout setting | 0 unit | ms category | Client Connection Defaults / Statement Behavior short_desc | Sets the maximum allowed duration of any wait for a lock. extra_desc | A value of 0 turns off the timeout. context | user vartype | integer source | default min_val | 0 max_val | 2147483647 enumvals | boot_val | 0 reset_val | 0 sourcefile | sourceline | pending_restart | f -[ RECORD 2 ]---+---------------------------------------------------------- name | statement_timeout setting | 0 unit | ms category | Client Connection Defaults / Statement Behavior short_desc | Sets the maximum allowed duration of any statement. extra_desc | A value of 0 turns off the timeout. context | user vartype | integer source | default min_val | 0 max_val | 2147483647 enumvals | boot_val | 0 reset_val | 0 sourcefile | sourceline | pending_restart | f   위의 lock_timeout, statement_timeout 의 값을 설정하면 됨\n statement_timeout 는 커맨드 자체가 대기하게 되는 경우 lock_timeout은 잠금 대기하게 되는 경우 적용, table,index, row 모두 통합 statement_timeout은 운영 위험이 있어 session 단위로 적용하는 등 postgresql.conf에는 적용하지 않는 편임 default 0 으로 무한대기    MySQL의 lock_wait_timeout(metadata lock), innodb_lock_wait_timeout (row lock) 과 같은 역할\n  적용 테스트\n  testdb=# set lock_timeout='100ms'; SET testdb=# alter table tb_test add column f varchar(10); ERROR: canceling statement due to lock timeout testdb=# set lock_timeout='0'; SET testdb=# alter table tb_test add column f varchar(10); ^CCancel request sent ERROR: canceling statement due to user request testdb=# set statement_timeout='100ms'; SET testdb=# alter table tb_test add column f varchar(10); ERROR: canceling statement due to statement timeout ","wordCount":"768","inLanguage":"en","datePublished":"2021-10-14T07:58:24+09:00","dateModified":"2021-10-14T07:58:24+09:00","author":{"@type":"Person","name":"kimdubi"},"mainEntityOfPage":{"@type":"WebPage","@id":"/postgresql/psql_lock_monitoring/"},"publisher":{"@type":"Organization","name":"kimDuBiA","logo":{"@type":"ImageObject","url":"%3Clink%20/%20abs%20url%3E"}}}</script></head><body id=top><script>if(localStorage.getItem("pref-theme")==="dark"){document.body.classList.add('dark');}else if(localStorage.getItem("pref-theme")==="light"){document.body.classList.remove('dark')}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script><header class=header><nav class=nav><div class=logo><a href accesskey=h title="Hi (Alt + H)">Hi</a>
+<span class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)"><svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg><svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></span></div><ul id=menu><li><a href=/ title=Home><span>Home</span></a></li><li><a href=/categories/ title=categories><span>categories</span></a></li><li><a href=/tags/ title=tags><span>tags</span></a></li></ul></nav></header><main class=main><article class=post-single><header class=post-header><div class=breadcrumbs><a href>Home</a>&nbsp;»&nbsp;<a href=/postgresql/>Postgresqls</a></div><h1 class=post-title>PostgreSQL lock걸린 세션 찾기</h1><div class=post-meta>October 14, 2021&nbsp;·&nbsp;4 min&nbsp;·&nbsp;kimdubi</div></header><div class=toc><details><summary accesskey=c title="(Alt + C)"><span class=details>Table of Contents</span></summary><div class=inner><ul><li><a href=#lock-monitoring-query aria-label="lock monitoring query">lock monitoring query</a></li><li><a href=#lock-test aria-label="lock test">lock test</a></li><li><a href=#%ed%95%b4%ea%b2%b0-%eb%b0%a9%eb%b2%95 aria-label="해결 방법">해결 방법</a></li></ul></div></details></div><div class=post-content><p>이번 글에서는 PostgreSQL에서 Lock holder와 blocked session을 확인하는 방법에 대해 알아보겠습니다.<br>더불어 MySQL의 innodb_lock_wait_timeout, lock_wait_timeout 설정과 같은 설정도 함께 알아보겠습니다.</p><h3 id=lock-monitoring-query>lock monitoring query<a hidden class=anchor aria-hidden=true href=#lock-monitoring-query>#</a></h3><pre><code>with recursive activity as (
+  select
+    pg_blocking_pids(pid) blocked_by,
+    *,
+    age(clock_timestamp(), xact_start)::interval(0) as tx_age,
+    age(clock_timestamp(), state_change)::interval(0) as state_age
+  from pg_stat_activity
+  where state is distinct from 'idle'
+), blockers as (
+  select
+    array_agg(distinct c order by c) as pids
+  from (
+    select unnest(blocked_by)
+    from activity
+  ) as dt(c)
+), tree as (
+  select
+    activity.*,
+    1 as level,
+    activity.pid as top_blocker_pid,
+    array[activity.pid] as path,
+    array_agg(activity.pid) over () as all_blockers_above
+  from activity, blockers
+  where
+    array[pid] &lt;@ blockers.pids
+    and blocked_by = '{}'::int[]
+  union all
+  select
+    activity.*,
+    tree.level + 1 as level,
+    tree.top_blocker_pid,
+    path || array[activity.pid] as path,
+    tree.all_blockers_above || array_agg(activity.pid) over () as all_blockers_above
+  from activity, tree
+  where
+    not array[activity.pid] &lt;@ tree.all_blockers_above
+    and activity.blocked_by &lt;&gt; '{}'::int[]
+    and activity.blocked_by &lt;@ tree.all_blockers_above
+)
+select
+  pid,
+  blocked_by,
+  tx_age,
+  state_age,
+  replace(state, 'idle in transaction', 'idletx') state,
+  datname,
+  usename,
+  format('%s:%s', wait_event_type, wait_event) as wait,
+  (select count(distinct t1.pid) from tree t1 where array[tree.pid] &lt;@ t1.path and t1.pid &lt;&gt; tree.pid) as blkd,
+  format(
+    '%s %s%s',
+    lpad('[' || pid::text || ']', 7, ' '),
+    repeat('.', level - 1) || case when level &gt; 1 then ' ' end,
+    query
+  )
+from tree
+order by top_blocker_pid, level, pid;
+
+</code></pre><h3 id=lock-test>lock test<a hidden class=anchor aria-hidden=true href=#lock-test>#</a></h3><ul><li>session 1</li></ul><pre><code>testdb=# begin;
+BEGIN
+testdb=*# select count(*) from tb_test;
+ count
+--------
+ 110000
+(1 row)
+
+</code></pre><ul><li>session 2</li></ul><pre><code>testdb=# alter table tb_test add column f varchar(10);
+
+
+
+</code></pre><ul><li>session 3</li></ul><pre><code>testdb=# select * from tb_test limit 1;
+
+
+</code></pre><ul><li>lock 조회</li></ul><pre><code> pid  | blocked_by |  tx_age  | state_age | state  | datname | usename  |       wait        | blkd |                         format
+------+------------+----------+-----------+--------+---------+----------+-------------------+------+---------------------------------------------------------
+ 2099 | {}         | 00:00:36 | 00:00:32  | idletx | testdb  | postgres | Client:ClientRead |    2 |  [2099] select count(*) from tb_test;
+ 2061 | {2099}     | 00:00:25 | 00:00:25  | active | testdb  | postgres | Lock:relation     |    1 |  [2061] . alter table tb_test add column f varchar(10);
+ 2100 | {2061}     | 00:00:14 | 00:00:14  | active | testdb  | postgres | Lock:relation     |    0 |  [2100] .. select * from tb_test limit 1;
+</code></pre><p>=> transaction이 끝나지 않은 2099 select 세션이 lock hold 하고 있음<br>2061 alter 문은 2099 세션을 기다리고, 2100 select 세션은 2061 alter에 의해 대기하게되는 것을 확인할 수 있음<br>DDL 대기로 인해 뒤 이어지는 세션들이 계속 대기하게 되는 현상</p><ul><li>lock type 조회</li></ul><pre><code>testdb=# select locktype, relation, virtualxid, transactionid, virtualtransaction, pid, mode, granted from pg_locks where pid = 2099;
+  locktype  | relation | virtualxid | transactionid | virtualtransaction | pid   |      mode       | granted
+------------+----------+------------+---------------+--------------------+-------+-----------------+---------
+ virtualxid |          | 3/11       |               | 3/11               |  2099 | ExclusiveLock   | t
+ relation   |    24869 |            |               | 3/11               |  2099 | AccessShareLock | t
+(2 rows)
+</code></pre><p>=> table 24869 (tb_test) 에 대해 AccessShareLock을 잡고 있는 상황으로,<br>DDL은 이 lock에 의해 대기하게 됨</p><h3 id=해결-방법>해결 방법<a hidden class=anchor aria-hidden=true href=#해결-방법>#</a></h3><p>transaction에 의해 Lock 대기 하는 DDL세션은 그 하나만 놓고보면 별 이슈가 되지 않습니다.<br>선행 트랜잭션이 종료된 후에 DDL구문을 다시 해본다던가 하면 되니까요<br>그러나 Lock 대기하는 DDL세션에 의해 또 뒤이어 들어오는 세션들이 Lock 대기하게 되면 이것은 큰 문제가 되기때문에<br>DDL 구문을 바로 취소시켜버려야 합니다.</p><pre><code>testdb=# select * from pg_settings where name in ('statement_timeout','lock_timeout');
+-[ RECORD 1 ]---+----------------------------------------------------------
+name            | lock_timeout
+setting         | 0
+unit            | ms
+category        | Client Connection Defaults / Statement Behavior
+short_desc      | Sets the maximum allowed duration of any wait for a lock.
+extra_desc      | A value of 0 turns off the timeout.
+context         | user
+vartype         | integer
+source          | default
+min_val         | 0
+max_val         | 2147483647
+enumvals        |
+boot_val        | 0
+reset_val       | 0
+sourcefile      |
+sourceline      |
+pending_restart | f
+-[ RECORD 2 ]---+----------------------------------------------------------
+name            | statement_timeout
+setting         | 0
+unit            | ms
+category        | Client Connection Defaults / Statement Behavior
+short_desc      | Sets the maximum allowed duration of any statement.
+extra_desc      | A value of 0 turns off the timeout.
+context         | user
+vartype         | integer
+source          | default
+min_val         | 0
+max_val         | 2147483647
+enumvals        |
+boot_val        | 0
+reset_val       | 0
+sourcefile      |
+sourceline      |
+pending_restart | f
+</code></pre><ul><li><p>위의 lock_timeout, statement_timeout 의 값을 설정하면 됨</p><ul><li>statement_timeout 는 커맨드 자체가 대기하게 되는 경우</li><li>lock_timeout은 잠금 대기하게 되는 경우 적용, table,index, row 모두 통합</li><li>statement_timeout은 운영 위험이 있어 session 단위로 적용하는 등 postgresql.conf에는 적용하지 않는 편임</li><li>default 0 으로 무한대기</li></ul></li><li><p>MySQL의 lock_wait_timeout(metadata lock), innodb_lock_wait_timeout (row lock) 과 같은 역할</p></li><li><p>적용 테스트</p></li></ul><pre><code>testdb=# set lock_timeout='100ms';
+SET
+testdb=# alter table tb_test add column f varchar(10);
+ERROR:  canceling statement due to lock timeout
+
+
+testdb=# set lock_timeout='0';
+SET
+testdb=# alter table tb_test add column f varchar(10);
+
+^CCancel request sent
+ERROR:  canceling statement due to user request
+
+testdb=# set statement_timeout='100ms';
+SET
+testdb=# alter table tb_test add column f varchar(10);
+ERROR:  canceling statement due to statement timeout
+</code></pre></div><footer class=post-footer><ul class=post-tags><li><a href=/tags/postgresql/>postgresql</a></li><li><a href=/tags/%EC%9A%B4%EC%98%81/>운영</a></li></ul></footer><div id=disqus_thread></div><script type=text/javascript>(function(){if(window.location.hostname=="localhost")
+return;var dsq=document.createElement('script');dsq.type='text/javascript';dsq.async=true;var disqus_shortname='kimdubia';dsq.src='//'+disqus_shortname+'.disqus.com/embed.js';(document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(dsq);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com/ class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></main><footer class=footer><span>&copy; 2021 <a href>kimDuBiA</a></span>
+<span>Powered by
+<a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
+        <a href=https://git.io/hugopapermod rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentcolor"><path d="M12 6H0l6-6z"/></svg></a><script>let menu=document.getElementById('menu')
+menu.scrollLeft=localStorage.getItem("menu-scroll-position");menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft);}
+document.querySelectorAll('a[href^="#"]').forEach(anchor=>{anchor.addEventListener("click",function(e){e.preventDefault();var id=this.getAttribute("href").substr(1);if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({behavior:"smooth"});}else{document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();}
+if(id==="top"){history.replaceState(null,null," ");}else{history.pushState(null,null,`#${id}`);}});});</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){if(document.body.scrollTop>800||document.documentElement.scrollTop>800){mybutton.style.visibility="visible";mybutton.style.opacity="1";}else{mybutton.style.visibility="hidden";mybutton.style.opacity="0";}};</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{if(document.body.className.includes("dark")){document.body.classList.remove('dark');localStorage.setItem("pref-theme",'light');}else{document.body.classList.add('dark');localStorage.setItem("pref-theme",'dark');}})</script><script>document.querySelectorAll('pre > code').forEach((codeblock)=>{const container=codeblock.parentNode.parentNode;const copybutton=document.createElement('button');copybutton.classList.add('copy-code');copybutton.innerText='copy';function copyingDone(){copybutton.innerText='copied!';setTimeout(()=>{copybutton.innerText='copy';},2000);}
+copybutton.addEventListener('click',(cb)=>{if('clipboard'in navigator){navigator.clipboard.writeText(codeblock.textContent);copyingDone();return;}
+const range=document.createRange();range.selectNodeContents(codeblock);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);try{document.execCommand('copy');copyingDone();}catch(e){};selection.removeRange(range);});if(container.classList.contains("highlight")){container.appendChild(copybutton);}else if(container.parentNode.firstChild==container){}else if(codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"){codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);}else{codeblock.parentNode.appendChild(copybutton);}});</script></body></html>

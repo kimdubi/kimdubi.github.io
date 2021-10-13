@@ -9,7 +9,34 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Wed, 06 Oct 2021 21:44:00 +0900</lastBuildDate><atom:link href="/categories/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 14 Oct 2021 07:58:48 +0900</lastBuildDate><atom:link href="/categories/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL</title>
+      <link>/categories/mysql/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:48 +0900</pubDate>
+      
+      <guid>/categories/mysql/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Redis</title>
+      <link>/categories/redis/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:36 +0900</pubDate>
+      
+      <guid>/categories/redis/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL</title>
+      <link>/categories/postgresql/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:24 +0900</pubDate>
+      
+      <guid>/categories/postgresql/</guid>
+      <description></description>
+    </item>
+    
     <item>
       <title>Etc</title>
       <link>/categories/etc/</link>
@@ -38,15 +65,6 @@
     </item>
     
     <item>
-      <title>PostgreSQL</title>
-      <link>/categories/postgresql/</link>
-      <pubDate>Wed, 06 Oct 2021 00:31:52 +0900</pubDate>
-      
-      <guid>/categories/postgresql/</guid>
-      <description></description>
-    </item>
-    
-    <item>
       <title>MongoDB</title>
       <link>/categories/mongodb/</link>
       <pubDate>Tue, 05 Oct 2021 09:06:44 +0900</pubDate>
@@ -56,29 +74,11 @@
     </item>
     
     <item>
-      <title>Redis</title>
-      <link>/categories/redis/</link>
-      <pubDate>Mon, 04 Oct 2021 23:38:09 +0900</pubDate>
-      
-      <guid>/categories/redis/</guid>
-      <description></description>
-    </item>
-    
-    <item>
       <title>ORACLE</title>
       <link>/categories/oracle/</link>
       <pubDate>Mon, 04 Oct 2021 22:16:47 +0900</pubDate>
       
       <guid>/categories/oracle/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>MySQL</title>
-      <link>/categories/mysql/</link>
-      <pubDate>Mon, 04 Oct 2021 22:11:03 +0900</pubDate>
-      
-      <guid>/categories/mysql/</guid>
       <description></description>
     </item>
     

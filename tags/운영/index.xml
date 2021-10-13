@@ -9,7 +9,32 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Wed, 06 Oct 2021 00:30:41 +0900</lastBuildDate><atom:link href="/tags/%EC%9A%B4%EC%98%81/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 14 Oct 2021 07:58:36 +0900</lastBuildDate><atom:link href="/tags/%EC%9A%B4%EC%98%81/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Redis keys 대신 scan!</title>
+      <link>/nosql/redis_scan/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:36 +0900</pubDate>
+      
+      <guid>/nosql/redis_scan/</guid>
+      <description>Redis에서 항상 신경써야 하는 부분은 Single Thread로 커맨드가 처리된다는 점입니다.
+그렇기 때문에 O(n) 으로 처리되는 커맨드는 항상 주의를 해야하는데요.
+대표적으로 keys * , flushall, flushdb, 같은 커맨드가 있습니다.
+그 중에서 keys * 은 운영에 큰 영향을 끼치고 장애로 이어질 수 있기 때문에 대부분의 운영 Redis 환경에서는 rename-command 기능으로 막아놓기도 하는데요
+얼마전에 한 개발자분으로부터 특정 Key를 조회하고 그 Key를 삭제하고 싶다는 요청을 받았습니다.
+저희도 key 커맨드는 막아놨는지라 개발자분이 수행할 수 없는 이슈가 있는데</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL lock걸린 세션 찾기</title>
+      <link>/postgresql/psql_lock_monitoring/</link>
+      <pubDate>Thu, 14 Oct 2021 07:58:24 +0900</pubDate>
+      
+      <guid>/postgresql/psql_lock_monitoring/</guid>
+      <description>이번 글에서는 PostgreSQL에서 Lock holder와 blocked session을 확인하는 방법에 대해 알아보겠습니다.
+더불어 MySQL의 innodb_lock_wait_timeout, lock_wait_timeout 설정과 같은 설정도 함께 알아보겠습니다.
+lock monitoring query with recursive activity as ( select pg_blocking_pids(pid) blocked_by, *, age(clock_timestamp(), xact_start)::interval(0) as tx_age, age(clock_timestamp(), state_change)::interval(0) as state_age from pg_stat_activity where state is distinct from &#39;idle&#39; ), blockers as ( select array_agg(distinct c order by c) as pids from ( select unnest(blocked_by) from activity ) as dt(c) ), tree as ( select activity.</description>
+    </item>
+    
     <item>
       <title>쿼리 실행 통계 확인을 위한 pg_stat_monitor</title>
       <link>/postgresql/pg_stat_monitor/</link>

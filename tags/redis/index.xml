@@ -12,16 +12,12 @@
     <lastBuildDate>Thu, 14 Oct 2021 07:58:36 +0900</lastBuildDate><atom:link href="/tags/redis/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Redis keys 대신 scan!</title>
-      <link>/nosql/redis_scan/</link>
+      <link>/redis/redis_scan/</link>
       <pubDate>Thu, 14 Oct 2021 07:58:36 +0900</pubDate>
       
-      <guid>/nosql/redis_scan/</guid>
-      <description>Redis에서 항상 신경써야 하는 부분은 Single Thread로 커맨드가 처리된다는 점입니다.
-그렇기 때문에 O(n) 으로 처리되는 커맨드는 항상 주의를 해야하는데요.
-대표적으로 keys * , flushall, flushdb, 같은 커맨드가 있습니다.
-그 중에서 keys * 은 운영에 큰 영향을 끼치고 장애로 이어질 수 있기 때문에 대부분의 운영 Redis 환경에서는 rename-command 기능으로 막아놓기도 하는데요
-얼마전에 한 개발자분으로부터 특정 Key를 조회하고 그 Key를 삭제하고 싶다는 요청을 받았습니다.
-저희도 key 커맨드는 막아놨는지라 개발자분이 수행할 수 없는 이슈가 있는데</description>
+      <guid>/redis/redis_scan/</guid>
+      <description>Redis에서 항상 신경써야 하는 부분은 Single Thread로 커맨드가 처리된다는 점입니다. 그렇기 때문에 O(n) 으로 처리되는 커맨드는 항상 주의를 해야하는데요. 대표적으로 keys * , flushall, flushdb, 같은 커맨드가 있습니다. 그 중에서 keys * 은 운영에 큰 영향을 끼치고 장애로 이어질 수 있기 때문에 대부분의 운영 Redis 환경에서는 rename-command 기능으로 막아놓기도 하는데요
+얼마전에 한 개발자분으로부터 특정 Key를 조회하고 그 Key를 삭제하고 싶다는 요청을 받았습니다. 저희도 key 커맨드는 막아놨는지라 개발자분이 수행할 수 없는 이슈가 있는데 이럴 때 scan + pattern 커맨드로 우회할 수 있으며 keys 커맨드 사용의 위험도 회피할 수 있습니다.</description>
     </item>
     
     <item>
@@ -197,10 +193,10 @@ bind 파라미터는 Redis가 클라이언트의 요청을 받아주기 위해 �
     
     <item>
       <title>Sentinel Failover 이벤트 발생 시 메일 받기</title>
-      <link>/redis/sentinel_notify/</link>
+      <link>/redis/sentinel-notify/</link>
       <pubDate>Mon, 04 Oct 2021 23:31:00 +0900</pubDate>
       
-      <guid>/redis/sentinel_notify/</guid>
+      <guid>/redis/sentinel-notify/</guid>
       <description>Redis 의 Auto Failover HA 솔루션으로는 Sentinel 이 있습니다.
 Master가 down 됐는지 Sentinel 간 sdown,odown 같은 투표과정을 통해 과반수 이상의 Sentinel이 Master가 Down됐다고 판단하면 다른 Slave 를 Master로 승격시키게 됩니다.
 Failover 가 발생했음을 알기 위해서 alertmanager 같은 오픈 소스를 사용하거나 별도로 스크립트를 설정해놔도 되겠지만
@@ -234,10 +230,10 @@ data Type 별 Key Memory usage 아래는 Redis 5.</description>
     
     <item>
       <title>Redis client_output_buffer_limit</title>
-      <link>/redis/redis_client_output_buffer_limit/</link>
+      <link>/redis/client_output_buffer/</link>
       <pubDate>Mon, 04 Oct 2021 23:14:45 +0900</pubDate>
       
-      <guid>/redis/redis_client_output_buffer_limit/</guid>
+      <guid>/redis/client_output_buffer/</guid>
       <description>Master - Slave 구성으로 운영중인 서비스가 있습니다.
 maxmemory, key ttl, hash key 하나에 너무 많은 value 넣지 않기 등
 운영 표준을 잘 지켜가며 안정적으로 운영중인 서비스인데 어느 순간부터인지 이런 로그들이 떨어지면서 Master - Slave 연결이 자꾸 끊어지는 현상이 발생했습니다.
@@ -246,10 +242,10 @@ replconf scheduled to be closed ASAP for overcoming of output buffer limits. Con
     
     <item>
       <title>Redis unlink와 del 차이점</title>
-      <link>/redis/redis_unlink/</link>
+      <link>/redis/unlink/</link>
       <pubDate>Mon, 04 Oct 2021 22:58:52 +0900</pubDate>
       
-      <guid>/redis/redis_unlink/</guid>
+      <guid>/redis/unlink/</guid>
       <description>Redis 4.0부터 unlink라는 Key 삭제 커맨드가 추가되었습니다.
 기존에도 del 이라는 Key 삭제 커맨드가 있는데 차이점은 무엇일까요?
 바로 unlink는 async 방식으로 background에서 별도의 Thread에 의해 처리된다는 점입니다.
@@ -261,10 +257,10 @@ redis의 unlink 관련 설정 * lazyfree-lazy-eviction yes =&amp;gt;maxmemory �
     
     <item>
       <title>Redis 응답은 느리지만 Slowlog 안남을 때</title>
-      <link>/redis/redis_slowlog/</link>
+      <link>/redis/slowlog/</link>
       <pubDate>Mon, 04 Oct 2021 22:53:25 +0900</pubDate>
       
-      <guid>/redis/redis_slowlog/</guid>
+      <guid>/redis/slowlog/</guid>
       <description>Redis 운영 중 Client 쪽에서 응답을 늦게 받았다고 확인 요청이 와서
 Redis의 slowlog 를 확인해봤더니 아무 slowlog가 없는 케이스가 발생했습니다.
 slowlog 확인 127.0.0.1:6001&amp;gt; config get slowlog-log-slower-than 1) &amp;quot;slowlog-log-slower-than&amp;quot; 2) &amp;quot;10000&amp;quot; ### 10000 microsecond 127.0.0.1:6001&amp;gt; slowlog get 10 (empty list or set)  slowlog는 언제 찍힐까? client가 느끼는 slowlog, 즉 latency 와 redis의 slowlog 기준은 조금 다릅니다.

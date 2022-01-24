@@ -9,22 +9,31 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 14 Oct 2021 07:58:48 +0900</lastBuildDate><atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 24 Jan 2022 11:28:44 +0900</lastBuildDate><atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>mysql</title>
+      <link>/tags/mysql/</link>
+      <pubDate>Mon, 24 Jan 2022 11:28:44 +0900</pubDate>
+      
+      <guid>/tags/mysql/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>replication</title>
+      <link>/tags/replication/</link>
+      <pubDate>Mon, 24 Jan 2022 11:28:44 +0900</pubDate>
+      
+      <guid>/tags/replication/</guid>
+      <description></description>
+    </item>
+    
     <item>
       <title>architecture</title>
       <link>/tags/architecture/</link>
       <pubDate>Thu, 14 Oct 2021 07:58:48 +0900</pubDate>
       
       <guid>/tags/architecture/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>mysql</title>
-      <link>/tags/mysql/</link>
-      <pubDate>Thu, 14 Oct 2021 07:58:48 +0900</pubDate>
-      
-      <guid>/tags/mysql/</guid>
       <description></description>
     </item>
     
@@ -79,15 +88,6 @@
       <pubDate>Wed, 06 Oct 2021 21:25:52 +0900</pubDate>
       
       <guid>/tags/docker/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>replication</title>
-      <link>/tags/replication/</link>
-      <pubDate>Wed, 06 Oct 2021 21:23:09 +0900</pubDate>
-      
-      <guid>/tags/replication/</guid>
       <description></description>
     </item>
     

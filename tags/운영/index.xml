@@ -12,16 +12,12 @@
     <lastBuildDate>Thu, 14 Oct 2021 07:58:36 +0900</lastBuildDate><atom:link href="/tags/%EC%9A%B4%EC%98%81/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Redis keys 대신 scan!</title>
-      <link>/nosql/redis_scan/</link>
+      <link>/redis/redis_scan/</link>
       <pubDate>Thu, 14 Oct 2021 07:58:36 +0900</pubDate>
       
-      <guid>/nosql/redis_scan/</guid>
-      <description>Redis에서 항상 신경써야 하는 부분은 Single Thread로 커맨드가 처리된다는 점입니다.
-그렇기 때문에 O(n) 으로 처리되는 커맨드는 항상 주의를 해야하는데요.
-대표적으로 keys * , flushall, flushdb, 같은 커맨드가 있습니다.
-그 중에서 keys * 은 운영에 큰 영향을 끼치고 장애로 이어질 수 있기 때문에 대부분의 운영 Redis 환경에서는 rename-command 기능으로 막아놓기도 하는데요
-얼마전에 한 개발자분으로부터 특정 Key를 조회하고 그 Key를 삭제하고 싶다는 요청을 받았습니다.
-저희도 key 커맨드는 막아놨는지라 개발자분이 수행할 수 없는 이슈가 있는데</description>
+      <guid>/redis/redis_scan/</guid>
+      <description>Redis에서 항상 신경써야 하는 부분은 Single Thread로 커맨드가 처리된다는 점입니다. 그렇기 때문에 O(n) 으로 처리되는 커맨드는 항상 주의를 해야하는데요. 대표적으로 keys * , flushall, flushdb, 같은 커맨드가 있습니다. 그 중에서 keys * 은 운영에 큰 영향을 끼치고 장애로 이어질 수 있기 때문에 대부분의 운영 Redis 환경에서는 rename-command 기능으로 막아놓기도 하는데요
+얼마전에 한 개발자분으로부터 특정 Key를 조회하고 그 Key를 삭제하고 싶다는 요청을 받았습니다. 저희도 key 커맨드는 막아놨는지라 개발자분이 수행할 수 없는 이슈가 있는데 이럴 때 scan + pattern 커맨드로 우회할 수 있으며 keys 커맨드 사용의 위험도 회피할 수 있습니다.</description>
     </item>
     
     <item>

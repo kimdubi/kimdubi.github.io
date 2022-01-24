@@ -9,7 +9,18 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 14 Oct 2021 07:58:48 +0900</lastBuildDate><atom:link href="/categories/mysql/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 24 Jan 2022 11:28:44 +0900</lastBuildDate><atom:link href="/categories/mysql/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL 5.7 vs 8 replication 비교</title>
+      <link>/mysql/replication_8/</link>
+      <pubDate>Mon, 24 Jan 2022 11:28:44 +0900</pubDate>
+      
+      <guid>/mysql/replication_8/</guid>
+      <description>MySQL 스터디에서 공유했던 MySQL 8과 5.7 간 replication 기능의 차이점 위주로 정리한 내용입니다.
+복제관련해서 무언가 기존엔 없던 새로운 기능이 생겨난 게 아니라 기존 기능에서 좀 더 개선된 사항들이 나왔다.
+ MSR replicate_rewrite_db 필터 적용 범위 개선 (global -&amp;gt; channel) crash safe replication을 위한 파라미터의 변경 semi-sync의 동작방식에 대한 변경 binary log 트랜잭션 압축 기능 추가 multi threaded replication에서 writeset 기능 추가  multi source replication 변경사항 : multi source replication에서 replication filter 중 REPLICATE_REWRITE_DB가 global이 아닌 channel 별로 적용됨 mysql 5.</description>
+    </item>
+    
     <item>
       <title>MySQL innodb_sort_buffer_size</title>
       <link>/mysql/innodb_sort_buffer_size/</link>

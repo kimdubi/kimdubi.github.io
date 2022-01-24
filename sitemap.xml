@@ -3,27 +3,47 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>/tags/architecture/</loc>
-    <lastmod>2021-10-14T07:58:48+09:00</lastmod>
-  </url>
-  
-  <url>
     <loc>/categories/</loc>
-    <lastmod>2021-10-14T07:58:48+09:00</lastmod>
+    <lastmod>2022-01-24T11:28:44+09:00</lastmod>
   </url>
   
   <url>
     <loc>/</loc>
-    <lastmod>2021-10-14T07:58:48+09:00</lastmod>
+    <lastmod>2022-01-24T11:28:44+09:00</lastmod>
   </url>
   
   <url>
     <loc>/categories/mysql/</loc>
-    <lastmod>2021-10-14T07:58:48+09:00</lastmod>
+    <lastmod>2022-01-24T11:28:44+09:00</lastmod>
   </url>
   
   <url>
     <loc>/tags/mysql/</loc>
+    <lastmod>2022-01-24T11:28:44+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/mysql/replication_8/</loc>
+    <lastmod>2022-01-24T11:28:44+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/mysql/</loc>
+    <lastmod>2022-01-24T11:28:44+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/tags/replication/</loc>
+    <lastmod>2022-01-24T11:28:44+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/tags/</loc>
+    <lastmod>2022-01-24T11:28:44+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/tags/architecture/</loc>
     <lastmod>2021-10-14T07:58:48+09:00</lastmod>
   </url>
   
@@ -33,22 +53,12 @@
   </url>
   
   <url>
-    <loc>/mysql/</loc>
-    <lastmod>2021-10-14T07:58:48+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/tags/</loc>
-    <lastmod>2021-10-14T07:58:48+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/nosql/</loc>
+    <loc>/categories/redis/</loc>
     <lastmod>2021-10-14T07:58:36+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/categories/redis/</loc>
+    <loc>/redis/</loc>
     <lastmod>2021-10-14T07:58:36+09:00</lastmod>
   </url>
   
@@ -58,7 +68,7 @@
   </url>
   
   <url>
-    <loc>/nosql/redis_scan/</loc>
+    <loc>/redis/redis_scan/</loc>
     <lastmod>2021-10-14T07:58:36+09:00</lastmod>
   </url>
   
@@ -159,11 +169,6 @@
   
   <url>
     <loc>/cloud/docker_mysql_repl/</loc>
-    <lastmod>2021-10-06T21:23:09+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/tags/replication/</loc>
     <lastmod>2021-10-06T21:23:09+09:00</lastmod>
   </url>
   
@@ -483,11 +488,6 @@
   </url>
   
   <url>
-    <loc>/redis/</loc>
-    <lastmod>2021-10-04T23:38:09+09:00</lastmod>
-  </url>
-  
-  <url>
     <loc>/redis/redis_activedefrag/</loc>
     <lastmod>2021-10-04T23:38:09+09:00</lastmod>
   </url>
@@ -498,7 +498,7 @@
   </url>
   
   <url>
-    <loc>/redis/sentinel_notify/</loc>
+    <loc>/redis/sentinel-notify/</loc>
     <lastmod>2021-10-04T23:31:00+09:00</lastmod>
   </url>
   
@@ -513,17 +513,17 @@
   </url>
   
   <url>
-    <loc>/redis/redis_client_output_buffer_limit/</loc>
+    <loc>/redis/client_output_buffer/</loc>
     <lastmod>2021-10-04T23:14:45+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/redis/redis_unlink/</loc>
+    <loc>/redis/unlink/</loc>
     <lastmod>2021-10-04T22:58:52+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/redis/redis_slowlog/</loc>
+    <loc>/redis/slowlog/</loc>
     <lastmod>2021-10-04T22:53:25+09:00</lastmod>
   </url>
   

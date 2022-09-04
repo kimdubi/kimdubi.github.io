@@ -9,7 +9,16 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Mon, 24 Jan 2022 11:28:44 +0900</lastBuildDate><atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 04 Sep 2022 14:52:04 +0900</lastBuildDate><atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>postgresql</title>
+      <link>/tags/postgresql/</link>
+      <pubDate>Sun, 04 Sep 2022 14:52:04 +0900</pubDate>
+      
+      <guid>/tags/postgresql/</guid>
+      <description></description>
+    </item>
+    
     <item>
       <title>mysql</title>
       <link>/tags/mysql/</link>
@@ -52,15 +61,6 @@
       <pubDate>Thu, 14 Oct 2021 07:58:36 +0900</pubDate>
       
       <guid>/tags/%EC%9A%B4%EC%98%81/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>postgresql</title>
-      <link>/tags/postgresql/</link>
-      <pubDate>Thu, 14 Oct 2021 07:58:24 +0900</pubDate>
-      
-      <guid>/tags/postgresql/</guid>
       <description></description>
     </item>
     

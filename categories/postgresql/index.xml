@@ -9,7 +9,21 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 14 Oct 2021 07:58:24 +0900</lastBuildDate><atom:link href="/categories/postgresql/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 04 Sep 2022 14:52:04 +0900</lastBuildDate><atom:link href="/categories/postgresql/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Pg_repack</title>
+      <link>/postgresql/pg_repack/</link>
+      <pubDate>Sun, 04 Sep 2022 14:52:04 +0900</pubDate>
+      
+      <guid>/postgresql/pg_repack/</guid>
+      <description>pg_repack 사용하는 이유 PostgreSQL의 특이한 MVCC 구현 방식과 vacuum이라는 동작 때문에
+제때 vacuum이 동작하지 않으면 Table과 Index의 bloat 현상으로 불필요하게 많은 디스크 공간이 차지 될 수 있고
+쿼리가 필요한 block,page 보다 더 많은 양을 읽게 되어 성능이 느려질 수 있음
+이런 현상을 정리하기 위해 PostgreSQL에는 vacuum full 이라는 명령어가 있지만
+이 커맨드는 작업 중 테이블에 Exclusive lock을 잡기 때문에 Production DB에서는 사용하기 어려운 커맨드임
+이런 vacuum full의 한계를 해소하기 위한 tool (extension) 이 pg_repack</description>
+    </item>
+    
     <item>
       <title>PostgreSQL lock걸린 세션 찾기</title>
       <link>/postgresql/psql_lock_monitoring/</link>

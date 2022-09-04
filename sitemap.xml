@@ -4,16 +4,41 @@
   
   <url>
     <loc>/categories/</loc>
-    <lastmod>2022-09-04T15:21:10+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/redis/riot_redis/</loc>
-    <lastmod>2022-09-04T15:21:10+09:00</lastmod>
+    <lastmod>2022-09-04T15:26:04+09:00</lastmod>
   </url>
   
   <url>
     <loc>/</loc>
+    <lastmod>2022-09-04T15:26:04+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/categories/postgresql/</loc>
+    <lastmod>2022-09-04T15:26:04+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/tags/postgresql/</loc>
+    <lastmod>2022-09-04T15:26:04+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/postgresql/pg_repack/</loc>
+    <lastmod>2022-09-04T15:26:04+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/postgresql/</loc>
+    <lastmod>2022-09-04T15:26:04+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/tags/</loc>
+    <lastmod>2022-09-04T15:26:04+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/redis/riot_redis/</loc>
     <lastmod>2022-09-04T15:21:10+09:00</lastmod>
   </url>
   
@@ -29,11 +54,6 @@
   
   <url>
     <loc>/tags/redis/</loc>
-    <lastmod>2022-09-04T15:21:10+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/tags/</loc>
     <lastmod>2022-09-04T15:21:10+09:00</lastmod>
   </url>
   
@@ -60,26 +80,6 @@
   <url>
     <loc>/tags/%EC%9A%B4%EC%98%81/</loc>
     <lastmod>2022-09-04T15:05:50+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/categories/postgresql/</loc>
-    <lastmod>2022-09-04T14:53:04+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/tags/postgresql/</loc>
-    <lastmod>2022-09-04T14:53:04+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/postgresql/pg_repack/</loc>
-    <lastmod>2022-09-04T14:53:04+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/postgresql/</loc>
-    <lastmod>2022-09-04T14:53:04+09:00</lastmod>
   </url>
   
   <url>

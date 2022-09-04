@@ -9,7 +9,21 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 14 Oct 2021 07:58:36 +0900</lastBuildDate><atom:link href="/categories/redis/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 04 Sep 2022 15:21:10 +0900</lastBuildDate><atom:link href="/categories/redis/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ElastiCache(Redis) migration tool RIOT-REDIS</title>
+      <link>/redis/riot_redis/</link>
+      <pubDate>Sun, 04 Sep 2022 15:21:10 +0900</pubDate>
+      
+      <guid>/redis/riot_redis/</guid>
+      <description>ElastiCache를 사용하다보면
+다른 ElastiCache와 replication 구성을 설정할 수 없어서
+ElastiCache를 신규 환경으로 migration 하는 등의 작업이 필요할 때 난감해지곤 하는데요
+이런 어려움을 해소하기 위한 tool이 있어 공유드리고자 합니다
+(bigkeys 가 없는 환경에서만 사용하는 것이 좋을 것 같습니다)
+테스트 배경  특정 계정 ex) account1에 속한 DB 리소스들을 다른 계정의 VPC로 분리할 계획임 VPC peering이 되어도 ElastiCache ↔ ElastiCache 간에는 replication 기능이 막혀있어 replication을 통한 이관이 불가능함 개발팀의 배치 개발 혹은 원본 소스의 스냅샷을 신규 VPC에서 복원하는 방법이 있으나 시간이 오래 소요되어 점검시간이 크게 길어지는 문제가 있음  RIOT-Redis란?</description>
+    </item>
+    
     <item>
       <title>Redis keys 대신 scan!</title>
       <link>/redis/redis_scan/</link>

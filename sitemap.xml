@@ -4,56 +4,86 @@
   
   <url>
     <loc>/categories/</loc>
-    <lastmod>2022-09-04T14:52:04+09:00</lastmod>
+    <lastmod>2022-09-04T15:21:10+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/redis/riot_redis/</loc>
+    <lastmod>2022-09-04T15:21:10+09:00</lastmod>
   </url>
   
   <url>
     <loc>/</loc>
-    <lastmod>2022-09-04T14:52:04+09:00</lastmod>
+    <lastmod>2022-09-04T15:21:10+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/postgresql/pg_repack/</loc>
-    <lastmod>2022-09-04T14:52:04+09:00</lastmod>
+    <loc>/categories/redis/</loc>
+    <lastmod>2022-09-04T15:21:10+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/categories/postgresql/</loc>
-    <lastmod>2022-09-04T14:52:04+09:00</lastmod>
+    <loc>/redis/</loc>
+    <lastmod>2022-09-04T15:21:10+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/tags/postgresql/</loc>
-    <lastmod>2022-09-04T14:52:04+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/postgresql/</loc>
-    <lastmod>2022-09-04T14:52:04+09:00</lastmod>
+    <loc>/tags/redis/</loc>
+    <lastmod>2022-09-04T15:21:10+09:00</lastmod>
   </url>
   
   <url>
     <loc>/tags/</loc>
-    <lastmod>2022-09-04T14:52:04+09:00</lastmod>
+    <lastmod>2022-09-04T15:21:10+09:00</lastmod>
   </url>
   
   <url>
     <loc>/categories/mysql/</loc>
-    <lastmod>2022-01-24T11:28:44+09:00</lastmod>
+    <lastmod>2022-09-04T15:05:50+09:00</lastmod>
   </url>
   
   <url>
     <loc>/tags/mysql/</loc>
-    <lastmod>2022-01-24T11:28:44+09:00</lastmod>
+    <lastmod>2022-09-04T15:05:50+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/mysql/replication_8/</loc>
-    <lastmod>2022-01-24T11:28:44+09:00</lastmod>
+    <loc>/mysql/innodb_stats/</loc>
+    <lastmod>2022-09-04T15:05:50+09:00</lastmod>
   </url>
   
   <url>
     <loc>/mysql/</loc>
+    <lastmod>2022-09-04T15:05:50+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/tags/%EC%9A%B4%EC%98%81/</loc>
+    <lastmod>2022-09-04T15:05:50+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/categories/postgresql/</loc>
+    <lastmod>2022-09-04T14:53:04+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/tags/postgresql/</loc>
+    <lastmod>2022-09-04T14:53:04+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/postgresql/pg_repack/</loc>
+    <lastmod>2022-09-04T14:53:04+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/postgresql/</loc>
+    <lastmod>2022-09-04T14:53:04+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/mysql/replication_8/</loc>
     <lastmod>2022-01-24T11:28:44+09:00</lastmod>
   </url>
   
@@ -73,27 +103,7 @@
   </url>
   
   <url>
-    <loc>/categories/redis/</loc>
-    <lastmod>2021-10-14T07:58:36+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/redis/</loc>
-    <lastmod>2021-10-14T07:58:36+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/tags/redis/</loc>
-    <lastmod>2021-10-14T07:58:36+09:00</lastmod>
-  </url>
-  
-  <url>
     <loc>/redis/redis_scan/</loc>
-    <lastmod>2021-10-14T07:58:36+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/tags/%EC%9A%B4%EC%98%81/</loc>
     <lastmod>2021-10-14T07:58:36+09:00</lastmod>
   </url>
   

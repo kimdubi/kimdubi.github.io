@@ -9,7 +9,20 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Mon, 24 Jan 2022 11:28:44 +0900</lastBuildDate><atom:link href="/categories/mysql/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 04 Sep 2022 15:05:50 +0900</lastBuildDate><atom:link href="/categories/mysql/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL index 생성 시 주의할점</title>
+      <link>/mysql/innodb_stats/</link>
+      <pubDate>Sun, 04 Sep 2022 15:05:50 +0900</pubDate>
+      
+      <guid>/mysql/innodb_stats/</guid>
+      <description>꽤 오래전 일이지만 재미있었던 장애 사례를 공유드리고자 합니다.
+간단히 요약하자면, 신규로 컬럼을 추가하고 쿼리를 검수하여 인덱스를 생성했지만 인덱스에 대한 통계가 갱신되지 않아서
+기대했던 대로 인덱스를 타지 못하고 풀스캔을 하면서 발생했던 장애입니다.
+MySQL의 통계와 DDL 작업에 대해 다시한번 생각해보고 좀 더 꼼꼼히 작업할 수 있게 된 계기가 된 장애입니다
+장애 개요  테이블의 통계 갱신이 안된 상태에서 신규 쿼리가 유입되어 적절한 인덱스를 타지 못하고 풀스캔한 현상 데이터 변화량이 MySQL의 통계 수집 기준에 못미쳐서 자동갱신이 안되었음 ( 기준 10%이상, 실제 변경량 4% ) 동일한 컬럼을 인덱싱하는 인덱스를 재생성하여 통계를 새로 반영하면서 해소됨  문제의 slowquery select tb_test0_.</description>
+    </item>
+    
     <item>
       <title>MySQL 5.7 vs 8 replication 비교</title>
       <link>/mysql/replication_8/</link>

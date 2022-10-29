@@ -471,7 +471,7 @@ procedure USE test; DROP PROCEDURE IF EXISTS procShowMetadataLockSummary; delimi
       
       <guid>/mysql/innodb_architecture/</guid>
       <description>MySQL 버전 별 Innodb Architecture 이번 글에서는 MySQL 의 Innodb 엔진 아키텍처가 버전에 따라 어떻게 달라졌는지 간단히 살펴보겠습니다.
-MySQL 5.6 MySQL 5.7 5.6 =&amp;gt; 5.7 변경사항  MySQL 5.5 =&amp;gt; 5.6 으로 올라오면서 undo log를 System tablespace (ibdata) 에서 별도로 둘 수 있게됨 커진 undo log truncate 기능 (set global innodb_undo_log_truncate = ON)  innodb_max_undo_log_size 보다 커지면 truncate 수행 innodb_undo_tablespaces &amp;gt; 1 이상 설정하여 system tablespace에 undo 없도록 설정 필요   MySQL 5.</description>
+MySQL 5.6  data dictionary , 정합성을 위한 doublewrite buffer, dml 성능을 위한 change buffer, mvcc를 위한 undo log, innodb_file_per_table이 off면 시스템테이블스페이스에 table이 저장되는 구조  ibdata 파일이 커지기 굉장히 쉬운 환경 특히 undo log가 커졌을 때 DB상에서 트랜잭션이 종료되어도 OS의 파일 사이즈는 자동으로 반환되지 않기 때문에 장애위험성이 있음    MySQL 5.</description>
     </item>
     
     <item>

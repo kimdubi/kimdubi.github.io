@@ -4,36 +4,46 @@
   
   <url>
     <loc>/categories/</loc>
-    <lastmod>2022-09-04T16:09:54+09:00</lastmod>
+    <lastmod>2022-10-30T06:33:49+09:00</lastmod>
   </url>
   
   <url>
     <loc>/</loc>
-    <lastmod>2022-09-04T16:09:54+09:00</lastmod>
+    <lastmod>2022-10-30T06:33:49+09:00</lastmod>
   </url>
   
   <url>
     <loc>/categories/postgresql/</loc>
-    <lastmod>2022-09-04T16:09:54+09:00</lastmod>
+    <lastmod>2022-10-30T06:33:49+09:00</lastmod>
   </url>
   
   <url>
     <loc>/tags/postgresql/</loc>
-    <lastmod>2022-09-04T16:09:54+09:00</lastmod>
+    <lastmod>2022-10-30T06:33:49+09:00</lastmod>
   </url>
   
   <url>
-    <loc>/postgresql/pg_logical_replication_1/</loc>
-    <lastmod>2022-09-04T16:09:54+09:00</lastmod>
+    <loc>/postgresql/index_only_scan/</loc>
+    <lastmod>2022-10-30T06:33:49+09:00</lastmod>
   </url>
   
   <url>
     <loc>/postgresql/</loc>
-    <lastmod>2022-09-04T16:09:54+09:00</lastmod>
+    <lastmod>2022-10-30T06:33:49+09:00</lastmod>
   </url>
   
   <url>
     <loc>/tags/</loc>
+    <lastmod>2022-10-30T06:33:49+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/postgresql/pg_logical_replication_2/</loc>
+    <lastmod>2022-10-30T06:33:35+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/postgresql/pg_logical_replication_1/</loc>
     <lastmod>2022-09-04T16:09:54+09:00</lastmod>
   </url>
   

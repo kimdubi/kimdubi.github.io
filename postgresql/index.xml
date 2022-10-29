@@ -9,7 +9,34 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Sun, 04 Sep 2022 16:09:54 +0900</lastBuildDate><atom:link href="/postgresql/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 30 Oct 2022 06:33:49 +0900</lastBuildDate><atom:link href="/postgresql/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>PostgreSQL Index only scan과 vacuum</title>
+      <link>/postgresql/index_only_scan/</link>
+      <pubDate>Sun, 30 Oct 2022 06:33:49 +0900</pubDate>
+      
+      <guid>/postgresql/index_only_scan/</guid>
+      <description>PostgreSQL의 테이블 스캔에는 크게 네종류가 있으며 MySQL과는 다르게 동작하는 scan방식이 있습니다.
+ Sequential Scan Index Scan Index Only Scan Bitmap Scan  이 중 MySQL의 full scan, index range scan과 동일한 Sequential Scan,Index Scan은 건너뛰고
+Index Only Scan에 대해서 알아보겠습니다.
+Bitmap Scan은 간단히 언급만 하자면, index scan하거나 full scan하기엔 많은 데이터를 bitmap이라는 자료구조를 통해 스캔하는 방법입니다.
+Index Only Scan Index Only Scan은 흔히 말하는 covering index와 동일한 개념입니다.
+SELECT 절과 WHERE절에서 사용하는 컬럼과 조건이 모두 index를 사용할 수 있어서 테이블(heap)에 접근할 필요없이 index에서 필요한 모든 데이터를 가져올 수 있을 때</description>
+    </item>
+    
+    <item>
+      <title>PostgreSQL logical replication - 2</title>
+      <link>/postgresql/pg_logical_replication_2/</link>
+      <pubDate>Sun, 30 Oct 2022 06:33:35 +0900</pubDate>
+      
+      <guid>/postgresql/pg_logical_replication_2/</guid>
+      <description>https://kimdubi.github.io/postgresql/pg_logical_replication_1/
+이 방법은 target DB에서 subscription 을 활성화할 때 Source DB의 데이터를 모두 COPY 하기 때문에
+작업의 부하가 운영환경에 영향을 미칠 수 있습니다.
+아래에서 설명하는 방법으로 initial data sync를 피하고 Source DB에서 새로 생겨난 데이터부터 replication을 받아올 수 있습니다.
+source replication slot 생성 testdb=&amp;gt; CREATE PUBLICATION dbatest_repl01 FOR ALL TABLES; CREATE PUBLICATION testdb=&amp;gt; SELECT pg_create_logical_replication_slot(&#39;dbatest_repl01&#39;, &#39;pgoutput&#39;); pg_create_logical_replication_slot ------------------------------------ (dbatest_repl01,98/517BB930) (1 row) source DB snapshot 생성 후 restore  snapshot Restore / cluster 복제본 생성 으로 신규 클러스터 생성  source 에서 replication slot을 생성한 이후의 스냅샷이어야함   error log에서 WAL LOG LSN 확인  2022-09-04 13:13:59 UTC::@:[15996]:LOG: starting PostgreSQL 13.</description>
+    </item>
+    
     <item>
       <title>PostgreSQL logical replication - 1</title>
       <link>/postgresql/pg_logical_replication_1/</link>

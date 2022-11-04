@@ -9,7 +9,22 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Sun, 30 Oct 2022 06:33:49 +0900</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 04 Nov 2022 12:51:36 +0900</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>PostgreSQL GIN index란?</title>
+      <link>/postgresql/pg_gin_index/</link>
+      <pubDate>Fri, 04 Nov 2022 12:51:36 +0900</pubDate>
+      
+      <guid>/postgresql/pg_gin_index/</guid>
+      <description>gin index 이전 글에서 살펴보았듯이 vacuum은 쿼리의 실행계획과 성능에도 큰 영향을 끼칩니다.
+Index Only Scan이지만 dead tuple의 여부에따라 테이블에 접근하는 것을 보았다면
+이번 글에서는 fulltext index인 gin index에서 vacuum이 어떤 영향을 줄 수 있는지를 살펴보겠습니다.
+gin index는 PostgreSQL에서 text, json, array 검색을 지원하는 인덱스로
+gin_trgm_ops, jsonb_ops,jsonb_path_ops 등 여러 인덱스 연산자를 지원합니다.
+MySQL도 fulltext index를 지원하고 ngram을 기반으로 동작하는 것은 동일하지만 MySQL보다 더 유연하여
+일반 컬럼과 fulltext 컬럼을 결합인덱스로 생성한다던가, 락 없이 fulltext index를 생성할 수 있는 등의 장점이 있습니다.</description>
+    </item>
+    
     <item>
       <title>PostgreSQL Index only scan과 vacuum</title>
       <link>/postgresql/index_only_scan/</link>

@@ -9,11 +9,11 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 14 Oct 2021 07:58:48 +0900</lastBuildDate><atom:link href="/tags/architecture/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 14 Oct 2021 07:58:49 +0900</lastBuildDate><atom:link href="/tags/architecture/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>MySQL innodb_sort_buffer_size</title>
+      <title>MySQL innodb_sort_buffer_size 에 대해서</title>
       <link>/mysql/innodb_sort_buffer_size/</link>
-      <pubDate>Thu, 14 Oct 2021 07:58:48 +0900</pubDate>
+      <pubDate>Thu, 14 Oct 2021 07:58:49 +0900</pubDate>
       
       <guid>/mysql/innodb_sort_buffer_size/</guid>
       <description>테스트 목적 innodb_sort_buffer_size 를 크게 잡으면 index 생성 속도에 얼마나 도움이 될까?

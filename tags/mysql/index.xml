@@ -9,7 +9,56 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Sun, 04 Sep 2022 15:05:50 +0900</lastBuildDate><atom:link href="/tags/mysql/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 28 Jul 2024 14:28:05 +0900</lastBuildDate><atom:link href="/tags/mysql/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MySQL 대용량 테이블 DDL할 때 주의할 사항들</title>
+      <link>/mysql/ddl_failcase/</link>
+      <pubDate>Sun, 28 Jul 2024 14:28:05 +0900</pubDate>
+      
+      <guid>/mysql/ddl_failcase/</guid>
+      <description>배경 pt-osc를 사용하지 않은 대용량 테이블 DDL 작업 시 실패할 수 있는 시나리오를 정리하고 각 케이스 별 준비사항과 모니터링 방법을 확인한다
+실패하는 케이스는 아니어도, 무심코 놓치면 위험한 케이스도 정리하였다
+요약    300GB가 넘는 테이블 작업은 피할 수 있다면 피하자
+ 컬럼 추가 같이 rebuild 가 필요한 작업은 child 테이블 생성 후 join 해서 쓰는 모델링 관점으로 풀도록 개발팀에 안내한다    pt-osc를 사용하는 경우 DB부하는 훨씬 줄어들지만 시간 예측이 더 어려울 수 있으니 꼼꼼히 확인해보자</description>
+    </item>
+    
+    <item>
+      <title>MySQL INSTANT DDL algorithm에 대해-2</title>
+      <link>/mysql/instant_ddl2/</link>
+      <pubDate>Sun, 28 Jul 2024 14:28:00 +0900</pubDate>
+      
+      <guid>/mysql/instant_ddl2/</guid>
+      <description>테스트 배경 지난 글 (mysql instant , inplace DDL 디버깅) 에서 MySQL 8 버전에서는 inplace / instant add column 이 어떤식으로 수행되는지를 확인하고 비교해보았습니다
+(add column 기준) inplace는 테이블을 다시 쓰고, instant ddl은 metadata, 정확히는 Data Dictinary 부분을 수정하기 때문에 inplace와 달리 DDL이 거의 즉시 완료됩니다.
+그런데 만약 add column col1 varchar(10) default &amp;lsquo;hi&amp;rsquo; 같은 컬럼 추가 DDL을 instant 방식으로 처리한다면 데이터를 어떻게 읽어오는걸까요 ?
+DB에서 데이터를 읽을 땐 디스크에 저장된 page를 메모리에 올리고 page 내 필요한 record를 찾아가서 데이터를 읽게 되는데</description>
+    </item>
+    
+    <item>
+      <title>MySQL INSTANT DDL algorithm에 대해-1</title>
+      <link>/mysql/instant_ddl1/</link>
+      <pubDate>Sun, 28 Jul 2024 14:27:57 +0900</pubDate>
+      
+      <guid>/mysql/instant_ddl1/</guid>
+      <description>테스트배경 aurora3 (mysql8) 부터는 드디어 컬럼추가할 때, 컬럼 드랍할 때 수행 즉시 완료된다 ! (다른 DDL, index 추가 등은 아직 아닙니다..!)
+기존에는 aurora (mysql 5.7) 에서는 inplace 방식으로 진행되기 때문에 테이블 사이즈에 따라 한참 걸려서 큰 테이블에 대한 컬럼 추가 작업은 어려움이 있었는데 이젠 instant로 바로 반영된다.
+기존 inplace 방식을 간단히 살펴보고, instant 는 어떻게 수행되도록 변경되었는지를 확인해본다
+algorithm=inplace  컬럼 추가 기준으로 봤을 때 (인덱스 추가는 조금 다름)</description>
+    </item>
+    
+    <item>
+      <title>MySQL 내가 만든 view가 느리다면..</title>
+      <link>/mysql/view/</link>
+      <pubDate>Sun, 28 Jul 2024 14:27:43 +0900</pubDate>
+      
+      <guid>/mysql/view/</guid>
+      <description>테스트배경 개발자분 요청으로 view 를 생성하였는데 view 를 실행할 때와 native sql query를 각각 날렸을 때 성능이 확연히 차이가 난다는 개발자분의 제보,,,,
+확인해보니 view를 수행할때와 view를 구성하는 sql query를 직접 수행할 떄와 플랜이 달랐다
+native sql query과는 달리 view를 수행할 때는 derived table로 풀리고 있다
+view로 생성할 땐 왜 이런 이상한 현상이 발생하는지 디버깅을 해보기로함
+view가 아닌 native query plan +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+ | id | select_type | table | partitions | type | possible_keys | key | key_len | ref | rows | filtered | Extra | +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+ | 1 | PRIMARY | a | NULL | ALL | NULL | NULL | NULL | NULL | 9086 | 100.</description>
+    </item>
+    
     <item>
       <title>MySQL index 생성 시 주의할점</title>
       <link>/mysql/innodb_stats/</link>

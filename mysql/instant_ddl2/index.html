@@ -1,0 +1,569 @@
+<!doctype html><html lang=en dir=auto><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>MySQL INSTANT DDL algorithm에 대해-2 | kimDuBiA</title><meta name=keywords content="mysql,ddl,gdb"><meta name=description content="테스트 배경 지난 글 (mysql instant , inplace DDL 디버깅) 에서 MySQL 8 버전에서는 inplace / instant add column 이 어떤식으로 수행되는지를 확인하고 비교해보았습니다
+(add column 기준) inplace는 테이블을 다시 쓰고, instant ddl은 metadata, 정확히는 Data Dictinary 부분을 수정하기 때문에 inplace와 달리 DDL이 거의 즉시 완료됩니다.
+그런데 만약 add column col1 varchar(10) default &lsquo;hi&rsquo; 같은 컬럼 추가 DDL을 instant 방식으로 처리한다면 데이터를 어떻게 읽어오는걸까요 ?
+DB에서 데이터를 읽을 땐 디스크에 저장된 page를 메모리에 올리고 page 내 필요한 record를 찾아가서 데이터를 읽게 되는데"><meta name=author content="kimdubi"><link rel=canonical href=/mysql/instant_ddl2/><meta name=google-site-verification content="XYZabc"><meta name=yandex-verification content="XYZabc"><meta name=msvalidate.01 content="XYZabc"><link crossorigin=anonymous href=/assets/css/stylesheet.min.2dbef8664bbfb3e83a0a44fd4a8fc5010240dbcd1dbc1400753b928b497b8f5e.css integrity="sha256-Lb74Zku/s+g6CkT9So/FAQJA280dvBQAdTuSi0l7j14=" rel="preload stylesheet" as=style><script defer crossorigin=anonymous src=/assets/js/highlight.min.27cd435cc9ed6abb4b496581b151804f79f366c412620272bb94e2f5f598ebcc.js integrity="sha256-J81DXMntartLSWWBsVGAT3nzZsQSYgJyu5Ti9fWY68w=" onload=hljs.initHighlightingOnLoad();></script><link rel=icon href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=16x16 href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=32x32 href=%3Clink%20/%20abs%20url%3E><link rel=apple-touch-icon href=%3Clink%20/%20abs%20url%3E><link rel=mask-icon href=%3Clink%20/%20abs%20url%3E><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><meta name=generator content="Hugo 0.80.0"><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme: rgb(29, 30, 32);--entry: rgb(46, 46, 51);--primary: rgb(218, 218, 219);--secondary: rgb(155, 156, 157);--tertiary: rgb(65, 66, 68);--content: rgb(196, 196, 197);--hljs-bg: rgb(46, 46, 51);--code-bg: rgb(55, 56, 62);--border: rgb(51, 51, 51)}.list{background:var(--theme)}.list:not(.dark)::-webkit-scrollbar-track{background:0 0}.list:not(.dark)::-webkit-scrollbar-thumb{border-color:var(--theme)}}</style></noscript><script type=application/javascript>var doNotTrack=false;if(!doNotTrack){(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');ga('create','UA-123-45','auto');ga('send','pageview');}</script><meta property="og:title" content="MySQL INSTANT DDL algorithm에 대해-2"><meta property="og:description" content="테스트 배경 지난 글 (mysql instant , inplace DDL 디버깅) 에서 MySQL 8 버전에서는 inplace / instant add column 이 어떤식으로 수행되는지를 확인하고 비교해보았습니다
+(add column 기준) inplace는 테이블을 다시 쓰고, instant ddl은 metadata, 정확히는 Data Dictinary 부분을 수정하기 때문에 inplace와 달리 DDL이 거의 즉시 완료됩니다.
+그런데 만약 add column col1 varchar(10) default &lsquo;hi&rsquo; 같은 컬럼 추가 DDL을 instant 방식으로 처리한다면 데이터를 어떻게 읽어오는걸까요 ?
+DB에서 데이터를 읽을 땐 디스크에 저장된 page를 메모리에 올리고 page 내 필요한 record를 찾아가서 데이터를 읽게 되는데"><meta property="og:type" content="article"><meta property="og:url" content="/mysql/instant_ddl2/"><meta property="og:image" content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta property="article:section" content="mysql"><meta property="article:published_time" content="2024-07-28T14:28:00+09:00"><meta property="article:modified_time" content="2024-07-28T14:28:00+09:00"><meta property="og:site_name" content="kimDuBiA"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta name=twitter:title content="MySQL INSTANT DDL algorithm에 대해-2"><meta name=twitter:description content="테스트 배경 지난 글 (mysql instant , inplace DDL 디버깅) 에서 MySQL 8 버전에서는 inplace / instant add column 이 어떤식으로 수행되는지를 확인하고 비교해보았습니다
+(add column 기준) inplace는 테이블을 다시 쓰고, instant ddl은 metadata, 정확히는 Data Dictinary 부분을 수정하기 때문에 inplace와 달리 DDL이 거의 즉시 완료됩니다.
+그런데 만약 add column col1 varchar(10) default &lsquo;hi&rsquo; 같은 컬럼 추가 DDL을 instant 방식으로 처리한다면 데이터를 어떻게 읽어오는걸까요 ?
+DB에서 데이터를 읽을 땐 디스크에 저장된 page를 메모리에 올리고 page 내 필요한 record를 찾아가서 데이터를 읽게 되는데"><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":2,"name":"Mysqls","item":"/mysql/"},{"@type":"ListItem","position":3,"name":"MySQL INSTANT DDL algorithm에 대해-2","item":"/mysql/instant_ddl2/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"MySQL INSTANT DDL algorithm에 대해-2","name":"MySQL INSTANT DDL algorithm에 대해-2","description":"테스트 배경 지난 글 (mysql instant , inplace DDL 디버깅) 에서 MySQL 8 버전에서는 inplace / instant add column 이 어떤식으로 수행되는지를 확인하고 비교해보았습니다\n(add column 기준) inplace는 테이블을 다시 쓰고, instant ddl은 metadata, 정확히는 Data Dictinary 부분을 수정하기 때문에 inplace와 달리 DDL이 거의 즉시 완료됩니다.\n그런데 만약 add column col1 varchar(10) default \u0026lsquo;hi\u0026rsquo; 같은 컬럼 추가 DDL을 instant 방식으로 처리한다면 데이터를 어떻게 읽어오는걸까요 ?\nDB에서 데이터를 읽을 땐 디스크에 저장된 page를 메모리에 올리고 page 내 필요한 record를 찾아가서 데이터를 읽게 되는데","keywords":["mysql","ddl","gdb"],"articleBody":"테스트 배경 지난 글 (mysql instant , inplace DDL 디버깅) 에서 MySQL 8 버전에서는 inplace / instant add column 이 어떤식으로 수행되는지를 확인하고 비교해보았습니다\n(add column 기준) inplace는 테이블을 다시 쓰고, instant ddl은 metadata, 정확히는 Data Dictinary 부분을 수정하기 때문에 inplace와 달리 DDL이 거의 즉시 완료됩니다.\n그런데 만약 add column col1 varchar(10) default ‘hi’ 같은 컬럼 추가 DDL을 instant 방식으로 처리한다면 데이터를 어떻게 읽어오는걸까요 ?\nDB에서 데이터를 읽을 땐 디스크에 저장된 page를 메모리에 올리고 page 내 필요한 record를 찾아가서 데이터를 읽게 되는데\ninplace의 경우엔 DDL을 처리할 때 테이블과 page를 다시 rebuild 하니까 record에 default ‘hi’ 값이 자연스레 저장되겠지만\ninstant의 경우엔 rebuild를 통해 다시 쓰는 과정이 없습니다.\n이번 글에서는 Instant add column으로 추가된 데이터를 MySQL이 어떻게 가져오는지,\n그리고 MySQL 내부 처리 관련해서 Instant DDL 로 인해 달라진 부분이 있을텐데 이런 부분에서 성능 변화는 없을지를 확인해보겠습니다\n테스트 결과   MySQL 8.0.32 버전 기준 instant (default value와 함께) 로 컬럼 추가한 테이블을 쿼리하는 경우, 테스트상으로는 아주 약간의 차이는 있었으나 유의미한 차이는 아니었다\n아주 약간의 차이가 있었던 이유는 테스트 표본이 적어서일 수도 있으나\n Instant add column으로 처리된 컬럼이 있는지 체크하고 데이터가 instant add column 이전에 들어온 것인지, 이후에 들어온것이지를 두번째 체크하고 add column 이전에 들어온 데이터라면 record를 읽는 것 대신, data dictionary 로부터 default 값을 가져와서 처리하는 과정이 추가되었기 때문으로 추측된다\n단, long query에 대해서는 성능 테스트를 하지 못했음 (ex. 1분 걸리는 쿼리가 1분 10초 걸린다던지 )    혹시나해서 찾아보니 비슷한 내용의 버그 리포트가 있다!\n  테스트 과정 테스트는 tb_inplace , tb_instant 각각의 테이블에 add column varchar(10) default ‘hihi’ 로 default 값을 가진 컬럼을 추가하고\n데이터파일을 Hexdump 떠서 inplace / instant 로 page 내 record가 어떻게 저장되었는지를 확인했습니다\nhexdump는 mysql의 datafile이 어떻게 생겼는지 조금이나마 볼 수 있는 유틸리티입니다.\n이걸로 대충 데이터파일에 데이터가 어떻게 저장되는지 구경할 수 있습니다\nhexdump로 inplace 일때와 instant 일 때 데이터 저장 방식에 있어서 차이가 있음을 확인하고,\n그 후 gdb 로 instant add column이 반영된 테이블은 select 할 때 어떻게 처리되는지를 확인했습니다\ninplace / instant 데이터 저장 방식 차이를 확인해보자  테이블을 생성한뒤 데이터를 몇건 넣어주고 default 값을 가진 varchar() 컬럼을 각각 inplace / instant 로 추가해줍니다 그 후 데이터를 몇건 더 넣어줍니다   먼저 inplace 입니다 inplace 테스트 ### 데이터 준비 create table inplace_test (a varchar(10) primary key); insert into inplace_test(a) values('kimdubi1'); insert into inplace_test(a) values('kimdubi2'); insert into inplace_test(a) values('kimdubi3'); ### hexdump 1차 mysql select * from inplace_test; +----------+ | a | +----------+ | kimdubi1 | | kimdubi2 | | kimdubi3 | +----------+ 3 rows in set (0.00 sec) 00010060 02 00 1b 69 6e 66 69 6d 75 6d 00 04 00 0b 00 00 |...infimum......| 00010070 73 75 70 72 65 6d 75 6d 08 00 00 10 00 1b 6b 69 |supremum......ki| 00010080 6d 64 75 62 69 31 00 00 00 00 49 f3 81 00 00 00 |mdubi1....I.....| 00010090 c8 01 10 08 00 00 18 00 1b 6b 69 6d 64 75 62 69 |.........kimdubi| 000100a0 32 00 00 00 00 49 f4 82 00 00 00 c7 01 10 08 00 |2....I..........| 000100b0 00 20 ff bc 6b 69 6d 64 75 62 69 33 00 00 00 00 |. ..kimdubi3....| 000100c0 49 f8 81 00 00 00 ca 01 10 00 00 00 00 00 00 00 |I...............| 000100d0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| 000100e0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| 000100f0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| ### hexdump 2차 mysql alter table inplace_test add column inplace_col1 varchar(10) default 'hihi',algorithm=inplace; Query OK, 0 rows affected (0.10 sec) Records: 0 Duplicates: 0 Warnings: 0 mysql mysql select * from inplace_test; +----------+--------------+ | a | inplace_col1 | +----------+--------------+ | kimdubi1 | hihi | | kimdubi2 | hihi | | kimdubi3 | hihi | +----------+--------------+ 3 rows in set (0.00 sec) 00010060 02 00 1d 69 6e 66 69 6d 75 6d 00 04 00 0b 00 00 |...infimum......| 00010070 73 75 70 72 65 6d 75 6d 04 08 00 00 00 10 00 21 |supremum.......!| 00010080 6b 69 6d 64 75 62 69 31 00 00 00 00 49 f3 81 00 |kimdubi1....I...| 00010090 00 00 c8 01 10 68 69 68 69 04 08 00 00 00 18 00 |.....hihi.......| 000100a0 21 6b 69 6d 64 75 62 69 32 00 00 00 00 49 f4 82 |!kimdubi2....I..| 000100b0 00 00 00 c7 01 10 68 69 68 69 04 08 00 00 00 20 |......hihi..... | 000100c0 ff ae 6b 69 6d 64 75 62 69 33 00 00 00 00 49 f8 |..kimdubi3....I.| 000100d0 81 00 00 00 ca 01 10 68 69 68 69 00 00 00 00 00 |.......hihi.....| 000100e0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| 000100f0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| ### hexdump 3차 mysql insert into inplace_test(a) values('kimdubi4'); Query OK, 1 row affected (0.01 sec) mysql insert into inplace_test(a) values('kimdubi5'); Query OK, 1 row affected (0.03 sec) mysql insert into inplace_test(a) values('kimdubi6'); Query OK, 1 row affected (0.02 sec) mysql select * from inplace_test; +----------+--------------+ | a | inplace_col1 | +----------+--------------+ | kimdubi1 | hihi | | kimdubi2 | hihi | | kimdubi3 | hihi | | kimdubi4 | hihi | | kimdubi5 | hihi | | kimdubi6 | hihi | +----------+--------------+ 6 rows in set (0.01 sec) 00010060 02 00 1d 69 6e 66 69 6d 75 6d 00 07 00 0b 00 00 |...infimum......| 00010070 73 75 70 72 65 6d 75 6d 04 08 00 00 00 10 00 21 |supremum.......!| 00010080 6b 69 6d 64 75 62 69 31 00 00 00 00 49 f3 81 00 |kimdubi1....I...| 00010090 00 00 c8 01 10 68 69 68 69 04 08 00 00 00 18 00 |.....hihi.......| 000100a0 21 6b 69 6d 64 75 62 69 32 00 00 00 00 49 f4 82 |!kimdubi2....I..| 000100b0 00 00 00 c7 01 10 68 69 68 69 04 08 00 00 00 20 |......hihi..... | 000100c0 00 21 6b 69 6d 64 75 62 69 33 00 00 00 00 49 f8 |.!kimdubi3....I.| 000100d0 81 00 00 00 ca 01 10 68 69 68 69 04 08 00 00 00 |.......hihi.....| 000100e0 28 00 21 6b 69 6d 64 75 62 69 34 00 00 00 00 4a |(.!kimdubi4....J| 000100f0 10 82 00 00 00 d1 01 10 68 69 68 69 04 08 00 00 |........hihi....| 00010100 00 30 00 21 6b 69 6d 64 75 62 69 35 00 00 00 00 |.0.!kimdubi5....| 00010110 4a 11 81 00 00 00 d3 01 10 68 69 68 69 04 08 00 |J........hihi...| 00010120 00 00 38 ff 4b 6b 69 6d 64 75 62 69 36 00 00 00 |..8.Kkimdubi6...| 00010130 00 4a 16 82 00 00 00 d3 01 10 68 69 68 69 00 00 |.J........hihi..| 00010140 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| 00010150 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| 00010160 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| = inplace의 경우 default ‘hihi’ 값이 컬럼 추가 이전의 데이터 이건, 이후의 데이터건 상관없이 다른 컬럼의 값들과 함께 레코드 형태로 물리적으로 같이 저장되는 것을 볼 수 있습니다\n다음은 instant 입니다\ninstant ### 데이터 준비 create table instant_test (a varchar(10) primary key); insert into instant_test(a) values('kimdubi1'); insert into instant_test(a) values('kimdubi2'); insert into instant_test(a) values('kimdubi3'); ### hexdump 1차 mysql select * from instant_test; +----------+ | a | +----------+ | kimdubi1 | | kimdubi2 | | kimdubi3 | +----------+ 3 rows in set (0.00 sec) 00010060 02 00 1b 69 6e 66 69 6d 75 6d 00 04 00 0b 00 00 |...infimum......| 00010070 73 75 70 72 65 6d 75 6d 08 00 00 10 00 1b 6b 69 |supremum......ki| 00010080 6d 64 75 62 69 31 00 00 00 00 4a 1f 82 00 00 00 |mdubi1....J.....| 00010090 d8 01 10 08 00 00 18 00 1b 6b 69 6d 64 75 62 69 |.........kimdubi| 000100a0 32 00 00 00 00 4a 20 81 00 00 00 da 01 10 08 00 |2....J .........| 000100b0 00 20 ff bc 6b 69 6d 64 75 62 69 33 00 00 00 00 |. ..kimdubi3....| 000100c0 4a 25 82 00 00 00 dc 01 10 00 00 00 00 00 00 00 |J%..............| 000100d0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| 000100e0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| ### hexdump 2차 mysql alter table instant_test add column instant_col1 varchar(10) default 'hihi',algorithm=instant; Query OK, 0 rows affected (0.17 sec) Records: 0 Duplicates: 0 Warnings: 0 mysql select * from instant_test; +----------+--------------+ | a | instant_col1 | +----------+--------------+ | kimdubi1 | hihi | | kimdubi2 | hihi | | kimdubi3 | hihi | +----------+--------------+ 3 rows in set (0.00 sec) 00010060 02 00 1b 69 6e 66 69 6d 75 6d 00 04 00 0b 00 00 |...infimum......| 00010070 73 75 70 72 65 6d 75 6d 08 00 00 10 00 1b 6b 69 |supremum......ki| 00010080 6d 64 75 62 69 31 00 00 00 00 4a 1f 82 00 00 00 |mdubi1....J.....| 00010090 d8 01 10 08 00 00 18 00 1b 6b 69 6d 64 75 62 69 |.........kimdubi| 000100a0 32 00 00 00 00 4a 20 81 00 00 00 da 01 10 08 00 |2....J .........| 000100b0 00 20 ff bc 6b 69 6d 64 75 62 69 33 00 00 00 00 |. ..kimdubi3....| 000100c0 4a 25 82 00 00 00 dc 01 10 00 00 00 00 00 00 00 |J%..............| 000100d0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| 000100e0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| ### hexdump 3차 mysql insert into instant_test(a) values('kimdubi4'); Query OK, 1 row affected (0.09 sec) mysql insert into instant_test(a) values('kimdubi5'); Query OK, 1 row affected (0.01 sec) mysql insert into instant_test(a) values('kimdubi6'); Query OK, 1 row affected (0.01 sec) mysql select * from instant_test; +----------+--------------+ | a | instant_col1 | +----------+--------------+ | kimdubi1 | hihi | | kimdubi2 | hihi | | kimdubi3 | hihi | | kimdubi4 | hihi | | kimdubi5 | hihi | | kimdubi6 | hihi | +----------+--------------+ 6 rows in set (0.01 sec) 00010060 02 00 1b 69 6e 66 69 6d 75 6d 00 07 00 0b 00 00 |...infimum......| 00010070 73 75 70 72 65 6d 75 6d 08 00 00 10 00 1b 6b 69 |supremum......ki| 00010080 6d 64 75 62 69 31 00 00 00 00 4a 1f 82 00 00 00 |mdubi1....J.....| 00010090 d8 01 10 08 00 00 18 00 1b 6b 69 6d 64 75 62 69 |.........kimdubi| 000100a0 32 00 00 00 00 4a 20 81 00 00 00 da 01 10 08 00 |2....J .........| 000100b0 00 20 00 1e 6b 69 6d 64 75 62 69 33 00 00 00 00 |. ..kimdubi3....| 000100c0 4a 25 82 00 00 00 dc 01 10 04 08 00 01 40 00 28 |J%...........@.(| 000100d0 00 22 6b 69 6d 64 75 62 69 34 00 00 00 00 4a 2f |.\"kimdubi4....J/| 000100e0 81 00 00 00 e4 01 10 68 69 68 69 04 08 00 01 40 |.......hihi....@| 000100f0 00 30 00 22 6b 69 6d 64 75 62 69 35 00 00 00 00 |.0.\"kimdubi5....| 00010100 4a 30 82 00 00 00 e4 01 10 68 69 68 69 04 08 00 |J0.......hihi...| 00010110 01 40 00 38 ff 5a 6b 69 6d 64 75 62 69 36 00 00 |.@.8.Zkimdubi6..| 00010120 00 00 4a 35 81 00 00 00 e8 01 10 68 69 68 69 00 |..J5.......hihi.| 00010130 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| 00010140 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................| = Instant Add column의 경우 ,\ndefault ‘hihi’ 값이 inplace와는 다르게 컬럼 추가 이전의 데이터는 datafile record에 저장되지 않고\n컬럼 추가 이후에 들어온 데이터부터 datafile record에 저장되었습니다\n정리하면\n inplace의 경우 default ‘hihi’ 값이 다른 컬럼의 값들과 함께 레코드 형태로 물리적으로 같이 저장되었음 instant add column 이전에 생성된 데이터에 대해서는 default ‘hihi’ 값을 페이지 내 레코드에 저장되지 않아 찾을 수 없었습니다. instant add column 이후에 insert 된 데이터는 default ‘hihi’ 값이 기존과 마찬가지로 페이지 내 레코드에 잘 저장이 되었음  inplace / Instant 간 데이터 저장방식이 차이가 난다는 것을 확인했고\n그중에서도 instant column 반영 전 데이터 / 반영 후 데이터 에서도 저장방식이 차이가 난다는 것을 확인했습니다\n그렇다면 instant add column 이전, 이후의 데이터에 대해서 어떻게 처리하는지를 확인해보면 되겠습니다.\ninstant로 추가된 데이터를 어떻게 처리할까 1편과 마찬가지로 gdb 노가다를 통해 대략 아래와 같은 순서로 진행됨을 확인했습니다 rec_init_null_and_len_comp if (!index-has_instant_cols()) *n_null = index-n_nullable; else if (rec_get_instant_flag_new(rec) ====  여기서 걸리면 Instant add column 이후에 들어온 데이터 non_default_fields = rec_get_n_fields_instant *n_null = index-get_n_nullable_before(non_default_fields); get_rec_insert_state else ====  여기서 걸리면 Instant add column 이전에 들어온 데이터 *n_null = index-n_instant_nullable; non_default_fields = index-get_instant_fields(); get_rec_insert_state row_sel_store_mysql_rec for (i = 0; i n_template; i++) ====  컬럼 개수만큼 순회하면서 innodb에서 가져온 데이터를 리턴할 수 있는 포맷으로 변경 row_sel_store_mysql_field rec_get_nth_field_instant ==== instant ddl로 추가된 컬럼의 record 내 위치를 파악함 get_nth_default ====  instant 컬럼으로 추가된 데이터의 default 값을 가져옴 row_sel_field_store_in_mysql_format_func 흐름을 간략하게 살펴보면,   rec_init_null_and_len_comp → rec_get_instant_flag_new 에서 해당 레코드에 instant column이 있는지를 확인합니다\n  그리고 get_rec_insert_state를 통해 instant add column이 수행된 시점에 따라 record의 종류를 나눕니다\n  이때 instant column은 크게 세종류(작게는 여섯개) 가 있는데 이를 구분하는데 쓰이는 함수입니다.  Instant column이 없다 Instant column이 추가된 이후에 저장된 레코드다 = 추가된 컬럼의 default 값이 기존과 동일하게 record에 저장되므로 다른 작업할 필요 없음 Instant column이 추가되기 이전에 저장된 레코드다 = 추가된 컬럼의 default 값이 기존과 다르게 record가 아닌, 메타데이터에 저장되므로 별도의 작업이 필요함    그 후엔\nrow_sel_store_mysql_rec → row_sel_store_mysql_field 단계에서\ninnodb record 형태로 저장된 데이터를 mysql 엔진과 사용자가 읽고 이해할 수 있는 포맷으로 변경합니다.\n특히 rec_get_nth_field_instant→ get_nth_default\n이 부분이 이번에 궁금했던 default값이 있는 Instant add column 과 관련된 부분입니다.\n이 단계에서는 instant + default 값이 있는 필드의 레코드상 위치를 파악하고, data dictionary에서 default 값을 가져오는 부분을 호출합니다\n(사실 여기서 중요한 것은 record에서 열(column)의 위치를 bit를 확인하여 알아내는 부분, null인 컬럼의 위치를 bit를 확인하여 알아내는 부분 등 record의 bit를 확인하는 부분인데 이 부분이 해석이 불가능하여 포함하지 못했습니다 )\n(gdb) b rec_init_null_and_len_comp Breakpoint 1 at 0x4c81700: rec_init_null_and_len_comp. (2 locations) (gdb) b rec_get_instant_flag_new Breakpoint 2 at 0x4c50a48: rec_get_instant_flag_new. (4 locations) (gdb) b rec_get_nth_field_instant Breakpoint 3 at 0x4adaac8: rec_get_nth_field_instant. (11 locations) (gdb) b row_sel_field_store_in_mysql_format_func Breakpoint 4 at 0x4d1a594: file /mysql_source/mysql-8.0.32/storage/innobase/row/row0sel.cc, line 2507. breakpoint 는 소박하게 위 단계만 찍어보았습니다.\n instant column 여부 확인  dict_index_t::has_instant_cols_or_row_versions (this=0xfffe7ca64058) at /mysql_source/mysql-8.0.32/storage/innobase/include/dict0mem.h:1357 1357\treturn (has_row_versions() || has_instant_cols()); 1352\tif (!is_clustered()) { 1353\tut_ad(!has_row_versions() \u0026\u0026 !has_instant_cols()); 1354\treturn false; 1355\t} 1356 1357\treturn (has_row_versions() || has_instant_cols()); 1358\t} (gdb) p (has_row_versions() || has_instant_cols()) $6 = true == 테이블에 instant 컬럼이 있는지 확인합니다. 일단 instant column이 확인이 되었으니, 그 다음은 우리가 조회하는 record의 state를 확인하러 갑니다.\n record_state 확인  Breakpoint 1, rec_get_instant_flag_new (rec=0xffff2c5cc07e \"kimdubi1\") at /mysql_source/mysql-8.0.32/storage/innobase/rem/rec.h:623 (gdb) list 618 619\t/** The following function tells if a new-style record is instant record. 620\t@param[in] rec new-style record 621\t@return true if it is instant affected */ 622\tstatic inline bool rec_get_instant_flag_new(const rec_t *rec) { 623\tulint info = rec_get_info_bits(rec, true); 624\treturn ((info \u0026 REC_INFO_INSTANT_FLAG) != 0); 625\t} 627\t/** The following function tells if a new-style temp record is instant record. (gdb) n 624\treturn ((info \u0026 REC_INFO_INSTANT_FLAG) != 0); (gdb) p (info \u0026 REC_INFO_INSTANT_FLAG) $2 = 1 (gdb) p ((info \u0026 REC_INFO_INSTANT_FLAG) != 0) $3 = true === 조회하려는 record에 instant_flag 가 설정되었습니다\nget_rec_insert_state (index=0xfffe54a69d88, rec=0xffff2c5cc07e \"kimdubi1\", temp=false) at /mysql_source/mysql-8.0.32/storage/innobase/rem/rec.h:766 786\tif (is_versioned) { 787\tut_a(is_valid_row_version(version)); 788\tif (version == 0) { 789\tut_ad(index-has_instant_cols()); 790\trec_insert_state = 791\tINSERTED_AFTER_UPGRADE_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION; 792\t} else { 793\tut_ad(index-has_row_versions()); 794\trec_insert_state = INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION; 795\t} 796\t} else if (is_instant) { 797\tut_ad(index-table-has_instant_cols()); 798\trec_insert_state = INSERTED_AFTER_INSTANT_ADD_OLD_IMPLEMENTATION; 799\t} else if (index-table-has_instant_cols()) { 800\trec_insert_state = INSERTED_BEFORE_INSTANT_ADD_OLD_IMPLEMENTATION; (gdb) list 801\t} else { 802\trec_insert_state = INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION; 803\t} 806\treturn rec_insert_state; (gdb) p rec_insert_state $8 = INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION (gdb) info locals v_ptr = 0xffff2c5cc078 \"\\b\" is_versioned = false version = 255 '\\377' is_instant = false rec_insert_state = INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION = 조회하는 테이블과 record의 rec_insert_state 는 INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION 상태로\n즉, instant add column이 수행되기 전에 insert 된 레코드로 상태가 확인됩니다.\n위에서 instant add column의 hexdump 테스트에서 봤듯이\nkimdubi1,kimdubi2,kimdubi3 의 값은 instant add column을 하기전에 추가된 레코드이므로 INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION 상태가 맞습니다.\n그리고 이 상태값이 중요한 이유는 위에서 보았듯이\ninstant add column의 default 값은, 그전에 추가된 레코드에는 데이터파일에 반영되지 않고 그 이후에 추가된 레코드부터 데이터파일에 반영됩니다.\nDB에서 이런 상태 차이를 나타낼 수 있는 것이 rec_insert_state로 추정됩니다 참고로 rec_insert_state는 아래와 같이 6종류가 있습니다\nenum REC_INSERT_STATE { /* Record was inserted before first instant add done in the earlier implementation. */ INSERTED_BEFORE_INSTANT_ADD_OLD_IMPLEMENTATION, /* Record was inserted after first instant add done in the earlier implementation. */ INSERTED_AFTER_INSTANT_ADD_OLD_IMPLEMENTATION, /* Record was inserted after upgrade but before first instant add done in the new implementation. */ INSERTED_AFTER_UPGRADE_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION, /* Record was inserted before first instant add/drop done in the new implementation. */ INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION, /* Record was inserted after first instant add/drop done in the new implementation. */ INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION, /* Record belongs to table with no verison no instant */ INSERTED_INTO_TABLE_WITH_NO_INSTANT_NO_VERSION, NONE };  쿼리 결과 데이터 변환 \u0026 instant ddl의 default 값 가져오는 부분   row_sel_store_mysql_field (mysql_rec=0xfffe54a651d0 \"\\377\", prebuilt=0xfffe54b546d8, rec=0xffff2c5cc07e \"kimdubi1\", rec_index=0xfffe54a69d88, prebuilt_index=0xfffe54a69d88, offsets=0xffff5812f760, field_no=0, templ=0xfffe54b6a830, sec_field_no=18446744073709551615, lob_undo=0xfffe54b548f0, blob_heap=@0xfffe54b54828: 0x0) at /mysql_source/mysql-8.0.32/storage/innobase/row/row0sel.cc:2822 2822\tif (len == UNIV_SQL_NULL) { (gdb) info locals _db_trace = {m_stack_frame = { func = 0x6fadda5 \"row_sel_store_mysql_rec(byte*, row_prebuilt_t*, const rec_t*, const dtuple_t*, bool, const dict_index_t*, const dict_index_t*, const ulint*, bool, lob::undo_vers_t*, mem_heap_t*\u0026)\", func_len = 23, file = 0x6facdb8 \"/mysql_source/mysql-8.0.32/storage/innobase/row/row0sel.cc\", level = 2147483661, prev = 0xffff5812f188}} __PRETTY_FUNCTION__ = \"bool row_sel_store_mysql_field(byte*, row_prebuilt_t*, const rec_t*, const dict_index_t*, const dict_index_t*, const ulint*, ulint, const mysql_row_templ_t*, ulint, lob::undo_vers_t*, mem_heap_t*\u0026)\" data = 0xffff2c5cc07e \"kimdubi1\" len = 8 clust_field_no = 0 clust_templ_for_sec = false = a 컬럼 kimdubi1 레코드를 확인합니다\n Breakpoint 3, rec_get_nth_field_instant (rec=0xffff43ffc07e \"kimdubi1\", offsets=0xffff783d1760, n=3, index=0xfffe7ca64058, len=0xffff783d1080) at /mysql_source/mysql-8.0.32/storage/innobase/include/rem0rec.ic:1017 1017\tif (index-has_row_versions()) { (gdb) 1020\tn = index-get_field_off_pos(n); (gdb) 1024\tulint off = rec_get_nth_field_offs(nullptr, offsets, n, len); (gdb) 1026\tif (*len != UNIV_SQL_ADD_COL_DEFAULT \u0026\u0026 *len != UNIV_SQL_INSTANT_DROP_COL) { (gdb) 1030\tut_a(index != nullptr); (gdb) 1031\tut_ad(index-has_instant_cols_or_row_versions()); (gdb) 1033\tif (*len == UNIV_SQL_INSTANT_DROP_COL) { (gdb) 1038\treturn (index-get_nth_default(n, len)); (gdb) 1039\t} = a 컬럼 kimdubi1 의 다른 컬럼 중 instant ddl 로 처리된 컬럼의 default 값을 구하기 위해 get_nth_default를 호출합니다. dict_index_t::get_physical_field (this=0xfffe7ca64058, pos=3) at /mysql_source/mysql-8.0.32/storage/innobase/include/dict0mem.h:1492 1492\treturn get_field(fields_array[pos]); (gdb) p *(get_field(fields_array[pos])) $55 = {col = 0xfffe7ca7c3f8, name = {m_name = 0xfffe7ca7c53a \"instant_col1\"}, prefix_len = 0, fixed_len = 0, is_ascending = 1} === instant_col1 컬럼\nrec_get_instant_offset (index=0xfffe7ca64058, n=3, offs=21) at /mysql_source/mysql-8.0.32/storage/innobase/rem/rec.h:495 495\tindex-get_nth_default(n, \u0026length); dict_index_t::get_nth_default (this=0xfffe7ca64058, nth=3, length=0xffff783d1058) at /mysql_source/mysql-8.0.32/storage/innobase/include/dict0mem.h:1586 1586\treturn (col-instant_default-value); (gdb) p (col-instant_default-value) $57 = (byte *) 0xfffe7ca7c5c0 \"hihi\" (gdb) info locals _db_trace = {m_stack_frame = { func = 0x6fadda5 \"row_sel_store_mysql_rec(byte*, row_prebuilt_t*, const rec_t*, const dtuple_t*, bool, const dict_index_t*, const dict_index_t*, const ulint*, bool, lob::undo_vers_t*, mem_heap_t*\u0026)\", func_len = 23, file = 0x6facdb8 \"/mysql_source/mysql-8.0.32/storage/innobase/row/row0sel.cc\", level = 2147483661, prev = 0xffff5812f188}} __PRETTY_FUNCTION__ = \"bool row_sel_store_mysql_field(byte*, row_prebuilt_t*, const rec_t*, const dict_index_t*, const dict_index_t*, const ulint*, ulint, const mysql_row_templ_t*, ulint, lob::undo_vers_t*, mem_heap_t*\u0026)\" data = 0xfffe54a76570 \"hihi\" len = 4 clust_field_no = 0 clust_templ_for_sec = false = get_nth_default 에서는 default ‘hihi’가 지정된 instant_col1 컬럼의 값으로 hihi 를 잘 가져왔습니다. 이번엔 instant add column 이후에 추가된 kimdubi4를 조회해보겠습니다\ninstant add column 이전에 추가 된 kimdubi1 과는 다르게 처리되어야 정상입니다\n record_state 확인  rec_get_instant_flag_new (rec=0xffff3b5f4080 \"kimdubi4\") at /mysql_source/mysql-8.0.32/storage/innobase/rem/rec.h:624 624\treturn ((info \u0026 REC_INFO_INSTANT_FLAG) != 0); (gdb) info locals info = 0 (gdb) p (info \u0026 REC_INFO_INSTANT_FLAG) $2 = 0 = instant_flag가 꺼져있습니다\n786\tif (is_versioned) { 787\tut_a(is_valid_row_version(version)); (gdb) list 788\tif (version == 0) { 789\tut_ad(index-has_instant_cols()); 790\trec_insert_state = 791\tINSERTED_AFTER_UPGRADE_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION; 792\t} else { 793\tut_ad(index-has_row_versions()); 794\trec_insert_state = INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION; 795\t} 796\t} else if (is_instant) { 797\tut_ad(index-table-has_instant_cols()); (gdb) list 798\trec_insert_state = INSERTED_AFTER_INSTANT_ADD_OLD_IMPLEMENTATION; 799\t} else if (index-table-has_instant_cols()) { 800\trec_insert_state = INSERTED_BEFORE_INSTANT_ADD_OLD_IMPLEMENTATION; 801\t} else { 802\trec_insert_state = INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION; 803\t} 804 805\tut_ad(rec_insert_state != REC_INSERT_STATE::NONE); 806\treturn rec_insert_state; 807\t} (gdb) p rec_insert_state $8 = INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION (gdb) info locals v_ptr = 0xffff8411407b \"\\001@\" is_versioned = true version = 1 '\\001' is_instant = false rec_insert_state = INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION = 기대했던 대로 이번엔 rec_insert_state = INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION 입니다\n이름만 보면 record의 state가 instant add column 이후의 값으로 보입니다\n 쿼리 결과 데이터 변환 \u0026 instant ddl의 default 값 가져오는 부분   Breakpoint 3, rec_get_nth_field_instant (rec=0xffff84114081 \"kimdubi4\", offsets=0xffff783d1760, n=0, index=0xfffe7cd05438, len=0xffff783d1080) at /mysql_source/mysql-8.0.32/storage/innobase/include/rem0rec.ic:1017 1017\tif (index-has_row_versions()) { (gdb) 1020\tn = index-get_field_off_pos(n); 1015\tconst dict_index_t *index, 1016\tulint *len) { 1017\tif (index-has_row_versions()) { 1018\t/* Fields are stored in record in order of the version they are added in. 1019\tGet the field number on physical record. */ 1020\tn = index-get_field_off_pos(n); 1021\t} 1022 1023\t/* nullptr for index as n is physical here */ 1024\tulint off = rec_get_nth_field_offs(nullptr, offsets, n, len); 1025 1026\tif (*len != UNIV_SQL_ADD_COL_DEFAULT \u0026\u0026 *len != UNIV_SQL_INSTANT_DROP_COL) { 1027\treturn (rec + off); 1028\t} (gdb) n 1024\tulint off = rec_get_nth_field_offs(nullptr, offsets, n, len); (gdb) 1026\tif (*len != UNIV_SQL_ADD_COL_DEFAULT \u0026\u0026 *len != UNIV_SQL_INSTANT_DROP_COL) { (gdb) 1027\treturn (rec + off); (gdb) 1039\t} = rec_get_nth_field_instant 여기까지 왔지만,\n앞서 본 INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION 케이스와는 다르게 무언가 record 의 offset 까지만 확인하는 것 같습니다.\n 1029 1030\tut_a(index != nullptr); 1031\tut_ad(index-has_instant_cols_or_row_versions()); 1032 1033\tif (*len == UNIV_SQL_INSTANT_DROP_COL) { 1034\t*len = 0; 1035\treturn nullptr; 1036\t} 1037 1038\treturn (index-get_nth_default(n, len)); 1039\t} = return (index-get_nth_default(n, len)); 즉 get_nth_default 까지 호출되지 않습니다\n지금 까지를 정리하면!   Instant column이 추가되기 이전에 저장된 레코드다  추가된 컬럼의 default 값이 기존과 다르게 record가 아닌, 메타데이터에 저장되므로 이 값을 가져오기 위해 별도의 작업이 필요함 rec_state 가 INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION 임을 확인하고,  rec_get_nth_field_instant - get_nth_default 를 통해 instant add column default 의 값을 가져온다     Instant column이 추가된 이후에 저장된 레코드다  추가된 컬럼의 default 값이 기존과 동일하게 record에 저장되므로 다른 작업할 필요 없음 rec_state 가INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION 임을 확인하고,  rec_get_nth_field_instant에서 instant add column 된 컬럼의 offset (레코드 내 해당 컬럼 위치) 까지만 확인함    이렇게 동작이 조금 다르고,\nINSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION 에 대해서는 몇단계 추가적인 스텝이 있는 것으로 보입니다\n그러면 이러한 부분들이 성능에는 영향이 없을까? 그것이 또 궁금해지는데요\n그래서 성능 테스트도 해보았습니다\n성능테스트   각각 tb_inplace, tb_instant 테이블에 데이터를 1000만건 넣어두고 add column t1 varchar(10) default ‘hihi’ 컬럼을 각각 algorithm= inplace, instant 로 추가한다 그 후 tb_inplace, tb_instant 테이블을 select 하는 성능테스트를 한다.  테스트 결과 예상은 tb_inplace는 record state 관련, rec_get_nth_field_instant - get_nth_default 이런 단계를 거치지 않을 것이고\ntb_instant 는 모두 체크하는 단계가 있으니 tb_instant 가 조금 더 느릴 것이다\n 테스트 준비  ### 테이블 스키마 CREATE TABLE `tb_inplace` ( `id` bigint NOT NULL AUTO_INCREMENT, `group_id` int, `index_value` varchar(17), `col_a` varchar(10), `col_b` varchar(10), `col_c` varchar(10), `col_d` varchar(10), `col_e` varchar(10), PRIMARY KEY (`id`), KEY `IX_colA` (`index_value`) ); ### 데이터 세팅 mysqlslap --user=master -p --host=kimdubi-test.cluster-ckwx7ipq1exp.ap-northeast-2.rds.amazonaws.com --port=6025 --concurrency=50 --number-of-queries=10133611 --query=\"insert into tb_inplace (group_id, index_value, col_a, col_b, col_c, col_d, col_e ) values (round(rand()*10), unix_timestamp(now(6)), 'aaa','bbb','ccc','ddd','eee');\" ### inplace로 default 컬럼 추가 alter table tb_inplace add column t1 varchar(10) default 'hihi', add column t2 varchar(10) default 'hihi', add column t3 varchar(10) default 'hihi', add column t4 varchar(10) default 'hihi', add column t5 varchar(10) default 'hihi', add column t6 varchar(10) default 'hihi', add column t7 varchar(10) default 'hihi', add column t8 varchar(10) default 'hihi', add column t9 varchar(10) default 'hihi', add column t10 varchar(10) default 'hihi', add column t11 varchar(10) default 'hihi', add column t12 varchar(10) default 'hihi', add column t13 varchar(10) default 'hihi', add column t14 varchar(10) default 'hihi', add column t15 varchar(10) default 'hihi', add column t16 varchar(10) default 'hihi', add column t17 varchar(10) default 'hihi', add column t18 varchar(10) default 'hihi', add column t19 varchar(10) default 'hihi', add column t20 varchar(10) default 'hihi',algorithm=inplace,lock=none; ### 테이블 스키마 CREATE TABLE `tb_instant` ( `id` bigint NOT NULL AUTO_INCREMENT, `group_id` int, `index_value` varchar(17), `col_a` varchar(10), `col_b` varchar(10), `col_c` varchar(10), `col_d` varchar(10), `col_e` varchar(10), PRIMARY KEY (`id`), KEY `IX_colA` (`index_value`) ); ### 데이터 세팅 mysqlslap --user=master -p --host=kimdubi-test.cluster-ckwx7ipq1exp.ap-northeast-2.rds.amazonaws.com --port=6025 --concurrency=50 --number-of-queries=10133611 --query=\"insert into tb_instant (group_id, index_value, col_a, col_b, col_c, col_d, col_e ) values (round(rand()*10), unix_timestamp(now(6)), 'aaa','bbb','ccc','ddd','eee');\" ### instant로 default 컬럼 추가 alter table tb_instant add column t1 varchar(10) default 'hihi', add column t2 varchar(10) default 'hihi', add column t3 varchar(10) default 'hihi', add column t4 varchar(10) default 'hihi', add column t5 varchar(10) default 'hihi', add column t6 varchar(10) default 'hihi', add column t7 varchar(10) default 'hihi', add column t8 varchar(10) default 'hihi', add column t9 varchar(10) default 'hihi', add column t10 varchar(10) default 'hihi', add column t11 varchar(10) default 'hihi', add column t12 varchar(10) default 'hihi', add column t13 varchar(10) default 'hihi', add column t14 varchar(10) default 'hihi', add column t15 varchar(10) default 'hihi', add column t16 varchar(10) default 'hihi', add column t17 varchar(10) default 'hihi', add column t18 varchar(10) default 'hihi', add column t19 varchar(10) default 'hihi', add column t20 varchar(10) default 'hihi',algorithm=instant; ### 테스트 커맨드 mysqlslap --user=master -pqhdks123 --host=kimdubi-test.cluster-ckwx7ipq1exp.ap-northeast-2.rds.amazonaws.com --port=6025 --concurrency=50 --iterations=1000 --query=\"SET @rand_id = FLOOR(1 + (10000000 * RAND())); SELECT * FROM mysqlslap.tb_instant WHERE id = @rand_id;\" --delimiter=\";\"  instant.txt = 동시에 50개의 쓰레드로 select * from tb_instant where id =? 쿼리를 50개 쓰레드 * 각 쓰레드당 기본10번 * 반복 1000번 으로 500,000 번 수행하고 평균 수행시간을 기록함\n\t1회차(단위 초) 2회차\t3회차\t4회차\t5회차\t6회차\t7회차\t8회차\t9회차\t10회차\tavg inplace\t0.244\t0.232\t0.225\t0.224\t0.224\t0.223\t0.219\t0.221\t0.222\t0.227\t0.2261 instant\t0.244\t0.231\t0.229\t0.255\t0.247\t0.232\t0.256\t0.248\t0.240\t0.227\t0.2409 = inplace일 때 평균 0.2261 초, instant 일때 평균 0.2409초로 instant 일때 6.55% 더 성능이 하락한 것 확인\n","wordCount":"4271","inLanguage":"en","datePublished":"2024-07-28T14:28:00+09:00","dateModified":"2024-07-28T14:28:00+09:00","author":{"@type":"Person","name":"kimdubi"},"mainEntityOfPage":{"@type":"WebPage","@id":"/mysql/instant_ddl2/"},"publisher":{"@type":"Organization","name":"kimDuBiA","logo":{"@type":"ImageObject","url":"%3Clink%20/%20abs%20url%3E"}}}</script></head><body id=top><script>if(localStorage.getItem("pref-theme")==="dark"){document.body.classList.add('dark');}else if(localStorage.getItem("pref-theme")==="light"){document.body.classList.remove('dark')}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script><header class=header><nav class=nav><div class=logo><a href accesskey=h title="Hi (Alt + H)">Hi</a>
+<span class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)"><svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg><svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></span></div><ul id=menu><li><a href=/ title=Home><span>Home</span></a></li><li><a href=/categories/ title=categories><span>categories</span></a></li><li><a href=/tags/ title=tags><span>tags</span></a></li></ul></nav></header><main class=main><article class=post-single><header class=post-header><div class=breadcrumbs><a href>Home</a>&nbsp;»&nbsp;<a href=/mysql/>Mysqls</a></div><h1 class=post-title>MySQL INSTANT DDL algorithm에 대해-2</h1><div class=post-meta>July 28, 2024&nbsp;·&nbsp;21 min&nbsp;·&nbsp;kimdubi</div></header><div class=toc><details><summary accesskey=c title="(Alt + C)"><span class=details>Table of Contents</span></summary><div class=inner><ul><li><a href=#%ed%85%8c%ec%8a%a4%ed%8a%b8-%eb%b0%b0%ea%b2%bd aria-label="테스트 배경">테스트 배경</a></li><li><a href=#%ed%85%8c%ec%8a%a4%ed%8a%b8-%ea%b2%b0%ea%b3%bc aria-label="테스트 결과">테스트 결과</a></li><li><a href=#%ed%85%8c%ec%8a%a4%ed%8a%b8-%ea%b3%bc%ec%a0%95 aria-label="테스트 과정">테스트 과정</a><ul><li><a href=#inplace--instant-%eb%8d%b0%ec%9d%b4%ed%84%b0-%ec%a0%80%ec%9e%a5-%eb%b0%a9%ec%8b%9d-%ec%b0%a8%ec%9d%b4%eb%a5%bc-%ed%99%95%ec%9d%b8%ed%95%b4%eb%b3%b4%ec%9e%90 aria-label="inplace / instant 데이터 저장 방식 차이를 확인해보자">inplace / instant 데이터 저장 방식 차이를 확인해보자</a></li><li><a href=#inplace-%ed%85%8c%ec%8a%a4%ed%8a%b8 aria-label="inplace 테스트">inplace 테스트</a></li><li><a href=#instant aria-label=instant>instant</a></li><li><a href=#instant%eb%a1%9c-%ec%b6%94%ea%b0%80%eb%90%9c-%eb%8d%b0%ec%9d%b4%ed%84%b0%eb%a5%bc-%ec%96%b4%eb%96%bb%ea%b2%8c-%ec%b2%98%eb%a6%ac%ed%95%a0%ea%b9%8c aria-label="instant로 추가된 데이터를 어떻게 처리할까">instant로 추가된 데이터를 어떻게 처리할까</a></li><li><a href=#%ec%84%b1%eb%8a%a5%ed%85%8c%ec%8a%a4%ed%8a%b8 aria-label=성능테스트 >성능테스트 </a></li></ul></li></ul></div></details></div><div class=post-content><h1 id=테스트-배경>테스트 배경<a hidden class=anchor aria-hidden=true href=#테스트-배경>#</a></h1><p>지난 글 (mysql instant , inplace DDL 디버깅) 에서 MySQL 8 버전에서는 inplace / instant add column 이 어떤식으로 수행되는지를 확인하고 비교해보았습니다<br>(add column 기준) inplace는 테이블을 다시 쓰고, instant ddl은 metadata, 정확히는 Data Dictinary 부분을 수정하기 때문에 inplace와 달리 DDL이 거의 즉시 완료됩니다.</p><p>그런데 만약 add column col1 varchar(10) default &lsquo;hi&rsquo; 같은 컬럼 추가 DDL을 instant 방식으로 처리한다면 데이터를 어떻게 읽어오는걸까요 ?<br>DB에서 데이터를 읽을 땐 디스크에 저장된 page를 메모리에 올리고 page 내 필요한 record를 찾아가서 데이터를 읽게 되는데<br>inplace의 경우엔 DDL을 처리할 때 테이블과 page를 다시 rebuild 하니까 record에 default &lsquo;hi&rsquo; 값이 자연스레 저장되겠지만<br>instant의 경우엔 rebuild를 통해 다시 쓰는 과정이 없습니다.</p><p>이번 글에서는 Instant add column으로 추가된 데이터를 MySQL이 어떻게 가져오는지,<br>그리고 MySQL 내부 처리 관련해서 Instant DDL 로 인해 달라진 부분이 있을텐데 이런 부분에서 성능 변화는 없을지를 확인해보겠습니다</p><h1 id=테스트-결과>테스트 결과<a hidden class=anchor aria-hidden=true href=#테스트-결과>#</a></h1><ul><li><p>MySQL 8.0.32 버전 기준 instant (default value와 함께) 로 컬럼 추가한 테이블을 쿼리하는 경우, 테스트상으로는 아주 약간의 차이는 있었으나 유의미한 차이는 아니었다<br>아주 약간의 차이가 있었던 이유는 테스트 표본이 적어서일 수도 있으나</p><ul><li>Instant add column으로 처리된 컬럼이 있는지 체크하고</li><li>데이터가 instant add column 이전에 들어온 것인지, 이후에 들어온것이지를 두번째 체크하고</li><li>add column 이전에 들어온 데이터라면 record를 읽는 것 대신, data dictionary 로부터 default 값을 가져와서 처리하는 과정이 추가되었기 때문으로 추측된다<br>단, long query에 대해서는 성능 테스트를 하지 못했음 (ex. 1분 걸리는 쿼리가 1분 10초 걸린다던지 )</li></ul></li><li><p>혹시나해서 찾아보니 비슷한 내용의 버그 리포트가 있다!</p></li></ul><h1 id=테스트-과정>테스트 과정<a hidden class=anchor aria-hidden=true href=#테스트-과정>#</a></h1><p>테스트는 tb_inplace , tb_instant 각각의 테이블에 add column varchar(10) default &lsquo;hihi&rsquo; 로 default 값을 가진 컬럼을 추가하고<br>데이터파일을 Hexdump 떠서 inplace / instant 로 page 내 record가 어떻게 저장되었는지를 확인했습니다</p><p>hexdump는 mysql의 datafile이 어떻게 생겼는지 조금이나마 볼 수 있는 유틸리티입니다.<br>이걸로 대충 데이터파일에 데이터가 어떻게 저장되는지 구경할 수 있습니다</p><p>hexdump로 inplace 일때와 instant 일 때 데이터 저장 방식에 있어서 차이가 있음을 확인하고,<br>그 후 gdb 로 instant add column이 반영된 테이블은 select 할 때 어떻게 처리되는지를 확인했습니다</p><h2 id=inplace--instant-데이터-저장-방식-차이를-확인해보자>inplace / instant 데이터 저장 방식 차이를 확인해보자<a hidden class=anchor aria-hidden=true href=#inplace--instant-데이터-저장-방식-차이를-확인해보자>#</a></h2><ul><li>테이블을 생성한뒤</li><li>데이터를 몇건 넣어주고</li><li>default 값을 가진 varchar() 컬럼을 각각 inplace / instant 로 추가해줍니다</li><li>그 후 데이터를 몇건 더 넣어줍니다  </li></ul><p>먼저 inplace 입니다 </p><h2 id=inplace-테스트>inplace 테스트<a hidden class=anchor aria-hidden=true href=#inplace-테스트>#</a></h2><pre><code>### 데이터 준비
+create table inplace_test (a varchar(10) primary key);
+insert into inplace_test(a) values('kimdubi1');
+insert into inplace_test(a) values('kimdubi2');
+insert into inplace_test(a) values('kimdubi3');
+
+
+### hexdump 1차
+mysql&gt; select * from inplace_test;
++----------+
+| a        |
++----------+
+| kimdubi1 |
+| kimdubi2 |
+| kimdubi3 |
++----------+
+3 rows in set (0.00 sec)
+
+
+00010060  02 00 1b 69 6e 66 69 6d  75 6d 00 04 00 0b 00 00  |...infimum......|
+00010070  73 75 70 72 65 6d 75 6d  08 00 00 10 00 1b 6b 69  |supremum......ki|
+00010080  6d 64 75 62 69 31 00 00  00 00 49 f3 81 00 00 00  |mdubi1....I.....|
+00010090  c8 01 10 08 00 00 18 00  1b 6b 69 6d 64 75 62 69  |.........kimdubi|
+000100a0  32 00 00 00 00 49 f4 82  00 00 00 c7 01 10 08 00  |2....I..........|
+000100b0  00 20 ff bc 6b 69 6d 64  75 62 69 33 00 00 00 00  |. ..kimdubi3....|
+000100c0  49 f8 81 00 00 00 ca 01  10 00 00 00 00 00 00 00  |I...............|
+000100d0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+000100e0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+000100f0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+
+
+
+### hexdump 2차
+mysql&gt; alter table inplace_test add column inplace_col1 varchar(10) default 'hihi',algorithm=inplace;
+Query OK, 0 rows affected (0.10 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql&gt;
+mysql&gt; select * from inplace_test;
++----------+--------------+
+| a        | inplace_col1 |
++----------+--------------+
+| kimdubi1 | hihi         |
+| kimdubi2 | hihi         |
+| kimdubi3 | hihi         |
++----------+--------------+
+3 rows in set (0.00 sec)
+
+00010060  02 00 1d 69 6e 66 69 6d  75 6d 00 04 00 0b 00 00  |...infimum......|
+00010070  73 75 70 72 65 6d 75 6d  04 08 00 00 00 10 00 21  |supremum.......!|
+00010080  6b 69 6d 64 75 62 69 31  00 00 00 00 49 f3 81 00  |kimdubi1....I...|
+00010090  00 00 c8 01 10 68 69 68  69 04 08 00 00 00 18 00  |.....hihi.......|
+000100a0  21 6b 69 6d 64 75 62 69  32 00 00 00 00 49 f4 82  |!kimdubi2....I..|
+000100b0  00 00 00 c7 01 10 68 69  68 69 04 08 00 00 00 20  |......hihi..... |
+000100c0  ff ae 6b 69 6d 64 75 62  69 33 00 00 00 00 49 f8  |..kimdubi3....I.|
+000100d0  81 00 00 00 ca 01 10 68  69 68 69 00 00 00 00 00  |.......hihi.....|
+000100e0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+000100f0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+
+
+
+### hexdump 3차
+mysql&gt;  insert into inplace_test(a) values('kimdubi4');
+Query OK, 1 row affected (0.01 sec)
+
+mysql&gt;  insert into inplace_test(a) values('kimdubi5');
+Query OK, 1 row affected (0.03 sec)
+
+mysql&gt;  insert into inplace_test(a) values('kimdubi6');
+Query OK, 1 row affected (0.02 sec)
+
+mysql&gt; select * from inplace_test;
++----------+--------------+
+| a        | inplace_col1 |
++----------+--------------+
+| kimdubi1 | hihi         |
+| kimdubi2 | hihi         |
+| kimdubi3 | hihi         |
+| kimdubi4 | hihi         |
+| kimdubi5 | hihi         |
+| kimdubi6 | hihi         |
++----------+--------------+
+6 rows in set (0.01 sec)
+
+00010060  02 00 1d 69 6e 66 69 6d  75 6d 00 07 00 0b 00 00  |...infimum......|
+00010070  73 75 70 72 65 6d 75 6d  04 08 00 00 00 10 00 21  |supremum.......!|
+00010080  6b 69 6d 64 75 62 69 31  00 00 00 00 49 f3 81 00  |kimdubi1....I...|
+00010090  00 00 c8 01 10 68 69 68  69 04 08 00 00 00 18 00  |.....hihi.......|
+000100a0  21 6b 69 6d 64 75 62 69  32 00 00 00 00 49 f4 82  |!kimdubi2....I..|
+000100b0  00 00 00 c7 01 10 68 69  68 69 04 08 00 00 00 20  |......hihi..... |
+000100c0  00 21 6b 69 6d 64 75 62  69 33 00 00 00 00 49 f8  |.!kimdubi3....I.|
+000100d0  81 00 00 00 ca 01 10 68  69 68 69 04 08 00 00 00  |.......hihi.....|
+000100e0  28 00 21 6b 69 6d 64 75  62 69 34 00 00 00 00 4a  |(.!kimdubi4....J|
+000100f0  10 82 00 00 00 d1 01 10  68 69 68 69 04 08 00 00  |........hihi....|
+00010100  00 30 00 21 6b 69 6d 64  75 62 69 35 00 00 00 00  |.0.!kimdubi5....|
+00010110  4a 11 81 00 00 00 d3 01  10 68 69 68 69 04 08 00  |J........hihi...|
+00010120  00 00 38 ff 4b 6b 69 6d  64 75 62 69 36 00 00 00  |..8.Kkimdubi6...|
+00010130  00 4a 16 82 00 00 00 d3  01 10 68 69 68 69 00 00  |.J........hihi..|
+00010140  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00010150  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00010160  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+
+
+</code></pre><p>=> inplace의 경우 default &lsquo;hihi&rsquo; 값이 컬럼 추가 이전의 데이터 이건, 이후의 데이터건 상관없이 
+다른 컬럼의 값들과 함께 레코드 형태로 물리적으로 같이 저장되는 것을 볼 수 있습니다</p><p>다음은 instant 입니다</p><h2 id=instant>instant<a hidden class=anchor aria-hidden=true href=#instant>#</a></h2><pre><code>### 데이터 준비
+create table instant_test (a varchar(10) primary key);
+insert into instant_test(a) values('kimdubi1');
+insert into instant_test(a) values('kimdubi2');
+insert into instant_test(a) values('kimdubi3');
+
+
+
+### hexdump 1차
+mysql&gt; select * from instant_test;
++----------+
+| a        |
++----------+
+| kimdubi1 |
+| kimdubi2 |
+| kimdubi3 |
++----------+
+3 rows in set (0.00 sec)
+
+00010060  02 00 1b 69 6e 66 69 6d  75 6d 00 04 00 0b 00 00  |...infimum......|
+00010070  73 75 70 72 65 6d 75 6d  08 00 00 10 00 1b 6b 69  |supremum......ki|
+00010080  6d 64 75 62 69 31 00 00  00 00 4a 1f 82 00 00 00  |mdubi1....J.....|
+00010090  d8 01 10 08 00 00 18 00  1b 6b 69 6d 64 75 62 69  |.........kimdubi|
+000100a0  32 00 00 00 00 4a 20 81  00 00 00 da 01 10 08 00  |2....J .........|
+000100b0  00 20 ff bc 6b 69 6d 64  75 62 69 33 00 00 00 00  |. ..kimdubi3....|
+000100c0  4a 25 82 00 00 00 dc 01  10 00 00 00 00 00 00 00  |J%..............|
+000100d0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+000100e0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+
+
+### hexdump 2차
+mysql&gt; alter table instant_test add column instant_col1 varchar(10) default 'hihi',algorithm=instant;
+Query OK, 0 rows affected (0.17 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql&gt; select * from instant_test;
++----------+--------------+
+| a        | instant_col1 |
++----------+--------------+
+| kimdubi1 | hihi         |
+| kimdubi2 | hihi         |
+| kimdubi3 | hihi         |
++----------+--------------+
+3 rows in set (0.00 sec)
+
+
+00010060  02 00 1b 69 6e 66 69 6d  75 6d 00 04 00 0b 00 00  |...infimum......|
+00010070  73 75 70 72 65 6d 75 6d  08 00 00 10 00 1b 6b 69  |supremum......ki|
+00010080  6d 64 75 62 69 31 00 00  00 00 4a 1f 82 00 00 00  |mdubi1....J.....|
+00010090  d8 01 10 08 00 00 18 00  1b 6b 69 6d 64 75 62 69  |.........kimdubi|
+000100a0  32 00 00 00 00 4a 20 81  00 00 00 da 01 10 08 00  |2....J .........|
+000100b0  00 20 ff bc 6b 69 6d 64  75 62 69 33 00 00 00 00  |. ..kimdubi3....|
+000100c0  4a 25 82 00 00 00 dc 01  10 00 00 00 00 00 00 00  |J%..............|
+000100d0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+000100e0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+
+
+
+### hexdump 3차
+
+mysql&gt; insert into instant_test(a) values('kimdubi4');
+Query OK, 1 row affected (0.09 sec)
+
+mysql&gt; insert into instant_test(a) values('kimdubi5');
+Query OK, 1 row affected (0.01 sec)
+
+mysql&gt; insert into instant_test(a) values('kimdubi6');
+Query OK, 1 row affected (0.01 sec)
+
+mysql&gt; select * from instant_test;
++----------+--------------+
+| a        | instant_col1 |
++----------+--------------+
+| kimdubi1 | hihi         |
+| kimdubi2 | hihi         |
+| kimdubi3 | hihi         |
+| kimdubi4 | hihi         |
+| kimdubi5 | hihi         |
+| kimdubi6 | hihi         |
++----------+--------------+
+6 rows in set (0.01 sec)
+
+00010060  02 00 1b 69 6e 66 69 6d  75 6d 00 07 00 0b 00 00  |...infimum......|
+00010070  73 75 70 72 65 6d 75 6d  08 00 00 10 00 1b 6b 69  |supremum......ki|
+00010080  6d 64 75 62 69 31 00 00  00 00 4a 1f 82 00 00 00  |mdubi1....J.....|
+00010090  d8 01 10 08 00 00 18 00  1b 6b 69 6d 64 75 62 69  |.........kimdubi|
+000100a0  32 00 00 00 00 4a 20 81  00 00 00 da 01 10 08 00  |2....J .........|
+000100b0  00 20 00 1e 6b 69 6d 64  75 62 69 33 00 00 00 00  |. ..kimdubi3....|
+000100c0  4a 25 82 00 00 00 dc 01  10 04 08 00 01 40 00 28  |J%...........@.(|
+000100d0  00 22 6b 69 6d 64 75 62  69 34 00 00 00 00 4a 2f  |.&quot;kimdubi4....J/|
+000100e0  81 00 00 00 e4 01 10 68  69 68 69 04 08 00 01 40  |.......hihi....@|
+000100f0  00 30 00 22 6b 69 6d 64  75 62 69 35 00 00 00 00  |.0.&quot;kimdubi5....|
+00010100  4a 30 82 00 00 00 e4 01  10 68 69 68 69 04 08 00  |J0.......hihi...|
+00010110  01 40 00 38 ff 5a 6b 69  6d 64 75 62 69 36 00 00  |.@.8.Zkimdubi6..|
+00010120  00 00 4a 35 81 00 00 00  e8 01 10 68 69 68 69 00  |..J5.......hihi.|
+00010130  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00010140  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+
+</code></pre><p>=>  Instant Add column의 경우 ,<br>default &lsquo;hihi&rsquo; 값이 inplace와는 다르게 컬럼 추가 이전의 데이터는 datafile record에 저장되지 않고<br>컬럼 추가 이후에 들어온 데이터부터 datafile record에 저장되었습니다</p><p>정리하면</p><ul><li>inplace의 경우 default &lsquo;hihi&rsquo; 값이 다른 컬럼의 값들과 함께 레코드 형태로 물리적으로 같이 저장되었음</li><li>instant add column 이전에 생성된 데이터에 대해서는 default &lsquo;hihi&rsquo; 값을 페이지 내 레코드에 저장되지 않아 찾을 수 없었습니다.</li><li>instant add column 이후에 insert 된 데이터는 default &lsquo;hihi&rsquo; 값이 기존과 마찬가지로 페이지 내 레코드에 잘 저장이 되었음</li></ul><p>inplace / Instant 간 데이터 저장방식이 차이가 난다는 것을 확인했고<br>그중에서도  instant column 반영 전 데이터 / 반영 후 데이터 에서도 저장방식이 차이가 난다는 것을 확인했습니다</p><p>그렇다면 instant add column 이전, 이후의 데이터에 대해서 어떻게 처리하는지를 확인해보면 되겠습니다.</p><h2 id=instant로-추가된-데이터를-어떻게-처리할까>instant로 추가된 데이터를 어떻게 처리할까<a hidden class=anchor aria-hidden=true href=#instant로-추가된-데이터를-어떻게-처리할까>#</a></h2><p>1편과 마찬가지로 gdb 노가다를 통해 대략 아래와 같은 순서로 진행됨을 확인했습니다 </p><pre><code>rec_init_null_and_len_comp
+  if (!index-&gt;has_instant_cols())
+    *n_null = index-&gt;n_nullable;
+  else if (rec_get_instant_flag_new(rec) ==== &gt; 여기서 걸리면 Instant add column 이후에 들어온 데이터 
+    non_default_fields = rec_get_n_fields_instant
+    *n_null = index-&gt;get_n_nullable_before(non_default_fields);
+    get_rec_insert_state
+  else                                   ==== &gt; 여기서 걸리면 Instant add column 이전에 들어온 데이터 
+    *n_null = index-&gt;n_instant_nullable;
+    non_default_fields = index-&gt;get_instant_fields();
+    get_rec_insert_state
+row_sel_store_mysql_rec
+  for (i = 0; i &lt; prebuilt-&gt;n_template; i++)  ==== &gt; 컬럼 개수만큼 순회하면서 innodb에서 가져온 데이터를 리턴할 수 있는 포맷으로 변경
+    row_sel_store_mysql_field
+      rec_get_nth_field_instant    ====&gt; instant ddl로 추가된 컬럼의 record 내 위치를 파악함 
+      get_nth_default     ==== &gt; instant 컬럼으로 추가된 데이터의 default 값을 가져옴  
+      row_sel_field_store_in_mysql_format_func
+</code></pre><p>흐름을 간략하게 살펴보면, </p><ul><li><p>rec_init_null_and_len_comp  → rec_get_instant_flag_new 에서 해당 레코드에 instant column이 있는지를 확인합니다</p></li><li><p>그리고 get_rec_insert_state를 통해 instant add column이 수행된 시점에 따라 record의 종류를 나눕니다</p></li><li><p>이때 instant column은 크게 세종류(작게는 여섯개) 가 있는데 이를 구분하는데 쓰이는 함수입니다. </p><ul><li>Instant column이 없다</li><li>Instant column이 추가된 이후에 저장된 레코드다 => 추가된 컬럼의 default 값이 기존과 동일하게 record에 저장되므로 다른 작업할 필요 없음</li><li>Instant column이 추가되기 이전에 저장된 레코드다  => 추가된 컬럼의 default 값이 기존과 다르게 record가 아닌, 메타데이터에 저장되므로 별도의 작업이 필요함</li></ul></li></ul><p>그 후엔<br>row_sel_store_mysql_rec → row_sel_store_mysql_field 단계에서<br>innodb record 형태로 저장된 데이터를 mysql 엔진과 사용자가 읽고 이해할 수 있는 포맷으로 변경합니다.</p><p>특히 rec_get_nth_field_instant→ get_nth_default<br>이 부분이 이번에 궁금했던 default값이 있는 Instant add column 과 관련된 부분입니다.</p><p>이 단계에서는 instant + default 값이 있는 필드의 레코드상 위치를 파악하고, data dictionary에서 default 값을 가져오는 부분을 호출합니다</p><p>(사실 여기서 중요한 것은 record에서 열(column)의 위치를 bit를 확인하여 알아내는 부분, null인 컬럼의 위치를 bit를 확인하여 알아내는 부분 등  record의 bit를 확인하는 부분인데 이 부분이 해석이 불가능하여 포함하지 못했습니다 )</p><pre><code>(gdb) b rec_init_null_and_len_comp
+Breakpoint 1 at 0x4c81700: rec_init_null_and_len_comp. (2 locations)
+(gdb) b rec_get_instant_flag_new
+Breakpoint 2 at 0x4c50a48: rec_get_instant_flag_new. (4 locations)
+(gdb) b rec_get_nth_field_instant
+Breakpoint 3 at 0x4adaac8: rec_get_nth_field_instant. (11 locations)
+(gdb) b row_sel_field_store_in_mysql_format_func
+Breakpoint 4 at 0x4d1a594: file /mysql_source/mysql-8.0.32/storage/innobase/row/row0sel.cc, line 2507.
+</code></pre><p>breakpoint 는 소박하게 위 단계만 찍어보았습니다.</p><ul><li>instant column 여부 확인</li></ul><pre><code>dict_index_t::has_instant_cols_or_row_versions (this=0xfffe7ca64058) at /mysql_source/mysql-8.0.32/storage/innobase/include/dict0mem.h:1357
+1357	    return (has_row_versions() || has_instant_cols());
+
+1352	    if (!is_clustered()) {
+1353	      ut_ad(!has_row_versions() &amp;&amp; !has_instant_cols());
+1354	      return false;
+1355	    }
+1356
+1357	    return (has_row_versions() || has_instant_cols());
+1358	  }
+
+(gdb) p (has_row_versions() || has_instant_cols())
+$6 = true
+</code></pre><p>==> 테이블에 instant 컬럼이 있는지 확인합니다. <br>일단 instant column이 확인이 되었으니, 그 다음은 우리가 조회하는 record의 state를 확인하러 갑니다.</p><ul><li>record_state 확인</li></ul><pre><code>Breakpoint 1, rec_get_instant_flag_new (rec=0xffff2c5cc07e &quot;kimdubi1&quot;) at /mysql_source/mysql-8.0.32/storage/innobase/rem/rec.h:623
+
+(gdb) list
+618
+619	/** The following function tells if a new-style record is instant record.
+620	@param[in]      rec     new-style record
+621	@return true if it is instant affected */
+622	static inline bool rec_get_instant_flag_new(const rec_t *rec) {
+623	  ulint info = rec_get_info_bits(rec, true);
+624	  return ((info &amp; REC_INFO_INSTANT_FLAG) != 0);
+625	}
+
+
+627	/** The following function tells if a new-style temp record is instant record.
+
+(gdb) n
+624	  return ((info &amp; REC_INFO_INSTANT_FLAG) != 0);
+(gdb) p (info &amp; REC_INFO_INSTANT_FLAG)
+$2 = 1
+(gdb) p ((info &amp; REC_INFO_INSTANT_FLAG) != 0)
+$3 = true
+</code></pre><p>===> 조회하려는 record에 instant_flag 가 설정되었습니다</p><pre><code>get_rec_insert_state (index=0xfffe54a69d88, rec=0xffff2c5cc07e &quot;kimdubi1&quot;, temp=false) at /mysql_source/mysql-8.0.32/storage/innobase/rem/rec.h:766
+
+
+786	  if (is_versioned) {
+787	    ut_a(is_valid_row_version(version));
+788	    if (version == 0) {
+789	      ut_ad(index-&gt;has_instant_cols());
+790	      rec_insert_state =
+791	          INSERTED_AFTER_UPGRADE_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION;
+792	    } else {
+793	      ut_ad(index-&gt;has_row_versions());
+794	      rec_insert_state = INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION;
+795	    }
+796	  } else if (is_instant) {
+797	    ut_ad(index-&gt;table-&gt;has_instant_cols());
+798	    rec_insert_state = INSERTED_AFTER_INSTANT_ADD_OLD_IMPLEMENTATION;
+799	  } else if (index-&gt;table-&gt;has_instant_cols()) {
+800	    rec_insert_state = INSERTED_BEFORE_INSTANT_ADD_OLD_IMPLEMENTATION;
+(gdb) list
+801	  } else {
+802	    rec_insert_state = INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION;
+803	  }
+
+
+
+806	  return rec_insert_state;
+(gdb) p rec_insert_state
+$8 = INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION
+
+
+(gdb) info locals
+v_ptr = 0xffff2c5cc078 &quot;\b&quot;
+is_versioned = false
+version = 255 '\377'
+is_instant = false
+rec_insert_state = INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION
+</code></pre><p>=> 조회하는 테이블과 record의  rec_insert_state 는 INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION 상태로<br>즉, instant add column이 수행되기 전에 insert 된 레코드로 상태가 확인됩니다.</p><p>위에서 instant add column의 hexdump 테스트에서 봤듯이</p><p>kimdubi1,kimdubi2,kimdubi3 의 값은 instant add column을 하기전에 추가된 레코드이므로  INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION 상태가 맞습니다.</p><p>그리고 이 상태값이 중요한 이유는 위에서 보았듯이</p><p>instant add column의 default 값은, 그전에 추가된 레코드에는 데이터파일에 반영되지 않고 그 이후에 추가된 레코드부터 데이터파일에 반영됩니다.</p><p>DB에서 이런 상태 차이를 나타낼 수 있는 것이 rec_insert_state로 추정됩니다 </p><p>참고로 rec_insert_state는 아래와 같이 6종류가 있습니다</p><pre><code>enum REC_INSERT_STATE {
+  /* Record was inserted before first instant add done in the earlier
+  implementation. */
+  INSERTED_BEFORE_INSTANT_ADD_OLD_IMPLEMENTATION,
+  /* Record was inserted after first instant add done in the earlier
+  implementation. */
+  INSERTED_AFTER_INSTANT_ADD_OLD_IMPLEMENTATION,
+  /* Record was inserted after upgrade but before first instant add done in the
+  new implementation. */
+  INSERTED_AFTER_UPGRADE_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION,
+  /* Record was inserted before first instant add/drop done in the new
+  implementation. */
+  INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION,
+  /* Record was inserted after first instant add/drop done in the new
+  implementation. */
+  INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION,
+  /* Record belongs to table with no verison no instant */
+  INSERTED_INTO_TABLE_WITH_NO_INSTANT_NO_VERSION,
+  NONE
+};
+</code></pre><ul><li>쿼리 결과 데이터 변환 & instant ddl의 default 값 가져오는 부분 </li></ul><pre><code>row_sel_store_mysql_field (mysql_rec=0xfffe54a651d0 &quot;\377&quot;, prebuilt=0xfffe54b546d8, rec=0xffff2c5cc07e &quot;kimdubi1&quot;, rec_index=0xfffe54a69d88,
+    prebuilt_index=0xfffe54a69d88, offsets=0xffff5812f760, field_no=0, templ=0xfffe54b6a830, sec_field_no=18446744073709551615,
+    lob_undo=0xfffe54b548f0, blob_heap=@0xfffe54b54828: 0x0) at /mysql_source/mysql-8.0.32/storage/innobase/row/row0sel.cc:2822
+2822	    if (len == UNIV_SQL_NULL) {
+(gdb) info locals
+_db_trace = {m_stack_frame = {
+    func = 0x6fadda5 &quot;row_sel_store_mysql_rec(byte*, row_prebuilt_t*, const rec_t*, const dtuple_t*, bool, const dict_index_t*, const dict_index_t*, const ulint*, bool, lob::undo_vers_t*, mem_heap_t*&amp;)&quot;, func_len = 23, file = 0x6facdb8 &quot;/mysql_source/mysql-8.0.32/storage/innobase/row/row0sel.cc&quot;,
+    level = 2147483661, prev = 0xffff5812f188}}
+__PRETTY_FUNCTION__ = &quot;bool row_sel_store_mysql_field(byte*, row_prebuilt_t*, const rec_t*, const dict_index_t*, const dict_index_t*, const ulint*, ulint, const mysql_row_templ_t*, ulint, lob::undo_vers_t*, mem_heap_t*&amp;)&quot;
+data = 0xffff2c5cc07e &quot;kimdubi1&quot;
+len = 8
+clust_field_no = 0
+clust_templ_for_sec = false
+</code></pre><p>=> a 컬럼  kimdubi1  레코드를 확인합니다</p><pre><code> Breakpoint 3, rec_get_nth_field_instant (rec=0xffff43ffc07e &quot;kimdubi1&quot;, offsets=0xffff783d1760, n=3, index=0xfffe7ca64058, len=0xffff783d1080)
+    at /mysql_source/mysql-8.0.32/storage/innobase/include/rem0rec.ic:1017
+1017	  if (index-&gt;has_row_versions()) {
+(gdb)
+1020	    n = index-&gt;get_field_off_pos(n);
+(gdb)
+1024	  ulint off = rec_get_nth_field_offs(nullptr, offsets, n, len);
+(gdb)
+1026	  if (*len != UNIV_SQL_ADD_COL_DEFAULT &amp;&amp; *len != UNIV_SQL_INSTANT_DROP_COL) {
+(gdb)
+1030	  ut_a(index != nullptr);
+(gdb)
+1031	  ut_ad(index-&gt;has_instant_cols_or_row_versions());
+(gdb)
+1033	  if (*len == UNIV_SQL_INSTANT_DROP_COL) {
+(gdb)
+1038	  return (index-&gt;get_nth_default(n, len));
+(gdb)
+1039	}
+</code></pre><p>=>  a 컬럼 kimdubi1 의 다른 컬럼 중 instant ddl 로 처리된 컬럼의 default 값을 구하기 위해   get_nth_default를 호출합니다. </p><pre><code>dict_index_t::get_physical_field (this=0xfffe7ca64058, pos=3) at /mysql_source/mysql-8.0.32/storage/innobase/include/dict0mem.h:1492
+1492	      return get_field(fields_array[pos]);
+(gdb) p *(get_field(fields_array[pos]))
+$55 = {col = 0xfffe7ca7c3f8, name = {m_name = 0xfffe7ca7c53a &quot;instant_col1&quot;}, prefix_len = 0, fixed_len = 0, is_ascending = 1}
+</code></pre><p>===> instant_col1 컬럼</p><pre><code>rec_get_instant_offset (index=0xfffe7ca64058, n=3, offs=21) at /mysql_source/mysql-8.0.32/storage/innobase/rem/rec.h:495
+495	  index-&gt;get_nth_default(n, &amp;length);
+
+
+dict_index_t::get_nth_default (this=0xfffe7ca64058, nth=3, length=0xffff783d1058) at /mysql_source/mysql-8.0.32/storage/innobase/include/dict0mem.h:1586
+1586	    return (col-&gt;instant_default-&gt;value);
+(gdb) p  (col-&gt;instant_default-&gt;value)
+$57 = (byte *) 0xfffe7ca7c5c0 &quot;hihi&quot;
+
+
+
+(gdb) info locals
+_db_trace = {m_stack_frame = {
+    func = 0x6fadda5 &quot;row_sel_store_mysql_rec(byte*, row_prebuilt_t*, const rec_t*, const dtuple_t*, bool, const dict_index_t*, const dict_index_t*, const ulint*, bool, lob::undo_vers_t*, mem_heap_t*&amp;)&quot;, func_len = 23, file = 0x6facdb8 &quot;/mysql_source/mysql-8.0.32/storage/innobase/row/row0sel.cc&quot;,
+    level = 2147483661, prev = 0xffff5812f188}}
+__PRETTY_FUNCTION__ = &quot;bool row_sel_store_mysql_field(byte*, row_prebuilt_t*, const rec_t*, const dict_index_t*, const dict_index_t*, const ulint*, ulint, const mysql_row_templ_t*, ulint, lob::undo_vers_t*, mem_heap_t*&amp;)&quot;
+data = 0xfffe54a76570 &quot;hihi&quot;
+len = 4
+clust_field_no = 0
+clust_templ_for_sec = false
+
+</code></pre><p>=>  get_nth_default 에서는 default &lsquo;hihi&rsquo;가 지정된 instant_col1 컬럼의 값으로 hihi 를 잘 가져왔습니다. </p><p>이번엔 instant add column 이후에 추가된 kimdubi4를 조회해보겠습니다<br>instant add column 이전에 추가 된 kimdubi1  과는 다르게 처리되어야 정상입니다</p><ul><li>record_state 확인</li></ul><pre><code>rec_get_instant_flag_new (rec=0xffff3b5f4080 &quot;kimdubi4&quot;) at /mysql_source/mysql-8.0.32/storage/innobase/rem/rec.h:624
+624	  return ((info &amp; REC_INFO_INSTANT_FLAG) != 0);
+(gdb) info locals
+info = 0
+(gdb) p (info &amp; REC_INFO_INSTANT_FLAG)
+$2 = 0
+</code></pre><p>=> instant_flag가 꺼져있습니다</p><pre><code>786	  if (is_versioned) {
+787	    ut_a(is_valid_row_version(version));
+(gdb) list
+788	    if (version == 0) {
+789	      ut_ad(index-&gt;has_instant_cols());
+790	      rec_insert_state =
+791	          INSERTED_AFTER_UPGRADE_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION;
+792	    } else {
+793	      ut_ad(index-&gt;has_row_versions());
+794	      rec_insert_state = INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION;
+795	    }
+796	  } else if (is_instant) {
+797	    ut_ad(index-&gt;table-&gt;has_instant_cols());
+(gdb) list
+798	    rec_insert_state = INSERTED_AFTER_INSTANT_ADD_OLD_IMPLEMENTATION;
+799	  } else if (index-&gt;table-&gt;has_instant_cols()) {
+800	    rec_insert_state = INSERTED_BEFORE_INSTANT_ADD_OLD_IMPLEMENTATION;
+801	  } else {
+802	    rec_insert_state = INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION;
+803	  }
+804
+805	  ut_ad(rec_insert_state != REC_INSERT_STATE::NONE);
+806	  return rec_insert_state;
+807	}
+
+(gdb) p rec_insert_state
+$8 = INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION
+(gdb) info locals
+v_ptr = 0xffff8411407b &quot;\001@&quot;
+is_versioned = true
+version = 1 '\001'
+is_instant = false
+rec_insert_state = INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION
+</code></pre><p>=> 기대했던 대로 이번엔 rec_insert_state = INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION 입니다<br>이름만 보면 record의 state가 instant add column 이후의 값으로 보입니다</p><ul><li>쿼리 결과 데이터 변환 & instant ddl의 default 값 가져오는 부분 </li></ul><pre><code>Breakpoint 3, rec_get_nth_field_instant (rec=0xffff84114081 &quot;kimdubi4&quot;, offsets=0xffff783d1760, n=0, index=0xfffe7cd05438, len=0xffff783d1080)
+    at /mysql_source/mysql-8.0.32/storage/innobase/include/rem0rec.ic:1017
+1017	  if (index-&gt;has_row_versions()) {
+(gdb)
+1020	    n = index-&gt;get_field_off_pos(n);
+1015	                                                    const dict_index_t *index,
+1016	                                                    ulint *len) {
+1017	  if (index-&gt;has_row_versions()) {
+1018	    /* Fields are stored in record in order of the version they are added in.
+1019	    Get the field number on physical record. */
+1020	    n = index-&gt;get_field_off_pos(n);
+1021	  }
+1022
+1023	  /* nullptr for index as n is physical here */
+1024	  ulint off = rec_get_nth_field_offs(nullptr, offsets, n, len);
+1025
+1026	  if (*len != UNIV_SQL_ADD_COL_DEFAULT &amp;&amp; *len != UNIV_SQL_INSTANT_DROP_COL) {
+1027	    return (rec + off);
+1028	  }
+
+
+
+(gdb) n
+1024	  ulint off = rec_get_nth_field_offs(nullptr, offsets, n, len);
+(gdb)
+1026	  if (*len != UNIV_SQL_ADD_COL_DEFAULT &amp;&amp; *len != UNIV_SQL_INSTANT_DROP_COL) {
+(gdb)
+1027	    return (rec + off);
+(gdb)
+1039	}
+</code></pre><p>=> rec_get_nth_field_instant 여기까지 왔지만,<br>앞서 본 INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION 케이스와는 다르게 무언가 record 의 offset 까지만 확인하는 것 같습니다.</p><pre><code> 1029
+1030	  ut_a(index != nullptr);
+1031	  ut_ad(index-&gt;has_instant_cols_or_row_versions());
+1032
+1033	  if (*len == UNIV_SQL_INSTANT_DROP_COL) {
+1034	    *len = 0;
+1035	    return nullptr;
+1036	  }
+1037
+1038	  return (index-&gt;get_nth_default(n, len));
+1039	} 
+</code></pre><p>=> return (index->get_nth_default(n, len));  즉 get_nth_default 까지 호출되지 않습니다</p><p>지금 까지를 정리하면!   </p><ul><li><p>Instant column이 추가되기 이전에 저장된 레코드다 </p><ul><li>추가된 컬럼의 default 값이 기존과 다르게 record가 아닌, 메타데이터에 저장되므로 이 값을 가져오기 위해 별도의 작업이 필요함</li><li>rec_state 가 INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION 임을 확인하고, </li><li>rec_get_nth_field_instant -> get_nth_default 를 통해 instant add column default 의 값을 가져온다 </li></ul></li><li><p>Instant column이 추가된 이후에 저장된 레코드다 </p><ul><li>추가된 컬럼의 default 값이 기존과 동일하게 record에 저장되므로 다른 작업할 필요 없음</li><li>rec_state 가INSERTED_AFTER_INSTANT_ADD_NEW_IMPLEMENTATION 임을 확인하고, </li><li>rec_get_nth_field_instant에서 instant add column 된 컬럼의 offset (레코드 내 해당 컬럼 위치) 까지만 확인함</li></ul></li></ul><p>이렇게 동작이 조금 다르고,<br>INSERTED_BEFORE_INSTANT_ADD_NEW_IMPLEMENTATION 에 대해서는 몇단계 추가적인 스텝이 있는 것으로 보입니다</p><p>그러면 이러한 부분들이 성능에는 영향이 없을까? 그것이 또 궁금해지는데요<br>그래서 성능 테스트도 해보았습니다</p><h2 id=성능테스트>성능테스트 <a hidden class=anchor aria-hidden=true href=#성능테스트>#</a></h2><ul><li>각각 tb_inplace, tb_instant 테이블에 데이터를 1000만건 넣어두고</li><li>add column t1 varchar(10) default &lsquo;hihi&rsquo; 컬럼을 각각 algorithm= inplace, instant 로 추가한다</li><li>그 후 tb_inplace, tb_instant 테이블을 select 하는 성능테스트를 한다.</li></ul><p>테스트 결과 예상은 tb_inplace는 record state 관련, rec_get_nth_field_instant -> get_nth_default 이런 단계를 거치지 않을 것이고<br>tb_instant 는 모두 체크하는 단계가 있으니 tb_instant 가 조금 더 느릴 것이다</p><ul><li>테스트 준비</li></ul><pre><code>### 테이블 스키마 
+
+CREATE TABLE `tb_inplace` (
+`id` bigint NOT NULL AUTO_INCREMENT,
+`group_id` int,
+`index_value` varchar(17),
+`col_a` varchar(10),
+`col_b` varchar(10),
+`col_c` varchar(10),
+`col_d` varchar(10),
+`col_e` varchar(10),
+PRIMARY KEY (`id`),
+KEY `IX_colA` (`index_value`)
+);
+
+
+
+###  데이터 세팅
+mysqlslap --user=master -p --host=kimdubi-test.cluster-ckwx7ipq1exp.ap-northeast-2.rds.amazonaws.com --port=6025  --concurrency=50 --number-of-queries=10133611 --query=&quot;insert into tb_inplace (group_id, index_value, col_a, col_b, col_c, col_d, col_e ) values (round(rand()*10), unix_timestamp(now(6)), 'aaa','bbb','ccc','ddd','eee');&quot;
+
+
+### inplace로 default 컬럼 추가 
+alter table tb_inplace
+add column t1 varchar(10) default 'hihi',
+add column t2 varchar(10) default 'hihi',
+add column t3 varchar(10) default 'hihi',
+add column t4 varchar(10) default 'hihi',
+add column t5 varchar(10) default 'hihi',
+add column t6 varchar(10) default 'hihi',
+add column t7 varchar(10) default 'hihi',
+add column t8 varchar(10) default 'hihi',
+add column t9 varchar(10) default 'hihi',
+add column t10 varchar(10) default 'hihi',
+add column t11 varchar(10) default 'hihi',
+add column t12 varchar(10) default 'hihi',
+add column t13 varchar(10) default 'hihi',
+add column t14 varchar(10) default 'hihi',
+add column t15 varchar(10) default 'hihi',
+add column t16 varchar(10) default 'hihi',
+add column t17 varchar(10) default 'hihi',
+add column t18 varchar(10) default 'hihi',
+add column t19 varchar(10) default 'hihi',
+add column t20 varchar(10) default 'hihi',algorithm=inplace,lock=none;
+
+
+ 
+### 테이블 스키마  
+CREATE TABLE `tb_instant` (
+`id` bigint NOT NULL AUTO_INCREMENT,
+`group_id` int,
+`index_value` varchar(17),
+`col_a` varchar(10),
+`col_b` varchar(10),
+`col_c` varchar(10),
+`col_d` varchar(10),
+`col_e` varchar(10),
+PRIMARY KEY (`id`),
+KEY `IX_colA` (`index_value`)
+);
+
+
+###  데이터 세팅
+mysqlslap --user=master -p --host=kimdubi-test.cluster-ckwx7ipq1exp.ap-northeast-2.rds.amazonaws.com --port=6025  --concurrency=50 --number-of-queries=10133611 --query=&quot;insert into tb_instant (group_id, index_value, col_a, col_b, col_c, col_d, col_e ) values (round(rand()*10), unix_timestamp(now(6)), 'aaa','bbb','ccc','ddd','eee');&quot;
+
+
+### instant로 default 컬럼 추가 
+alter table tb_instant
+add column t1 varchar(10) default 'hihi',
+add column t2 varchar(10) default 'hihi',
+add column t3 varchar(10) default 'hihi',
+add column t4 varchar(10) default 'hihi',
+add column t5 varchar(10) default 'hihi',
+add column t6 varchar(10) default 'hihi',
+add column t7 varchar(10) default 'hihi',
+add column t8 varchar(10) default 'hihi',
+add column t9 varchar(10) default 'hihi',
+add column t10 varchar(10) default 'hihi',
+add column t11 varchar(10) default 'hihi',
+add column t12 varchar(10) default 'hihi',
+add column t13 varchar(10) default 'hihi',
+add column t14 varchar(10) default 'hihi',
+add column t15 varchar(10) default 'hihi',
+add column t16 varchar(10) default 'hihi',
+add column t17 varchar(10) default 'hihi',
+add column t18 varchar(10) default 'hihi',
+add column t19 varchar(10) default 'hihi',
+add column t20 varchar(10) default 'hihi',algorithm=instant;
+
+
+### 테스트 커맨드
+mysqlslap --user=master -pqhdks123 --host=kimdubi-test.cluster-ckwx7ipq1exp.ap-northeast-2.rds.amazonaws.com --port=6025  --concurrency=50 --iterations=1000 --query=&quot;SET @rand_id = FLOOR(1 + (10000000 * RAND())); SELECT * FROM mysqlslap.tb_instant WHERE id = @rand_id;&quot;  --delimiter=&quot;;&quot;   &gt;&gt; instant.txt
+</code></pre><p>=> 동시에 50개의 쓰레드로 select * from tb_instant where id =? 쿼리를 50개 쓰레드 * 각 쓰레드당 기본10번 * 반복 1000번 으로 500,000 번 수행하고 평균 수행시간을 기록함</p><pre><code>	1회차(단위 초) 	2회차	3회차	4회차	5회차	6회차	7회차	8회차	9회차	10회차	avg 
+inplace	0.244	0.232	0.225	0.224	0.224	0.223	0.219	0.221	0.222	0.227	0.2261
+instant	0.244	0.231	0.229	0.255	0.247	0.232	0.256	0.248	0.240	0.227	0.2409
+</code></pre><p>=>  inplace일 때 평균 0.2261 초, instant 일때 평균 0.2409초로 instant 일때 6.55% 더 성능이 하락한 것 확인</p></div><footer class=post-footer><ul class=post-tags><li><a href=/tags/mysql/>mysql</a></li><li><a href=/tags/ddl/>ddl</a></li><li><a href=/tags/gdb/>gdb</a></li></ul><nav class=paginav><a class=prev href=/mysql/ddl_failcase/><span class=title>« Prev Page</span><br><span>MySQL 대용량 테이블 DDL할 때 주의할 사항들</span></a>
+<a class=next href=/mysql/instant_ddl1/><span class=title>Next Page »</span><br><span>MySQL INSTANT DDL algorithm에 대해-1</span></a></nav></footer><div id=disqus_thread></div><script type=text/javascript>(function(){if(window.location.hostname=="localhost")
+return;var dsq=document.createElement('script');dsq.type='text/javascript';dsq.async=true;var disqus_shortname='kimdubia';dsq.src='//'+disqus_shortname+'.disqus.com/embed.js';(document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(dsq);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com/ class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></main><footer class=footer><span>&copy; 2024 <a href>kimDuBiA</a></span>
+<span>Powered by
+<a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
+        <a href=https://git.io/hugopapermod rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentcolor"><path d="M12 6H0l6-6z"/></svg></a><script>let menu=document.getElementById('menu')
+menu.scrollLeft=localStorage.getItem("menu-scroll-position");menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft);}
+document.querySelectorAll('a[href^="#"]').forEach(anchor=>{anchor.addEventListener("click",function(e){e.preventDefault();var id=this.getAttribute("href").substr(1);if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({behavior:"smooth"});}else{document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();}
+if(id==="top"){history.replaceState(null,null," ");}else{history.pushState(null,null,`#${id}`);}});});</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){if(document.body.scrollTop>800||document.documentElement.scrollTop>800){mybutton.style.visibility="visible";mybutton.style.opacity="1";}else{mybutton.style.visibility="hidden";mybutton.style.opacity="0";}};</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{if(document.body.className.includes("dark")){document.body.classList.remove('dark');localStorage.setItem("pref-theme",'light');}else{document.body.classList.add('dark');localStorage.setItem("pref-theme",'dark');}})</script><script>document.querySelectorAll('pre > code').forEach((codeblock)=>{const container=codeblock.parentNode.parentNode;const copybutton=document.createElement('button');copybutton.classList.add('copy-code');copybutton.innerText='copy';function copyingDone(){copybutton.innerText='copied!';setTimeout(()=>{copybutton.innerText='copy';},2000);}
+copybutton.addEventListener('click',(cb)=>{if('clipboard'in navigator){navigator.clipboard.writeText(codeblock.textContent);copyingDone();return;}
+const range=document.createRange();range.selectNodeContents(codeblock);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);try{document.execCommand('copy');copyingDone();}catch(e){};selection.removeRange(range);});if(container.classList.contains("highlight")){container.appendChild(copybutton);}else if(container.parentNode.firstChild==container){}else if(codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"){codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);}else{codeblock.parentNode.appendChild(copybutton);}});</script></body></html>

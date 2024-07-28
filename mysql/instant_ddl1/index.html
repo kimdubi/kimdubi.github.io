@@ -1,0 +1,366 @@
+<!doctype html><html lang=en dir=auto><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>MySQL INSTANT DDL algorithm에 대해-1 | kimDuBiA</title><meta name=keywords content="mysql,ddl,gdb"><meta name=description content="테스트배경 aurora3 (mysql8) 부터는 드디어 컬럼추가할 때, 컬럼 드랍할 때 수행 즉시 완료된다 ! (다른 DDL, index 추가 등은 아직 아닙니다..!)
+기존에는 aurora (mysql 5.7) 에서는 inplace 방식으로 진행되기 때문에 테이블 사이즈에 따라 한참 걸려서 큰 테이블에 대한 컬럼 추가 작업은 어려움이 있었는데 이젠 instant로 바로 반영된다.
+기존 inplace 방식을 간단히 살펴보고, instant 는 어떻게 수행되도록 변경되었는지를 확인해본다
+algorithm=inplace  컬럼 추가 기준으로 봤을 때 (인덱스 추가는 조금 다름)"><meta name=author content="kimdubi"><link rel=canonical href=/mysql/instant_ddl1/><meta name=google-site-verification content="XYZabc"><meta name=yandex-verification content="XYZabc"><meta name=msvalidate.01 content="XYZabc"><link crossorigin=anonymous href=/assets/css/stylesheet.min.2dbef8664bbfb3e83a0a44fd4a8fc5010240dbcd1dbc1400753b928b497b8f5e.css integrity="sha256-Lb74Zku/s+g6CkT9So/FAQJA280dvBQAdTuSi0l7j14=" rel="preload stylesheet" as=style><script defer crossorigin=anonymous src=/assets/js/highlight.min.27cd435cc9ed6abb4b496581b151804f79f366c412620272bb94e2f5f598ebcc.js integrity="sha256-J81DXMntartLSWWBsVGAT3nzZsQSYgJyu5Ti9fWY68w=" onload=hljs.initHighlightingOnLoad();></script><link rel=icon href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=16x16 href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=32x32 href=%3Clink%20/%20abs%20url%3E><link rel=apple-touch-icon href=%3Clink%20/%20abs%20url%3E><link rel=mask-icon href=%3Clink%20/%20abs%20url%3E><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><meta name=generator content="Hugo 0.80.0"><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme: rgb(29, 30, 32);--entry: rgb(46, 46, 51);--primary: rgb(218, 218, 219);--secondary: rgb(155, 156, 157);--tertiary: rgb(65, 66, 68);--content: rgb(196, 196, 197);--hljs-bg: rgb(46, 46, 51);--code-bg: rgb(55, 56, 62);--border: rgb(51, 51, 51)}.list{background:var(--theme)}.list:not(.dark)::-webkit-scrollbar-track{background:0 0}.list:not(.dark)::-webkit-scrollbar-thumb{border-color:var(--theme)}}</style></noscript><script type=application/javascript>var doNotTrack=false;if(!doNotTrack){(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');ga('create','UA-123-45','auto');ga('send','pageview');}</script><meta property="og:title" content="MySQL INSTANT DDL algorithm에 대해-1"><meta property="og:description" content="테스트배경 aurora3 (mysql8) 부터는 드디어 컬럼추가할 때, 컬럼 드랍할 때 수행 즉시 완료된다 ! (다른 DDL, index 추가 등은 아직 아닙니다..!)
+기존에는 aurora (mysql 5.7) 에서는 inplace 방식으로 진행되기 때문에 테이블 사이즈에 따라 한참 걸려서 큰 테이블에 대한 컬럼 추가 작업은 어려움이 있었는데 이젠 instant로 바로 반영된다.
+기존 inplace 방식을 간단히 살펴보고, instant 는 어떻게 수행되도록 변경되었는지를 확인해본다
+algorithm=inplace  컬럼 추가 기준으로 봤을 때 (인덱스 추가는 조금 다름)"><meta property="og:type" content="article"><meta property="og:url" content="/mysql/instant_ddl1/"><meta property="og:image" content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta property="article:section" content="mysql"><meta property="article:published_time" content="2024-07-28T14:27:57+09:00"><meta property="article:modified_time" content="2024-07-28T14:27:57+09:00"><meta property="og:site_name" content="kimDuBiA"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta name=twitter:title content="MySQL INSTANT DDL algorithm에 대해-1"><meta name=twitter:description content="테스트배경 aurora3 (mysql8) 부터는 드디어 컬럼추가할 때, 컬럼 드랍할 때 수행 즉시 완료된다 ! (다른 DDL, index 추가 등은 아직 아닙니다..!)
+기존에는 aurora (mysql 5.7) 에서는 inplace 방식으로 진행되기 때문에 테이블 사이즈에 따라 한참 걸려서 큰 테이블에 대한 컬럼 추가 작업은 어려움이 있었는데 이젠 instant로 바로 반영된다.
+기존 inplace 방식을 간단히 살펴보고, instant 는 어떻게 수행되도록 변경되었는지를 확인해본다
+algorithm=inplace  컬럼 추가 기준으로 봤을 때 (인덱스 추가는 조금 다름)"><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":2,"name":"Mysqls","item":"/mysql/"},{"@type":"ListItem","position":3,"name":"MySQL INSTANT DDL algorithm에 대해-1","item":"/mysql/instant_ddl1/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"MySQL INSTANT DDL algorithm에 대해-1","name":"MySQL INSTANT DDL algorithm에 대해-1","description":"테스트배경 aurora3 (mysql8) 부터는 드디어 컬럼추가할 때, 컬럼 드랍할 때 수행 즉시 완료된다 ! (다른 DDL, index 추가 등은 아직 아닙니다..!)\n기존에는 aurora (mysql 5.7) 에서는 inplace 방식으로 진행되기 때문에 테이블 사이즈에 따라 한참 걸려서 큰 테이블에 대한 컬럼 추가 작업은 어려움이 있었는데 이젠 instant로 바로 반영된다.\n기존 inplace 방식을 간단히 살펴보고, instant 는 어떻게 수행되도록 변경되었는지를 확인해본다\nalgorithm=inplace  컬럼 추가 기준으로 봤을 때 (인덱스 추가는 조금 다름)","keywords":["mysql","ddl","gdb"],"articleBody":" 테스트배경 aurora3 (mysql8) 부터는 드디어 컬럼추가할 때, 컬럼 드랍할 때 수행 즉시 완료된다 ! (다른 DDL, index 추가 등은 아직 아닙니다..!)\n기존에는 aurora (mysql 5.7) 에서는 inplace 방식으로 진행되기 때문에 테이블 사이즈에 따라 한참 걸려서 큰 테이블에 대한 컬럼 추가 작업은 어려움이 있었는데 이젠 instant로 바로 반영된다.\n기존 inplace 방식을 간단히 살펴보고, instant 는 어떻게 수행되도록 변경되었는지를 확인해본다\nalgorithm=inplace  컬럼 추가 기준으로 봤을 때 (인덱스 추가는 조금 다름)\n inplace는 DDL이 반영된 임시테이블을 하나 만들고  데이터를 원본테이블에서 읽어서 부어주고, DDL반영 중 들어온 변경사항들을 마저 반영해준 뒤, 메타데이터 락을 획득하여 DML의 추가유입을 막고 임시테이블과 원본테이블을 바꿔치기 하는 식으로 진행 됩니다.   DBA가 트래픽이 많은시간, 배치잡이 도는 시간을 피해서 DDL을 수행하려는 이유가 바로 2,3,4번에 있습니다.\ninplace 의 대략적인 프로세스를 살펴보자면 아래와 같습니다.\n(2,3 번 과정은 너무 복잡해서 다 이해하지 못하여 생략,,,)\n--------------------------- 1번 - mysql_alter_table - open_and_process_table - MDL_context::acquire_lock - open_table_get_mdl_lock - create_table_impl - rea_create_base_table - dd::create_table - ha_innobase::check_if_supported_inplace_alter: COPY 방식인지, INPLACE 방식인지 체크 - mysql_inplace_alter_table - MDL_context::upgrade_shared_lock: 다른 DDL이 또 들어오지 않도록 metadata lock을 건다, DML은 가능한 metadata lock - THD_STAGE_INFO(thd, stage_alter_inplace_prepare): prepare 단계로 진입 - handler::ha_prepare_inplace_alter_table: - ha_innobase::prepare_inplace_alter_table - ha_innobase::prepare_inplace_alter_table_impl - row_create_table_for_mysql: 임시 테이블 생성 --------------------------- 2번 - THD_STAGE_INFO(thd, stage_alter_inplace) - handler::ha_inplace_alter_table - ha_innobase::inplace_alter_table - ha_innobase::inplace_alter_table_impl ------------ 아래 부터는 Primary key 를 읽으면서 기존 데이터 복사 진행 - row_merge_build_indexes: - stage-begin_phase_read_pk: - begin_phase_read_pk: - row_merge_read_clustered_index: - merge_buf[i] = row_merge_buf_create(index[i]): 각 인덱스마다 buffer 생성, innodb_sort_buffer_size로 읽기 - row_merge_insert_index_tuples(): - stage-begin_phase_insert: srv_stage_alter_table_insert 단계로 진입 - end_phase_read_pk: --------------------------- 3번 - m_stage-begin_phase_flush - row_merge_write_redo - row_log_apply - stage-begin_phase_log_index - row_log_apply_ops: row log 적용 - if (error == DB_SUCCESS \u0026\u0026 ctx-online \u0026\u0026 ctx-need_rebuild()) - row_log_table_apply - stage-begin_phase_log_table --------------------------- 4번,5번 - wait_while_table_is_used - MDL_context::upgrade_shared_lock - MDL_context::acquire_lock : 커밋 전 MDL_EXCLUSIVE 잠금으로 업그레이드 대기 - THD_STAGE_INFO(thd, stage_alter_inplace_commit): DDL ccomit - handler::ha_commit_inplace_alter_table - ha_innobase::commit_inplace_alter_table - commit_inplace_alter_table_impl - log_ddl-write_drop_log: commit 완료 후 log drop (3번에서 쓰던 로그 같음) - dd_commit_inplace_alter_table: data dictionary 업데이트 그동안 DBA들이 DDL 처리할 때 개발자 분들과 얘기하던 내용들이 조금은 이해되시길 바라며\nDBA들의 이야기를 위 내용과 매칭해보면,,,,  이 테이블은 사이즈가 커서 좀 오래 걸릴 것 같아요 - 2번에서 오래걸려서 그렇습니다 작업하는 동안 쓰기가 많으면 DDL이 좀 더 오래 걸릴 수 있습니다 - 3번에서 처리할 양이 많아져서 그렇습니다 테이블 작업 마지막에 metadata lock을 걸 때 잠시 테이블 락이 있을 수 있습니다 - 4번,5번에서 메타데이터락을 잡습니다  metadata lock 관련해서 부연설명을 하자면 ,,,,\n위에서 metadata lock을 처음에 한번, 마지막에 한번 잡는데 종류와 동작 방식이 다릅니다.\n 첫번째 metadata lock은 MDL_SHARED_UPGRADABLE 입니다. 이것은 작업 테이블에 다른 DDL이 들어오지 않도록만 할 뿐 DML,select 는 가능합니다   table-mdl_ticket-downgrade_lock(MDL_SHARED_UPGRADABLE); (gdb) p *mdl_ticket $3 = { = {_vptr.MDL_wait_for_subgraph = 0x82fe7e0 , static DEADLOCK_WEIGHT_CO = 0, static DEADLOCK_WEIGHT_DML = 25, static DEADLOCK_WEIGHT_ULL = 50, static DEADLOCK_WEIGHT_DDL = 100}, next_in_context = 0xfffe54118710, prev_in_context = 0xfffe54118898, next_in_lock = 0x0, prev_in_lock = 0xfffe540fe998, m_type = MDL_SHARED_UPGRADABLE, m_duration = MDL_TRANSACTION, m_ctx = 0xfffe54001130, m_lock = 0xfffe540fe780, m_is_fast_path = false, m_hton_notified = false, m_psi = 0xffff87a41100}  마지막에 잡는 metadata lock은 EXCLUSIVE입니다. 모든 쿼리를 block 하는데 그동안 재빨리 바꿔치기를 하기 위함으로, DDL 마지막에 쿼리가 실패할 수 있다고 말하게 되는 범인입니다  #1 0x0000000003a080c0 in MDL_context::upgrade_shared_lock (this=0xfffe54001130, mdl_ticket=0xfffe54106170, new_type=MDL_EXCLUSIVE, lock_wait_timeout=60) at /mysql_source/mysql-8.0.32/sql/mdl.cc:3756 mdl_new_lock_request = {type = MDL_EXCLUSIVE, duration = MDL_TRANSACTION, next_in_list = 0x0, prev_in_list = 0x0, ticket = 0x0, key = {m_length = 19, m_db_name_length = 4, m_object_name_length = 12, m_ptr = \"\\004test\\000instant_test\", '\\000' , static m_namespace_to_wait_state_name = {{m_key = 102, MDL_context::upgrade_shared_lock (this=0xfffe54001130, mdl_ticket=0xfffe54106170, new_type=MDL_EXCLUSIVE, lock_wait_timeout=60) at /mysql_source/mysql-8.0.32/sql/mdl.cc:3758 3758\tis_new_ticket = !has_lock(mdl_svp, mdl_new_lock_request.ticket); 여기까지 기존에 활용되던 inplace 방식의 DDL을 살펴보았습니다.\n사실 inplace의 의미를 곰곰이 생각해보면 Inplace 라면 테이블 교체없이 이뤄져야 하는 거 아니냐 싶은데요\n위 과정을 좀 더 자세하게 살펴보면, 아래에서 볼 수 있듯이 기존 테이블인 0xfffe58ab2ce0 가 old_table이 되고 altered_table인 0xfffe58ac87c0 가 new_table이 되는 것을 볼 수 있습니다.\naltered table 인 0xfffe58ac87c0 은 ‘test.#sql-1285_7’ 라는 이름으로 생성된 것 또한 확인할 수 있습니다. 17404\tif (use_inplace) { 17405\tif (mysql_inplace_alter_table(thd, *schema, *new_schema, old_table_def, 17406\ttable_def, table_list, table, altered_table, 17407\t\u0026ha_alter_info, inplace_supported, 17408\t\u0026alter_ctx, columns, fk_key_info, 17409\tfk_key_count, \u0026fk_invalidator)) { (gdb) p table $2 = (TABLE *) 0xfffe58ab2ce0 (gdb) p altered_table $3 = (TABLE *) 0xfffe58ac87c0 ====== 기존 테이블과 altered table이 다름 altered_table = 0xfffe58ac87c0 use_inplace = true inplace_supported = HA_ALTER_INPLACE_NO_LOCK_AFTER_PREPARE #0 row_create_table_for_mysql (table=@0xfffe58ac7f08: 0xfffe5817a128, compression=0x0, create_info=0xffff8714ec68, trx=0xffff8d7b4ff8, heap=0x0) at /mysql_source/mysql-8.0.32/storage/innobase/row/row0mysql.cc:2768 #1 0x0000000004af20c4 in prepare_inplace_alter_table_dict (ha_alter_info=0xffff8714c280, altered_table=0xfffe58ac87c0, old_table=0xfffe58ab2ce0, old_dd_tab=0xfffe58ab42e0, new_dd_tab=0xfffe5817ac60, table_name=0xfffe58154a75 \"instant_test\", flags=33, flags2=16, fts_doc_id_col=18446744073709551615, add_fts_doc_id=false, add_fts_doc_id_idx=false) at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:4802 #2 0x0000000004b03d88 in ha_innobase::prepare_inplace_alter_table_impl (this=0xfffe58abf560, altered_table=0xfffe58ac87c0, ha_alter_info=0xffff8714c280, old_dd_tab=0xfffe58ab42e0, new_dd_tab=0xfffe5817ac60) at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:6047 #3 0x0000000004ade7e4 in ha_innobase::prepare_inplace_alter_table (this=0xfffe58abf560, altered_table=0xfffe58ac87c0, ha_alter_info=0xffff8714c280, old_dd_tab=0xfffe58ab42e0, new_dd_tab=0xfffe5817ac60) at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:1446 #4 0x00000000037bc924 in handler::ha_prepare_inplace_alter_table (this=0xfffe58abf560, altered_table=0xfffe58ac87c0, ha_alter_info=0xffff8714c280, old_table_def=0xfffe58ab42e0, new_table_def=0xfffe5817ac60) at /mysql_source/mysql-8.0.32/sql/handler.cc:4846 #5 0x00000000034e14bc in mysql_inplace_alter_table (thd=0xfffe58000da0, schema=..., new_schema=..., table_def=0xfffe58ab42e0, altered_table_def=0xfffe5817ac60, table_list=0xfffe58ac1a88, table=0xfffe58ab2ce0, altered_table=0xfffe58ac87c0, ha_alter_info=0xffff8714c280, inplace_supported=HA_ALTER_INPLACE_NO_LOCK_AFTER_PREPARE, alter_ctx=0xffff8714d170, columns=std::set with 0 elements, fk_key_info=0xfffe58ac7350, fk_key_count=0, fk_invalidator=0xffff8714d0a8) at /mysql_source/mysql-8.0.32/sql/sql_table.cc:13408 T@7: dd_table_share.cc: | | | | | | | open_table_from_share T@7: table.cc: 2881: | | | | | | | | enter: name: 'test.#sql-1285_7' form: 0xfffe58ac87c0 ====== 위에서 봤던 altered_table , 여기로 데이터를 복사한뒤 마지막에 바꿔치기를 한다 그리고 좀 더 확실하게 보기 위해 이 테이블에 대해 또 inplace ddl을 하면,,,,\n위에선 altered_table 이자 new table이었던 0xfffe58ac87c0 테이블이 이제는 old_table이 된것을 볼 수 있습니다 (gdb) p table $5 = (TABLE *) 0xfffe58ac87c0 (gdb) p altered_table $6 = (TABLE *) 0xfffe58a9ecd0 (gdb) bt #0 mysql_inplace_alter_table (thd=0xfffe58000da0, schema=..., new_schema=..., table_def=0xfffe58ae3780, altered_table_def=0xfffe58ac9430, table_list=0xfffe58c5d3e8, table=0xfffe58ac87c0, altered_table=0xfffe58a9ecd0, ha_alter_info=0xffff8714c280, inplace_supported=HA_ALTER_INPLACE_NO_LOCK_AFTER_PREPARE, alter_ctx=0xffff8714d170, columns=std::set with 0 elements, fk_key_info=0xfffe58c601d8, fk_key_count=0, fk_invalidator=0xffff8714d0a8) at /mysql_source/mysql-8.0.32/sql/sql_table.cc:13208 #0 row_create_table_for_mysql (table=@0xfffe58c3c018: 0xfffe5817aa18, compression=0x0, create_info=0xffff8714ec68, trx=0xffff8d7b4ff8, heap=0x0) at /mysql_source/mysql-8.0.32/storage/innobase/row/row0mysql.cc:2734 #1 0x0000000004af20c4 in prepare_inplace_alter_table_dict (ha_alter_info=0xffff8714c280, altered_table=0xfffe58a9ecd0, old_table=0xfffe58ac87c0, old_dd_tab=0xfffe58ae3780, new_dd_tab=0xfffe58ac9430, table_name=0xfffe58154a75 \"instant_test\", flags=33, flags2=16, fts_doc_id_col=18446744073709551615, add_fts_doc_id=false, add_fts_doc_id_idx=false) at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:4802 #2 0x0000000004b03d88 in ha_innobase::prepare_inplace_alter_table_impl (this=0xfffe58c60dd0, altered_table=0xfffe58a9ecd0, ha_alter_info=0xffff8714c280, old_dd_tab=0xfffe58ae3780, new_dd_tab=0xfffe58ac9430) at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:6047 #3 0x0000000004ade7e4 in ha_innobase::prepare_inplace_alter_table (this=0xfffe58c60dd0, altered_table=0xfffe58a9ecd0, ha_alter_info=0xffff8714c280, old_dd_tab=0xfffe58ae3780, new_dd_tab=0xfffe58ac9430) at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:1446 #4 0x00000000037bc924 in handler::ha_prepare_inplace_alter_table (this=0xfffe58c60dd0, altered_table=0xfffe58a9ecd0, ha_alter_info=0xffff8714c280, old_table_def=0xfffe58ae3780, new_table_def=0xfffe58ac9430) at /mysql_source/mysql-8.0.32/sql/handler.cc:4846 #5 0x00000000034e14bc in mysql_inplace_alter_table (thd=0xfffe58000da0, schema=..., new_schema=..., table_def=0xfffe58ae3780, altered_table_def=0xfffe58ac9430, table_list=0xfffe58c5d3e8, table=0xfffe58ac87c0, altered_table=0xfffe58a9ecd0, ha_alter_info=0xffff8714c280, inplace_supported=HA_ALTER_INPLACE_NO_LOCK_AFTER_PREPARE, alter_ctx=0xffff8714d170, columns=std::set with 0 elements, fk_key_info=0xfffe58c601d8, fk_key_count=0, fk_invalidator=0xffff8714d0a8) at /mysql_source/mysql-8.0.32/sql/sql_table.cc:13408 #6 0x00000000034ec82c in mysql_alter_table (thd=0xfffe58000da0, new_db=0xfffe58c5da38 \"test\", new_name=0x0, create_info=0xffff8714ec68, table_list=0xfffe58c5d3e8, alter_info=0xffff8714eb00) at /mysql_source/mysql-8.0.32/sql/sql_table.cc:17405 T@7: dd_table_share.cc: | | | | | | | open_table_from_share T@7: table.cc: 2881: | | | | | | | | enter: name: 'test.#sql-1285_7' form: 0xfffe58a9ecd0 algorithm=instant instant 방식은 훨씬 간단합니다. (방식은 간단한데, 디버깅은 더 어려운 것 같습니다)\ninplace 처럼 복잡한 과정 없이 INSTANT로 실행될 수 있는 DDL인지 확인 후 메타데이터 변경만 하기 때문에 기존데이터 복사 등의 과정이 없습니다.\n(간단하지만 metadata 쪽 처리 관련해서 뭔가 큰것이 있는 것 같은데 내용이 너무 많아 생략했습니다)\n--------------------------- 1번 mysql_alter_table open_and_process_table open_table MDL_context::acquire_lock open_table_get_mdl_lock check_if_supported_inplace_alter : mysql_inplace_alter_table THD_STAGE_INFO(thd, stage_alter_inplace_prepare) handler::ha_prepare_inplace_alter_table ha_innobase::prepare_inplace_alter_table ha_innobase::prepare_inplace_alter_table_impl if (...is_instant(ha_alter_info)) : instant algorithm이라면 exit THD_STAGE_INFO(thd, stage_alter_inplace) handler::ha_inplace_alter_table ha_innobase::inplace_alter_table ha_innobase::inplace_alter_table_impl if (!(ha_alter_info-handler_flags \u0026 INNOBASE_ALTER_DATA) ||is_instant(ha_alter_info)) : instant algorithm이라면 exit --------------------------- 2번 wait_while_table_is_used MDL_context::upgrade_shared_lock MDL_context::acquire_lock THD_STAGE_INFO(thd, stage_alter_inplace_commit) handler::ha_commit_inplace_alter_table ha_innobase::commit_inplace_alter_table commit_inplace_alter_table_impl if (!(ha_alter_info-handler_flags \u0026 INNOBASE_ALTER_DATA) ||is_instant(ha_alter_info)) : instant algorithm이라면 exit dd_commit_inplace_instant // instance ddl switch (type) // dd_copy_private(*new_dd_tab, *old_dd_tab); dd_commit_instant_table dd_copy_table_columns dd_add_instant_columns dd_update_v_cols inplace 방식과 비교하면 훨씬 간단해진 것을 확인할 수 있습니다.\n특히 기존 데이터 복제, DDL 중 들어온 로그에 대해 sync하는 부분들이 모두 없어졌습니다.\n아래처럼 instant 로 풀릴 수 있는 DDL인지를 확인한 뒤 1028\tInstant_Type instant_type = innobase_support_instant( 1029\tha_alter_info, m_prebuilt-table, this-table, altered_table); 1030 1031\tha_alter_info-handler_trivial_ctx = 1032\tinstant_type_to_int(Instant_Type::INSTANT_IMPOSSIBLE); 1033 1034\tif (!dict_table_is_partition(m_prebuilt-table)) { 1035\tswitch (instant_type) { 1036\tcase Instant_Type::INSTANT_IMPOSSIBLE: (gdb) p alter_info-requested_algorithm $2 = Alter_info::ALTER_TABLE_ALGORITHM_INSTANT (gdb) p instant_type $30 = INSTANT_ADD_DROP_COLUMN 중간 중간 아래와 같은 로직을 거치면서\ninplace 에서는 해야할 처리들(기존 데이터 복제, DDL 중 들어온 데이터 싱크) 을 안하고 바로 ok_exit 해버리면서 과정이 훨씬 간소화되었습니다 template bool ha_innobase::inplace_alter_table_impl(TABLE *altered_table, Alter_inplace_info *ha_alter_info, const Table *old_dd_tab, 표 *new_dd_tab) { // ... if (!(ha_alter_info-handler_flags \u0026 INNOBASE_ALTER_DATA) || is_instant (ha_alter_info)) { ok_exit : DEBUG_SYNC(m_user_thd, \"innodb_after_inplace_alter_table\" ); DBUG_RETURN ( false ); } 다만 한가지 꼭 유의할 점은, 위 1번 과정 중 check_if_supported_inplace_alter를 자세하게 확인해보면\n#1 0x0000000004add930 in ha_innobase::check_if_supported_inplace_alter (this=0xfffe3ca9f260, altered_table=0xfffe3cb124c0, ha_alter_info=0xffff682c8280) at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:1053 _db_trace = {m_stack_frame = { func = 0x614fbbd \"mysql_alter_table(THD*, const char*, const char*, HA_CREATE_INFO*, Table_ref*, Alter_info*)\", func_len = 17, file = 0x614ae90 \"/mysql_source/mysql-8.0.32/sql/sql_table.cc\", level = 2147483655, prev = 0xffff682ca168}} __PRETTY_FUNCTION__ = \"virtual enum_alter_inplace_result ha_innobase::check_if_supported_inplace_alter(TABLE*, Alter_inplace_info*)\" old_encryption = 0xfffe3c117990 \"N\" new_encryption = 0xfffe3cb153b0 \"N\" instant_type = INSTANT_ADD_DROP_COLUMN add_drop_v_cols = false online = false cf_it = { = {list = 0x48f0bac , el = 0xffff682cabe0, prev = 0xffff682c80e0, current = 0xffff682c80a0}, } . . . /* INSTANT can't be done any more. Fall back to INPLACE. */ break; } else if (!is_valid_row_version( m_prebuilt-table-current_row_version + 1)) { ut_ad(is_valid_row_version(m_prebuilt-table-current_row_version)); if (ha_alter_info-alter_info-requested_algorithm == Alter_info::ALTER_TABLE_ALGORITHM_INSTANT) { my_error(ER_INNODB_MAX_ROW_VERSION, MYF(0), m_prebuilt-table-name.m_name); return HA_ALTER_ERROR; } is_valid_row_version 를 체크한다는 것인데\n/* INSTANT can’t be done any more. Fall back to INPLACE. */ 구문이 얘기하는 것처럼\ninstant ddl 은 한 테이블에 대해 최대 64번까지 수행될 수 있고,\n64번을 초과한 경우엔 위에서 본 것 처럼 INSTANT로 수행할 수 없습니다.\n그리고 이 ROW_VERSION 64번을 체크하는 부분이 아래의 is_valid_row_version 함수입니다.\n#0 is_valid_row_version (version=65 'A') at /mysql_source/mysql-8.0.32/storage/innobase/include/dict0mem.h:429 static inline bool is_valid_row_version(const uint8_t version) { /* NOTE : 0 is also a valid row versions for rows which are inserted after upgrading from earlier INSTANT implemenation */ if (version ALTER TABLE instant_test ADD COLUMN t64 VARCHAR(10), ALGORITHM=INSTANT; Query OK, 0 rows affected (0.22 sec) Records: 0 Duplicates: 0 Warnings: 0 mysql SELECT NAME, TOTAL_ROW_VERSIONS - FROM INFORMATION_SCHEMA.INNODB_TABLES WHERE NAME LIKE 'test/instant_test'; +-------------------+--------------------+ | NAME | TOTAL_ROW_VERSIONS | +-------------------+--------------------+ | test/instant_test | 64 | +-------------------+--------------------+ 1 row in set (0.03 sec) mysql ALTER TABLE instant_test ADD COLUMN t65 VARCHAR(10), ALGORITHM=INSTANT; ERROR 4092 (HY000): Maximum row versions reached for table test/instant_test. No more columns can be added or dropped instantly. Please use COPY/INPLACE. 위와 같이 64번까지 instant ddl 을 한 뒤 ,65 번째 DDL에서는 실패하게 됩니다\n단, 이때는 일부러 rebuild를 유발하는 algorithm=inplace DDL을 수행하면 ROW_VERSION 이 초기화가 되어 다시 INSTANT DDL을 64번까지 수행할 수 있습니다\nmysql alter table instant_test add column t65 varchar(10),algorithm=inplace; Query OK, 0 rows affected (0.22 sec) Records: 0 Duplicates: 0 Warnings: 0 mysql SELECT NAME, TOTAL_ROW_VERSIONS FROM INFORMATION_SCHEMA.INNODB_TABLES WHERE NAME LIKE 'test/instant_test'; +-------------------+--------------------+ | NAME | TOTAL_ROW_VERSIONS | +-------------------+--------------------+ | test/instant_test | 0 | +-------------------+--------------------+ 1 row in set (0.19 sec) 초기화 된 이후 또 instant ddl 을 수행해보면, 이때는 is_valid_row_version 을 통과한 것을 확인할 수 있습니다 mysql alter table instant_test add column t66 varchar(10),algorithm=instant; Breakpoint 1, is_valid_row_version (version=1 '\\001') at /mysql_source/mysql-8.0.32/storage/innobase/include/dict0mem.h:429 429\tif (version # 보너스 handler0alter.cc 를 읽다보면 instant ddl 에 대해서 더 많이 알 수 있는데요\n잘 모르지만 눈치껏 코드를 쭉 보면서 번외로 재밌는 내용들을 몇가지 가져와봤습니다.\n 현재 algorithm=instant로 지원하는 DDL   enum class INSTANT_OPERATION { COLUMN_RENAME_ONLY, /*! 무서운 fall back 로직 (중요!)  instant 가 안되면 바로 inplace로 풀리도록 Fallback 로직이 있어서 주의해야합니다 이러한 inplace fallback을 원하지 않고 DDL이 instant 알고리즘으로 풀릴 수 없다면 바로 실패하길 원한다면 항상 DDL구문 뒤에 ,algorithm = ? 을 붙여주는 것이 건강에 이롭습니다 ex) alter table tb_test add column tt int , algorithm=instant; 참고로 inplace가 안되는 것은 COPY로 fallback을 하는 로직이 있습니다.      /* INSTANT can't be done any more. Fall back to INPLACE. */ break; } else if (!Instant_ddl_impl::is_instant_add_drop_possible( ha_alter_info, table, altered_table, m_prebuilt-table)) { if (ha_alter_info-alter_info-requested_algorithm == Alter_info::ALTER_TABLE_ALGORITHM_INSTANT) { /* Return error if either max possible row size already crosses max permissible row size or may cross it after add. */ my_error(ER_INNODB_INSTANT_ADD_DROP_NOT_SUPPORTED_MAX_SIZE, MYF(0)); return HA_ALTER_ERROR; }  일별 파티셔닝하는 테이블은 instant ddl 도 조심해서 수행해야합니다 (중요!)  아래와 같이 테이블의 파티션 여부를 체크하는데 아무리 instant여도 파티션이 많으면 이 부분에서 또 많은 시간을 소모합니다. 경험상 파티션이 천개 이상 쯤 되면 아래부분에서 몇초~수십초는 소요하는데 그 과정에서 쿼리가 모두 metadata lock으로 block되어 실패하게 됩니다.     dict_table_is_partition (table=0xfffe7ca72178) at /mysql_source/mysql-8.0.32/storage/innobase/include/dict0dict.ic:1383 1383\treturn (dict_name::is_partition(table-name.m_name)); (gdb) dict_name::is_partition (dict_name=\"test/instant_test\") at /mysql_source/mysql-8.0.32/storage/innobase/dict/dict0dd.cc:7284 7284\treturn check_partition(dict_name, false, position); dict_name::check_partition (dict_name=\"test/instant_test\", sub_part=false, position=@0xffff9834afd8: 281473235333136) at /mysql_source/mysql-8.0.32/storage/innobase/dict/dict0dd.cc:7200 7200\tposition = dict_name.find(part_sep); dict_name::check_partition (dict_name=\"test/instant_test\", sub_part=false, position=@0xffff9834afd8: 18446744073709551615) at /mysql_source/mysql-8.0.32/storage/innobase/dict/dict0dd.cc:7210 7210\tposition = dict_name.find(alt_sep);  Fulltext index 를 사용하는 테이블은 instant DDL이 안됩니다!  사실 instant 뿐만 아니라 inplace도 안됩니다  이유는 fulltext index를 사용하는 테이블들은 FTS_DOC_ID 라는 히든 필드를 사용하는 것으로 보이는데, 이 동작 관련해서 아직 inplace, instasnt algorithm을 지원하지 않는것으로 보입니다. (뇌피셜)    static bool innobase_fulltext_exist(const TABLE *table) { for (uint i = 0; i s-keys; i++) { if (table-key_info[i].flags \u0026 HA_FULLTEXT) { return (true); } } return (false); } if (key-flags \u0026 HA_FULLTEXT) { assert(!(key-flags \u0026 HA_KEYFLAG_MASK \u0026 ~(HA_FULLTEXT | HA_PACK_KEY | HA_GENERATED_KEY | HA_BINARY_PACK_KEY))); ha_alter_info-unsupported_reason = innobase_get_err_msg(ER_ALTER_OPERATION_NOT_SUPPORTED_REASON_FTS); # 정리  mysql8 (aurora 3 ) 버전 들어오면서 DDL을 처리할 때 기존의 inplace 방식이 아닌 instant alogrithm이 추가 되었다 instasnt 는 기존 inplace 와 달리 데이터 복제, 반영 중 들어온 로그 반영의 과정 없이 metadata 만 수정해버려서 엄청 빠르다  단 이렇게 엄청 좋은 instsant 도 아직은 컬럼 추가 쪽 밖에 지원하지 않고 한 테이블에 대해 최대 64번만 지원된다는 제약이 있으며 ( table rebuild로 초기화 가능)  파티션 테이블, 풀텍스트 인덱스를 사용하면 주의해야 한다 혹여나 작업이 잘못되어 instant 가 inplace 로 fallback 되지 않도록 alter table … , algorithm= ? ,lock=none 구문을 생활화하자  ","wordCount":"2156","inLanguage":"en","datePublished":"2024-07-28T14:27:57+09:00","dateModified":"2024-07-28T14:27:57+09:00","author":{"@type":"Person","name":"kimdubi"},"mainEntityOfPage":{"@type":"WebPage","@id":"/mysql/instant_ddl1/"},"publisher":{"@type":"Organization","name":"kimDuBiA","logo":{"@type":"ImageObject","url":"%3Clink%20/%20abs%20url%3E"}}}</script></head><body id=top><script>if(localStorage.getItem("pref-theme")==="dark"){document.body.classList.add('dark');}else if(localStorage.getItem("pref-theme")==="light"){document.body.classList.remove('dark')}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script><header class=header><nav class=nav><div class=logo><a href accesskey=h title="Hi (Alt + H)">Hi</a>
+<span class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)"><svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg><svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></span></div><ul id=menu><li><a href=/ title=Home><span>Home</span></a></li><li><a href=/categories/ title=categories><span>categories</span></a></li><li><a href=/tags/ title=tags><span>tags</span></a></li></ul></nav></header><main class=main><article class=post-single><header class=post-header><div class=breadcrumbs><a href>Home</a>&nbsp;»&nbsp;<a href=/mysql/>Mysqls</a></div><h1 class=post-title>MySQL INSTANT DDL algorithm에 대해-1</h1><div class=post-meta>July 28, 2024&nbsp;·&nbsp;11 min&nbsp;·&nbsp;kimdubi</div></header><div class=toc><details><summary accesskey=c title="(Alt + C)"><span class=details>Table of Contents</span></summary><div class=inner><ul><li><a href=#%ed%85%8c%ec%8a%a4%ed%8a%b8%eb%b0%b0%ea%b2%bd aria-label=테스트배경>테스트배경</a></li><li><a href=#algorithminplace aria-label="algorithm=inplace">algorithm=inplace</a></li><li><a href=#algorithminstant aria-label="algorithm=instant">algorithm=instant</a></li></ul></div></details></div><div class=post-content><p> </p><h1 id=테스트배경>테스트배경<a hidden class=anchor aria-hidden=true href=#테스트배경>#</a></h1><p>aurora3 (mysql8) 부터는 드디어 컬럼추가할 때, 컬럼 드랍할 때 수행 즉시 완료된다 ! (다른 DDL, index 추가 등은 아직 아닙니다..!)</p><p>기존에는 aurora (mysql 5.7) 에서는 inplace 방식으로 진행되기 때문에 테이블 사이즈에 따라 한참 걸려서 큰 테이블에 대한 컬럼 추가 작업은 어려움이 있었는데 이젠 instant로 바로 반영된다.</p><p>기존 inplace 방식을 간단히 살펴보고, instant 는 어떻게 수행되도록 변경되었는지를 확인해본다</p><h1 id=algorithminplace>algorithm=inplace<a hidden class=anchor aria-hidden=true href=#algorithminplace>#</a></h1><p> 컬럼 추가 기준으로 봤을 때 (인덱스 추가는 조금 다름)</p><ol><li>inplace는 DDL이 반영된 임시테이블을 하나 만들고  </li><li>데이터를 원본테이블에서 읽어서 부어주고,</li><li>DDL반영 중 들어온 변경사항들을 마저 반영해준 뒤,</li><li>메타데이터 락을 획득하여 DML의 추가유입을 막고</li><li>임시테이블과 원본테이블을 바꿔치기 하는 식으로 진행 됩니다. </li></ol><p>DBA가 트래픽이 많은시간, 배치잡이 도는 시간을 피해서 DDL을 수행하려는 이유가 바로 2,3,4번에 있습니다.<br>inplace 의 대략적인 프로세스를 살펴보자면 아래와 같습니다.<br>(2,3 번 과정은 너무 복잡해서 다 이해하지 못하여 생략,,,)</p><pre><code>--------------------------- 1번
+- mysql_alter_table
+    - open_and_process_table
+        - MDL_context::acquire_lock
+        - open_table_get_mdl_lock
+  - create_table_impl
+    - rea_create_base_table
+      - dd::create_table
+  - ha_innobase::check_if_supported_inplace_alter:  COPY 방식인지, INPLACE 방식인지 체크
+  - mysql_inplace_alter_table
+    - MDL_context::upgrade_shared_lock:   다른 DDL이 또 들어오지 않도록 metadata lock을 건다, DML은 가능한 metadata lock 
+
+    - THD_STAGE_INFO(thd, stage_alter_inplace_prepare): prepare 단계로 진입
+    - handler::ha_prepare_inplace_alter_table:
+      - ha_innobase::prepare_inplace_alter_table
+        - ha_innobase::prepare_inplace_alter_table_impl
+            - row_create_table_for_mysql: 임시 테이블 생성
+
+--------------------------- 2번
+    - THD_STAGE_INFO(thd, stage_alter_inplace)
+    - handler::ha_inplace_alter_table
+      - ha_innobase::inplace_alter_table
+        - ha_innobase::inplace_alter_table_impl
+        ------------ 아래 부터는 Primary key 를 읽으면서 기존 데이터 복사 진행
+          - row_merge_build_indexes:   
+            - stage-&gt;begin_phase_read_pk: 
+            - begin_phase_read_pk:
+            - row_merge_read_clustered_index: 
+              - merge_buf[i] = row_merge_buf_create(index[i]): 각 인덱스마다 buffer 생성, innodb_sort_buffer_size로 읽기
+              - row_merge_insert_index_tuples(): 
+                - stage-&gt;begin_phase_insert: srv_stage_alter_table_insert 단계로 진입
+            - end_phase_read_pk: 
+
+--------------------------- 3번
+            - m_stage-&gt;begin_phase_flush
+            - row_merge_write_redo
+            - row_log_apply
+              - stage-&gt;begin_phase_log_index
+              - row_log_apply_ops: row log 적용
+            - if (error == DB_SUCCESS &amp;&amp; ctx-&gt;online &amp;&amp; ctx-&gt;need_rebuild())
+              - row_log_table_apply
+                - stage-&gt;begin_phase_log_table
+
+--------------------------- 4번,5번
+    - wait_while_table_is_used
+      - MDL_context::upgrade_shared_lock
+        - MDL_context::acquire_lock : 커밋 전 MDL_EXCLUSIVE 잠금으로 업그레이드 대기
+    - THD_STAGE_INFO(thd, stage_alter_inplace_commit): DDL ccomit 
+    - handler::ha_commit_inplace_alter_table
+      - ha_innobase::commit_inplace_alter_table
+        - commit_inplace_alter_table_impl
+ - log_ddl-&gt;write_drop_log: commit 완료 후 log drop (3번에서 쓰던 로그 같음)
+    - dd_commit_inplace_alter_table: data dictionary 업데이트
+
+</code></pre><p>그동안 DBA들이 DDL 처리할 때 개발자 분들과 얘기하던 내용들이 조금은 이해되시길 바라며</p><p>DBA들의 이야기를 위 내용과 매칭해보면,,,, </p><ul><li>이 테이블은 사이즈가 커서 좀 오래 걸릴 것 같아요 ->  2번에서 오래걸려서 그렇습니다</li><li>작업하는 동안 쓰기가 많으면 DDL이 좀 더 오래 걸릴 수 있습니다 ->  3번에서 처리할 양이 많아져서 그렇습니다</li><li>테이블 작업 마지막에 metadata lock을 걸 때 잠시 테이블 락이 있을 수 있습니다 ->  4번,5번에서 메타데이터락을 잡습니다</li></ul><p>metadata lock 관련해서 부연설명을 하자면 ,,,,<br>위에서 metadata lock을 처음에 한번, 마지막에 한번 잡는데 종류와 동작 방식이 다릅니다.</p><ul><li>첫번째 metadata lock은 MDL_SHARED_UPGRADABLE 입니다. 이것은 작업 테이블에 다른 DDL이 들어오지 않도록만 할 뿐 DML,select 는 가능합니다 </li></ul><pre><code>table-&gt;mdl_ticket-&gt;downgrade_lock(MDL_SHARED_UPGRADABLE);
+(gdb) p *mdl_ticket
+$3 = {&lt;MDL_wait_for_subgraph&gt; = {_vptr.MDL_wait_for_subgraph = 0x82fe7e0 &lt;vtable for MDL_ticket+16&gt;, static DEADLOCK_WEIGHT_CO = 0, static DEADLOCK_WEIGHT_DML = 25,
+    static DEADLOCK_WEIGHT_ULL = 50, static DEADLOCK_WEIGHT_DDL = 100}, next_in_context = 0xfffe54118710, prev_in_context = 0xfffe54118898, next_in_lock = 0x0,
+  prev_in_lock = 0xfffe540fe998, m_type = MDL_SHARED_UPGRADABLE, m_duration = MDL_TRANSACTION, m_ctx = 0xfffe54001130, m_lock = 0xfffe540fe780, m_is_fast_path = false,
+  m_hton_notified = false, m_psi = 0xffff87a41100}
+</code></pre><ul><li>마지막에 잡는 metadata lock은 EXCLUSIVE입니다. 모든 쿼리를 block 하는데 그동안 재빨리 바꿔치기를 하기 위함으로, DDL 마지막에 쿼리가 실패할 수 있다고 말하게 되는 범인입니다</li></ul><pre><code>#1  0x0000000003a080c0 in MDL_context::upgrade_shared_lock (this=0xfffe54001130, mdl_ticket=0xfffe54106170, new_type=MDL_EXCLUSIVE, lock_wait_timeout=60)
+    at /mysql_source/mysql-8.0.32/sql/mdl.cc:3756
+        mdl_new_lock_request = {type = MDL_EXCLUSIVE, duration = MDL_TRANSACTION, next_in_list = 0x0, prev_in_list = 0x0, ticket = 0x0, key = {m_length = 19, m_db_name_length = 4,
+            m_object_name_length = 12, m_ptr = &quot;\004test\000instant_test&quot;, '\000' &lt;repeats 368 times&gt;, static m_namespace_to_wait_state_name = {{m_key = 102,
+MDL_context::upgrade_shared_lock (this=0xfffe54001130, mdl_ticket=0xfffe54106170, new_type=MDL_EXCLUSIVE, lock_wait_timeout=60) at /mysql_source/mysql-8.0.32/sql/mdl.cc:3758
+3758	  is_new_ticket = !has_lock(mdl_svp, mdl_new_lock_request.ticket);
+</code></pre><p>여기까지 기존에 활용되던 inplace 방식의 DDL을 살펴보았습니다.</p><p>사실 inplace의 의미를 곰곰이 생각해보면 Inplace 라면 테이블 교체없이 이뤄져야 하는 거 아니냐 싶은데요</p><p>위 과정을 좀 더 자세하게 살펴보면, 아래에서 볼 수 있듯이 기존 테이블인 0xfffe58ab2ce0 가 old_table이 되고 altered_table인 0xfffe58ac87c0 가 new_table이 되는 것을 볼 수 있습니다.</p><p>altered table 인 0xfffe58ac87c0 은 &lsquo;test.#sql-1285_7&rsquo; 라는 이름으로 생성된 것 또한 확인할 수 있습니다.  </p><pre><code>17404	    if (use_inplace) {
+17405	      if (mysql_inplace_alter_table(thd, *schema, *new_schema, old_table_def,
+17406	                                    table_def, table_list, table, altered_table,
+17407	                                    &amp;ha_alter_info, inplace_supported,
+17408	                                    &amp;alter_ctx, columns, fk_key_info,
+17409	                                    fk_key_count, &amp;fk_invalidator)) {
+(gdb) p table
+$2 = (TABLE *) 0xfffe58ab2ce0
+(gdb) p altered_table
+$3 = (TABLE *) 0xfffe58ac87c0      ======&gt; 기존 테이블과 altered table이 다름
+
+altered_table = 0xfffe58ac87c0
+use_inplace = true
+inplace_supported = HA_ALTER_INPLACE_NO_LOCK_AFTER_PREPARE
+
+#0  row_create_table_for_mysql (table=@0xfffe58ac7f08: 0xfffe5817a128, compression=0x0, create_info=0xffff8714ec68, trx=0xffff8d7b4ff8, heap=0x0)
+    at /mysql_source/mysql-8.0.32/storage/innobase/row/row0mysql.cc:2768
+#1  0x0000000004af20c4 in prepare_inplace_alter_table_dict&lt;dd::Table&gt; (ha_alter_info=0xffff8714c280, altered_table=0xfffe58ac87c0,
+    old_table=0xfffe58ab2ce0, old_dd_tab=0xfffe58ab42e0, new_dd_tab=0xfffe5817ac60, table_name=0xfffe58154a75 &quot;instant_test&quot;, flags=33, flags2=16,
+    fts_doc_id_col=18446744073709551615, add_fts_doc_id=false, add_fts_doc_id_idx=false)
+    at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:4802
+#2  0x0000000004b03d88 in ha_innobase::prepare_inplace_alter_table_impl&lt;dd::Table&gt; (this=0xfffe58abf560, altered_table=0xfffe58ac87c0,
+    ha_alter_info=0xffff8714c280, old_dd_tab=0xfffe58ab42e0, new_dd_tab=0xfffe5817ac60)
+    at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:6047
+#3  0x0000000004ade7e4 in ha_innobase::prepare_inplace_alter_table (this=0xfffe58abf560, altered_table=0xfffe58ac87c0, ha_alter_info=0xffff8714c280,
+    old_dd_tab=0xfffe58ab42e0, new_dd_tab=0xfffe5817ac60) at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:1446
+#4  0x00000000037bc924 in handler::ha_prepare_inplace_alter_table (this=0xfffe58abf560, altered_table=0xfffe58ac87c0, ha_alter_info=0xffff8714c280,
+    old_table_def=0xfffe58ab42e0, new_table_def=0xfffe5817ac60) at /mysql_source/mysql-8.0.32/sql/handler.cc:4846
+#5  0x00000000034e14bc in mysql_inplace_alter_table (thd=0xfffe58000da0, schema=..., new_schema=..., table_def=0xfffe58ab42e0,
+    altered_table_def=0xfffe5817ac60, table_list=0xfffe58ac1a88, table=0xfffe58ab2ce0, altered_table=0xfffe58ac87c0, ha_alter_info=0xffff8714c280,
+    inplace_supported=HA_ALTER_INPLACE_NO_LOCK_AFTER_PREPARE, alter_ctx=0xffff8714d170, columns=std::set with 0 elements,
+    fk_key_info=0xfffe58ac7350, fk_key_count=0, fk_invalidator=0xffff8714d0a8) at /mysql_source/mysql-8.0.32/sql/sql_table.cc:13408
+
+T@7: dd_table_share.cc: | | | | | | | &lt;open_table_def
+T@7:       table.cc:  2880: | | | | | | | &gt;open_table_from_share
+T@7:       table.cc:  2881: | | | | | | | | enter: name: 'test.#sql-1285_7'  form: 0xfffe58ac87c0     ======&gt; 위에서 봤던 altered_table , 여기로 데이터를 복사한뒤 마지막에 바꿔치기를 한다
+</code></pre><p>그리고 좀 더 확실하게 보기 위해 이 테이블에 대해 또 inplace ddl을 하면,,,,</p><p>위에선 altered_table 이자 new table이었던 0xfffe58ac87c0 테이블이 이제는 old_table이 된것을 볼 수 있습니다  </p><pre><code>(gdb) p table
+$5 = (TABLE *) 0xfffe58ac87c0
+(gdb) p altered_table
+$6 = (TABLE *) 0xfffe58a9ecd0
+(gdb) bt
+#0  mysql_inplace_alter_table (thd=0xfffe58000da0, schema=..., new_schema=..., table_def=0xfffe58ae3780, altered_table_def=0xfffe58ac9430,
+    table_list=0xfffe58c5d3e8, table=0xfffe58ac87c0, altered_table=0xfffe58a9ecd0, ha_alter_info=0xffff8714c280,
+    inplace_supported=HA_ALTER_INPLACE_NO_LOCK_AFTER_PREPARE, alter_ctx=0xffff8714d170, columns=std::set with 0 elements,
+    fk_key_info=0xfffe58c601d8, fk_key_count=0, fk_invalidator=0xffff8714d0a8) at /mysql_source/mysql-8.0.32/sql/sql_table.cc:13208
+
+
+#0  row_create_table_for_mysql (table=@0xfffe58c3c018: 0xfffe5817aa18, compression=0x0, create_info=0xffff8714ec68, trx=0xffff8d7b4ff8, heap=0x0)
+    at /mysql_source/mysql-8.0.32/storage/innobase/row/row0mysql.cc:2734
+#1  0x0000000004af20c4 in prepare_inplace_alter_table_dict&lt;dd::Table&gt; (ha_alter_info=0xffff8714c280, altered_table=0xfffe58a9ecd0,
+    old_table=0xfffe58ac87c0, old_dd_tab=0xfffe58ae3780, new_dd_tab=0xfffe58ac9430, table_name=0xfffe58154a75 &quot;instant_test&quot;, flags=33, flags2=16,
+    fts_doc_id_col=18446744073709551615, add_fts_doc_id=false, add_fts_doc_id_idx=false)
+    at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:4802
+#2  0x0000000004b03d88 in ha_innobase::prepare_inplace_alter_table_impl&lt;dd::Table&gt; (this=0xfffe58c60dd0, altered_table=0xfffe58a9ecd0,
+    ha_alter_info=0xffff8714c280, old_dd_tab=0xfffe58ae3780, new_dd_tab=0xfffe58ac9430)
+    at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:6047
+#3  0x0000000004ade7e4 in ha_innobase::prepare_inplace_alter_table (this=0xfffe58c60dd0, altered_table=0xfffe58a9ecd0, ha_alter_info=0xffff8714c280,
+    old_dd_tab=0xfffe58ae3780, new_dd_tab=0xfffe58ac9430) at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:1446
+#4  0x00000000037bc924 in handler::ha_prepare_inplace_alter_table (this=0xfffe58c60dd0, altered_table=0xfffe58a9ecd0, ha_alter_info=0xffff8714c280,
+    old_table_def=0xfffe58ae3780, new_table_def=0xfffe58ac9430) at /mysql_source/mysql-8.0.32/sql/handler.cc:4846
+#5  0x00000000034e14bc in mysql_inplace_alter_table (thd=0xfffe58000da0, schema=..., new_schema=..., table_def=0xfffe58ae3780,
+    altered_table_def=0xfffe58ac9430, table_list=0xfffe58c5d3e8, table=0xfffe58ac87c0, altered_table=0xfffe58a9ecd0, ha_alter_info=0xffff8714c280,
+    inplace_supported=HA_ALTER_INPLACE_NO_LOCK_AFTER_PREPARE, alter_ctx=0xffff8714d170, columns=std::set with 0 elements,
+    fk_key_info=0xfffe58c601d8, fk_key_count=0, fk_invalidator=0xffff8714d0a8) at /mysql_source/mysql-8.0.32/sql/sql_table.cc:13408
+#6  0x00000000034ec82c in mysql_alter_table (thd=0xfffe58000da0, new_db=0xfffe58c5da38 &quot;test&quot;, new_name=0x0, create_info=0xffff8714ec68,
+    table_list=0xfffe58c5d3e8, alter_info=0xffff8714eb00) at /mysql_source/mysql-8.0.32/sql/sql_table.cc:17405
+
+T@7: dd_table_share.cc: | | | | | | | &lt;open_table_def
+T@7:       table.cc:  2880: | | | | | | | &gt;open_table_from_share
+T@7:       table.cc:  2881: | | | | | | | | enter: name: 'test.#sql-1285_7'  form: 0xfffe58a9ecd0
+</code></pre><h1 id=algorithminstant>algorithm=instant<a hidden class=anchor aria-hidden=true href=#algorithminstant>#</a></h1><p>instant 방식은 훨씬 간단합니다. (방식은 간단한데, 디버깅은 더 어려운 것 같습니다)</p><p>inplace 처럼 복잡한 과정 없이 INSTANT로 실행될 수 있는 DDL인지 확인 후 메타데이터 변경만 하기 때문에 기존데이터 복사 등의 과정이 없습니다.</p><p>(간단하지만 metadata 쪽 처리 관련해서 뭔가 큰것이 있는 것 같은데 내용이 너무 많아 생략했습니다)</p><pre><code>--------------------------- 1번
+mysql_alter_table
+    open_and_process_table
+        open_table
+           MDL_context::acquire_lock 
+           open_table_get_mdl_lock
+    check_if_supported_inplace_alter : 
+    mysql_inplace_alter_table
+        THD_STAGE_INFO(thd, stage_alter_inplace_prepare)
+        handler::ha_prepare_inplace_alter_table 
+          ha_innobase::prepare_inplace_alter_table
+            ha_innobase::prepare_inplace_alter_table_impl 
+              if (...is_instant(ha_alter_info)) : instant algorithm이라면 exit 
+        THD_STAGE_INFO(thd, stage_alter_inplace)
+        handler::ha_inplace_alter_table 
+          ha_innobase::inplace_alter_table
+            ha_innobase::inplace_alter_table_impl
+              if (!(ha_alter_info-&gt;handler_flags &amp; INNOBASE_ALTER_DATA) ||is_instant(ha_alter_info)) :   instant algorithm이라면 exit  
+
+--------------------------- 2번
+        wait_while_table_is_used 
+          MDL_context::upgrade_shared_lock
+            MDL_context::acquire_lock 
+        THD_STAGE_INFO(thd, stage_alter_inplace_commit)
+        handler::ha_commit_inplace_alter_table 
+          ha_innobase::commit_inplace_alter_table
+            commit_inplace_alter_table_impl
+              if (!(ha_alter_info-&gt;handler_flags &amp; INNOBASE_ALTER_DATA) ||is_instant(ha_alter_info))   :  instant algorithm이라면 exit  
+            dd_commit_inplace_instant // instance ddl 
+              switch (type) // 
+                dd_copy_private(*new_dd_tab, *old_dd_tab); 
+                dd_commit_instant_table 
+                  dd_copy_table_columns
+                  dd_add_instant_columns 
+                  dd_update_v_cols
+</code></pre><p>inplace 방식과 비교하면 훨씬 간단해진 것을 확인할 수 있습니다.</p><p>특히 기존 데이터 복제, DDL 중 들어온 로그에 대해 sync하는 부분들이 모두 없어졌습니다.</p><p>아래처럼 instant 로 풀릴 수 있는 DDL인지를 확인한 뒤 </p><pre><code>1028	  Instant_Type instant_type = innobase_support_instant(
+1029	      ha_alter_info, m_prebuilt-&gt;table, this-&gt;table, altered_table);
+1030
+1031	  ha_alter_info-&gt;handler_trivial_ctx =
+1032	      instant_type_to_int(Instant_Type::INSTANT_IMPOSSIBLE);
+1033
+1034	  if (!dict_table_is_partition(m_prebuilt-&gt;table)) {
+1035	    switch (instant_type) {
+1036	      case Instant_Type::INSTANT_IMPOSSIBLE:
+
+
+(gdb) p alter_info-&gt;requested_algorithm
+$2 = Alter_info::ALTER_TABLE_ALGORITHM_INSTANT
+
+(gdb) p  instant_type
+$30 = INSTANT_ADD_DROP_COLUMN
+</code></pre><p>중간 중간 아래와 같은 로직을 거치면서<br>inplace 에서는 해야할 처리들(기존 데이터 복제, DDL 중 들어온 데이터 싱크) 을 안하고 바로 ok_exit 해버리면서 과정이 훨씬 간소화되었습니다  </p><pre><code>template &lt; typename Table&gt;
+ bool ha_innobase::inplace_alter_table_impl(TABLE *altered_table,
+                                           Alter_inplace_info *ha_alter_info,
+                                           const Table *old_dd_tab,
+                                           표 *new_dd_tab) {
+  // ... 
+  if (!(ha_alter_info-&gt;handler_flags &amp; INNOBASE_ALTER_DATA) ||
+      is_instant (ha_alter_info)) {
+  ok_exit :
+    DEBUG_SYNC(m_user_thd, &quot;innodb_after_inplace_alter_table&quot; );
+    DBUG_RETURN ( false );
+  }
+</code></pre><p>다만 한가지 꼭 유의할 점은, 
+위 1번 과정 중  check_if_supported_inplace_alter를 자세하게 확인해보면</p><pre><code>#1  0x0000000004add930 in ha_innobase::check_if_supported_inplace_alter (this=0xfffe3ca9f260, altered_table=0xfffe3cb124c0,
+    ha_alter_info=0xffff682c8280) at /mysql_source/mysql-8.0.32/storage/innobase/handler/handler0alter.cc:1053
+        _db_trace = {m_stack_frame = {
+            func = 0x614fbbd &quot;mysql_alter_table(THD*, const char*, const char*, HA_CREATE_INFO*, Table_ref*, Alter_info*)&quot;, func_len = 17,
+            file = 0x614ae90 &quot;/mysql_source/mysql-8.0.32/sql/sql_table.cc&quot;, level = 2147483655, prev = 0xffff682ca168}}
+        __PRETTY_FUNCTION__ = &quot;virtual enum_alter_inplace_result ha_innobase::check_if_supported_inplace_alter(TABLE*, Alter_inplace_info*)&quot;
+        old_encryption = 0xfffe3c117990 &quot;N&quot;
+        new_encryption = 0xfffe3cb153b0 &quot;N&quot;
+        instant_type = INSTANT_ADD_DROP_COLUMN
+        add_drop_v_cols = false
+        online = false
+        cf_it = {&lt;base_list_iterator&gt; = {list = 0x48f0bac &lt;native_rw_unlock(native_rw_lock_t*)+20&gt;, el = 0xffff682cabe0, prev = 0xffff682c80e0,
+            current = 0xffff682c80a0}, &lt;No data fields&gt;}
+.
+.
+.
+
+          /* INSTANT can't be done any more. Fall back to INPLACE. */
+          break;
+        } else if (!is_valid_row_version(
+                       m_prebuilt-&gt;table-&gt;current_row_version + 1)) {
+          ut_ad(is_valid_row_version(m_prebuilt-&gt;table-&gt;current_row_version));
+          if (ha_alter_info-&gt;alter_info-&gt;requested_algorithm ==
+              Alter_info::ALTER_TABLE_ALGORITHM_INSTANT) {
+            my_error(ER_INNODB_MAX_ROW_VERSION, MYF(0),
+                     m_prebuilt-&gt;table-&gt;name.m_name);
+            return HA_ALTER_ERROR;
+          }
+
+
+</code></pre><p>is_valid_row_version 를 체크한다는 것인데<br>/* INSTANT can&rsquo;t be done any more. Fall back to INPLACE. */ 구문이 얘기하는 것처럼<br>instant ddl 은 한 테이블에 대해 최대 64번까지 수행될 수 있고,<br>64번을 초과한 경우엔  위에서 본 것 처럼 INSTANT로 수행할 수 없습니다.</p><p>그리고 이 ROW_VERSION 64번을 체크하는 부분이 아래의 is_valid_row_version 함수입니다.</p><pre><code>#0  is_valid_row_version (version=65 'A') at /mysql_source/mysql-8.0.32/storage/innobase/include/dict0mem.h:429
+
+	static inline bool is_valid_row_version(const uint8_t version) {
+	  /* NOTE : 0 is also a valid row versions for rows which are inserted after
+	  upgrading from earlier INSTANT implemenation */
+	  if (version &lt;= MAX_ROW_VERSION) {
+	    return true;
+	  }
+
+	  return false;
+
+(gdb) p version
+$1 = 65
+
+(gdb) p MAX_ROW_VERSION
+$1 = 64 '@'
+
+(gdb) s
+433	  return false;
+
+
+
+
+
+mysql&gt; ALTER TABLE instant_test ADD COLUMN t64 VARCHAR(10), ALGORITHM=INSTANT;
+Query OK, 0 rows affected (0.22 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+mysql&gt; SELECT NAME, TOTAL_ROW_VERSIONS
+    -&gt; FROM INFORMATION_SCHEMA.INNODB_TABLES WHERE NAME LIKE 'test/instant_test';
++-------------------+--------------------+
+| NAME              | TOTAL_ROW_VERSIONS |
++-------------------+--------------------+
+| test/instant_test |                 64 |
++-------------------+--------------------+
+1 row in set (0.03 sec)
+
+mysql&gt; ALTER TABLE instant_test ADD COLUMN t65 VARCHAR(10), ALGORITHM=INSTANT;
+ERROR 4092 (HY000): Maximum row versions reached for table test/instant_test. No more columns can be added or dropped instantly. Please use COPY/INPLACE.
+
+</code></pre><p>위와 같이 64번까지 instant ddl 을 한 뒤 ,65 번째 DDL에서는 실패하게 됩니다</p><p>단, 이때는 일부러 rebuild를 유발하는 algorithm=inplace  DDL을 수행하면 ROW_VERSION 이 초기화가 되어 다시 INSTANT DDL을 64번까지 수행할 수 있습니다</p><pre><code>mysql&gt; alter table instant_test add column t65 varchar(10),algorithm=inplace;
+Query OK, 0 rows affected (0.22 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+
+mysql&gt; SELECT NAME, TOTAL_ROW_VERSIONS   FROM INFORMATION_SCHEMA.INNODB_TABLES WHERE NAME LIKE 'test/instant_test';
++-------------------+--------------------+
+| NAME              | TOTAL_ROW_VERSIONS |
++-------------------+--------------------+
+| test/instant_test |                  0 |
++-------------------+--------------------+
+1 row in set (0.19 sec)
+
+</code></pre><p>초기화 된 이후 또 instant ddl 을 수행해보면, 이때는 is_valid_row_version 을 통과한 것을 확인할  수 있습니다 </p><pre><code>mysql&gt; alter table instant_test add column t66 varchar(10),algorithm=instant;
+
+
+Breakpoint 1, is_valid_row_version (version=1 '\001') at /mysql_source/mysql-8.0.32/storage/innobase/include/dict0mem.h:429
+429	  if (version &lt;= MAX_ROW_VERSION) {
+
+(gdb) p version
+$1 = 1 '\001'
+
+(gdb) s
+430	    return true;
+
+</code></pre><p>#  보너스 </p><p>handler0alter.cc 를 읽다보면 instant ddl 에 대해서 더 많이 알 수 있는데요<br>잘 모르지만 눈치껏 코드를 쭉 보면서 번외로  재밌는 내용들을 몇가지 가져와봤습니다.</p><ul><li>현재 algorithm=instant로 지원하는 DDL</li></ul><pre><code>  enum class INSTANT_OPERATION {
+    COLUMN_RENAME_ONLY,           /*!&lt; Only column RENAME */
+    VIRTUAL_ADD_DROP_ONLY,        /*!&lt; Only virtual column ADD AND DROP */
+    VIRTUAL_ADD_DROP_WITH_RENAME, /*!&lt; Virtual column ADD/DROP with RENAME */
+    INSTANT_ADD,  /*&lt; INSTANT ADD possibly with virtual column ADD and
+                     column RENAME */
+    INSTANT_DROP, /*|&lt; INSTANT DROP possibly with virtual column ADD/DROP and
+                    column RENAME */
+    NONE
+  };
+</code></pre><ul><li>무서운 fall back 로직  (중요!)<ul><li>instant 가 안되면 바로 inplace로 풀리도록 Fallback 로직이 있어서 주의해야합니다</li><li>이러한 inplace fallback을 원하지 않고 DDL이 instant 알고리즘으로 풀릴 수 없다면 바로 실패하길 원한다면 항상 DDL구문 뒤에 ,algorithm = ? 을 붙여주는 것이 건강에 이롭습니다</li><li>ex) alter table tb_test add column tt int , algorithm=instant;</li><li>참고로 inplace가 안되는 것은 COPY로 fallback을 하는 로직이 있습니다. </li></ul></li></ul><pre><code>        /* INSTANT can't be done any more. Fall back to INPLACE. */
+        break;
+      } else if (!Instant_ddl_impl&lt;dd::Table&gt;::is_instant_add_drop_possible(
+                     ha_alter_info, table, altered_table, m_prebuilt-&gt;table)) {
+        if (ha_alter_info-&gt;alter_info-&gt;requested_algorithm ==
+            Alter_info::ALTER_TABLE_ALGORITHM_INSTANT) {
+          /* Return error if either max possible row size already crosses max
+          permissible row size or may cross it after add. */
+          my_error(ER_INNODB_INSTANT_ADD_DROP_NOT_SUPPORTED_MAX_SIZE, MYF(0));
+          return HA_ALTER_ERROR;
+        }
+
+</code></pre><ul><li>일별 파티셔닝하는 테이블은 instant ddl 도 조심해서 수행해야합니다  (중요!)<ul><li>아래와 같이 테이블의 파티션 여부를 체크하는데 아무리 instant여도 파티션이 많으면 이 부분에서 또 많은 시간을 소모합니다.</li><li>경험상 파티션이 천개 이상 쯤 되면 아래부분에서 몇초~수십초는 소요하는데 그 과정에서 쿼리가 모두 metadata lock으로 block되어 실패하게 됩니다.</li></ul></li></ul><pre><code> dict_table_is_partition (table=0xfffe7ca72178) at /mysql_source/mysql-8.0.32/storage/innobase/include/dict0dict.ic:1383
+1383	  return (dict_name::is_partition(table-&gt;name.m_name));
+(gdb)
+dict_name::is_partition (dict_name=&quot;test/instant_test&quot;) at /mysql_source/mysql-8.0.32/storage/innobase/dict/dict0dd.cc:7284
+7284	  return check_partition(dict_name, false, position);
+dict_name::check_partition (dict_name=&quot;test/instant_test&quot;, sub_part=false, position=@0xffff9834afd8: 281473235333136) at /mysql_source/mysql-8.0.32/storage/innobase/dict/dict0dd.cc:7200
+7200	  position = dict_name.find(part_sep);
+dict_name::check_partition (dict_name=&quot;test/instant_test&quot;, sub_part=false, position=@0xffff9834afd8: 18446744073709551615) at /mysql_source/mysql-8.0.32/storage/innobase/dict/dict0dd.cc:7210
+7210	  position = dict_name.find(alt_sep);
+
+
+</code></pre><ul><li>Fulltext index 를 사용하는 테이블은 instant DDL이 안됩니다!<ul><li>사실 instant 뿐만 아니라 inplace도 안됩니다 </li><li>이유는 fulltext index를 사용하는 테이블들은 FTS_DOC_ID 라는 히든 필드를 사용하는 것으로 보이는데, 이 동작 관련해서 아직 inplace, instasnt algorithm을 지원하지 않는것으로 보입니다. (뇌피셜)</li></ul></li></ul><pre><code>static bool innobase_fulltext_exist(const TABLE *table) {
+  for (uint i = 0; i &lt; table-&gt;s-&gt;keys; i++) {
+    if (table-&gt;key_info[i].flags &amp; HA_FULLTEXT) {
+      return (true);
+    }
+  }
+
+  return (false);
+}
+
+      if (key-&gt;flags &amp; HA_FULLTEXT) {
+        assert(!(key-&gt;flags &amp; HA_KEYFLAG_MASK &amp;
+                 ~(HA_FULLTEXT | HA_PACK_KEY | HA_GENERATED_KEY |
+                   HA_BINARY_PACK_KEY)));
+        ha_alter_info-&gt;unsupported_reason =
+            innobase_get_err_msg(ER_ALTER_OPERATION_NOT_SUPPORTED_REASON_FTS);
+
+</code></pre><p># 정리 </p><ul><li>mysql8 (aurora 3 ) 버전 들어오면서 DDL을 처리할 때 기존의 inplace 방식이 아닌 instant alogrithm이 추가 되었다</li><li>instasnt 는 기존 inplace 와 달리 데이터 복제, 반영 중 들어온 로그 반영의 과정 없이 metadata 만 수정해버려서 엄청 빠르다 </li><li>단 이렇게 엄청 좋은 instsant 도 아직은 컬럼 추가 쪽 밖에 지원하지 않고</li><li>한 테이블에 대해 최대 64번만 지원된다는 제약이 있으며 ( table rebuild로 초기화 가능) </li><li>파티션 테이블, 풀텍스트 인덱스를 사용하면 주의해야 한다</li><li>혹여나 작업이 잘못되어 instant 가  inplace 로 fallback 되지 않도록 alter table &mldr; , algorithm= ? ,lock=none 구문을 생활화하자</li></ul></div><footer class=post-footer><ul class=post-tags><li><a href=/tags/mysql/>mysql</a></li><li><a href=/tags/ddl/>ddl</a></li><li><a href=/tags/gdb/>gdb</a></li></ul><nav class=paginav><a class=prev href=/mysql/instant_ddl2/><span class=title>« Prev Page</span><br><span>MySQL INSTANT DDL algorithm에 대해-2</span></a>
+<a class=next href=/mysql/view/><span class=title>Next Page »</span><br><span>MySQL 내가 만든 view가 느리다면..</span></a></nav></footer><div id=disqus_thread></div><script type=text/javascript>(function(){if(window.location.hostname=="localhost")
+return;var dsq=document.createElement('script');dsq.type='text/javascript';dsq.async=true;var disqus_shortname='kimdubia';dsq.src='//'+disqus_shortname+'.disqus.com/embed.js';(document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(dsq);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com/ class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></main><footer class=footer><span>&copy; 2024 <a href>kimDuBiA</a></span>
+<span>Powered by
+<a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
+        <a href=https://git.io/hugopapermod rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentcolor"><path d="M12 6H0l6-6z"/></svg></a><script>let menu=document.getElementById('menu')
+menu.scrollLeft=localStorage.getItem("menu-scroll-position");menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft);}
+document.querySelectorAll('a[href^="#"]').forEach(anchor=>{anchor.addEventListener("click",function(e){e.preventDefault();var id=this.getAttribute("href").substr(1);if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({behavior:"smooth"});}else{document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();}
+if(id==="top"){history.replaceState(null,null," ");}else{history.pushState(null,null,`#${id}`);}});});</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){if(document.body.scrollTop>800||document.documentElement.scrollTop>800){mybutton.style.visibility="visible";mybutton.style.opacity="1";}else{mybutton.style.visibility="hidden";mybutton.style.opacity="0";}};</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{if(document.body.className.includes("dark")){document.body.classList.remove('dark');localStorage.setItem("pref-theme",'light');}else{document.body.classList.add('dark');localStorage.setItem("pref-theme",'dark');}})</script><script>document.querySelectorAll('pre > code').forEach((codeblock)=>{const container=codeblock.parentNode.parentNode;const copybutton=document.createElement('button');copybutton.classList.add('copy-code');copybutton.innerText='copy';function copyingDone(){copybutton.innerText='copied!';setTimeout(()=>{copybutton.innerText='copy';},2000);}
+copybutton.addEventListener('click',(cb)=>{if('clipboard'in navigator){navigator.clipboard.writeText(codeblock.textContent);copyingDone();return;}
+const range=document.createRange();range.selectNodeContents(codeblock);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);try{document.execCommand('copy');copyingDone();}catch(e){};selection.removeRange(range);});if(container.classList.contains("highlight")){container.appendChild(copybutton);}else if(container.parentNode.firstChild==container){}else if(codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"){codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);}else{codeblock.parentNode.appendChild(copybutton);}});</script></body></html>

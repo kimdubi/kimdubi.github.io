@@ -4,12 +4,62 @@
   
   <url>
     <loc>/categories/</loc>
-    <lastmod>2022-11-04T12:51:36+09:00</lastmod>
+    <lastmod>2024-07-28T14:28:05+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/tags/ddl/</loc>
+    <lastmod>2024-07-28T14:28:05+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/tags/gdb/</loc>
+    <lastmod>2024-07-28T14:28:05+09:00</lastmod>
   </url>
   
   <url>
     <loc>/</loc>
-    <lastmod>2022-11-04T12:51:36+09:00</lastmod>
+    <lastmod>2024-07-28T14:28:05+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/categories/mysql/</loc>
+    <lastmod>2024-07-28T14:28:05+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/tags/mysql/</loc>
+    <lastmod>2024-07-28T14:28:05+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/mysql/ddl_failcase/</loc>
+    <lastmod>2024-07-28T14:28:05+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/mysql/</loc>
+    <lastmod>2024-07-28T14:28:05+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/tags/</loc>
+    <lastmod>2024-07-28T14:28:05+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/mysql/instant_ddl2/</loc>
+    <lastmod>2024-07-28T14:28:00+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/mysql/instant_ddl1/</loc>
+    <lastmod>2024-07-28T14:27:57+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/mysql/view/</loc>
+    <lastmod>2024-07-28T14:27:43+09:00</lastmod>
   </url>
   
   <url>
@@ -29,11 +79,6 @@
   
   <url>
     <loc>/postgresql/</loc>
-    <lastmod>2022-11-04T12:51:36+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/tags/</loc>
     <lastmod>2022-11-04T12:51:36+09:00</lastmod>
   </url>
   
@@ -78,22 +123,7 @@
   </url>
   
   <url>
-    <loc>/categories/mysql/</loc>
-    <lastmod>2022-09-04T15:05:50+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/tags/mysql/</loc>
-    <lastmod>2022-09-04T15:05:50+09:00</lastmod>
-  </url>
-  
-  <url>
     <loc>/mysql/innodb_stats/</loc>
-    <lastmod>2022-09-04T15:05:50+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/mysql/</loc>
     <lastmod>2022-09-04T15:05:50+09:00</lastmod>
   </url>
   
@@ -675,11 +705,6 @@
   <url>
     <loc>/mysql/restore_specific_table/</loc>
     <lastmod>2021-10-04T19:03:39+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/tags/ddl/</loc>
-    <lastmod>2021-10-04T18:57:20+09:00</lastmod>
   </url>
   
   <url>

@@ -9,7 +9,34 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Fri, 04 Nov 2022 12:51:36 +0900</lastBuildDate><atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 28 Jul 2024 14:28:05 +0900</lastBuildDate><atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ddl</title>
+      <link>/tags/ddl/</link>
+      <pubDate>Sun, 28 Jul 2024 14:28:05 +0900</pubDate>
+      
+      <guid>/tags/ddl/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>gdb</title>
+      <link>/tags/gdb/</link>
+      <pubDate>Sun, 28 Jul 2024 14:28:05 +0900</pubDate>
+      
+      <guid>/tags/gdb/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>mysql</title>
+      <link>/tags/mysql/</link>
+      <pubDate>Sun, 28 Jul 2024 14:28:05 +0900</pubDate>
+      
+      <guid>/tags/mysql/</guid>
+      <description></description>
+    </item>
+    
     <item>
       <title>postgresql</title>
       <link>/tags/postgresql/</link>
@@ -25,15 +52,6 @@
       <pubDate>Sun, 04 Sep 2022 15:21:10 +0900</pubDate>
       
       <guid>/tags/redis/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>mysql</title>
-      <link>/tags/mysql/</link>
-      <pubDate>Sun, 04 Sep 2022 15:05:50 +0900</pubDate>
-      
-      <guid>/tags/mysql/</guid>
       <description></description>
     </item>
     
@@ -241,15 +259,6 @@
       <pubDate>Mon, 04 Oct 2021 20:45:34 +0900</pubDate>
       
       <guid>/tags/mysql8/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>DDL</title>
-      <link>/tags/ddl/</link>
-      <pubDate>Mon, 04 Oct 2021 18:57:20 +0900</pubDate>
-      
-      <guid>/tags/ddl/</guid>
       <description></description>
     </item>
     

@@ -1,0 +1,443 @@
+<!doctype html><html lang=en dir=auto><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>MySQL 내가 만든 view가 느리다면.. | kimDuBiA</title><meta name=keywords content="mysql,gdb,ddl"><meta name=description content="테스트배경 개발자분 요청으로 view 를 생성하였는데 view 를 실행할 때와 native sql query를 각각 날렸을 때 성능이 확연히 차이가 난다는 개발자분의 제보,,,,
+확인해보니 view를 수행할때와 view를 구성하는 sql query를 직접 수행할 떄와 플랜이 달랐다
+native sql query과는 달리 view를 수행할 때는 derived table로 풀리고 있다
+view로 생성할 땐 왜 이런 이상한 현상이 발생하는지 디버깅을 해보기로함
+view가 아닌 native query plan +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+ | id | select_type | table | partitions | type | possible_keys | key | key_len | ref | rows | filtered | Extra | +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+ | 1 | PRIMARY | a | NULL | ALL | NULL | NULL | NULL | NULL | 9086 | 100."><meta name=author content="kimdubi"><link rel=canonical href=/mysql/view/><meta name=google-site-verification content="XYZabc"><meta name=yandex-verification content="XYZabc"><meta name=msvalidate.01 content="XYZabc"><link crossorigin=anonymous href=/assets/css/stylesheet.min.2dbef8664bbfb3e83a0a44fd4a8fc5010240dbcd1dbc1400753b928b497b8f5e.css integrity="sha256-Lb74Zku/s+g6CkT9So/FAQJA280dvBQAdTuSi0l7j14=" rel="preload stylesheet" as=style><script defer crossorigin=anonymous src=/assets/js/highlight.min.27cd435cc9ed6abb4b496581b151804f79f366c412620272bb94e2f5f598ebcc.js integrity="sha256-J81DXMntartLSWWBsVGAT3nzZsQSYgJyu5Ti9fWY68w=" onload=hljs.initHighlightingOnLoad();></script><link rel=icon href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=16x16 href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=32x32 href=%3Clink%20/%20abs%20url%3E><link rel=apple-touch-icon href=%3Clink%20/%20abs%20url%3E><link rel=mask-icon href=%3Clink%20/%20abs%20url%3E><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><meta name=generator content="Hugo 0.80.0"><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme: rgb(29, 30, 32);--entry: rgb(46, 46, 51);--primary: rgb(218, 218, 219);--secondary: rgb(155, 156, 157);--tertiary: rgb(65, 66, 68);--content: rgb(196, 196, 197);--hljs-bg: rgb(46, 46, 51);--code-bg: rgb(55, 56, 62);--border: rgb(51, 51, 51)}.list{background:var(--theme)}.list:not(.dark)::-webkit-scrollbar-track{background:0 0}.list:not(.dark)::-webkit-scrollbar-thumb{border-color:var(--theme)}}</style></noscript><script type=application/javascript>var doNotTrack=false;if(!doNotTrack){(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');ga('create','UA-123-45','auto');ga('send','pageview');}</script><meta property="og:title" content="MySQL 내가 만든 view가 느리다면.."><meta property="og:description" content="테스트배경 개발자분 요청으로 view 를 생성하였는데 view 를 실행할 때와 native sql query를 각각 날렸을 때 성능이 확연히 차이가 난다는 개발자분의 제보,,,,
+확인해보니 view를 수행할때와 view를 구성하는 sql query를 직접 수행할 떄와 플랜이 달랐다
+native sql query과는 달리 view를 수행할 때는 derived table로 풀리고 있다
+view로 생성할 땐 왜 이런 이상한 현상이 발생하는지 디버깅을 해보기로함
+view가 아닌 native query plan +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+ | id | select_type | table | partitions | type | possible_keys | key | key_len | ref | rows | filtered | Extra | +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+ | 1 | PRIMARY | a | NULL | ALL | NULL | NULL | NULL | NULL | 9086 | 100."><meta property="og:type" content="article"><meta property="og:url" content="/mysql/view/"><meta property="og:image" content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta property="article:section" content="mysql"><meta property="article:published_time" content="2024-07-28T14:27:43+09:00"><meta property="article:modified_time" content="2024-07-28T14:27:43+09:00"><meta property="og:site_name" content="kimDuBiA"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta name=twitter:title content="MySQL 내가 만든 view가 느리다면.."><meta name=twitter:description content="테스트배경 개발자분 요청으로 view 를 생성하였는데 view 를 실행할 때와 native sql query를 각각 날렸을 때 성능이 확연히 차이가 난다는 개발자분의 제보,,,,
+확인해보니 view를 수행할때와 view를 구성하는 sql query를 직접 수행할 떄와 플랜이 달랐다
+native sql query과는 달리 view를 수행할 때는 derived table로 풀리고 있다
+view로 생성할 땐 왜 이런 이상한 현상이 발생하는지 디버깅을 해보기로함
+view가 아닌 native query plan +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+ | id | select_type | table | partitions | type | possible_keys | key | key_len | ref | rows | filtered | Extra | +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+ | 1 | PRIMARY | a | NULL | ALL | NULL | NULL | NULL | NULL | 9086 | 100."><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":2,"name":"Mysqls","item":"/mysql/"},{"@type":"ListItem","position":3,"name":"MySQL 내가 만든 view가 느리다면..","item":"/mysql/view/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"MySQL 내가 만든 view가 느리다면..","name":"MySQL 내가 만든 view가 느리다면..","description":"테스트배경 개발자분 요청으로 view 를 생성하였는데 view 를 실행할 때와 native sql query를 각각 날렸을 때 성능이 확연히 차이가 난다는 개발자분의 제보,,,,\n확인해보니 view를 수행할때와 view를 구성하는 sql query를 직접 수행할 떄와 플랜이 달랐다\nnative sql query과는 달리 view를 수행할 때는 derived table로 풀리고 있다\nview로 생성할 땐 왜 이런 이상한 현상이 발생하는지 디버깅을 해보기로함\nview가 아닌 native query plan +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+ | id | select_type | table | partitions | type | possible_keys | key | key_len | ref | rows | filtered | Extra | +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+ | 1 | PRIMARY | a | NULL | ALL | NULL | NULL | NULL | NULL | 9086 | 100.","keywords":["mysql","gdb","ddl"],"articleBody":"테스트배경 개발자분 요청으로 view 를 생성하였는데 view 를 실행할 때와 native sql query를 각각 날렸을 때 성능이 확연히 차이가 난다는 개발자분의 제보,,,,\n확인해보니 view를 수행할때와 view를 구성하는 sql query를 직접 수행할 떄와 플랜이 달랐다\nnative sql query과는 달리 view를 수행할 때는 derived table로 풀리고 있다\nview로 생성할 땐 왜 이런 이상한 현상이 발생하는지 디버깅을 해보기로함\nview가 아닌 native query plan +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+ | id | select_type | table | partitions | type | possible_keys | key | key_len | ref | rows | filtered | Extra | +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+ | 1 | PRIMARY | a | NULL | ALL | NULL | NULL | NULL | NULL | 9086 | 100.00 | NULL | | 1 | PRIMARY | b | NULL | ALL | NULL | NULL | NULL | NULL | 15 | 100.00 | Using where; Using join buffer (Block Nested Loop) | | 2 | DEPENDENT SUBQUERY | affiliates_participation | NULL | ALL | NULL | NULL | NULL | NULL | 27867 | 1.00 | Using where | +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+ ### view로 수행했을 때의plan, native query에 비해 DERIVED, 즉 임시테이블을 사용하는 부분이 추가되었다 +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+--------+----------+----------------------------------------------------+ | id | select_type | table | partitions | type | possible_keys | key | key_len | ref | rows | filtered | Extra | +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+--------+----------+----------------------------------------------------+ | 1 | PRIMARY |  | NULL | ALL | NULL | NULL | NULL | NULL | 136290 | 100.00 | NULL | | 2 | DERIVED | a | NULL | ALL | NULL | NULL | NULL | NULL | 9086 | 100.00 | NULL | | 2 | DERIVED | b | NULL | ALL | NULL | NULL | NULL | NULL | 15 | 100.00 | Using where; Using join buffer (Block Nested Loop) | | 3 | DEPENDENT SUBQUERY | affiliates_participation | NULL | ALL | NULL | NULL | NULL | NULL | 27867 | 1.00 | Using where | +----+--------------------+--------------------------+------------+------+---------------+------+---------+------+--------+----------+----------------------------------------------------+ 요약 view 처리 알고리즘에는 merge, temptable 두 방식이 있는데\n merge는 view의 쿼리를 다시 sql query로 풀어서 합치는 방식으로 마치 view를 사용하지 않고 원본 테이블,원본 컬럼을 조회하는 것처럼 수행됨  ex) CREATE ALGORITHM=MERGE VIEW v_merge AS SELECT c1, c2 FROM t WHERE c3  100 SELECT * FROM v_merge WHERE c2 = 100 = SELECT c1, c2 FROM t1 WHERE (c2 = 100) AND (c3  100)  temptable은 view를 정의하는 SELECT문의 결과를 temptable에 담아두고, 이를 다시 view의 다른 query block 과 derived, join 방식으로 수행한다\n단! 큰 단점은 원본 테이블에 인덱스 구성이 되어있고 좋은 필터링 조건이 있어도 이를 사용하지 못하고 VIEW에 정의된 전체 데이터를 읽어서 temptable에 담아야 된다는 점이다.\n즉 idx(c2) 가 있어도 아래처럼 풀리기 때문에 c2 인덱스를 사용할 수 없다.  ex) CREATE ALGORITHM=TEMPTABLE VIEW v_tmp AS SELECT c1, c2 FROM t WHERE c3  100 SELECT * FROM v_tmp WHERE c2 = 100 = SELECT * FROM (SELECT c1 as vc1, c2 as vc2 FROM t WHERE c3  100) v_tmp WHERE c2 = 100    UNDEFINED는 아무 알고리즘을 지정하지 않고 생성할 때 설정되는 알고리즘으로 view가 merge로 풀릴 수 있으면 merge로, temptable로 풀려야하면 temptable로 풀릴 수 있도록 한다\n  view 쿼리가 아래 조건에 해당한다면 무조건 temptable 방식으로 사용된다\n DISTINCT, GROUP BY, Aggregate function(묵시적 GROUP BY) 사용 LIMIT 사용 UNION (ALL) 사용 SELECT 절에 subquery 사용 https://dev.mysql.com/doc/refman/8.0/en/view-algorithms.html    내가 생성했던 view도 select절에 subquery, group by 등이 사용되었기 때문에 temptable 방식으로 풀렸던 것!\n위 제약은 아직 MySQL에서는 저런 조건에 대해 query block 간 Merge 하는 부분이 부족해서 그런것으로 DBMS 마다 지원하는 정도가 다르다\n예를 들어 ORACLE이나 PostgreSQL 같은 경우엔 저런 조건에서도 view merging이 잘 이루어진다\n사실 따로 확인할 필요도 없이 매뉴얼에 잘 나와있고 이미 잘 아는 사람도 많은 상식이었다,,,,\n테스트 결과  view는 생성할 때 뿐만 아니라, “호출할 때 마다” 적합한 algorithm을 선택한다 (merge / temptable )  alogirhtm=merge 로 view를 생성해도, merge가 불가능하면 알아서 temptable로 풀리기 때문에 view 생성 시 굳이 algorithm을 선택할 필요는 없다.  default 설정인 UNDEFIEND가 알아서 적합한 알고리즘을 선택해준다   temptable 알고리즘으로 풀리면 대부분의 경우 비효율적인 부분이 많다.  view 밖의 조건들과 MERGE되지 않아 MERGE되면 활용가능한 조건도 temptable에서는 인덱스를 활용하기 어렵다.  temptable 알고리즘으로 풀리면 내부적으로 temp table을 생성하는 cost가 추가로 발생한다  이때 view의 SELECT 절에 사용된 컬럼들을 한번에 컬럼 한개씩 temp table로 가져온다.  select a,b,c 라면 a 한번 b 한번 c 한번 총 세번 가져오는 것 습관성 select * 을 지양하고 필요한 컬럼만 나열해야 하는 이유가 하나 더 늘었다        꼭 필요한 view가 아니라면 TEMPTABLE로 풀릴만한 것은 view 가 아니라 native 쌩 쿼리로 돌리거나 최대한 MERGE로 풀릴 수 있도록 튜닝한 뒤 사용하자!  테스트  mysql 8.0.32 버전에서 테스트함\nview는 모두 default algorithm인 UNDEFINED로 생성하였다\nUNDEFINED는 view의 생성구문을 보고 적합한 알고리즘(merge / temptable) 을 알아서 선택해준다\nTable, View schema mysql show create table t; +-------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+ | Table | Create Table | +-------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+ | t | CREATE TABLE `t` ( `a` int NOT NULL AUTO_INCREMENT, `b` int DEFAULT NULL, `c` int DEFAULT NULL, PRIMARY KEY (`a`), KEY `idx_b` (`b`), KEY `idx_1` (`c`), KEY `idx_2` (`c`,`b`) ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci | +-------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+ 1 row in set (0.00 sec) mysql show create table vt1; +------+-------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+----------------------+ | View | Create View | character_set_client | collation_connection | +------+-------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+----------------------+ | vt1 | CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vt1` AS select `t`.`a` AS `a`,`t`.`b` AS `b`,`t`.`c` AS `c` from `t` | latin1 | latin1_swedish_ci | +------+-------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+----------------------+ 1 row in set (0.00 sec) mysql show create table vt2; +------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+----------------------+ | View | Create View | character_set_client | collation_connection | +------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+----------------------+ | vt2 | CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vt2` AS select distinct `t`.`a` AS `a`,`t`.`b` AS `b`,`t`.`c` AS `c` from `t` | latin1 | latin1_swedish_ci | +------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+----------------------+ 1 row in set (0.00 sec) view는 모두 default algorithm인 UNDEFINED로 생성하였다\nUNDEFINED는 view의 생성구문을 보고 적합한 알고리즘을 알아서 선택해준다 vt1을 확인해보자  vt1을 확인할 때 기대하는 내용은\n merge algorithm으로 풀릴 것 merge로 풀린 만큼, view 바깥에 있는 where 조건의 인덱스도 사용할 수 있음  mysql select * From vt1 where c=2;  위 쿼리 수행 시 아주 대충 아래와 같은 과정을 거침 (중간중간에 더 많이 들어가는 단계들이 있으나 이는 생략)  (gdb) bt #0 Query_expression::is_mergeable (this=0xfffe58a91ea0) at /mysql_source/mysql-8.0.32/sql/sql_lex.cc:3795 #1 0x000000000354ee6c in parse_view_definition (thd=0xfffe580108e0, view_ref=0xfffe58ae46f8) at /mysql_source/mysql-8.0.32/sql/sql_view.cc:1490 #2 0x0000000003305e60 in open_table (thd=0xfffe580108e0, table_list=0xfffe58ae46f8, ot_ctx=0xffff8724fb18) at /mysql_source/mysql-8.0.32/sql/sql_base.cc:3291 #3 0x00000000033098ac in open_and_process_table (thd=0xfffe580108e0, lex=0xfffe5801d580, tables=0xfffe58ae46f8, counter=0xfffe5801d5d8, prelocking_strategy=0xffff8724fc28, has_prelocking_list=false, ot_ctx=0xffff8724fb18) at /mysql_source/mysql-8.0.32/sql/sql_base.cc:5051 #4 0x000000000330b1b8 in open_tables (thd=0xfffe580108e0, start=0xffff8724fbe0, counter=0xfffe5801d5d8, flags=0, prelocking_strategy=0xffff8724fc28) at /mysql_source/mysql-8.0.32/sql/sql_base.cc:5853 #5 0x000000000330cad8 in open_tables_for_query (thd=0xfffe580108e0, tables=0xfffe58ae46f8, flags=0) at /mysql_source/mysql-8.0.32/sql/sql_base.cc:6735 #6 0x000000000348e908 in Sql_cmd_dml::prepare (this=0xfffe58a91498, thd=0xfffe580108e0) at /mysql_source/mysql-8.0.32/sql/sql_select.cc:360 #7 0x000000000348f2a0 in Sql_cmd_dml::execute (this=0xfffe58a91498, thd=0xfffe580108e0) at /mysql_source/mysql-8.0.32/sql/sql_select.cc:525 #8 0x00000000034122f8 in mysql_execute_command (thd=0xfffe580108e0, first_level=true) at /mysql_source/mysql-8.0.32/sql/sql_parse.cc:4688 #9 0x0000000003414370 in dispatch_sql_command (thd=0xfffe580108e0, parser_state=0xffff87251430) at /mysql_source/mysql-8.0.32/sql/sql_parse.cc:5322 #10 0x000000000340b4b4 in dispatch_command (thd=0xfffe580108e0, com_data=0xffff872524e0, command=COM_QUERY) at /mysql_source/mysql-8.0.32/sql/sql_parse.cc:2036 #11 0x0000000003409964 in do_command (thd=0xfffe580108e0) at /mysql_source/mysql-8.0.32/sql/sql_parse.cc:1439 #12 0x0000000003617c94 in handle_connection (arg=0x1ec6d3a0) at /mysql_source/mysql-8.0.32/sql/conn_handler/connection_handler_per_thread.cc:302 #13 0x000000000558ef54 in pfs_spawn_thread (arg=0x1ed74180) at /mysql_source/mysql-8.0.32/storage/perfschema/pfs.cc:2986 #14 0x0000ffff9bf40d38 in start_thread () from /lib64/libpthread.so.0 #15 0x0000ffff9b87b690 in thread_start () from /lib64/libc.so.6 중요한 부분만 살펴보면,,,,,\n vt1 view가 merge 가능한지 체크하는 단계  Query_expression::is_mergeable (this=0xfffe58a91ea0) at /mysql_source/mysql-8.0.32/sql/sql_lex.cc:3798 3798 return !select-is_grouped() \u0026\u0026 !select-having_cond() \u0026\u0026 Query_block::is_grouped (this=0xfffe58a91f88) at /mysql_source/mysql-8.0.32/sql/sql_lex.h:1272 1272 bool is_grouped() const { return group_list.elements  0 || m_agg_func_used; } Query_expression::is_mergeable (this=0xfffe58a91ea0) at /mysql_source/mysql-8.0.32/sql/sql_lex.cc:3800 3800 !select-has_limit() \u0026\u0026 select-m_windows.elements == 0; Query_expression::is_mergeable (this=0xfffe58a91ea0) at /mysql_source/mysql-8.0.32/sql/sql_lex.cc:3798 3798 return !select-is_grouped() \u0026\u0026 !select-having_cond() \u0026\u0026 Query_block::having_cond (this=0xfffe58a91f88) at /mysql_source/mysql-8.0.32/sql/sql_lex.h:1181 1181 Item *having_cond() const { return m_having_cond; } Query_expression::is_mergeable (this=0xfffe58a91ea0) at /mysql_source/mysql-8.0.32/sql/sql_lex.cc:3798 3798 return !select-is_grouped() \u0026\u0026 !select-having_cond() \u0026\u0026 Query_block::is_distinct (this=0xfffe58a91f88) at /mysql_source/mysql-8.0.32/sql/sql_lex.h:1275 1275 bool is_distinct() const { return active_options() \u0026 SELECT_DISTINCT; } Query_expression::merge_heuristic (this=0xfffe58a8c688, lex=0xfffe5801d580) at /mysql_source/mysql-8.0.32/sql/sql_lex.cc:3828 3828 if (item-has_subquery() \u0026\u0026 !item-const_for_execution()) return false; (gdb) 3827 for (Item *item : select-visible_fields()) { (gdb) 3828 if (item-has_subquery() \u0026\u0026 !item-const_for_execution()) return false; (gdb) 3827 for (Item *item : select-visible_fields()) { (gdb) (gdb) p is_distinct() $80 = false (gdb) p is_grouped() $81 = false (gdb) p has_limit() $82 = false = group by 가 있는지, limit ,distinct , having, subquery 등이 있는지를 체크한다 위에서 수행한 쿼리엔 이런것들이 없기 때문에 모두 false 로 확인되었따\n MERGE 알고리즘을 사용하기로 결정!  (gdb) s Table_ref::set_merged (this=0xfffe58ae46f8) at /mysql_source/mysql-8.0.32/sql/table.h:3094 3094 assert(effective_algorithm == VIEW_ALGORITHM_UNDEFINED); (gdb) info locals __PRETTY_FUNCTION__ = \"void Table_ref::set_merged()\" (gdb) s 3095 effective_algorithm = VIEW_ALGORITHM_MERGE; 3092 /// Set table to be merged 3093 void set_merged() { 3094 assert(effective_algorithm == VIEW_ALGORITHM_UNDEFINED); 3095 effective_algorithm = VIEW_ALGORITHM_MERGE; 3096 } (gdb) p effective_algorithm $102 = VIEW_ALGORITHM_MERGE Query_block::merge_derived (this=0xfffe58ae33d8, thd=0xfffe580108e0, derived_table=0xfffe58ae46f8) at /mysql_source/mysql-8.0.32/sql/sql_resolver.cc:3494 3494 DBUG_PRINT(\"info\", (\"algorithm: MERGE\")); parse_view_definition (thd=0xfffe580108e0, view_ref=0xfffe58ae46f8) at /mysql_source/mysql-8.0.32/sql/sql_view.cc:1489 1489 view_ref-algorithm != VIEW_ALGORITHM_TEMPTABLE \u0026\u0026 1493 if (view_is_mergeable) { . . . _db_trace = {m_stack_frame = {func = 0x59969d5 \"open_table(THD*, Table_ref*, Open_table_context*)\", func_len = 10, file = 0x59959f8 \"/mysql_source/mysql-8.0.32/sql/sql_base.cc\", level = 2147483659, prev = 0xffff8724f8d8}} __PRETTY_FUNCTION__ = \"bool parse_view_definition(THD*, Table_ref*)\" top_view = 0xfffe58ae46f8 . . . current_db_name_saved = {str = 0xfffe5801de90 \"test\", length = 4} parser_state = {m_input = {m_has_digest = false, m_compute_digest = false}, m_lip = {m_thd = 0xfffe580108e0, yylineno = 1, yytoklen = 1, yylval = 0xffff8724d390, lookahead_token = -1, lookahead_yylval = 0x874d478 , skip_digest = false, query_charset = 0x840ad38 , m_ptr = 0xfffe58a91573 \"\\217\\217\\217\\217\\217latin1\", m_tok_start = 0xfffe58a91573 \"\\217\\217\\217\\217\\217latin1\", m_tok_end = 0xfffe58a91573 \"\\217\\217\\217\\217\\217latin1\", m_end_of_query = 0xfffe58a91572 \"\", m_buf = 0xfffe58a91530 \"select `test`.`t`.`a` AS `a`,`test`.`t`.`b` AS `b` from `test`.`t`\", m_buf_length = 66, m_echo = true, m_echo_saved = 245, m_cpp_buf = 0xfffe58a91e58 \"select `test`.`t`.`a` AS `a`,`test`.`t`.`b` AS `b`,`test`.`t`.`c` AS `c` from `test`.`t` where `test`.`t`.`c`=2\", m_cpp_ptr = 0xfffe58a91e9a \"\", m_cpp_tok_start = 0xfffe58a91e9a \"\", . . . view_is_mergeable = true view_main_select_tables = 0x0 security_ctx = 0x59959f8 = 노가다 끝에 만난 VIEW_ALGORITHM_MERGE가 몹시 반갑다\nview 밖에 있는 where c=2 에 대한 인덱스도 탈 수 있을까  먼저 쿼리의 WHERE 조건을 확인하고 ,,,  T@7: sql_optimizer.cc: 10250: | | | | | | | | optimize_cond T@7: sql_optimizer.cc: 269: | | | | | | | | | opt: (null): starting struct T@7: sql_optimizer.cc: 269: | | | | | | | | | opt: condition_processing: starting struct T@7: sql_optimizer.cc: 292: | | | | | | | | | opt: condition: \"WHERE\" T@7: sql_optimizer.cc: 292: | | | | | | | | | opt: original_condition: \"(`t`.`c` = 2)\"  테이블에 달린 인덱스들 중 어떤 것이 적합한지 비교한 뒤 후보군을 추린다  PRIMARY, idx_b 는 “not_applicable” 하다며 탈락시킴    T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: (null): starting struct T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: index: \"PRIMARY\" T@7: range_optimizer.cc: 305: | | | | | | | | | | | opt: usable: 0 T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: cause: \"not_applicable\" T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: (null): ending struct T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: (null): starting struct T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: index: \"idx_b\" T@7: range_optimizer.cc: 305: | | | | | | | | | | | opt: usable: 0 T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: cause: \"not_applicable\" T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: (null): ending struct T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: (null): starting struct T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: index: \"idx_1\" T@7: range_optimizer.cc: 305: | | | | | | | | | | | opt: usable: 1 T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: key_parts: starting struct T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: (null): \"c\" T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: (null): \"a\" T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: key_parts: ending struct T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: (null): ending struct T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: (null): starting struct T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: index: \"idx_2\" T@7: range_optimizer.cc: 305: | | | | | | | | | | | opt: usable: 1 T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: key_parts: starting struct T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: (null): \"c\" T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: (null): \"b\" T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: (null): \"a\" T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: key_parts: ending struct T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: (null): ending struct T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: potential_range_indexes: ending struct T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: best_covering_index_scan: starting struct T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: index: \"idx_2\" T@7: range_optimizer.cc: 335: | | | | | | | | | | | opt: cost: 1.25384 T@7: range_optimizer.cc: 305: | | | | | | | | | | | opt: chosen: 1 T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: best_covering_index_scan: ending struct T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: setup_range_conditions: starting struct  위에서 usable index로 추려진 idx_1, idx_2 가 경합끝에 idx_2가 선택된다  access_type: “ref” 로 확실히 인덱스를 사용할 수 있도록 풀렸다    T@7: sql_planner.cc: 1009: | | | | | | | | | | | | Optimize_table_order::best_access_path T@7: sql_planner.cc: 269: | | | | | | | | | | | | | opt: best_access_path: starting struct T@7: sql_planner.cc: 269: | | | | | | | | | | | | | opt: considered_access_paths: starting struct T@7: sql_planner.cc: 272: | | | | | | | | | | | | | info: Considering ref access on key idx_1 T@7: sql_planner.cc: 269: | | | | | | | | | | | | | opt: (null): starting struct T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: access_type: \"ref\" T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: index: \"idx_1\" T@7: sql_planner.cc: 335: | | | | | | | | | | | | | opt: rows: 2 T@7: sql_planner.cc: 335: | | | | | | | | | | | | | opt: cost: 0.7 T@7: sql_planner.cc: 305: | | | | | | | | | | | | | opt: chosen: 1 T@7: sql_planner.cc: 282: | | | | | | | | | | | | | opt: (null): ending struct T@7: sql_planner.cc: 272: | | | | | | | | | | | | | info: Considering ref access on key idx_2 T@7: sql_planner.cc: 269: | | | | | | | | | | | | | opt: (null): starting struct T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: access_type: \"ref\" T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: index: \"idx_2\" T@7: sql_planner.cc: 335: | | | | | | | | | | | | | opt: rows: 2 T@7: sql_planner.cc: 335: | | | | | | | | | | | | | opt: cost: 0.450427 T@7: sql_planner.cc: 305: | | | | | | | | | | | | | opt: chosen: 1 T@7: sql_planner.cc: 282: | | | | | | | | | | | | | opt: (null): ending struct T@7: sql_planner.cc: 269: | | | | | | | | | | | | | opt: (null): starting struct T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: access_type: \"range\" T@7: sql_planner.cc: 269: | | | | | | | | | | | | | opt: range_details: starting struct T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: used_index: \"idx_2\" T@7: sql_planner.cc: 282: | | | | | | | | | | | | | opt: range_details: ending struct T@7: sql_planner.cc: 305: | | | | | | | | | | | | | opt: chosen: 0 T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: cause: \"heuristic_index_cheaper\" T@7: sql_planner.cc: 282: | | | | | | | | | | | | | opt: (null): ending struct T@7: sql_planner.cc: 282: | | | | | | | | | | | | | opt: considered_access_paths: ending struct T@7: sql_planner.cc: 282: | | | | | | | | | | | | | opt: best_access_path: ending struct T@7: sql_planner.cc: | | | | | | | | | | | | TEST_join Info about JOIN t type: ref q_keys: C refs: 1 key: 3 len: 5 refs: 2  실제 플랜  mysql explain - select * From vt1 where c=2; +----+-------------+-------+------------+------+---------------+-------+---------+-------+------+----------+-------------+ | id | select_type | table | partitions | type | possible_keys | key | key_len | ref | rows | filtered | Extra | +----+-------------+-------+------------+------+---------------+-------+---------+-------+------+----------+-------------+ | 1 | SIMPLE | t | NULL | ref | idx_1,idx_2 | idx_2 | 5 | const | 2 | 100.00 | Using index | +----+-------------+-------+------------+------+---------------+-------+---------+-------+------+----------+-------------+ 1 row in set, 1 warning (0.00 sec) = 정리하면,\n group by, limit ,distinct , having, subquery 같은 결격사유가 없는 view는 MERGE 알고리즘으로 풀렸고 덕분에 select * from vt1 where c=2; 같은 view와 상관없는 c=2 조건도 인덱스를 타면서 효율적으로 수행되었다  vt2를 확인해보자 반대로 vt2를 확인할 때 기대하는 바는\n MERGE가 아닌 TEMPTABLE 알고리즘으로 풀릴 것 view 밖의 where 조건에 대한 인덱스를 사용하지 못함   mysql select * From vt2 where c=2; bool Query_expression::is_mergeable() const { if (is_set_operation()) return false; Query_block *const select = first_query_block(); return !select-is_grouped() \u0026\u0026 !select-having_cond() \u0026\u0026 !select-is_distinct() \u0026\u0026 select-m_table_list.elements  0 \u0026\u0026 !select-has_limit() \u0026\u0026 select-m_windows.elements == 0; } (gdb) s Query_block::is_grouped (this=0xfffe58ab17b0) at /mysql_source/mysql-8.0.32/sql/sql_lex.h:1272 /// @return true if this query block contains DISTINCT at start of select list 1272 bool is_distinct() const { return active_options() \u0026 SELECT_DISTINCT; } (gdb) p is_distinct() $1 = true = vt1에서 본 것과 같이 is_mergeable() 함수에서 group by , limit distinct, having 등을 체크한다\nview에 distinct 가 들어가는 것을 바로 들키고 말았다  vt2 view가 merge 가능한지 체크하는  (gdb) list 1488 const bool view_is_mergeable = 1489 view_ref-algorithm != VIEW_ALGORITHM_TEMPTABLE \u0026\u0026 1490 view_lex-unit-is_mergeable(); 1491 Table_ref *view_main_select_tables = nullptr; 1492 1493 if (view_is_mergeable) { 1494 /* 1495 Currently 'view_main_select_tables' differs from 'view_tables' 1496 only then view has CONVERT_TZ() function in its select list. 1497 This may change in future, for example if we enable merging of (gdb) p view_is_mergeable $7 = false = 위에서 distinct 를 걸렸기 때문에 view_is_mergeable == false 가 되고 말았다\nTEMPTABLE 알고리즘을 사용하기로 결정!\nTable_ref::uses_materialization (this=0xfffe58a8b998) at /mysql_source/mysql-8.0.32/sql/table.h:3100 3100 return effective_algorithm == VIEW_ALGORITHM_TEMPTABLE; Table_ref::is_view_or_derived (this=0xfffe58a8b998) at /mysql_source/mysql-8.0.32/sql/table.h:3026 3026 bool is_view_or_derived() const { return derived != nullptr; } (gdb) Table_ref::is_merged (this=0xfffe58a8b998) at /mysql_source/mysql-8.0.32/sql/table.h:3090 3090 bool is_merged() const { return effective_algorithm == VIEW_ALGORITHM_MERGE; } (gdb) Table_ref::setup_materialized_derived_tmp_table (this=0xfffe58a8b998, thd=0xfffe580108e0) at /mysql_source/mysql-8.0.32/sql/sql_derived.cc:787 787 DBUG_PRINT(\"info\", (\"algorithm: TEMPORARY TABLE\")); (gdb) info locals _db_trace = {m_stack_frame = {func = 0x61397e5 \"Query_block::resolve_placeholder_tables(THD*, bool)\", func_len = 39, file = 0x61391d0 \"/mysql_source/mysql-8.0.32/sql/sql_resolver.cc\", level = 2147483657, prev = 0xffff8724f8f0}} __PRETTY_FUNCTION__ = \"bool Table_ref::setup_materialized_derived_tmp_table(THD*)\" trace = 0xfffe58a8b998 trace_wrapper = { = {started = 36, requires_key = 111, has_disabled_I_S = 126, empty = 155, stmt = 0xfffe58ab17b0, saved_key = 0xffff8724f850 \"'\", previous_key = \"\\260\\027\\253X\\376\\377\\000\\000\\000\\000\\000\\000\\000\\000\\000\\000\\310\\026\\253X\\376\\377\\000\\000\\001\"}, } trace_derived = { = {started = 60, requires_key = 75, has_disabled_I_S = 70, empty = 3, stmt = 0xfffe58ab5600, saved_key = 0x0, previous_key = \"'\\000\\000\\000\\000\\000\\000\\000h'\\177\\b\\000\\000\\000\\001\\340\\b\\001X\\376\\377\\000\\000\\230\"}, } (gdb) p effective_algorithm $26 = VIEW_ALGORITHM_TEMPTABLE (gdb) p is_view_or_derived() $27 = true 노가다 끝에 만난 VIEW_ALGORITHM_TEMPTABLE가 몹시 반갑다\n view 처리를 위해 내부적으로 TEMPTABLE 생성하는 모습  Query_result_union::create_result_table (this=0xfffe58ab5628, thd_arg=0xfffe580108e0, column_types=..., is_union_distinct=false, options=2416188160, table_alias=0xfffe58a8b990 \"vt2\", bit_fields_as_long=false, create_table=false, op=0x0) at /mysql_source/mysql-8.0.32/sql/sql_union.cc:171 171 mem_root_dequevisible_fields(thd_arg-mem_root); . . . create_tmp_table (thd=0xfffe580108e0, param=0xfffe58ab5648, fields=..., group=0x0, distinct=false, save_sum_fields=true, select_options=2416188160, rows_limit=18446744073709551615, table_alias=0xfffe58a8b990 \"vt2\") at /mysql_source/mysql-8.0.32/sql/sql_tmp_table.cc:876 876 DBUG_TRACE; (gdb) 972 param-items_to_copy = (gdb) 974 if (param-items_to_copy == nullptr) return nullptr; /* purecov: inspected */ . . . ### a 컬럼 temp table로 fetch create_tmp_field_from_field (thd=0xfffe580108e0, org_field=0xfffe58ae5380, name=0xfffe58ab2be0 \"a\", table=0xfffe58a8d9f8, item=0x0) at /mysql_source/mysql-8.0.32/sql/sql_tmp_table.cc:190 190 Field *new_field = org_field-new_field(thd-mem_root, table); create_tmp_field_from_field (thd=0xfffe580108e0, org_field=0xfffe58ae5380, name=0xfffe58ab2be0 \"a\", table=0xfffe58a8d9f8, item=0x0) at /mysql_source/mysql-8.0.32/sql/sql_tmp_table.cc:194 194 new_field-field_name = name; (gdb) p name $58 = 0xfffe58ab2be0 \"a\" ### b 컬럼 temp table로 fetch create_tmp_field_from_field (thd=0xfffe580108e0, org_field=0xfffe58ae5460, name=0xfffe58ab2d30 \"b\", table=0xfffe58a8d9f8, item=0x0) at /mysql_source/mysql-8.0.32/sql/sql_tmp_table.cc:190 190 Field *new_field = org_field-new_field(thd-mem_root, table); (gdb) info locals new_field = 0xfffe58ab2c30 (gdb) p name $70 = 0xfffe58ab2d30 \"b\" ### c 컬럼 temp table로 fetch create_tmp_field_from_field (thd=0xfffe580108e0, org_field=0xfffe58ae5460, name=0xfffe58ab2gf0 \"b\", table=0xfffe58a8d9f8, item=0x0) at /mysql_source/mysql-8.0.32/sql/sql_tmp_table.cc:190 190 Field *new_field = org_field-new_field(thd-mem_root, table); (gdb) p name $70 = 0xfffe58ab2gf0 \"b\" = 컬럼을 한번에 하나씩 fetch해오는 모습\n모르긴 몰라도 select * 이 아니라 꼭 필요한 컬럼만 지정해놓으면 이런 자잘한 비효율을 아낄 수 있을 것 같다\nview 밖에 있는 where c=2 에 대한 인덱스도 탈 수 있을까 T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: index: \"PRIMARY\" T@7: range_optimizer.cc: 305: | | | | | | | | | | | | | | | opt: usable: 1 T@7: range_optimizer.cc: 269: | | | | | | | | | | | | | | | opt: key_parts: starting struct T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: (null): \"a\" T@7: range_optimizer.cc: 282: | | | | | | | | | | | | | | | opt: key_parts: ending struct T@7: range_optimizer.cc: 282: | | | | | | | | | | | | | | | opt: (null): ending struct T@7: range_optimizer.cc: 269: | | | | | | | | | | | | | | | opt: (null): starting struct T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: index: \"idx_b\" T@7: range_optimizer.cc: 305: | | | | | | | | | | | | | | | opt: usable: 1 T@7: range_optimizer.cc: 269: | | | | | | | | | | | | | | | opt: key_parts: starting struct T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: (null): \"b\" T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: (null): \"a\" T@7: range_optimizer.cc: 282: | | | | | | | | | | | | | | | opt: key_parts: ending struct T@7: range_optimizer.cc: 282: | | | | | | | | | | | | | | | opt: (null): ending struct T@7: range_optimizer.cc: 269: | | | | | | | | | | | | | | | opt: (null): starting struct T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: index: \"idx_1\" T@7: range_optimizer.cc: 305: | | | | | | | | | | | | | | | opt: usable: 1 T@7: range_optimizer.cc: 269: | | | | | | | | | | | | | | | opt: key_parts: starting struct T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: (null): \"c\" T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: (null): \"a\" T@7: range_optimizer.cc: 282: | | | | | | | | | | | | | | | opt: key_parts: ending struct T@7: range_optimizer.cc: 282: | | | | | | | | | | | | | | | opt: (null): ending struct T@7: range_optimizer.cc: 269: | | | | | | | | | | | | | | | opt: (null): starting struct T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: index: \"idx_2\" T@7: range_optimizer.cc: 305: | | | | | | | | | | | | | | | opt: usable: 1 어째 모든 인덱스가 다 usable이라고 뜬다\n이상해서 더 확인해보면,,,,,\n T@7: sql_planner.cc: 292: | | | | | | | | | | | | | | | | opt: table: \"`t`\" T@7: sql_planner.cc: 1009: | | | | | | | | | | | | | | | | Optimize_table_order::best_access_path T@7: sql_planner.cc: 269: | | | | | | | | | | | | | | | | | opt: best_access_path: starting struct T@7: sql_planner.cc: 269: | | | | | | | | | | | | | | | | | opt: considered_access_paths: starting struct T@7: sql_planner.cc: 269: | | | | | | | | | | | | | | | | | opt: (null): starting struct T@7: sql_planner.cc: 324: | | | | | | | | | | | | | | | | | opt: rows_to_scan: 10 T@7: sql_planner.cc: 292: | | | | | | | | | | | | | | | | | opt: access_type: \"scan\" T@7: sql_planner.cc: 335: | | | | | | | | | | | | | | | | | opt: resulting_rows: 10 T@7: sql_planner.cc: 335: | | | | | | | | | | | | | | | | | opt: cost: 1.25 T@7: sql_planner.cc: 305: | | | | | | | | | | | | | | | | | opt: chosen: 1 T@7: sql_planner.cc: 305: | | | | | | | | | | | | | | | | | opt: use_tmp_table: 1 T@7: sql_planner.cc: 282: | | | | | | | | | | | | | | | | | opt: (null): ending struct T@7: sql_planner.cc: 282: | | | | | | | | | | | | | | | | | opt: considered_access_paths: ending struct T@7: sql_planner.cc: 282: | | | | | | | | | | | | | | | | | opt: best_access_path: ending struct T@7: sql_planner.cc: | | | | | | | | | | | | | | | | TEST_join Info about JOIN t type: index q_keys: F refs: 0 key: -1 len: 0 = vt1에선 access_type: ref 와 달리 이번엔 access_type: “scan” 이다 index 풀스캔을 위한 인덱스를 고르는 것이었다\nref와 index fullscan은 천지차이다\n 실제 플랜  mysql explain select * From vt2 where c=2; +----+-------------+------------+------------+-------+---------------------------+-------+---------+------+------+----------+-------------+ | id | select_type | table | partitions | type | possible_keys | key | key_len | ref | rows | filtered | Extra | +----+-------------+------------+------------+-------+---------------------------+-------+---------+------+------+----------+-------------+ | 1 | PRIMARY |  | NULL | ALL | NULL | NULL | NULL | NULL | 10 | 100.00 | NULL | | 2 | DERIVED | t | NULL | index | PRIMARY,idx_b,idx_1,idx_2 | idx_2 | 10 | NULL | 10 | 100.00 | Using index | +----+-------------+------------+------------+-------+---------------------------+-------+---------+------+------+----------+-------------+ 2 rows in set, 1 warning (0.00 sec) = 정리하면,\n  group by, limit ,distinct , having, subquery 같은 것이 있는 view는 TEMPTABLE 알고리즘으로 풀렸고\n  MERGE가 아닌 derived , 파생 테이블(temptable) 로 풀린 탓에 select * from vt2 where c=2; 같은 view와 상관없는 c=2 조건 인덱스를 타지 못하였다. (위에서 type index는 인덱스 풀스캔으로 c=2 조건을 탄게 아니다)\n  꼭 필요한 view가 아니라면 TEMPTABLE로 풀릴만한 것은 view 가 아니라 native 쌩 쿼리로 돌리거나 최대한 MERGE로 풀릴 수 있도록 튜닝한뒤 사용하자!\n  ","wordCount":"4761","inLanguage":"en","datePublished":"2024-07-28T14:27:43+09:00","dateModified":"2024-07-28T14:27:43+09:00","author":{"@type":"Person","name":"kimdubi"},"mainEntityOfPage":{"@type":"WebPage","@id":"/mysql/view/"},"publisher":{"@type":"Organization","name":"kimDuBiA","logo":{"@type":"ImageObject","url":"%3Clink%20/%20abs%20url%3E"}}}</script></head><body id=top><script>if(localStorage.getItem("pref-theme")==="dark"){document.body.classList.add('dark');}else if(localStorage.getItem("pref-theme")==="light"){document.body.classList.remove('dark')}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script><header class=header><nav class=nav><div class=logo><a href accesskey=h title="Hi (Alt + H)">Hi</a>
+<span class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)"><svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg><svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></span></div><ul id=menu><li><a href=/ title=Home><span>Home</span></a></li><li><a href=/categories/ title=categories><span>categories</span></a></li><li><a href=/tags/ title=tags><span>tags</span></a></li></ul></nav></header><main class=main><article class=post-single><header class=post-header><div class=breadcrumbs><a href>Home</a>&nbsp;»&nbsp;<a href=/mysql/>Mysqls</a></div><h1 class=post-title>MySQL 내가 만든 view가 느리다면..</h1><div class=post-meta>July 28, 2024&nbsp;·&nbsp;23 min&nbsp;·&nbsp;kimdubi</div></header><div class=toc><details><summary accesskey=c title="(Alt + C)"><span class=details>Table of Contents</span></summary><div class=inner><ul><li><a href=#%ed%85%8c%ec%8a%a4%ed%8a%b8%eb%b0%b0%ea%b2%bd aria-label=테스트배경>테스트배경</a><ul><ul><li><a href=#view%ea%b0%80-%ec%95%84%eb%8b%8c-native-query-plan aria-label="view가 아닌 native query plan">view가 아닌 native query plan</a></li></ul></ul></li><li><a href=#%ec%9a%94%ec%95%bd aria-label=요약>요약</a></li><li><a href=#%ed%85%8c%ec%8a%a4%ed%8a%b8-%ea%b2%b0%ea%b3%bc aria-label="테스트 결과">테스트 결과</a></li><li><a href=#%ed%85%8c%ec%8a%a4%ed%8a%b8 aria-label=테스트 >테스트 </a><ul><ul><li><a href=#table-view-schema aria-label="Table, View schema">Table, View schema</a></li><li><a href=#vt1%ec%9d%84-%ed%99%95%ec%9d%b8%ed%95%b4%eb%b3%b4%ec%9e%90 aria-label="vt1을 확인해보자 ">vt1을 확인해보자 </a></li><li><a href=#view-%eb%b0%96%ec%97%90-%ec%9e%88%eb%8a%94-where-c2-%ec%97%90-%eb%8c%80%ed%95%9c-%ec%9d%b8%eb%8d%b1%ec%8a%a4%eb%8f%84-%ed%83%88-%ec%88%98-%ec%9e%88%ec%9d%84%ea%b9%8c aria-label="view 밖에 있는 where c=2 에 대한 인덱스도 탈 수 있을까">view 밖에 있는 where c=2 에 대한 인덱스도 탈 수 있을까</a></li><li><a href=#vt2%eb%a5%bc-%ed%99%95%ec%9d%b8%ed%95%b4%eb%b3%b4%ec%9e%90 aria-label="vt2를 확인해보자">vt2를 확인해보자</a></li><li><a href=#view-%eb%b0%96%ec%97%90-%ec%9e%88%eb%8a%94-where-c2-%ec%97%90-%eb%8c%80%ed%95%9c-%ec%9d%b8%eb%8d%b1%ec%8a%a4%eb%8f%84-%ed%83%88-%ec%88%98-%ec%9e%88%ec%9d%84%ea%b9%8c-1 aria-label="view 밖에 있는 where c=2 에 대한 인덱스도 탈 수 있을까">view 밖에 있는 where c=2 에 대한 인덱스도 탈 수 있을까</a></li></ul></ul></li></ul></div></details></div><div class=post-content><h1 id=테스트배경>테스트배경<a hidden class=anchor aria-hidden=true href=#테스트배경>#</a></h1><p>개발자분 요청으로 view 를 생성하였는데 view 를 실행할 때와 native sql query를 각각 날렸을 때 성능이 확연히 차이가 난다는 개발자분의 제보,,,,<br>확인해보니 view를 수행할때와 view를 구성하는 sql query를 직접 수행할 떄와 플랜이 달랐다<br>native sql query과는 달리 view를 수행할 때는 derived table로 풀리고 있다</p><p>view로 생성할 땐 왜 이런 이상한 현상이 발생하는지 디버깅을 해보기로함</p><h3 id=view가-아닌-native-query-plan>view가 아닌 native query plan<a hidden class=anchor aria-hidden=true href=#view가-아닌-native-query-plan>#</a></h3><pre><code>+----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+
+| id | select_type        | table                    | partitions | type | possible_keys | key  | key_len | ref  | rows  | filtered | Extra                                              |
++----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+
+|  1 | PRIMARY            | a                        | NULL       | ALL  | NULL          | NULL | NULL    | NULL |  9086 |   100.00 | NULL                                               |
+|  1 | PRIMARY            | b                        | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    15 |   100.00 | Using where; Using join buffer (Block Nested Loop) |
+|  2 | DEPENDENT SUBQUERY | affiliates_participation | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 27867 |     1.00 | Using where                                        |
++----+--------------------+--------------------------+------------+------+---------------+------+---------+------+-------+----------+----------------------------------------------------+
+
+
+### view로 수행했을 때의plan, native query에 비해 DERIVED, 즉 임시테이블을 사용하는 부분이 추가되었다
++----+--------------------+--------------------------+------------+------+---------------+------+---------+------+--------+----------+----------------------------------------------------+
+| id | select_type        | table                    | partitions | type | possible_keys | key  | key_len | ref  | rows   | filtered | Extra                                              |
++----+--------------------+--------------------------+------------+------+---------------+------+---------+------+--------+----------+----------------------------------------------------+
+|  1 | PRIMARY            | &lt;derived2&gt;               | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 136290 |   100.00 | NULL                                               |
+|  2 | DERIVED            | a                        | NULL       | ALL  | NULL          | NULL | NULL    | NULL |   9086 |   100.00 | NULL                                               |
+|  2 | DERIVED            | b                        | NULL       | ALL  | NULL          | NULL | NULL    | NULL |     15 |   100.00 | Using where; Using join buffer (Block Nested Loop) |
+|  3 | DEPENDENT SUBQUERY | affiliates_participation | NULL       | ALL  | NULL          | NULL | NULL    | NULL |  27867 |     1.00 | Using where                                        |
++----+--------------------+--------------------------+------------+------+---------------+------+---------+------+--------+----------+----------------------------------------------------+
+
+</code></pre><h1 id=요약>요약<a hidden class=anchor aria-hidden=true href=#요약>#</a></h1><p>view 처리 알고리즘에는 merge, temptable 두 방식이 있는데</p><ul><li>merge는 view의 쿼리를 다시 sql query로 풀어서 합치는 방식으로 마치 view를 사용하지 않고 원본 테이블,원본 컬럼을 조회하는 것처럼 수행됨</li></ul><pre><code>ex) CREATE ALGORITHM=MERGE VIEW v_merge AS SELECT c1, c2 FROM t WHERE c3 &gt; 100
+
+SELECT * FROM v_merge WHERE c2 = 100
+=&gt; SELECT c1, c2 FROM t1 WHERE (c2 = 100) AND (c3 &gt; 100)
+</code></pre><ul><li>temptable은 view를 정의하는 SELECT문의 결과를 temptable에 담아두고, 이를 다시 view의 다른 query block 과 derived, join 방식으로 수행한다<br>단! 큰 단점은 원본 테이블에 인덱스 구성이 되어있고 좋은 필터링 조건이 있어도 이를 사용하지 못하고 VIEW에 정의된 전체 데이터를 읽어서 temptable에 담아야 된다는 점이다.<br>즉 idx(c2) 가 있어도 아래처럼 풀리기 때문에 c2 인덱스를 사용할 수 없다.</li></ul><pre><code>ex) CREATE ALGORITHM=TEMPTABLE VIEW v_tmp AS SELECT c1, c2 FROM t WHERE c3 &gt; 100 
+
+SELECT * FROM v_tmp WHERE c2 = 100
+=&gt; SELECT * FROM (SELECT c1 as vc1, c2 as vc2 FROM t WHERE c3 &gt; 100) v_tmp WHERE c2 = 100
+</code></pre><p> </p><ul><li><p>UNDEFINED는 아무 알고리즘을 지정하지 않고 생성할 때 설정되는 알고리즘으로
+view가 merge로 풀릴 수 있으면 merge로, temptable로 풀려야하면 temptable로 풀릴 수 있도록 한다</p></li><li><p>view 쿼리가 아래 조건에 해당한다면 무조건 temptable 방식으로 사용된다</p><ul><li>DISTINCT, GROUP BY, Aggregate function(묵시적 GROUP BY) 사용</li><li>LIMIT 사용</li><li>UNION (ALL) 사용</li><li>SELECT 절에 subquery 사용</li><li><a href=https://dev.mysql.com/doc/refman/8.0/en/view-algorithms.html>https://dev.mysql.com/doc/refman/8.0/en/view-algorithms.html</a></li></ul></li></ul><p>내가 생성했던 view도 select절에 subquery, group by 등이 사용되었기 때문에 temptable 방식으로 풀렸던 것!<br>위 제약은 아직 MySQL에서는 저런 조건에 대해 query block 간 Merge 하는 부분이 부족해서 그런것으로 DBMS 마다 지원하는 정도가 다르다<br>예를 들어 ORACLE이나 PostgreSQL 같은 경우엔 저런 조건에서도 view merging이 잘 이루어진다</p><p>사실 따로 확인할 필요도 없이 매뉴얼에 잘 나와있고 이미 잘 아는 사람도 많은 상식이었다,,,,</p><h1 id=테스트-결과>테스트 결과<a hidden class=anchor aria-hidden=true href=#테스트-결과>#</a></h1><ul><li>view는 생성할 때 뿐만 아니라, &ldquo;호출할 때 마다&rdquo; 적합한 algorithm을 선택한다 (merge / temptable )<ul><li>alogirhtm=merge 로 view를 생성해도, merge가 불가능하면 알아서 temptable로 풀리기 때문에 view 생성 시 굳이 algorithm을 선택할 필요는 없다. </li><li>default 설정인 UNDEFIEND가 알아서 적합한 알고리즘을 선택해준다</li></ul></li><li>temptable 알고리즘으로 풀리면 대부분의 경우 비효율적인 부분이 많다.<ul><li>view 밖의 조건들과 MERGE되지 않아 MERGE되면 활용가능한 조건도 temptable에서는 인덱스를 활용하기 어렵다. </li><li>temptable 알고리즘으로 풀리면 내부적으로 temp table을 생성하는 cost가 추가로 발생한다<ul><li>이때 view의 SELECT 절에 사용된 컬럼들을 한번에 컬럼 한개씩 temp table로 가져온다.<ul><li>select a,b,c 라면 a 한번 b 한번 c 한번 총 세번 가져오는 것</li><li>습관성 select * 을 지양하고 필요한 컬럼만 나열해야 하는 이유가 하나 더 늘었다 </li></ul></li></ul></li></ul></li><li>꼭 필요한 view가 아니라면 TEMPTABLE로 풀릴만한 것은 view 가 아니라 native 쌩 쿼리로 돌리거나 최대한 MERGE로 풀릴 수 있도록 튜닝한 뒤 사용하자!</li></ul><h1 id=테스트>테스트 <a hidden class=anchor aria-hidden=true href=#테스트>#</a></h1><p>mysql 8.0.32 버전에서 테스트함<br>view는 모두 default algorithm인 UNDEFINED로 생성하였다<br>UNDEFINED는 view의 생성구문을 보고 적합한 알고리즘(merge / temptable) 을 알아서 선택해준다</p><h3 id=table-view-schema>Table, View schema<a hidden class=anchor aria-hidden=true href=#table-view-schema>#</a></h3><pre><code>mysql&gt; show create table t;
++-------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Table | Create Table                                                                                                                                                                                                                                                                      |
++-------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| t     | CREATE TABLE `t` (
+  `a` int NOT NULL AUTO_INCREMENT,
+  `b` int DEFAULT NULL,
+  `c` int DEFAULT NULL,
+  PRIMARY KEY (`a`),
+  KEY `idx_b` (`b`),
+  KEY `idx_1` (`c`),
+  KEY `idx_2` (`c`,`b`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci |
++-------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql&gt; show create table vt1;
++------+-------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+----------------------+
+| View | Create View                                                                                                                                           | character_set_client | collation_connection |
++------+-------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+----------------------+
+| vt1  | CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vt1` AS select `t`.`a` AS `a`,`t`.`b` AS `b`,`t`.`c` AS `c` from `t` | latin1               | latin1_swedish_ci    |
++------+-------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+----------------------+
+1 row in set (0.00 sec)
+
+mysql&gt; show create table vt2;
++------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+----------------------+
+| View | Create View                                                                                                                                                            | character_set_client | collation_connection |
++------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+----------------------+
+| vt2  | CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vt2` AS select distinct `t`.`a` AS `a`,`t`.`b` AS `b`,`t`.`c` AS `c` from `t`         | latin1               | latin1_swedish_ci    |
++------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------+----------------------+
+1 row in set (0.00 sec)
+</code></pre><p>view는 모두 default algorithm인 UNDEFINED로 생성하였다<br>UNDEFINED는 view의 생성구문을 보고 적합한 알고리즘을 알아서 선택해준다  </p><h3 id=vt1을-확인해보자>vt1을 확인해보자 <a hidden class=anchor aria-hidden=true href=#vt1을-확인해보자>#</a></h3><p>vt1을 확인할 때 기대하는 내용은</p><ul><li>merge algorithm으로 풀릴 것</li><li>merge로 풀린 만큼, view 바깥에 있는 where 조건의 인덱스도 사용할 수 있음</li></ul><pre><code>mysql&gt; select * From vt1 where c=2;
+</code></pre><ul><li>위 쿼리 수행 시 아주 대충 아래와 같은 과정을 거침 (중간중간에 더 많이 들어가는 단계들이 있으나 이는 생략)</li></ul><pre><code>(gdb) bt
+#0 Query_expression::is_mergeable (this=0xfffe58a91ea0) at /mysql_source/mysql-8.0.32/sql/sql_lex.cc:3795
+#1 0x000000000354ee6c in parse_view_definition (thd=0xfffe580108e0, view_ref=0xfffe58ae46f8) at /mysql_source/mysql-8.0.32/sql/sql_view.cc:1490
+#2 0x0000000003305e60 in open_table (thd=0xfffe580108e0, table_list=0xfffe58ae46f8, ot_ctx=0xffff8724fb18) at /mysql_source/mysql-8.0.32/sql/sql_base.cc:3291
+#3 0x00000000033098ac in open_and_process_table (thd=0xfffe580108e0, lex=0xfffe5801d580, tables=0xfffe58ae46f8, counter=0xfffe5801d5d8, prelocking_strategy=0xffff8724fc28,
+has_prelocking_list=false, ot_ctx=0xffff8724fb18) at /mysql_source/mysql-8.0.32/sql/sql_base.cc:5051
+#4 0x000000000330b1b8 in open_tables (thd=0xfffe580108e0, start=0xffff8724fbe0, counter=0xfffe5801d5d8, flags=0, prelocking_strategy=0xffff8724fc28)
+at /mysql_source/mysql-8.0.32/sql/sql_base.cc:5853
+#5 0x000000000330cad8 in open_tables_for_query (thd=0xfffe580108e0, tables=0xfffe58ae46f8, flags=0) at /mysql_source/mysql-8.0.32/sql/sql_base.cc:6735
+#6 0x000000000348e908 in Sql_cmd_dml::prepare (this=0xfffe58a91498, thd=0xfffe580108e0) at /mysql_source/mysql-8.0.32/sql/sql_select.cc:360
+#7 0x000000000348f2a0 in Sql_cmd_dml::execute (this=0xfffe58a91498, thd=0xfffe580108e0) at /mysql_source/mysql-8.0.32/sql/sql_select.cc:525
+#8 0x00000000034122f8 in mysql_execute_command (thd=0xfffe580108e0, first_level=true) at /mysql_source/mysql-8.0.32/sql/sql_parse.cc:4688
+#9 0x0000000003414370 in dispatch_sql_command (thd=0xfffe580108e0, parser_state=0xffff87251430) at /mysql_source/mysql-8.0.32/sql/sql_parse.cc:5322
+#10 0x000000000340b4b4 in dispatch_command (thd=0xfffe580108e0, com_data=0xffff872524e0, command=COM_QUERY) at /mysql_source/mysql-8.0.32/sql/sql_parse.cc:2036
+#11 0x0000000003409964 in do_command (thd=0xfffe580108e0) at /mysql_source/mysql-8.0.32/sql/sql_parse.cc:1439
+#12 0x0000000003617c94 in handle_connection (arg=0x1ec6d3a0) at /mysql_source/mysql-8.0.32/sql/conn_handler/connection_handler_per_thread.cc:302
+#13 0x000000000558ef54 in pfs_spawn_thread (arg=0x1ed74180) at /mysql_source/mysql-8.0.32/storage/perfschema/pfs.cc:2986
+#14 0x0000ffff9bf40d38 in start_thread () from /lib64/libpthread.so.0
+#15 0x0000ffff9b87b690 in thread_start () from /lib64/libc.so.6
+
+</code></pre><p>중요한 부분만 살펴보면,,,,,</p><ul><li>vt1 view가 merge 가능한지 체크하는 단계</li></ul><pre><code>Query_expression::is_mergeable (this=0xfffe58a91ea0) at /mysql_source/mysql-8.0.32/sql/sql_lex.cc:3798
+3798 return !select-&gt;is_grouped() &amp;&amp; !select-&gt;having_cond() &amp;&amp;
+
+Query_block::is_grouped (this=0xfffe58a91f88) at /mysql_source/mysql-8.0.32/sql/sql_lex.h:1272
+1272 bool is_grouped() const { return group_list.elements &gt; 0 || m_agg_func_used; }
+
+Query_expression::is_mergeable (this=0xfffe58a91ea0) at /mysql_source/mysql-8.0.32/sql/sql_lex.cc:3800
+3800 !select-&gt;has_limit() &amp;&amp; select-&gt;m_windows.elements == 0;
+
+Query_expression::is_mergeable (this=0xfffe58a91ea0) at /mysql_source/mysql-8.0.32/sql/sql_lex.cc:3798
+3798 return !select-&gt;is_grouped() &amp;&amp; !select-&gt;having_cond() &amp;&amp;
+
+Query_block::having_cond (this=0xfffe58a91f88) at /mysql_source/mysql-8.0.32/sql/sql_lex.h:1181
+1181 Item *having_cond() const { return m_having_cond; }
+
+Query_expression::is_mergeable (this=0xfffe58a91ea0) at /mysql_source/mysql-8.0.32/sql/sql_lex.cc:3798
+3798 return !select-&gt;is_grouped() &amp;&amp; !select-&gt;having_cond() &amp;&amp;
+
+Query_block::is_distinct (this=0xfffe58a91f88) at /mysql_source/mysql-8.0.32/sql/sql_lex.h:1275
+1275 bool is_distinct() const { return active_options() &amp; SELECT_DISTINCT; }
+
+Query_expression::merge_heuristic (this=0xfffe58a8c688, lex=0xfffe5801d580) at /mysql_source/mysql-8.0.32/sql/sql_lex.cc:3828
+3828 if (item-&gt;has_subquery() &amp;&amp; !item-&gt;const_for_execution()) return false;
+(gdb)
+3827 for (Item *item : select-&gt;visible_fields()) {
+(gdb)
+3828 if (item-&gt;has_subquery() &amp;&amp; !item-&gt;const_for_execution()) return false;
+(gdb)
+3827 for (Item *item : select-&gt;visible_fields()) {
+(gdb)
+
+
+(gdb) p is_distinct()
+$80 = false
+(gdb) p is_grouped()
+$81 = false
+(gdb) p has_limit()
+$82 = false
+</code></pre><p>=> group by 가 있는지, limit ,distinct , having, subquery 등이 있는지를 체크한다  
+위에서 수행한 쿼리엔 이런것들이 없기 때문에 모두 false 로 확인되었따</p><ul><li>MERGE 알고리즘을 사용하기로 결정!</li></ul><pre><code>(gdb) s
+Table_ref::set_merged (this=0xfffe58ae46f8) at /mysql_source/mysql-8.0.32/sql/table.h:3094
+3094 assert(effective_algorithm == VIEW_ALGORITHM_UNDEFINED);
+(gdb) info locals
+__PRETTY_FUNCTION__ = &quot;void Table_ref::set_merged()&quot;
+(gdb) s
+3095 effective_algorithm = VIEW_ALGORITHM_MERGE;
+
+
+3092 /// Set table to be merged
+3093 void set_merged() {
+3094 assert(effective_algorithm == VIEW_ALGORITHM_UNDEFINED);
+3095 effective_algorithm = VIEW_ALGORITHM_MERGE;
+3096 }
+(gdb) p effective_algorithm
+$102 = VIEW_ALGORITHM_MERGE
+
+
+Query_block::merge_derived (this=0xfffe58ae33d8, thd=0xfffe580108e0, derived_table=0xfffe58ae46f8) at /mysql_source/mysql-8.0.32/sql/sql_resolver.cc:3494
+3494 DBUG_PRINT(&quot;info&quot;, (&quot;algorithm: MERGE&quot;));
+
+
+parse_view_definition (thd=0xfffe580108e0, view_ref=0xfffe58ae46f8) at /mysql_source/mysql-8.0.32/sql/sql_view.cc:1489
+1489 view_ref-&gt;algorithm != VIEW_ALGORITHM_TEMPTABLE &amp;&amp;
+1493 if (view_is_mergeable) {
+.
+.
+.
+
+
+_db_trace = {m_stack_frame = {func = 0x59969d5 &quot;open_table(THD*, Table_ref*, Open_table_context*)&quot;, func_len = 10, file = 0x59959f8 &quot;/mysql_source/mysql-8.0.32/sql/sql_base.cc&quot;,
+level = 2147483659, prev = 0xffff8724f8d8}}
+__PRETTY_FUNCTION__ = &quot;bool parse_view_definition(THD*, Table_ref*)&quot;
+top_view = 0xfffe58ae46f8
+.
+.
+.
+current_db_name_saved = {str = 0xfffe5801de90 &quot;test&quot;, length = 4}
+parser_state = {m_input = {m_has_digest = false, m_compute_digest = false}, m_lip = {m_thd = 0xfffe580108e0, yylineno = 1, yytoklen = 1, yylval = 0xffff8724d390, lookahead_token = -1,
+lookahead_yylval = 0x874d478 &lt;Lex_input_stream::reset(char const*, unsigned long)::dummy_yylval&gt;, skip_digest = false, query_charset = 0x840ad38 &lt;my_charset_latin1&gt;,
+m_ptr = 0xfffe58a91573 &quot;\217\217\217\217\217latin1&quot;, m_tok_start = 0xfffe58a91573 &quot;\217\217\217\217\217latin1&quot;, m_tok_end = 0xfffe58a91573 &quot;\217\217\217\217\217latin1&quot;,
+m_end_of_query = 0xfffe58a91572 &quot;&quot;, m_buf = 0xfffe58a91530 &quot;select `test`.`t`.`a` AS `a`,`test`.`t`.`b` AS `b` from `test`.`t`&quot;, m_buf_length = 66, m_echo = true, m_echo_saved = 245,
+m_cpp_buf = 0xfffe58a91e58 &quot;select `test`.`t`.`a` AS `a`,`test`.`t`.`b` AS `b`,`test`.`t`.`c` AS `c` from `test`.`t` where `test`.`t`.`c`=2&quot;, m_cpp_ptr = 0xfffe58a91e9a &quot;&quot;, m_cpp_tok_start = 0xfffe58a91e9a &quot;&quot;,
+.
+.
+.
+view_is_mergeable = true
+view_main_select_tables = 0x0
+security_ctx = 0x59959f8
+</code></pre><p>=> 노가다 끝에 만난 VIEW_ALGORITHM_MERGE가 몹시 반갑다</p><h3 id=view-밖에-있는-where-c2-에-대한-인덱스도-탈-수-있을까>view 밖에 있는 where c=2 에 대한 인덱스도 탈 수 있을까<a hidden class=anchor aria-hidden=true href=#view-밖에-있는-where-c2-에-대한-인덱스도-탈-수-있을까>#</a></h3><ul><li>먼저 쿼리의 WHERE 조건을 확인하고 ,,,</li></ul><pre><code>T@7: sql_optimizer.cc: 10250: | | | | | | | | &gt;optimize_cond
+T@7: sql_optimizer.cc: 269: | | | | | | | | | opt: (null): starting struct
+T@7: sql_optimizer.cc: 269: | | | | | | | | | opt: condition_processing: starting struct
+T@7: sql_optimizer.cc: 292: | | | | | | | | | opt: condition: &quot;WHERE&quot;
+T@7: sql_optimizer.cc: 292: | | | | | | | | | opt: original_condition: &quot;(`t`.`c` = 2)&quot;
+
+</code></pre><ul><li>테이블에 달린 인덱스들 중 어떤 것이 적합한지 비교한 뒤 후보군을 추린다<ul><li>PRIMARY, idx_b 는 &ldquo;not_applicable&rdquo; 하다며 탈락시킴</li></ul></li></ul><pre><code>T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: (null): starting struct
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: index: &quot;PRIMARY&quot;
+T@7: range_optimizer.cc: 305: | | | | | | | | | | | opt: usable: 0
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: cause: &quot;not_applicable&quot;
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: (null): ending struct
+T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: (null): starting struct
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: index: &quot;idx_b&quot;
+T@7: range_optimizer.cc: 305: | | | | | | | | | | | opt: usable: 0
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: cause: &quot;not_applicable&quot;
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: (null): ending struct
+T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: (null): starting struct
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: index: &quot;idx_1&quot;
+T@7: range_optimizer.cc: 305: | | | | | | | | | | | opt: usable: 1
+T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: key_parts: starting struct
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: (null): &quot;c&quot;
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: (null): &quot;a&quot;
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: key_parts: ending struct
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: (null): ending struct
+T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: (null): starting struct
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: index: &quot;idx_2&quot;
+T@7: range_optimizer.cc: 305: | | | | | | | | | | | opt: usable: 1
+T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: key_parts: starting struct
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: (null): &quot;c&quot;
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: (null): &quot;b&quot;
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: (null): &quot;a&quot;
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: key_parts: ending struct
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: (null): ending struct
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: potential_range_indexes: ending struct
+T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: best_covering_index_scan: starting struct
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | opt: index: &quot;idx_2&quot;
+T@7: range_optimizer.cc: 335: | | | | | | | | | | | opt: cost: 1.25384
+T@7: range_optimizer.cc: 305: | | | | | | | | | | | opt: chosen: 1
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | opt: best_covering_index_scan: ending struct
+T@7: range_optimizer.cc: 269: | | | | | | | | | | | opt: setup_range_conditions: starting struct
+</code></pre><ul><li>위에서 usable index로 추려진 idx_1, idx_2 가 경합끝에 idx_2가 선택된다<ul><li>access_type: &ldquo;ref&rdquo; 로 확실히 인덱스를 사용할 수 있도록 풀렸다</li></ul></li></ul><pre><code>T@7: sql_planner.cc: 1009: | | | | | | | | | | | | &gt;Optimize_table_order::best_access_path
+T@7: sql_planner.cc: 269: | | | | | | | | | | | | | opt: best_access_path: starting struct
+T@7: sql_planner.cc: 269: | | | | | | | | | | | | | opt: considered_access_paths: starting struct
+T@7: sql_planner.cc: 272: | | | | | | | | | | | | | info: Considering ref access on key idx_1
+T@7: sql_planner.cc: 269: | | | | | | | | | | | | | opt: (null): starting struct
+T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: access_type: &quot;ref&quot;
+T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: index: &quot;idx_1&quot;
+T@7: sql_planner.cc: 335: | | | | | | | | | | | | | opt: rows: 2
+T@7: sql_planner.cc: 335: | | | | | | | | | | | | | opt: cost: 0.7
+T@7: sql_planner.cc: 305: | | | | | | | | | | | | | opt: chosen: 1
+T@7: sql_planner.cc: 282: | | | | | | | | | | | | | opt: (null): ending struct
+T@7: sql_planner.cc: 272: | | | | | | | | | | | | | info: Considering ref access on key idx_2
+T@7: sql_planner.cc: 269: | | | | | | | | | | | | | opt: (null): starting struct
+T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: access_type: &quot;ref&quot;
+T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: index: &quot;idx_2&quot;
+T@7: sql_planner.cc: 335: | | | | | | | | | | | | | opt: rows: 2
+T@7: sql_planner.cc: 335: | | | | | | | | | | | | | opt: cost: 0.450427
+T@7: sql_planner.cc: 305: | | | | | | | | | | | | | opt: chosen: 1
+T@7: sql_planner.cc: 282: | | | | | | | | | | | | | opt: (null): ending struct
+T@7: sql_planner.cc: 269: | | | | | | | | | | | | | opt: (null): starting struct
+T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: access_type: &quot;range&quot;
+T@7: sql_planner.cc: 269: | | | | | | | | | | | | | opt: range_details: starting struct
+T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: used_index: &quot;idx_2&quot;
+T@7: sql_planner.cc: 282: | | | | | | | | | | | | | opt: range_details: ending struct
+T@7: sql_planner.cc: 305: | | | | | | | | | | | | | opt: chosen: 0
+T@7: sql_planner.cc: 292: | | | | | | | | | | | | | opt: cause: &quot;heuristic_index_cheaper&quot;
+T@7: sql_planner.cc: 282: | | | | | | | | | | | | | opt: (null): ending struct
+T@7: sql_planner.cc: 282: | | | | | | | | | | | | | opt: considered_access_paths: ending struct
+T@7: sql_planner.cc: 282: | | | | | | | | | | | | | opt: best_access_path: ending struct
+T@7: sql_planner.cc: | | | | | | | | | | | | &lt;Optimize_table_order::best_access_path
+.
+.
+.
+.
+
+
+T@7: sql_test.cc: 112: | | | | | | | | &gt;TEST_join
+
+Info about JOIN
+t type: ref q_keys: C refs: 1 key: 3 len: 5
+refs: 2
+</code></pre><ul><li>실제 플랜</li></ul><pre><code>mysql&gt; explain
+    -&gt; select * From vt1 where c=2;
++----+-------------+-------+------------+------+---------------+-------+---------+-------+------+----------+-------------+
+| id | select_type | table | partitions | type | possible_keys | key   | key_len | ref   | rows | filtered | Extra       |
++----+-------------+-------+------------+------+---------------+-------+---------+-------+------+----------+-------------+
+|  1 | SIMPLE      | t     | NULL       | ref  | idx_1,idx_2   | idx_2 | 5       | const |    2 |   100.00 | Using index |
++----+-------------+-------+------------+------+---------------+-------+---------+-------+------+----------+-------------+
+1 row in set, 1 warning (0.00 sec)
+</code></pre><p>=> 정리하면,</p><ul><li>group by, limit ,distinct , having, subquery 같은 결격사유가 없는 view는 MERGE 알고리즘으로 풀렸고</li><li>덕분에 select * from vt1 where c=2; 같은 view와 상관없는 c=2 조건도 인덱스를 타면서 효율적으로 수행되었다</li></ul><h3 id=vt2를-확인해보자>vt2를 확인해보자<a hidden class=anchor aria-hidden=true href=#vt2를-확인해보자>#</a></h3><p>반대로 vt2를 확인할 때 기대하는 바는</p><ul><li>MERGE가 아닌 TEMPTABLE 알고리즘으로 풀릴 것</li><li>view 밖의 where 조건에 대한 인덱스를 사용하지 못함 </li></ul><pre><code>mysql&gt; select * From vt2 where c=2;
+bool Query_expression::is_mergeable() const {
+  if (is_set_operation()) return false;
+
+  Query_block *const select = first_query_block();
+  return !select-&gt;is_grouped() &amp;&amp; !select-&gt;having_cond() &amp;&amp;
+         !select-&gt;is_distinct() &amp;&amp; select-&gt;m_table_list.elements &gt; 0 &amp;&amp;
+         !select-&gt;has_limit() &amp;&amp; select-&gt;m_windows.elements == 0;
+}
+
+(gdb) s
+Query_block::is_grouped (this=0xfffe58ab17b0) at /mysql_source/mysql-8.0.32/sql/sql_lex.h:1272
+      /// @return true if this query block contains DISTINCT at start of select list
+1272  bool is_distinct() const { return active_options() &amp; SELECT_DISTINCT; }
+
+(gdb) p is_distinct()
+$1 = true
+</code></pre><p>=> vt1에서 본 것과 같이 is_mergeable() 함수에서 group by , limit distinct, having 등을 체크한다<br>view에 distinct 가 들어가는 것을 바로 들키고 말았다 </p><ul><li>vt2 view가 merge 가능한지 체크하는</li></ul><pre><code>(gdb) list
+1488 const bool view_is_mergeable =
+1489 view_ref-&gt;algorithm != VIEW_ALGORITHM_TEMPTABLE &amp;&amp;
+1490 view_lex-&gt;unit-&gt;is_mergeable();
+1491 Table_ref *view_main_select_tables = nullptr;
+1492
+1493 if (view_is_mergeable) {
+1494 /*
+1495 Currently 'view_main_select_tables' differs from 'view_tables'
+1496 only then view has CONVERT_TZ() function in its select list.
+1497 This may change in future, for example if we enable merging of
+(gdb) p view_is_mergeable
+$7 = false
+</code></pre><p>=> 위에서 distinct  를 걸렸기 때문에 view_is_mergeable == false 가 되고 말았다<br>TEMPTABLE 알고리즘을 사용하기로 결정!</p><pre><code>Table_ref::uses_materialization (this=0xfffe58a8b998) at /mysql_source/mysql-8.0.32/sql/table.h:3100
+3100 return effective_algorithm == VIEW_ALGORITHM_TEMPTABLE;
+
+
+Table_ref::is_view_or_derived (this=0xfffe58a8b998) at /mysql_source/mysql-8.0.32/sql/table.h:3026
+3026 bool is_view_or_derived() const { return derived != nullptr; }
+(gdb)
+Table_ref::is_merged (this=0xfffe58a8b998) at /mysql_source/mysql-8.0.32/sql/table.h:3090
+3090 bool is_merged() const { return effective_algorithm == VIEW_ALGORITHM_MERGE; }
+(gdb)
+Table_ref::setup_materialized_derived_tmp_table (this=0xfffe58a8b998, thd=0xfffe580108e0) at /mysql_source/mysql-8.0.32/sql/sql_derived.cc:787
+787 DBUG_PRINT(&quot;info&quot;, (&quot;algorithm: TEMPORARY TABLE&quot;));
+
+(gdb) info locals
+_db_trace = {m_stack_frame = {func = 0x61397e5 &quot;Query_block::resolve_placeholder_tables(THD*, bool)&quot;, func_len = 39, file = 0x61391d0 &quot;/mysql_source/mysql-8.0.32/sql/sql_resolver.cc&quot;,
+level = 2147483657, prev = 0xffff8724f8f0}}
+__PRETTY_FUNCTION__ = &quot;bool Table_ref::setup_materialized_derived_tmp_table(THD*)&quot;
+trace = 0xfffe58a8b998
+trace_wrapper = {&lt;Opt_trace_struct&gt; = {started = 36, requires_key = 111, has_disabled_I_S = 126, empty = 155, stmt = 0xfffe58ab17b0, saved_key = 0xffff8724f850 &quot;'&quot;,
+previous_key = &quot;\260\027\253X\376\377\000\000\000\000\000\000\000\000\000\000\310\026\253X\376\377\000\000\001&quot;}, &lt;No data fields&gt;}
+trace_derived = {&lt;Opt_trace_struct&gt; = {started = 60, requires_key = 75, has_disabled_I_S = 70, empty = 3, stmt = 0xfffe58ab5600, saved_key = 0x0,
+previous_key = &quot;'\000\000\000\000\000\000\000h'\177\b\000\000\000\001\340\b\001X\376\377\000\000\230&quot;}, &lt;No data fields&gt;}
+
+(gdb) p effective_algorithm
+$26 = VIEW_ALGORITHM_TEMPTABLE
+(gdb) p is_view_or_derived()
+$27 = true
+</code></pre><p>노가다 끝에 만난 VIEW_ALGORITHM_TEMPTABLE가 몹시 반갑다</p><ul><li>view 처리를 위해 내부적으로 TEMPTABLE 생성하는 모습</li></ul><pre><code>Query_result_union::create_result_table (this=0xfffe58ab5628, thd_arg=0xfffe580108e0, column_types=..., is_union_distinct=false, options=2416188160, table_alias=0xfffe58a8b990 &quot;vt2&quot;,
+bit_fields_as_long=false, create_table=false, op=0x0) at /mysql_source/mysql-8.0.32/sql/sql_union.cc:171
+171 mem_root_deque&lt;Item *&gt; visible_fields(thd_arg-&gt;mem_root);
+.
+.
+.
+create_tmp_table (thd=0xfffe580108e0, param=0xfffe58ab5648, fields=..., group=0x0, distinct=false, save_sum_fields=true, select_options=2416188160, rows_limit=18446744073709551615,
+table_alias=0xfffe58a8b990 &quot;vt2&quot;) at /mysql_source/mysql-8.0.32/sql/sql_tmp_table.cc:876
+876 DBUG_TRACE;
+(gdb)
+972 param-&gt;items_to_copy =
+(gdb)
+974 if (param-&gt;items_to_copy == nullptr) return nullptr; /* purecov: inspected */
+.
+.
+.
+
+### a 컬럼 temp table로 fetch 
+create_tmp_field_from_field (thd=0xfffe580108e0, org_field=0xfffe58ae5380, name=0xfffe58ab2be0 &quot;a&quot;, table=0xfffe58a8d9f8, item=0x0) at /mysql_source/mysql-8.0.32/sql/sql_tmp_table.cc:190
+190 Field *new_field = org_field-&gt;new_field(thd-&gt;mem_root, table);
+create_tmp_field_from_field (thd=0xfffe580108e0, org_field=0xfffe58ae5380, name=0xfffe58ab2be0 &quot;a&quot;, table=0xfffe58a8d9f8, item=0x0) at /mysql_source/mysql-8.0.32/sql/sql_tmp_table.cc:194
+194 new_field-&gt;field_name = name;
+(gdb) p name
+$58 = 0xfffe58ab2be0 &quot;a&quot;
+
+ ### b 컬럼 temp table로 fetch  
+create_tmp_field_from_field (thd=0xfffe580108e0, org_field=0xfffe58ae5460, name=0xfffe58ab2d30 &quot;b&quot;, table=0xfffe58a8d9f8, item=0x0) at /mysql_source/mysql-8.0.32/sql/sql_tmp_table.cc:190
+190 Field *new_field = org_field-&gt;new_field(thd-&gt;mem_root, table);
+(gdb) info locals
+new_field = 0xfffe58ab2c30
+(gdb) p name
+$70 = 0xfffe58ab2d30 &quot;b&quot;
+
+
+ ### c 컬럼 temp table로 fetch  
+create_tmp_field_from_field (thd=0xfffe580108e0, org_field=0xfffe58ae5460, name=0xfffe58ab2gf0 &quot;b&quot;, table=0xfffe58a8d9f8, item=0x0) at /mysql_source/mysql-8.0.32/sql/sql_tmp_table.cc:190
+190 Field *new_field = org_field-&gt;new_field(thd-&gt;mem_root, table);
+(gdb) p name
+$70 = 0xfffe58ab2gf0 &quot;b&quot;
+</code></pre><p>=> 컬럼을 한번에 하나씩 fetch해오는 모습<br>모르긴 몰라도 select * 이 아니라 꼭 필요한 컬럼만 지정해놓으면 이런 자잘한 비효율을 아낄 수 있을 것 같다</p><h3 id=view-밖에-있는-where-c2-에-대한-인덱스도-탈-수-있을까-1>view 밖에 있는 where c=2 에 대한 인덱스도 탈 수 있을까<a hidden class=anchor aria-hidden=true href=#view-밖에-있는-where-c2-에-대한-인덱스도-탈-수-있을까-1>#</a></h3><pre><code>T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: index: &quot;PRIMARY&quot;
+T@7: range_optimizer.cc: 305: | | | | | | | | | | | | | | | opt: usable: 1
+T@7: range_optimizer.cc: 269: | | | | | | | | | | | | | | | opt: key_parts: starting struct
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: (null): &quot;a&quot;
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | | | | | opt: key_parts: ending struct
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | | | | | opt: (null): ending struct
+T@7: range_optimizer.cc: 269: | | | | | | | | | | | | | | | opt: (null): starting struct
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: index: &quot;idx_b&quot;
+T@7: range_optimizer.cc: 305: | | | | | | | | | | | | | | | opt: usable: 1
+T@7: range_optimizer.cc: 269: | | | | | | | | | | | | | | | opt: key_parts: starting struct
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: (null): &quot;b&quot;
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: (null): &quot;a&quot;
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | | | | | opt: key_parts: ending struct
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | | | | | opt: (null): ending struct
+T@7: range_optimizer.cc: 269: | | | | | | | | | | | | | | | opt: (null): starting struct
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: index: &quot;idx_1&quot;
+T@7: range_optimizer.cc: 305: | | | | | | | | | | | | | | | opt: usable: 1
+T@7: range_optimizer.cc: 269: | | | | | | | | | | | | | | | opt: key_parts: starting struct
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: (null): &quot;c&quot;
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: (null): &quot;a&quot;
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | | | | | opt: key_parts: ending struct
+T@7: range_optimizer.cc: 282: | | | | | | | | | | | | | | | opt: (null): ending struct
+T@7: range_optimizer.cc: 269: | | | | | | | | | | | | | | | opt: (null): starting struct
+T@7: range_optimizer.cc: 292: | | | | | | | | | | | | | | | opt: index: &quot;idx_2&quot;
+T@7: range_optimizer.cc: 305: | | | | | | | | | | | | | | | opt: usable: 1
+</code></pre><p>어째 모든 인덱스가 다 usable이라고 뜬다<br>이상해서 더 확인해보면,,,,,</p><pre><code>
+T@7: sql_planner.cc: 292: | | | | | | | | | | | | | | | | opt: table: &quot;`t`&quot;
+T@7: sql_planner.cc: 1009: | | | | | | | | | | | | | | | | &gt;Optimize_table_order::best_access_path
+T@7: sql_planner.cc: 269: | | | | | | | | | | | | | | | | | opt: best_access_path: starting struct
+T@7: sql_planner.cc: 269: | | | | | | | | | | | | | | | | | opt: considered_access_paths: starting struct
+T@7: sql_planner.cc: 269: | | | | | | | | | | | | | | | | | opt: (null): starting struct
+T@7: sql_planner.cc: 324: | | | | | | | | | | | | | | | | | opt: rows_to_scan: 10
+T@7: sql_planner.cc: 292: | | | | | | | | | | | | | | | | | opt: access_type: &quot;scan&quot;
+T@7: sql_planner.cc: 335: | | | | | | | | | | | | | | | | | opt: resulting_rows: 10
+T@7: sql_planner.cc: 335: | | | | | | | | | | | | | | | | | opt: cost: 1.25
+T@7: sql_planner.cc: 305: | | | | | | | | | | | | | | | | | opt: chosen: 1
+T@7: sql_planner.cc: 305: | | | | | | | | | | | | | | | | | opt: use_tmp_table: 1
+T@7: sql_planner.cc: 282: | | | | | | | | | | | | | | | | | opt: (null): ending struct
+T@7: sql_planner.cc: 282: | | | | | | | | | | | | | | | | | opt: considered_access_paths: ending struct
+T@7: sql_planner.cc: 282: | | | | | | | | | | | | | | | | | opt: best_access_path: ending struct
+T@7: sql_planner.cc: | | | | | | | | | | | | | | | | &lt;Optimize_table_order::best_access_path
+T@7: sql_planner.cc: 335: | | | | | | | | | | | | | | | | opt: condition_filtering_pct: 100
+T@7: sql_planner.cc: 335: | | | | | | | | | | | | | | | | opt: rows_for_plan: 10
+T@7: sql_planner.cc: 335: | | | | | | | | | | | | | | | | opt: cost_for_plan: 1.25
+T@7: sql_planner.cc: 335: | | | | | | | | | | | | | | | | opt: sort_cost: 10
+T@7: sql_planner.cc: 335: | | | | | | | | | | | | | | | | opt: new_cost_for_plan: 11.25
+T@7: sql_planner.cc: 305: | | | | | | | | | | | | | | | | opt: chosen: 1
+
+.
+.
+.
+.
+
+T@7:    sql_test.cc:   112: | | | | | | | | | | | | &gt;TEST_join
+
+Info about JOIN
+t                 type: index    q_keys: F  refs: 0  key: -1  len: 0
+</code></pre><p>=> vt1에선 access_type: ref  와 달리 이번엔 access_type: &ldquo;scan&rdquo; 이다  
+index 풀스캔을 위한 인덱스를 고르는 것이었다<br>ref와 index fullscan은 천지차이다</p><ul><li>실제 플랜</li></ul><pre><code>mysql&gt; explain select * From vt2 where c=2;
++----+-------------+------------+------------+-------+---------------------------+-------+---------+------+------+----------+-------------+
+| id | select_type | table      | partitions | type  | possible_keys             | key   | key_len | ref  | rows | filtered | Extra       |
++----+-------------+------------+------------+-------+---------------------------+-------+---------+------+------+----------+-------------+
+|  1 | PRIMARY     | &lt;derived2&gt; | NULL       | ALL   | NULL                      | NULL  | NULL    | NULL |   10 |   100.00 | NULL        |
+|  2 | DERIVED     | t          | NULL       | index | PRIMARY,idx_b,idx_1,idx_2 | idx_2 | 10      | NULL |   10 |   100.00 | Using index |
++----+-------------+------------+------------+-------+---------------------------+-------+---------+------+------+----------+-------------+
+2 rows in set, 1 warning (0.00 sec)
+</code></pre><p>=> 정리하면,</p><ul><li><p>group by, limit ,distinct , having, subquery 같은 것이 있는 view는 TEMPTABLE 알고리즘으로 풀렸고</p></li><li><p>MERGE가 아닌 derived , 파생 테이블(temptable) 로 풀린 탓에  select * from vt2 where c=2; 같은 view와 상관없는 c=2 조건 인덱스를 타지 못하였다. (위에서 type index는 인덱스 풀스캔으로 c=2 조건을 탄게 아니다)</p></li><li><p>꼭 필요한 view가 아니라면 TEMPTABLE로 풀릴만한 것은 view 가 아니라 native 쌩 쿼리로 돌리거나 최대한 MERGE로 풀릴 수 있도록 튜닝한뒤 사용하자!</p></li></ul></div><footer class=post-footer><ul class=post-tags><li><a href=/tags/mysql/>mysql</a></li><li><a href=/tags/gdb/>gdb</a></li><li><a href=/tags/ddl/>ddl</a></li></ul><nav class=paginav><a class=prev href=/mysql/instant_ddl1/><span class=title>« Prev Page</span><br><span>MySQL INSTANT DDL algorithm에 대해-1</span></a>
+<a class=next href=/mysql/innodb_stats/><span class=title>Next Page »</span><br><span>MySQL index 생성 시 주의할점</span></a></nav></footer><div id=disqus_thread></div><script type=text/javascript>(function(){if(window.location.hostname=="localhost")
+return;var dsq=document.createElement('script');dsq.type='text/javascript';dsq.async=true;var disqus_shortname='kimdubia';dsq.src='//'+disqus_shortname+'.disqus.com/embed.js';(document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(dsq);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com/ class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></main><footer class=footer><span>&copy; 2024 <a href>kimDuBiA</a></span>
+<span>Powered by
+<a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
+        <a href=https://git.io/hugopapermod rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentcolor"><path d="M12 6H0l6-6z"/></svg></a><script>let menu=document.getElementById('menu')
+menu.scrollLeft=localStorage.getItem("menu-scroll-position");menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft);}
+document.querySelectorAll('a[href^="#"]').forEach(anchor=>{anchor.addEventListener("click",function(e){e.preventDefault();var id=this.getAttribute("href").substr(1);if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({behavior:"smooth"});}else{document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();}
+if(id==="top"){history.replaceState(null,null," ");}else{history.pushState(null,null,`#${id}`);}});});</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){if(document.body.scrollTop>800||document.documentElement.scrollTop>800){mybutton.style.visibility="visible";mybutton.style.opacity="1";}else{mybutton.style.visibility="hidden";mybutton.style.opacity="0";}};</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{if(document.body.className.includes("dark")){document.body.classList.remove('dark');localStorage.setItem("pref-theme",'light');}else{document.body.classList.add('dark');localStorage.setItem("pref-theme",'dark');}})</script><script>document.querySelectorAll('pre > code').forEach((codeblock)=>{const container=codeblock.parentNode.parentNode;const copybutton=document.createElement('button');copybutton.classList.add('copy-code');copybutton.innerText='copy';function copyingDone(){copybutton.innerText='copied!';setTimeout(()=>{copybutton.innerText='copy';},2000);}
+copybutton.addEventListener('click',(cb)=>{if('clipboard'in navigator){navigator.clipboard.writeText(codeblock.textContent);copyingDone();return;}
+const range=document.createRange();range.selectNodeContents(codeblock);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);try{document.execCommand('copy');copyingDone();}catch(e){};selection.removeRange(range);});if(container.classList.contains("highlight")){container.appendChild(copybutton);}else if(container.parentNode.firstChild==container){}else if(codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"){codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);}else{codeblock.parentNode.appendChild(copybutton);}});</script></body></html>

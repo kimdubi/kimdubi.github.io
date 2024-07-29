@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
-    <title>ddl on kimDuBiA</title>
-    <link>/tags/ddl/</link>
-    <description>Recent content in ddl on kimDuBiA</description>
+    <title>debugging on kimDuBiA</title>
+    <link>/tags/debugging/</link>
+    <description>Recent content in debugging on kimDuBiA</description>
     <image>
       <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Mon, 29 Jul 2024 16:53:15 +0900</lastBuildDate><atom:link href="/tags/ddl/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 29 Jul 2024 16:53:15 +0900</lastBuildDate><atom:link href="/tags/debugging/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>MySQL row_format dynamic,compact에 대해서</title>
       <link>/mysql/row_format/</link>
@@ -79,72 +79,6 @@ view로 생성할 땐 왜 이런 이상한 현상이 발생하는지 디버깅�
       <description>테스트 목적 innodb_sort_buffer_size 를 크게 잡으면 index 생성 속도에 얼마나 도움이 될까?
 online DDL 중 DML 성능 향상에도 도움이 될까?
 테스트 환경  5.7.mysql_aurora.2.04.9 r5.2xlarge writer 1대 테스트 대상 테이블 정보   CREATE TABLE `stock1` ( `s_i_id` int(11) NOT NULL, `s_w_id` smallint(6) NOT NULL, `s_quantity` smallint(6) DEFAULT NULL, `s_dist_01` char(24) DEFAULT NULL, `s_dist_02` char(24) DEFAULT NULL, `s_dist_03` char(24) DEFAULT NULL, `s_dist_04` char(24) DEFAULT NULL, `s_dist_05` char(24) DEFAULT NULL, `s_dist_06` char(24) DEFAULT NULL, `s_dist_07` char(24) DEFAULT NULL, `s_dist_08` char(24) DEFAULT NULL, `s_dist_09` char(24) DEFAULT NULL, `s_dist_10` char(24) DEFAULT NULL, `s_ytd` decimal(8,0) DEFAULT NULL, `s_order_cnt` smallint(6) DEFAULT NULL, `s_remote_cnt` smallint(6) DEFAULT NULL, `s_data` varchar(50) DEFAULT NULL, PRIMARY KEY (`s_w_id`,`s_i_id`), KEY `fkey_stock_21` (`s_i_id`), CONSTRAINT `fkey_stock_1_1` FOREIGN KEY (`s_w_id`) REFERENCES `warehouse1` (`w_id`), CONSTRAINT `fkey_stock_2_1` FOREIGN KEY (`s_i_id`) REFERENCES `item1` (`i_id`) ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 +-------------+------------+---------------+----------------+ | table_name | table_rows | DATA_SIZE(MB) | INDEX_SIZE(MB) | +-------------+------------+---------------+----------------+ | stock1 | 192659975 | 70237.</description>
-    </item>
-    
-    <item>
-      <title>MySQL online으로 일반테이블 파티셔닝 전환하기</title>
-      <link>/mysql/ptosc_partitioning/</link>
-      <pubDate>Mon, 04 Oct 2021 18:57:20 +0900</pubDate>
-      
-      <guid>/mysql/ptosc_partitioning/</guid>
-      <description>MySQL online으로 일반테이블 파티셔닝 전환하기 기존 일반테이블을 파티셔닝 테이블로 변환할 때 pt-osc 를 활용하여 온라인 작업으로 할 수 없을까 검색하던 중
-카카오에서는 아래의 내용처럼 pt-osc를 수정하여 사용한다는 것을 알게 되었습니다
-http://small-dbtalk.blogspot.com/2014/04/pt-online-schema-change-modified-pt.html
-간단하게 요약하자면
-MySQL에서 하나의 ALTER 문으로 처리하지 못하는 DDL작업들을 pt-osc에서도 처리하지 못했는데요.
-대표적으로 일반테이블을 파티션테이블로 전환하는 경우
-PK 구성 변경과 파티셔닝 커맨드를 하나의 ALTER문으로 표현할 수 없기 때문에 pt-osc를 활용할 수 없습니다.
-이런 점을 개선하기 위해
-–prompt-before-copy 라는 커맨드를 추가하여</description>
-    </item>
-    
-    <item>
-      <title>MySQL fragmentaion 원인과 해결방법</title>
-      <link>/mysql/optimize/</link>
-      <pubDate>Mon, 04 Oct 2021 18:00:06 +0900</pubDate>
-      
-      <guid>/mysql/optimize/</guid>
-      <description>MySQL fragmentation 원인과 해결방법 MySQL에서 테이블 fragmentation 현상을 경험해보신 적 있으신가요?
-fragmentation이란 insert &amp;amp; delete 가 수차례 반복되면서 page 안에 회수가 안되는 사용되지 않는 부분이 많아지면서 발생하게 되는데
-그 영향으로 테이블이 실제로 가져야 하는 OS 공간 보다 더 많은 공간을 차지하게 됩니다.
-얼마전에 저도 운영하는 서비스에서 단편화가 심하게 된 테이블을 발견하게 되었는데요
-이번 글에서는 단편화현상을 해소하는 방법과 그 원인에 대해서 알아보도록 하겠습니다.
-fragmentation 확인  대상 테이블 OS 사이즈  $ du -sh tb_test* 12K tb_test.</description>
-    </item>
-    
-    <item>
-      <title>MySQL VARCHAR online ddl 변경 시 주의사항</title>
-      <link>/mysql/varchar/</link>
-      <pubDate>Mon, 04 Oct 2021 11:03:00 +0900</pubDate>
-      
-      <guid>/mysql/varchar/</guid>
-      <description>MySQL online DDL varchar 변경 시 주의사항 MySQL의 버전이 올라갈수록 online DDL 지원 범위가 넓어지고 있습니다.
-그런데 의외로 자유자재로 변경가능할 것 같은 varchar column의 사이즈 변경이 특정 케이스에서는
-online DDL이 안되기 때문에 주의가 필요합니다.
-(MySQL 8.0 버전도 동일)
- VARCHAR column 256 bytes 미만에서 그 이상으로 변경 VARCHAR size 줄이기  varchar size 256 bytes 이상으로 변경하는 경우  table charset=utf8mb4   Table: test Create Table: CREATE TABLE `test` ( `a` varchar(1) DEFAULT NULL, `b` varchar(64) DEFAULT NULL ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ### varchar(1) =&amp;gt; varchar(63) mysql&amp;gt; alter table test modify a varchar(63), algorithm=inplace, lock = none; Query OK, 0 rows affected (0.</description>
-    </item>
-    
-    <item>
-      <title>MySQL / ORACLE PARTITION DDL 비교</title>
-      <link>/mysql/partition/</link>
-      <pubDate>Mon, 04 Oct 2021 10:39:52 +0900</pubDate>
-      
-      <guid>/mysql/partition/</guid>
-      <description>이번 글에서는 ORACLE과 MySQL의 파티션 테이블 구문의 차이점에 대해서 알아보겠습니다.
-ORACLE / MySQL partition DDL 차이점    기능 ORACLE MySQL     ADD ALTER TABLE PARTITION_TEST ADD PARTITION P1 VALUES LESS THAN (&amp;lsquo;2020-03-01&amp;rsquo;) TABLESPACE TABS1 ALTER TABLE PARTITION_TEST ADD PARTITION (PARTITION P1 VALUES LESS THAN (&amp;lsquo;2020-03-01&amp;rsquo;) TABLESPACE TABS1)   DROP ALTER TABLE PARTITION_TEST DROP PARTITION P1 ALTER TABLE PARTITION_TEST DROP PARTITION P1   SPLIT ALTER TABLE SPLIT PARTITION P_MAX AT (&amp;lsquo;2020-04-01&amp;rsquo;) INTO (PARTITION P2 TABLESPACE TABS2, PARTITION P_MAX TABLESPACE TABS) ALTER TABLE PARTITION_TEST REORGANIZE PARTITION P1,P2 INTO (PARTITION P2 LESS THAN (&amp;lsquo;2020-04-01&amp;rsquo;))   MERGE ALTER TABLE PARTITION_TEST MERGE PARTITION P1,P2 INTO P2 ALTER TABLE PARTITION_TEST REORGANIZE PARTITION P1,P2 INTO (PARTITION P2 LESS THAN (&amp;lsquo;2020-04-01&amp;rsquo;))   TRUNCATE ALTER TABLE PARTITION_TEST TRUNCATE PARTITION P1 ALTER TABLE PARTITION_TEST TRUNCATE PARTITION P1   EXCHANGE ALTER TABLE PARTITION_TEST EXCHANGE PARTITION P1 WITH TABLE NONPARTITION_TEST ALTER TABLE PARTITION_TEST EXCHANGE PARTITION P1 WITH TABLE NONPARTITION_TEST   MOVE ALTER TABLE PARTITION_TEST MOVE PARTITION P1 TABLESPACE TABS1 -   RENAME ALTER TABLE PARTITION_TEST RENAME PARTITION P1 TO P1_RENAME -    이외에도 아래와 같은 차이점이 더 있습니다</description>
-    </item>
-    
-    <item>
-      <title>MySQL online DDL을 위한 TOOL 비교 ( pt-osc &amp; gh-ost )</title>
-      <link>/mysql/online_schema_change/</link>
-      <pubDate>Mon, 04 Oct 2021 03:54:13 +0900</pubDate>
-      
-      <guid>/mysql/online_schema_change/</guid>
-      <description>MySQL online DDL을 위한 TOOL pt-osc &amp;amp; gh-ost ONLINE DDL MySQL은 DDL에 대해서 한정적으로 online 작업을 지원합니다.
-online ddl 방식으로는 INPLACE, INSTANT (mysql 8.0부터) 가 있고
-주로 쓰이는 algorithm=INPLACE 방식은 아래와 같은 절차로 ONLINE DDL을 지원합니다.
-1. INPLACE 스키마 변경이 지원되는 커맨드인지, 스토리지 엔진(InnoDB) 인지 확인 2. online 스키마 변경 작업동안 변경되는 데이터를 저장할 준비 (innodb_online_alter_log_max_size) 3. 테이블 스키마 변경 및 DML 로깅 4. 변경 완료된 테이블에 DML 로깅 적용 5.</description>
     </item>
     
   </channel>

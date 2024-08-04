@@ -132,7 +132,8 @@ create role new_testuser login password '!dlatl00' noinherit valid until 'infini
 grant connect,temporary on database testdb to new_testuser;
 grant usage on schema testuser to new_testuser;
 grant select,insert,update,delete on all tables in schema testuser to new_testuser;
-</code></pre><p>DB 접속 권한 확인 => schema usage 권한 확인 => 각 개별 테이블 권한 확인</p></div><footer class=post-footer><ul class=post-tags><li><a href=/tags/postgresql/>postgresql</a></li><li><a href=/tags/install/>install</a></li></ul></footer><div id=disqus_thread></div><script type=text/javascript>(function(){if(window.location.hostname=="localhost")
+</code></pre><p>DB 접속 권한 확인 => schema usage 권한 확인 => 각 개별 테이블 권한 확인</p></div><footer class=post-footer><ul class=post-tags><li><a href=/tags/postgresql/>postgresql</a></li><li><a href=/tags/install/>install</a></li></ul><nav class=paginav><a class=prev href=/postgresql/postgresql_conf/><span class=title>« Prev Page</span><br><span>PostgreSQL configure 설정</span></a>
+<a class=next href=/postgresql/postgresql_intro/><span class=title>Next Page »</span><br><span>PostgreSQL Architecture (PostgreSQL 시작하기)</span></a></nav></footer><div id=disqus_thread></div><script type=text/javascript>(function(){if(window.location.hostname=="localhost")
 return;var dsq=document.createElement('script');dsq.type='text/javascript';dsq.async=true;var disqus_shortname='kimdubia';dsq.src='//'+disqus_shortname+'.disqus.com/embed.js';(document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(dsq);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com/ class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></main><footer class=footer><span>&copy; 2024 <a href>kimDuBiA</a></span>
 <span>Powered by
 <a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &

@@ -3,6 +3,21 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>/kafka/</loc>
+    <lastmod>2024-08-04T09:56:30+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/</loc>
+    <lastmod>2024-08-04T09:56:30+09:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/kafka/mysql_cdc/</loc>
+    <lastmod>2024-08-04T09:56:30+09:00</lastmod>
+  </url>
+  
+  <url>
     <loc>/categories/</loc>
     <lastmod>2024-07-29T16:53:15+09:00</lastmod>
   </url>
@@ -14,11 +29,6 @@
   
   <url>
     <loc>/tags/debugging/</loc>
-    <lastmod>2024-07-29T16:53:15+09:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>/</loc>
     <lastmod>2024-07-29T16:53:15+09:00</lastmod>
   </url>
   

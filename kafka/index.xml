@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Kafkas on kimDuBiA</title>
+    <link>/kafka/</link>
+    <description>Recent content in Kafkas on kimDuBiA</description>
+    <image>
+      <url>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Sun, 04 Aug 2024 09:56:30 +0900</lastBuildDate><atom:link href="/kafka/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Mysql_cdc</title>
+      <link>/kafka/mysql_cdc/</link>
+      <pubDate>Sun, 04 Aug 2024 09:56:30 +0900</pubDate>
+      
+      <guid>/kafka/mysql_cdc/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>

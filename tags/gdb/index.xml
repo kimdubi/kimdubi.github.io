@@ -9,11 +9,11 @@
       <link>%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Tue, 20 Aug 2024 19:44:20 +0900</lastBuildDate><atom:link href="/tags/gdb/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Tue, 20 Aug 2024 19:45:20 +0900</lastBuildDate><atom:link href="/tags/gdb/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>MySQL innodb_flush_log_at_trx_commit debugging</title>
       <link>/mysql/innodb_flush_log_at_trx_commit/</link>
-      <pubDate>Tue, 20 Aug 2024 19:44:20 +0900</pubDate>
+      <pubDate>Tue, 20 Aug 2024 19:45:20 +0900</pubDate>
       
       <guid>/mysql/innodb_flush_log_at_trx_commit/</guid>
       <description>테스트 배경 특정 시간 내에 대량 데이터 적재를 완료해야하는 개발팀,, 그러나 데이터가 너무 많아 시간이 빠듯하였고, 이에 kafka의 파티션을 늘려 parallel 하게 데이터 적재를 함으로써 시간 내에 완료되도록 하였으나 그 영향으로 병렬 쓰레드가 많아지자 DB의 cpu 사용률이 높아지고 DB 스펙업을 요청하게 되었다

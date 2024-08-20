@@ -1,0 +1,266 @@
+<!doctype html><html lang=en dir=auto><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>MySQL innodb_flush_log_at_trx_commit debugging | kimDuBiA</title><meta name=keywords content="mysql,gdb,debugging"><meta name=description content="테스트 배경 특정 시간 내에 대량 데이터 적재를 완료해야하는 개발팀,, 그러나 데이터가 너무 많아 시간이 빠듯하였고, 이에 kafka의 파티션을 늘려 parallel 하게 데이터 적재를 함으로써 시간 내에 완료되도록 하였으나 그 영향으로 병렬 쓰레드가 많아지자 DB의 cpu 사용률이 높아지고 DB 스펙업을 요청하게 되었다
+요청을 받은 DBA는 비용절감 추세에 따라 가능하면 스펙업 보단 쓰기의 부하를 줄이는 방식을 가이드하였고 로직 개선 등 근본적인 해결방법 외에 우선 DB쪽에서 간단히 파라미터 수정으로 쓰기 부하를 줄이는 방법을 적용하게 되었다."><meta name=author content="kimdubi"><link rel=canonical href=/mysql/innodb_flush_log_at_trx_commit/><meta name=google-site-verification content="XYZabc"><meta name=yandex-verification content="XYZabc"><meta name=msvalidate.01 content="XYZabc"><link crossorigin=anonymous href=/assets/css/stylesheet.min.2dbef8664bbfb3e83a0a44fd4a8fc5010240dbcd1dbc1400753b928b497b8f5e.css integrity="sha256-Lb74Zku/s+g6CkT9So/FAQJA280dvBQAdTuSi0l7j14=" rel="preload stylesheet" as=style><script defer crossorigin=anonymous src=/assets/js/highlight.min.27cd435cc9ed6abb4b496581b151804f79f366c412620272bb94e2f5f598ebcc.js integrity="sha256-J81DXMntartLSWWBsVGAT3nzZsQSYgJyu5Ti9fWY68w=" onload=hljs.initHighlightingOnLoad();></script><link rel=icon href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=16x16 href=%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=32x32 href=%3Clink%20/%20abs%20url%3E><link rel=apple-touch-icon href=%3Clink%20/%20abs%20url%3E><link rel=mask-icon href=%3Clink%20/%20abs%20url%3E><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><meta name=generator content="Hugo 0.80.0"><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme: rgb(29, 30, 32);--entry: rgb(46, 46, 51);--primary: rgb(218, 218, 219);--secondary: rgb(155, 156, 157);--tertiary: rgb(65, 66, 68);--content: rgb(196, 196, 197);--hljs-bg: rgb(46, 46, 51);--code-bg: rgb(55, 56, 62);--border: rgb(51, 51, 51)}.list{background:var(--theme)}.list:not(.dark)::-webkit-scrollbar-track{background:0 0}.list:not(.dark)::-webkit-scrollbar-thumb{border-color:var(--theme)}}</style></noscript><script type=application/javascript>var doNotTrack=false;if(!doNotTrack){(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');ga('create','UA-123-45','auto');ga('send','pageview');}</script><meta property="og:title" content="MySQL innodb_flush_log_at_trx_commit debugging"><meta property="og:description" content="테스트 배경 특정 시간 내에 대량 데이터 적재를 완료해야하는 개발팀,, 그러나 데이터가 너무 많아 시간이 빠듯하였고, 이에 kafka의 파티션을 늘려 parallel 하게 데이터 적재를 함으로써 시간 내에 완료되도록 하였으나 그 영향으로 병렬 쓰레드가 많아지자 DB의 cpu 사용률이 높아지고 DB 스펙업을 요청하게 되었다
+요청을 받은 DBA는 비용절감 추세에 따라 가능하면 스펙업 보단 쓰기의 부하를 줄이는 방식을 가이드하였고 로직 개선 등 근본적인 해결방법 외에 우선 DB쪽에서 간단히 파라미터 수정으로 쓰기 부하를 줄이는 방법을 적용하게 되었다."><meta property="og:type" content="article"><meta property="og:url" content="/mysql/innodb_flush_log_at_trx_commit/"><meta property="og:image" content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta property="article:section" content="mysql"><meta property="article:published_time" content="2024-08-20T19:44:20+09:00"><meta property="article:modified_time" content="2024-08-20T19:44:20+09:00"><meta property="og:site_name" content="kimDuBiA"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta name=twitter:title content="MySQL innodb_flush_log_at_trx_commit debugging"><meta name=twitter:description content="테스트 배경 특정 시간 내에 대량 데이터 적재를 완료해야하는 개발팀,, 그러나 데이터가 너무 많아 시간이 빠듯하였고, 이에 kafka의 파티션을 늘려 parallel 하게 데이터 적재를 함으로써 시간 내에 완료되도록 하였으나 그 영향으로 병렬 쓰레드가 많아지자 DB의 cpu 사용률이 높아지고 DB 스펙업을 요청하게 되었다
+요청을 받은 DBA는 비용절감 추세에 따라 가능하면 스펙업 보단 쓰기의 부하를 줄이는 방식을 가이드하였고 로직 개선 등 근본적인 해결방법 외에 우선 DB쪽에서 간단히 파라미터 수정으로 쓰기 부하를 줄이는 방법을 적용하게 되었다."><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":2,"name":"Mysqls","item":"/mysql/"},{"@type":"ListItem","position":3,"name":"MySQL innodb_flush_log_at_trx_commit debugging","item":"/mysql/innodb_flush_log_at_trx_commit/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"MySQL innodb_flush_log_at_trx_commit debugging","name":"MySQL innodb_flush_log_at_trx_commit debugging","description":"테스트 배경 특정 시간 내에 대량 데이터 적재를 완료해야하는 개발팀,, 그러나 데이터가 너무 많아 시간이 빠듯하였고, 이에 kafka의 파티션을 늘려 parallel 하게 데이터 적재를 함으로써 시간 내에 완료되도록 하였으나 그 영향으로 병렬 쓰레드가 많아지자 DB의 cpu 사용률이 높아지고 DB 스펙업을 요청하게 되었다\n요청을 받은 DBA는 비용절감 추세에 따라 가능하면 스펙업 보단 쓰기의 부하를 줄이는 방식을 가이드하였고 로직 개선 등 근본적인 해결방법 외에 우선 DB쪽에서 간단히 파라미터 수정으로 쓰기 부하를 줄이는 방법을 적용하게 되었다.","keywords":["mysql","gdb","debugging"],"articleBody":"테스트 배경 특정 시간 내에 대량 데이터 적재를 완료해야하는 개발팀,, 그러나 데이터가 너무 많아 시간이 빠듯하였고, 이에 kafka의 파티션을 늘려 parallel 하게 데이터 적재를 함으로써 시간 내에 완료되도록 하였으나 그 영향으로 병렬 쓰레드가 많아지자 DB의 cpu 사용률이 높아지고 DB 스펙업을 요청하게 되었다\n요청을 받은 DBA는 비용절감 추세에 따라 가능하면 스펙업 보단 쓰기의 부하를 줄이는 방식을 가이드하였고 로직 개선 등 근본적인 해결방법 외에 우선 DB쪽에서 간단히 파라미터 수정으로 쓰기 부하를 줄이는 방법을 적용하게 되었다. 그리고 이참에 해당 파라미터에 대해 조금 더 자세하게 소스에서 살펴보았다,,,\n테스트 결론  innodb_flush_log_at_trx_commit =1 → 0 으로 수정하는 것 만으로 두배의 성능 개선 효과가 있었다  단! 이 설정은 아래 코드에서 볼 수 있듯 redo log를 약 1초 마다 디스크로 내려쓰기 때문에 갑작스런 DB 비정상 종료시엔 약 1초간의 데이터 유실이 발생할 수 있다 그렇기 때문에 꼭! 장애시점 근처부터 kafka 토픽에서 데이터를 resync 할 수 있는 서비스, 1초정도의 데이터유실은 감내할 수 있는 서비스에서 사용하도록 한다    시작하기 전에 잠깐 사전지식 MySQL에서 데이터가 변경되면 buffer pool에 데이터를 변경하고 데이터파일을 변경하는 것 외에도 redo log 라는 것을 따로 기록한다. redo log는 DB가 비정상적으로 종료되었을 때에도 데이터를 복구하기 위한 즉 데이터의 안정성 뿐만 아니라 데이터 페이지로 변경사항을 바로바로 내려쓰는 게 아니라 버퍼링을 가능하게 하여 DB성능에도 도움을 주는 역할을 한다. 그리고 이 Redo log를 언제 내려쓰냐에 대한 파라미터가 있는데 그것이 바로 innodb_flush_log_at_trx_commit 이다\n 위의 그림에서 알 수 있듯이, 해당 값에 따라 순간적인 장애시 트랜잭션을 잃을 수 있다.  0 인 경우, MySQL 이나 OS가 갑자기 crash 된다면 최대 1초동안의 트랜잭션을 잃을 수 있다. 1 인 경우, 안전하다. 2 인 경우, OS가 갑자기 crash 된다면 최대 1초동안의 트랜잭션을 잃을 수 있다. 하지만 MySQL 장애시에는 이미 OS 영역으로 데이터는 넘어갔기 때문에 안전할 수 있다.   각 값에 따라, 엄청난 성능을 보일 수 있다.  지난번에 엄청난 양의 log를 위하여 MySQL을 사용하는 팀이 있었는데, 해당값을 1에서 0으로 수정함에 따라 성능이 7배 빨라지기도 했다. 최대 1초정도의 트랜잭션은 무시할 수 있는 서비스 혹은 log를 저장할 서버라면 해당값을 1에서 0으로 변경할 수 있다. MySQL을 가장 빠르고 쉽게 튜닝할 수 있는 parameter 중의 하나이다.    내용 출처 minsql\n디버깅 위 그림에서 본 것과 같은 동작을 mysql 소스에서 확인해보자\n 대략적인 과정  innobase_commit() ====trx_commit_complete_for_mysql() ====trx_flush_log_if_needed() ==== 쿼리가 DDL이면,,, ====log_write_up_to() ====trx_flush_log_if_needed_low() ==== 쿼리가 DML이면,,, ====log_write_up_to() ==== 이부분에서 innodb_flush_log_at_trx_commit 설정값에 따라 동작방식에 차이가 있음 = 기본적으로 트랜잭션이 commit 된 이후 수행되는 프로세스임 수행하는 트랜잭션이 DDL이면 Redo log도 바로 내려쓰는 동작이고 DML이면 innodb_flush_log_at_trx_commit 설정값 (0,1,2) 에 따라 Redo log를 내려쓰는 동작이 조금씩 다르다\n### 코드 부분 static bool innobase_flush_logs(handlerton *hton, bool binlog_group_flush) { DBUG_TRACE; assert(hton == innodb_hton_ptr); if (srv_read_only_mode) { return false; } /* If !binlog_group_flush, we got invoked by FLUSH LOGS or similar. Else, we got invoked by binlog group commit during flush stage. */ if (binlog_group_flush \u0026\u0026 srv_flush_log_at_trx_commit == 0) { /* innodb_flush_log_at_trx_commit=0 (write and sync once per second). Do not flush the redo log during binlog group commit. */ /* This could be unsafe if we grouped at least one DDL transaction, and we removed !trx-ddl_must_flush from condition which is checked inside trx_commit_complete_for_mysql() when we decide if we could skip the flush. */ return false; } /* Signal and wait for all GTIDs to persist on disk. */ if (!binlog_group_flush) { auto id_persistor = clone_sys-get_gtid_persistor(); gtid_persistor.wait_flush(true, true, nullptr); } /* Flush the redo log buffer to the redo log file. Sync it to disc if we are in FLUSH LOGS, or if innodb_flush_log_at_trx_commit=1 (write and sync at each commit). */ log_buffer_flush_to_disk(!binlog_group_flush || srv_flush_log_at_trx_commit == 1); return false; } ### 디버깅 5671 log_buffer_flush_to_disk(!binlog_group_flush || srv_flush_log_at_trx_commit == 1); 1738 if (trx-ddl_operation || trx-ddl_must_flush) { (gdb) p trx-ddl_operation || trx-ddl_must_flush $1 = false 1742 trx_flush_log_if_needed_low(lsn); (gdb) p lsn $2 = 7076920275 = innodb_flush_log_at_trx_commit 설정값을 확인하고 ( srv_flush_log_at_trx_commit == 1) 쿼리가 DDL인지를 확인한다. DDL이면 redo log를 바로 write \u0026 flush 까지 하게 된다 DDL이 아니기 때문에 DML 처리를 위해 trx_flush_log_if_needed_low 로 넘어간다\ntrx_commit = 1 일 때 ### 코드부분 /** If required, flushes the log to disk based on the value of innodb_flush_log_at_trx_commit. */ static void trx_flush_log_if_needed_low(lsn_t lsn) /*!= 여기서는 맨 위에서 보았듯 trx_commit이 0,1,2 에 따라 다르게 동작을 처리하는데 현재 이 쿼리는 trx_commit 1로 수행되었으므로 commit 이후 log_write_up_to 을 호출하면서 바로 redo log write \u0026 flush 처리를 한번에 해버린다 commit 하면서 Redo log 까지 디스크로 내려쓰기 때문에, DB가 비정상 종료되어도 데이터 유실이 없다.\ntrx_commit = 0,2 일 때  switch (srv_flush_log_at_trx_commit) { case 2: /* Write the log but do not flush it to disk */ flush = false; [[fallthrough]]; case 1: /* Write the log and optionally flush it to disk */ wait_stats = log_write_up_to(*log_sys, lsn, flush); MONITOR_INC_WAIT_STATS(MONITOR_TRX_ON_LOG_, wait_stats); return; case 0: /* Do nothing */ return; = 반면 0,2 일 땐 1과 달리 log_write_up_to 를 바로 하지 않는다\n또한 0과 2사이에서도 또 미묘한 차이가 있는데 trx_commit = 2일 때는 case 2: 에 속하므로 우선 여기에서 flush = false 를 들고, 다시 case 1의 log_write_up_to 을 또 수행한다. ( [[fallthrough]] 이 코드는 c++에서 의도적으로 다음 case block으로 넘어가도록 하는 기능이라고 한다 ) 위에 사전지식 부분에서 본 것 처럼 trx_commit=2는 commit 하면 os cache로 flush 까지는 보장하는 동작을 보여주고 있다\n0일 때는 정말 아무것도 안하고 return 한다\nBreakpoint 1, innobase_commit (hton=0x1b187830, thd=0xfffe5c010a10, commit_trx=false) at /mysql_source/mysql-8.0.32/storage/innobase/handler/ha_innodb.cc:5753 . . . /* Don't do write + flush right now. For group commit to work we want to do the flush later. */ trx-flush_log_later = true; }(gdb)p trx-flush_log_later $4 = true (gdb) = trx_commit = 0,2 인 경우엔 특별히 flush_log_later , 즉 flush는 나중에 하라고 상태까지 변경해준다\n Wait_stats log_write_up_to(log_t \u0026log, lsn_t end_lsn, bool flush_to_disk) { . . . if (srv_flush_log_at_trx_commit != 1) { /* We need redo flushed, but because trx != 1, we have disabled notifications sent from log_writer to log_flusher. The log_flusher might be sleeping for 1 second, and we need quick response here. Log_writer avoids waking up log_flusher, so we must do it ourselves here. However, before we wake up log_flusher, we must ensure that log.write_lsn = lsn. Otherwise log_flusher could flush some data which was ready for lsn values smaller than end_lsn and return to sleeping for next 1 second. */ if (log.write_lsn.load() = 결국 주석의 내용처럼 log_writer 와 log_flusher 가 일어날때까지 기다려야하고 이것들은 약 1초마다 깨어난다 즉, 위 사전지식 부분의 trx_commit 설명에서 DB down 혹은 OS 서버 down 시 약 1초간 데이터유실이 있다는 내용은 trx_commit이 1이 아니면 이 log_writer, flusher가 동작할때까지 기다려야하는데 이 쓰레드는 1초마다 일어나기 때문에 얘네가 잠들어있는 약 1초동안의 데이터는 유실이 된다는 의미가 된다\n그리고 위 과정을 체크해주는 것은 이 master thread의 동작이다\nstatic void srv_master_do_active_tasks(void) { const auto cur_time = std::chrono::steady_clock::now(); static std::chrono::steady_clock::time_point last_dict_lru_check; /* First do the tasks that we are suppose to do at each invocation of this function. */ ++srv_main_active_loops; MONITOR_INC(MONITOR_MASTER_ACTIVE_LOOPS); /* ALTER TABLE in MySQL requires on Unix that the table handler can drop tables lazily after there no longer are SELECT queries to them. */ { srv_main_thread_op_info = \"doing background drop tables\"; const auto counter_time = std::chrono::steady_clock::now(); row_drop_tables_for_mysql_in_background(); MONITOR_INC_TIME(MONITOR_SRV_BACKGROUND_DROP_TABLE_MICROSECOND, counter_time); } ut_d(srv_master_do_disabled_loop()); if (srv_shutdown_state.load() = SRV_SHUTDOWN_PRE_DD_AND_SYSTEM_TRANSACTIONS) { return; } /* Do an ibuf merge */ { srv_main_thread_op_info = \"doing insert buffer merge\"; const auto counter_time = std::chrono::steady_clock::now(); ibuf_merge_in_background(false); MONITOR_INC_TIME(MONITOR_SRV_IBUF_MERGE_MICROSECOND, counter_time); } /* Flush logs if needed */ log_buffer_sync_in_background(); /* Now see if various tasks that are performed at defined intervals need to be performed. */ if (srv_shutdown_state.load() = SRV_SHUTDOWN_PRE_DD_AND_SYSTEM_TRANSACTIONS) { return; } srv_update_cpu_usage(); if (trx_sys-rseg_history_len.load()  0) { srv_wake_purge_thread_if_not_active(); } if (cur_time - last_dict_lru_check  SRV_MASTER_DICT_LRU_INTERVAL) { last_dict_lru_check = cur_time; srv_main_thread_op_info = \"enforcing dict cache limit\"; const auto counter_time = std::chrono::steady_clock::now(); ulint n_evicted = srv_master_evict_from_table_cache(50); if (n_evicted != 0) { MONITOR_INC_VALUE(MONITOR_SRV_DICT_LRU_EVICT_COUNT, n_evicted); } MONITOR_INC_TIME(MONITOR_SRV_DICT_LRU_MICROSECOND, counter_time); } } = master thread의 동작 중 하나인 이것은 매 초 마다 DB살림살이에 필요한 각종 작업들을 한다.\nbuffer pool의 데이터 페이지에 대한 LRU 관리, 인덱스 수정을 위한 change buffer, 각종 모니터링 지표 수집, undo log purge(HLL) 작업 외에도 이번 글의 주인공인 log_buffer_sync_in_background redo log를 내려쓰는 작업도 같이 진행한다.\n성능 테스트 및 적용 사례  간단한 성능테스트  각각 innodb_flush_log_at_trx_commit =0 , 1 일때 sysbench로 qps를 비교해보았다 구간에 따라 trx 0이 1에 비해 거의 두배의 성능 향상 (QPS) 을 보여주었다       Thread 2 4 8 16 32 64 128 256 512 1024     trx 0 799 1568 3081 5565 9661 16151 22201 26848 30926 35790   trx 1 1513 2991 6011 12157 23148 33785 40275 45640 44940 45362     서비스 적용 사례  같은 양의 데이터를 적재하는데 수행 속도가 두배이상 개선됨 데이터 적재하는 시간에 여유가 생겼으므로 카프카쪽 파티션을 줄여서 DB 리소스 부하 현상 개선도 가능한 상황이 되었다    ==== ","wordCount":"1477","inLanguage":"en","datePublished":"2024-08-20T19:44:20+09:00","dateModified":"2024-08-20T19:44:20+09:00","author":{"@type":"Person","name":"kimdubi"},"mainEntityOfPage":{"@type":"WebPage","@id":"/mysql/innodb_flush_log_at_trx_commit/"},"publisher":{"@type":"Organization","name":"kimDuBiA","logo":{"@type":"ImageObject","url":"%3Clink%20/%20abs%20url%3E"}}}</script></head><body id=top><script>if(localStorage.getItem("pref-theme")==="dark"){document.body.classList.add('dark');}else if(localStorage.getItem("pref-theme")==="light"){document.body.classList.remove('dark')}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script><header class=header><nav class=nav><div class=logo><a href accesskey=h title="Hi (Alt + H)">Hi</a>
+<span class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)"><svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg><svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></span></div><ul id=menu><li><a href=/ title=Home><span>Home</span></a></li><li><a href=/categories/ title=Categories><span>Categories</span></a></li><li><a href=/tags/ title=tags><span>tags</span></a></li></ul></nav></header><main class=main><article class=post-single><header class=post-header><div class=breadcrumbs><a href>Home</a>&nbsp;»&nbsp;<a href=/mysql/>Mysqls</a></div><h1 class=post-title>MySQL innodb_flush_log_at_trx_commit debugging</h1><div class=post-meta>August 20, 2024&nbsp;·&nbsp;7 min&nbsp;·&nbsp;kimdubi</div></header><div class=toc><details><summary accesskey=c title="(Alt + C)"><span class=details>Table of Contents</span></summary><div class=inner><ul><li><a href=#%ed%85%8c%ec%8a%a4%ed%8a%b8-%eb%b0%b0%ea%b2%bd aria-label="테스트 배경">테스트 배경</a></li><li><a href=#%ed%85%8c%ec%8a%a4%ed%8a%b8-%ea%b2%b0%eb%a1%a0 aria-label="테스트 결론">테스트 결론</a></li><li><a href=#%ec%8b%9c%ec%9e%91%ed%95%98%ea%b8%b0-%ec%a0%84%ec%97%90-%ec%9e%a0%ea%b9%90-%ec%82%ac%ec%a0%84%ec%a7%80%ec%8b%9d aria-label="시작하기 전에 잠깐 사전지식">시작하기 전에 잠깐 사전지식</a></li><li><a href=#%eb%94%94%eb%b2%84%ea%b9%85 aria-label=디버깅>디버깅</a><ul><ul><li><a href=#trx_commit--1-%ec%9d%bc-%eb%95%8c aria-label="trx_commit = 1 일 때">trx_commit = 1 일 때</a></li><li><a href=#trx_commit--02-%ec%9d%bc-%eb%95%8c aria-label="trx_commit = 0,2 일 때">trx_commit = 0,2 일 때</a></li></ul></ul></li><li><a href=#%ec%84%b1%eb%8a%a5-%ed%85%8c%ec%8a%a4%ed%8a%b8-%eb%b0%8f-%ec%a0%81%ec%9a%a9-%ec%82%ac%eb%a1%80 aria-label="성능 테스트 및 적용 사례">성능 테스트 및 적용 사례</a></li></ul></div></details></div><div class=post-content><h1 id=테스트-배경>테스트 배경<a hidden class=anchor aria-hidden=true href=#테스트-배경>#</a></h1><p>특정 시간 내에 대량 데이터 적재를 완료해야하는 개발팀,,
+그러나 데이터가 너무 많아 시간이 빠듯하였고, 이에 kafka의 파티션을 늘려 parallel 하게 데이터 적재를 함으로써 시간 내에 완료되도록 하였으나
+그 영향으로 병렬 쓰레드가 많아지자 DB의 cpu 사용률이 높아지고 DB 스펙업을 요청하게 되었다</p><p>요청을 받은 DBA는 비용절감 추세에 따라 가능하면 스펙업 보단 쓰기의 부하를 줄이는 방식을 가이드하였고
+로직 개선 등 근본적인 해결방법 외에 우선 DB쪽에서 간단히 파라미터 수정으로 쓰기 부하를 줄이는 방법을 적용하게 되었다.
+그리고 이참에 해당 파라미터에 대해 조금 더 자세하게 소스에서 살펴보았다,,,</p><h1 id=테스트-결론>테스트 결론<a hidden class=anchor aria-hidden=true href=#테스트-결론>#</a></h1><ul><li>innodb_flush_log_at_trx_commit =1 → 0 으로 수정하는 것 만으로 두배의 성능 개선 효과가 있었다<ul><li>단! 이 설정은 아래 코드에서 볼 수 있듯 redo log를 약 1초 마다 디스크로 내려쓰기 때문에 갑작스런 DB 비정상 종료시엔 약 1초간의 데이터 유실이 발생할 수 있다</li><li>그렇기 때문에 꼭! 장애시점 근처부터 kafka 토픽에서 데이터를 resync 할 수 있는 서비스, 1초정도의 데이터유실은 감내할 수 있는 서비스에서 사용하도록 한다</li></ul></li></ul><h1 id=시작하기-전에-잠깐-사전지식>시작하기 전에 잠깐 사전지식<a hidden class=anchor aria-hidden=true href=#시작하기-전에-잠깐-사전지식>#</a></h1><p>MySQL에서 데이터가 변경되면 buffer pool에 데이터를 변경하고 데이터파일을 변경하는 것 외에도 redo log 라는 것을 따로 기록한다.
+redo log는 DB가 비정상적으로 종료되었을 때에도 데이터를 복구하기 위한 즉 데이터의 안정성 뿐만 아니라
+데이터 페이지로 변경사항을 바로바로 내려쓰는 게 아니라 버퍼링을 가능하게 하여 DB성능에도 도움을 주는 역할을 한다.
+그리고 이 Redo log를 언제 내려쓰냐에 대한 파라미터가 있는데 그것이 바로 innodb_flush_log_at_trx_commit 이다</p><p><img loading=lazy src=https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/trx_1.png alt></p><ul><li>위의 그림에서 알 수 있듯이, 해당 값에 따라 순간적인 장애시 트랜잭션을 잃을 수 있다.<ul><li>0 인 경우, MySQL 이나 OS가 갑자기 crash 된다면 최대 1초동안의 트랜잭션을 잃을 수 있다.</li><li>1 인 경우, 안전하다.</li><li>2 인 경우, OS가 갑자기 crash 된다면 최대 1초동안의 트랜잭션을 잃을 수 있다. 하지만 MySQL 장애시에는 이미 OS 영역으로 데이터는 넘어갔기 때문에 안전할 수 있다.</li></ul></li><li>각 값에 따라, 엄청난 성능을 보일 수 있다.<ul><li>지난번에 엄청난 양의 log를 위하여 MySQL을 사용하는 팀이 있었는데, 해당값을 1에서 0으로 수정함에 따라 성능이 7배 빨라지기도 했다.</li><li>최대 1초정도의 트랜잭션은 무시할 수 있는 서비스 혹은 log를 저장할 서버라면 해당값을 1에서 0으로 변경할 수 있다.</li><li>MySQL을 가장 빠르고 쉽게 튜닝할 수 있는 parameter 중의 하나이다.</li></ul></li></ul><p>내용 출처 minsql</p><h1 id=디버깅>디버깅<a hidden class=anchor aria-hidden=true href=#디버깅>#</a></h1><p>위 그림에서 본 것과 같은 동작을 mysql 소스에서 확인해보자</p><ul><li>대략적인 과정</li></ul><pre><code>innobase_commit()
+	====&gt;trx_commit_complete_for_mysql()
+		====&gt;trx_flush_log_if_needed() ====&gt; 쿼리가 DDL이면,,,
+			====&gt;log_write_up_to()
+		====&gt;trx_flush_log_if_needed_low() ====&gt; 쿼리가 DML이면,,,
+			====&gt;log_write_up_to()     ====&gt; 이부분에서 innodb_flush_log_at_trx_commit 설정값에 따라 동작방식에 차이가 있음
+</code></pre><p>=> 기본적으로 트랜잭션이 commit 된 이후 수행되는 프로세스임
+수행하는 트랜잭션이 DDL이면 Redo log도 바로 내려쓰는 동작이고
+DML이면 innodb_flush_log_at_trx_commit 설정값 (0,1,2) 에 따라 Redo log를 내려쓰는 동작이 조금씩 다르다</p><pre><code>### 코드 부분
+static bool innobase_flush_logs(handlerton *hton, bool binlog_group_flush) {
+  DBUG_TRACE;
+  assert(hton == innodb_hton_ptr);
+
+  if (srv_read_only_mode) {
+    return false;
+  }
+
+  /* If !binlog_group_flush, we got invoked by FLUSH LOGS or similar.
+  Else, we got invoked by binlog group commit during flush stage. */
+
+  if (binlog_group_flush &amp;&amp; srv_flush_log_at_trx_commit == 0) {
+    /* innodb_flush_log_at_trx_commit=0
+    (write and sync once per second).
+    Do not flush the redo log during binlog group commit. */
+
+    /* This could be unsafe if we grouped at least one DDL transaction,
+    and we removed !trx-&gt;ddl_must_flush from condition which is checked
+    inside trx_commit_complete_for_mysql() when we decide if we could
+    skip the flush. */
+    return false;
+  }
+
+  /* Signal and wait for all GTIDs to persist on disk. */
+  if (!binlog_group_flush) {
+    auto &gt;id_persistor = clone_sys-&gt;get_gtid_persistor();
+    gtid_persistor.wait_flush(true, true, nullptr);
+  }
+
+  /* Flush the redo log buffer to the redo log file.
+  Sync it to disc if we are in FLUSH LOGS, or if
+  innodb_flush_log_at_trx_commit=1
+  (write and sync at each commit). */
+  log_buffer_flush_to_disk(!binlog_group_flush ||
+                           srv_flush_log_at_trx_commit == 1);
+
+  return false;
+}
+
+
+
+
+
+### 디버깅
+
+5671 log_buffer_flush_to_disk(!binlog_group_flush || srv_flush_log_at_trx_commit == 1);
+
+1738 if (trx-&gt;ddl_operation || trx-&gt;ddl_must_flush) {
+
+(gdb) p trx-&gt;ddl_operation || trx-&gt;ddl_must_flush
+$1 = false
+
+1742 trx_flush_log_if_needed_low(lsn);
+(gdb) p lsn
+$2 = 7076920275
+</code></pre><p>=> innodb_flush_log_at_trx_commit 설정값을 확인하고 ( srv_flush_log_at_trx_commit == 1)
+쿼리가 DDL인지를 확인한다. DDL이면 redo log를 바로 write & flush 까지 하게 된다
+DDL이 아니기 때문에 DML 처리를 위해 trx_flush_log_if_needed_low 로 넘어간다</p><h3 id=trx_commit--1-일-때>trx_commit = 1 일 때<a hidden class=anchor aria-hidden=true href=#trx_commit--1-일-때>#</a></h3><pre><code>### 코드부분
+
+/** If required, flushes the log to disk based on the value of
+ innodb_flush_log_at_trx_commit. */
+static void trx_flush_log_if_needed_low(lsn_t lsn) /*!&lt; in: lsn up to which logs
+                                                   are to be flushed. */
+{
+#ifdef _WIN32
+  bool flush = true;
+#else
+  bool flush = srv_unix_file_flush_method != SRV_UNIX_NOSYNC;
+#endif /* _WIN32 */
+
+  Wait_stats wait_stats;
+
+  switch (srv_flush_log_at_trx_commit) {
+    case 2:
+      /* Write the log but do not flush it to disk */
+      flush = false;
+      [[fallthrough]];
+    case 1:
+      /* Write the log and optionally flush it to disk */
+      wait_stats = log_write_up_to(*log_sys, lsn, flush);
+
+      MONITOR_INC_WAIT_STATS(MONITOR_TRX_ON_LOG_, wait_stats);
+
+      return;
+    case 0:
+      /* Do nothing */
+      return;
+  }
+}
+
+
+### 디버깅
+
+(gdb) p srv_flush_log_at_trx_commit
+$4 = 1
+
+1717 wait_stats = log_write_up_to(*log_sys, lsn, flush);
+(gdb) p flush
+$5 = true
+(gdb) info locals
+flush = true
+wait_stats = {wait_loops = 0}
+</code></pre><p>=> 여기서는 맨 위에서 보았듯 trx_commit이 0,1,2 에 따라 다르게 동작을 처리하는데
+현재 이 쿼리는 trx_commit 1로 수행되었으므로
+commit 이후 log_write_up_to 을 호출하면서 바로 redo log write & flush 처리를 한번에 해버린다
+commit 하면서 Redo log 까지 디스크로 내려쓰기 때문에, DB가 비정상 종료되어도 데이터 유실이 없다.</p><h3 id=trx_commit--02-일-때>trx_commit = 0,2 일 때<a hidden class=anchor aria-hidden=true href=#trx_commit--02-일-때>#</a></h3><pre><code>  switch (srv_flush_log_at_trx_commit) {
+    case 2:
+      /* Write the log but do not flush it to disk */
+      flush = false;
+      [[fallthrough]];
+    case 1:
+      /* Write the log and optionally flush it to disk */
+      wait_stats = log_write_up_to(*log_sys, lsn, flush);
+
+      MONITOR_INC_WAIT_STATS(MONITOR_TRX_ON_LOG_, wait_stats);
+
+      return;
+    case 0:
+      /* Do nothing */
+      return;
+
+
+</code></pre><p>=> 반면 0,2 일 땐 1과 달리 log_write_up_to 를 바로 하지 않는다</p><p>또한 0과 2사이에서도 또 미묘한 차이가 있는데
+trx_commit = 2일 때는 case 2: 에 속하므로 우선 여기에서 flush = false 를 들고,
+다시  case 1의  log_write_up_to 을 또 수행한다.
+( [[fallthrough]] 이 코드는 c++에서 의도적으로 다음 case block으로 넘어가도록 하는 기능이라고 한다 )
+위에 사전지식 부분에서 본 것 처럼 trx_commit=2는 commit 하면 os cache로 flush 까지는 보장하는 동작을 보여주고 있다</p><p>0일 때는 정말 아무것도 안하고 return 한다</p><pre><code>Breakpoint 1, innobase_commit (hton=0x1b187830, thd=0xfffe5c010a10, commit_trx=false) at /mysql_source/mysql-8.0.32/storage/innobase/handler/ha_innodb.cc:5753
+
+.
+.
+.
+      /* Don't do write + flush right now. For group commit
+      to work we want to do the flush later. */
+
+      trx-&gt;flush_log_later = true;
+    }(gdb)p trx-&gt;flush_log_later
+$4 = true
+(gdb)
+</code></pre><p>=>  trx_commit = 0,2 인 경우엔 특별히 flush_log_later , 즉 flush는 나중에 하라고 상태까지 변경해준다</p><pre><code>
+Wait_stats log_write_up_to(log_t &amp;log, lsn_t end_lsn, bool flush_to_disk) {
+
+.
+.
+.
+    if (srv_flush_log_at_trx_commit != 1) {
+      /* We need redo flushed, but because trx != 1, we have
+      disabled notifications sent from log_writer to log_flusher.
+
+      The log_flusher might be sleeping for 1 second, and we need
+      quick response here. Log_writer avoids waking up log_flusher,
+      so we must do it ourselves here.
+
+      However, before we wake up log_flusher, we must ensure that
+      log.write_lsn &gt;= lsn. Otherwise log_flusher could flush some
+      data which was ready for lsn values smaller than end_lsn and
+      return to sleeping for next 1 second. */
+
+      if (log.write_lsn.load() &lt; end_lsn) {
+        wait_stats += log_wait_for_write(log, end_lsn, &amp;interrupted);
+      }
+    }
+
+
+</code></pre><p>=> 결국 주석의 내용처럼 log_writer 와 log_flusher 가 일어날때까지 기다려야하고 이것들은 약 1초마다 깨어난다
+즉, 위 사전지식 부분의 trx_commit 설명에서 DB down 혹은 OS 서버 down 시 약 1초간 데이터유실이 있다는 내용은
+trx_commit이 1이 아니면 이 log_writer, flusher가 동작할때까지 기다려야하는데
+이 쓰레드는 1초마다 일어나기 때문에 얘네가 잠들어있는 약 1초동안의 데이터는 유실이 된다는 의미가 된다</p><p>그리고 위 과정을 체크해주는 것은 이 master thread의 동작이다</p><pre><code>static void srv_master_do_active_tasks(void) {
+  const auto cur_time = std::chrono::steady_clock::now();
+  static std::chrono::steady_clock::time_point last_dict_lru_check;
+
+  /* First do the tasks that we are suppose to do at each
+  invocation of this function. */
+
+  ++srv_main_active_loops;
+
+  MONITOR_INC(MONITOR_MASTER_ACTIVE_LOOPS);
+
+  /* ALTER TABLE in MySQL requires on Unix that the table handler
+  can drop tables lazily after there no longer are SELECT
+  queries to them. */
+  {
+    srv_main_thread_op_info = &quot;doing background drop tables&quot;;
+    const auto counter_time = std::chrono::steady_clock::now();
+    row_drop_tables_for_mysql_in_background();
+    MONITOR_INC_TIME(MONITOR_SRV_BACKGROUND_DROP_TABLE_MICROSECOND,
+                     counter_time);
+  }
+
+  ut_d(srv_master_do_disabled_loop());
+
+  if (srv_shutdown_state.load() &gt;=
+      SRV_SHUTDOWN_PRE_DD_AND_SYSTEM_TRANSACTIONS) {
+    return;
+  }
+
+  /* Do an ibuf merge */
+  {
+    srv_main_thread_op_info = &quot;doing insert buffer merge&quot;;
+    const auto counter_time = std::chrono::steady_clock::now();
+
+    ibuf_merge_in_background(false);
+    MONITOR_INC_TIME(MONITOR_SRV_IBUF_MERGE_MICROSECOND, counter_time);
+  }
+
+  /* Flush logs if needed */
+  log_buffer_sync_in_background();
+
+  /* Now see if various tasks that are performed at defined
+  intervals need to be performed. */
+
+  if (srv_shutdown_state.load() &gt;=
+      SRV_SHUTDOWN_PRE_DD_AND_SYSTEM_TRANSACTIONS) {
+    return;
+  }
+
+  srv_update_cpu_usage();
+
+  if (trx_sys-&gt;rseg_history_len.load() &gt; 0) {
+    srv_wake_purge_thread_if_not_active();
+  }
+
+  if (cur_time - last_dict_lru_check &gt; SRV_MASTER_DICT_LRU_INTERVAL) {
+    last_dict_lru_check = cur_time;
+    srv_main_thread_op_info = &quot;enforcing dict cache limit&quot;;
+    const auto counter_time = std::chrono::steady_clock::now();
+    ulint n_evicted = srv_master_evict_from_table_cache(50);
+    if (n_evicted != 0) {
+      MONITOR_INC_VALUE(MONITOR_SRV_DICT_LRU_EVICT_COUNT, n_evicted);
+    }
+    MONITOR_INC_TIME(MONITOR_SRV_DICT_LRU_MICROSECOND, counter_time);
+  }
+}
+
+</code></pre><p>=> master thread의 동작 중 하나인 이것은 매 초 마다 DB살림살이에 필요한 각종 작업들을 한다.</p><p>buffer pool의 데이터 페이지에 대한 LRU 관리, 인덱스 수정을 위한 change buffer, 각종 모니터링 지표 수집, undo log purge(HLL) 작업 외에도
+이번 글의 주인공인 log_buffer_sync_in_background
+redo log를 내려쓰는 작업도 같이 진행한다.</p><h1 id=성능-테스트-및-적용-사례>성능 테스트 및 적용 사례<a hidden class=anchor aria-hidden=true href=#성능-테스트-및-적용-사례>#</a></h1><ul><li>간단한 성능테스트<ul><li>각각 innodb_flush_log_at_trx_commit =0 , 1 일때 sysbench로 qps를 비교해보았다</li><li>구간에 따라 trx 0이 1에 비해 거의 두배의 성능 향상 (QPS) 을 보여주었다</li></ul></li></ul><table><thead><tr><th>Thread</th><th>2</th><th>4</th><th>8</th><th>16</th><th>32</th><th>64</th><th>128</th><th>256</th><th>512</th><th>1024</th></tr></thead><tbody><tr><td>trx 0</td><td>799</td><td>1568</td><td>3081</td><td>5565</td><td>9661</td><td>16151</td><td>22201</td><td>26848</td><td>30926</td><td>35790</td></tr><tr><td>trx 1</td><td>1513</td><td>2991</td><td>6011</td><td>12157</td><td>23148</td><td>33785</td><td>40275</td><td>45640</td><td>44940</td><td>45362</td></tr></tbody></table><ul><li>서비스 적용 사례<ul><li>같은 양의 데이터를 적재하는데 수행 속도가 두배이상 개선됨</li><li>데이터 적재하는 시간에 여유가 생겼으므로 카프카쪽 파티션을 줄여서 DB 리소스 부하 현상 개선도 가능한 상황이 되었다</li></ul></li></ul><p><img loading=lazy src=https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/trx_2.png alt>
+          ====>    <img loading=lazy src=https://raw.githubusercontent.com/kimdubi/kimdubi.github.io/master/images/mysql/trx_3.png alt></p></div><footer class=post-footer><ul class=post-tags><li><a href=/tags/mysql/>mysql</a></li><li><a href=/tags/gdb/>gdb</a></li><li><a href=/tags/debugging/>debugging</a></li></ul><nav class=paginav><a class=next href=/mysql/sort_buffer/><span class=title>Next Page »</span><br><span>MySQL Out of sort memory 에러 발생 원인 디버깅</span></a></nav></footer><div id=disqus_thread></div><script type=text/javascript>(function(){if(window.location.hostname=="localhost")
+return;var dsq=document.createElement('script');dsq.type='text/javascript';dsq.async=true;var disqus_shortname='kimdubia';dsq.src='//'+disqus_shortname+'.disqus.com/embed.js';(document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(dsq);})();</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com/ class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></article></main><footer class=footer><span>&copy; 2024 <a href>kimDuBiA</a></span>
+<span>Powered by
+<a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
+        <a href=https://git.io/hugopapermod rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentcolor"><path d="M12 6H0l6-6z"/></svg></a><script>let menu=document.getElementById('menu')
+menu.scrollLeft=localStorage.getItem("menu-scroll-position");menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft);}
+document.querySelectorAll('a[href^="#"]').forEach(anchor=>{anchor.addEventListener("click",function(e){e.preventDefault();var id=this.getAttribute("href").substr(1);if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({behavior:"smooth"});}else{document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();}
+if(id==="top"){history.replaceState(null,null," ");}else{history.pushState(null,null,`#${id}`);}});});</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){if(document.body.scrollTop>800||document.documentElement.scrollTop>800){mybutton.style.visibility="visible";mybutton.style.opacity="1";}else{mybutton.style.visibility="hidden";mybutton.style.opacity="0";}};</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{if(document.body.className.includes("dark")){document.body.classList.remove('dark');localStorage.setItem("pref-theme",'light');}else{document.body.classList.add('dark');localStorage.setItem("pref-theme",'dark');}})</script><script>document.querySelectorAll('pre > code').forEach((codeblock)=>{const container=codeblock.parentNode.parentNode;const copybutton=document.createElement('button');copybutton.classList.add('copy-code');copybutton.innerText='copy';function copyingDone(){copybutton.innerText='copied!';setTimeout(()=>{copybutton.innerText='copy';},2000);}
+copybutton.addEventListener('click',(cb)=>{if('clipboard'in navigator){navigator.clipboard.writeText(codeblock.textContent);copyingDone();return;}
+const range=document.createRange();range.selectNodeContents(codeblock);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);try{document.execCommand('copy');copyingDone();}catch(e){};selection.removeRange(range);});if(container.classList.contains("highlight")){container.appendChild(copybutton);}else if(container.parentNode.firstChild==container){}else if(codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"){codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);}else{codeblock.parentNode.appendChild(copybutton);}});</script></body></html>
